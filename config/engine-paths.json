@@ -1,0 +1,88 @@
+{
+  "$comment": "Datos del motor de videos que usa el bot. Rutas relativas a ENGINE_DIR (../Proyecto1), salvo las de 'delivery', relativas a DELIVERY_DIR. Acceso de SOLO LECTURA: el bot nunca escribe en el motor. Si el bot pasa a un VPS, un comando de sincronizacion copia estos archivos (ver docs/PLAN.md §12).",
+  "engine": {
+    "lore": {
+      "path": "config/autopilot/lore.json",
+      "use": "Datos de cada personaje (characters.<id>), dinamicas compartidas (shared), memes de la comunidad (community) y reglas de lore (rules). Fuente de las instrucciones de personalidad de los 4 bots.",
+      "usedBy": ["teto", "miku", "luka", "neru"]
+    },
+    "casting": {
+      "path": "config/autopilot/casting.json",
+      "use": "Descripcion corta de personalidad por personaje (personalities.<id>). Ojo: la de Neru dice MUDA; en Discord escribe (habla desde el 8 de octubre de 2026 y prefiere el celular).",
+      "usedBy": ["teto", "miku", "luka", "neru"]
+    },
+    "humor": {
+      "path": "config/autopilot/humor.json",
+      "use": "Tono del canal: preguntas, malentendidos, remates y cierres. Referencia para escribir los grupos de frases fijas.",
+      "usedBy": ["frases"]
+    },
+    "characters": {
+      "path": "config/characters.json",
+      "use": "Por personaje: displayName, subtitleColor (color de los embeds de cada bot), palette, avatarDir y reactions (nombre del archivo de cada emocion).",
+      "usedBy": ["teto", "miku", "luka", "neru"]
+    },
+    "avatars": {
+      "path": "assets/characters/{id}/",
+      "use": "Imagenes por emocion de cada personaje (ej.: neru/enojado.png para avisos de moderacion, teto/r3d_saludando.png para bienvenidas). Base de los avatares cuadrados de los 4 bots.",
+      "usedBy": ["teto", "miku", "luka", "neru"]
+    },
+    "calendario": {
+      "path": "projects/_autopilot/calendario.json",
+      "use": "reels[]: when (con timezone), episodeId, title, hookTitle, state, finalNumber. Calendario de publicacion y anuncio de estrenos.",
+      "usedBy": ["miku"]
+    },
+    "history": {
+      "path": "projects/_autopilot/history.json",
+      "use": "episodes[]: episodeId, date, title, topicId, status, finalNumber. Evita votar temas ya cubiertos; cifras para anuncios.",
+      "usedBy": ["miku", "votaciones"]
+    },
+    "evergreen": {
+      "path": "config/autopilot/evergreen.json",
+      "use": "Banco de temas del canal: sugerencias de opciones para las votaciones (las define GyroP).",
+      "usedBy": ["votaciones"]
+    },
+    "sources": {
+      "path": "config/autopilot/sources.json",
+      "use": "feeds[] RSS de noticias Vocaloid (con lang y weight) y maxAgeHours. Opcion automatica para las noticias de Miku.",
+      "usedBy": ["miku"]
+    },
+    "episode": {
+      "path": "projects/{episodeId}/",
+      "use": "project.json (title), social.json (thumbnail: miniatura del Reel), sources.json (fuentes del episodio). Para anunciar un estreno con su titulo y miniatura.",
+      "usedBy": ["miku"]
+    },
+    "brandBase": {
+      "path": "assets/brand/base/",
+      "use": "logo_principal.png, icono_avatar.png, icono_sin_personaje.png, logos horizontales y favicons. Icono y banner del servidor; avatar de un posible bot neutro.",
+      "usedBy": ["servidor"]
+    },
+    "brandStickers": {
+      "path": "assets/brand/stickers/",
+      "use": "sticker_nuevo_video, sticker_proximo_video, sticker_dato_curioso, sticker_sabias_que, sticker_papu_papu, sticker_teto_saluda. Imagenes para anuncios, tips y bienvenidas.",
+      "usedBy": ["teto", "miku", "luka"]
+    },
+    "logoConTeto": {
+      "path": "assets/brand/logo_con_teto.png",
+      "use": "Marca de agua del canal (la que usan posts e historias).",
+      "usedBy": ["servidor"]
+    },
+    "brandKit": {
+      "path": "assets/brand/kit/",
+      "use": "Kit de marca: 01 Logo, 02 Foto de perfil, 03 Marca de agua, 04 Historias, 05 Videos y publicaciones.",
+      "usedBy": ["servidor"]
+    }
+  },
+  "delivery": {
+    "$comment": "Carpetas del escritorio (DELIVERY_DIR = Desktop/Proyecto vocaloid). Opcionales.",
+    "finales": {
+      "path": "1. Videos finales/",
+      "use": "Videos listos para publicar (no se suben al Discord; solo sirven para saber que hay listo).",
+      "usedBy": ["miku"]
+    },
+    "subidos": {
+      "path": "5. Subidos/",
+      "use": "Videos ya publicados: confirma que un estreno salio antes de anunciarlo.",
+      "usedBy": ["miku"]
+    }
+  }
+}
