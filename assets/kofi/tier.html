@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<!-- Imagen de nivel de Ko-fi (2:1, 1600x800). El nivel se elige con ?tier=1..5; render: node scripts/render-kofi.mjs.
+     Todo lo importante va en la zona central (Ko-fi recorta los bordes). Avatares y fuente se leen del motor (../Proyecto1). -->
+<style>
+  @font-face { font-family: "Fredoka"; font-weight: 600; src: url("../../../Proyecto1/assets/fonts/fredoka-latin-600-normal.woff2") format("woff2"); }
+  @font-face { font-family: "Fredoka"; font-weight: 700; src: url("../../../Proyecto1/assets/fonts/fredoka-latin-700-normal.woff2") format("woff2"); }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { width: 1600px; height: 800px; overflow: hidden; }
+  body {
+    font-family: "Fredoka", "Segoe UI Emoji", sans-serif; font-weight: 700; color: #fff;
+    background: radial-gradient(circle at 50% 55%, var(--mid) 0%, var(--dark) 72%);
+    position: relative;
+  }
+  .deco { position: absolute; inset: 0; pointer-events: none; }
+    .stage { position: absolute; left: 250px; right: 250px; top: 40px; bottom: 40px; display: flex; align-items: center; justify-content: center; gap: 30px; }
+  .art { position: relative; width: 500px; height: 760px; margin-bottom: -40px; align-self: flex-end; flex-shrink: 0; display: flex; align-items: flex-end; justify-content: center; }
+  .art::before { content: ""; position: absolute; width: 470px; height: 470px; border-radius: 50%; left: 15px; top: 150px; background: var(--main); opacity: .55; filter: blur(8px); border: 10px solid var(--light); }
+  .art img { position: relative; max-width: 100%; max-height: 100%; object-fit: contain; filter: drop-shadow(0 18px 30px rgba(0,0,0,.45)); }
+  .trio { width: 660px; }
+  .stage.wide { left: 190px; right: 190px; gap: 20px; }
+  .trio img { position: absolute; bottom: 0; max-height: 600px; width: auto; -webkit-mask-image: linear-gradient(to bottom, #000 82%, transparent 100%); }
+  /* Detras y mas chicas (Miku a la izquierda, Neru a la derecha); Teto al frente y mas grande */
+  .trio img:nth-child(1) { left: -40px; height: 440px; bottom: 150px; z-index: 1; }
+  .trio img:nth-child(2) { right: -25px; height: 440px; bottom: 170px; z-index: 1; }
+  .trio img:nth-child(3) { left: 112px; height: 700px; z-index: 3; }
+  .text { display: flex; flex-direction: column; align-items: flex-start; gap: 18px; min-width: 0; }
+  .pill { font-size: 34px; font-weight: 600; letter-spacing: 2px; background: rgba(255,255,255,.16); border: 3px solid var(--light); border-radius: 999px; padding: 6px 24px; }
+  .name { font-size: var(--name-size, 132px); line-height: .95; color: var(--light); -webkit-text-stroke: 4px var(--dark); paint-order: stroke fill; text-shadow: 0 8px 0 var(--dark), 0 14px 26px rgba(0,0,0,.4); white-space: nowrap; }
+  .text { max-width: 600px; position: relative; z-index: 5; }
+  .badge { height: 1.25em; vertical-align: -0.3em; margin-left: 6px; filter: drop-shadow(0 8px 14px rgba(0,0,0,.4)); }
+  .deco img { position: absolute; width: 96px; opacity: .12; }
+  .price { font-size: 66px; background: var(--main); color: var(--dark); border-radius: 26px; padding: 6px 30px; box-shadow: 0 8px 0 rgba(0,0,0,.25); }
+  .price small { font-size: 40px; }
+  .tag { font-size: 50px; line-height: 1.1; max-width: 600px; }
+</style>
+</head>
+<body>
+<div class="deco" id="deco"></div>
+<div class="stage">
+  <div class="art" id="art"></div>
+  <div class="text">
+    <div class="pill" id="pill"></div>
+    <div class="name" id="name"></div>
+    <div class="price" id="price"></div>
+    <div class="tag" id="tag"></div>
+  </div>
+</div>
+<script>
+  const A = "../../../Proyecto1/assets/characters/";
+  const TIERS = {
+    1: { name: "Puerro", emoji: "🥬", who: "MIKU", price: 2, tag: "Vota los próximos temas", imgs: ["avatars/miku_render.png"], c: ["#0a3a3e", "#1f8f88", "#39c5bb", "#b8f5ee"] },
+    2: { name: "Atún", emoji: "🐟", who: "LUKA", price: 4, tag: "Tus datos en los videos", imgs: ["luka/emocionado_5.png"], c: ["#3e1738", "#9c4a7a", "#e285b2", "#ffd6ea"] },
+    3: { name: "Baguette", emoji: "🥖", who: "TETO", price: 7, tag: "Videos antes que nadie", imgs: ["teto/emocionado.png"], c: ["#4a1530", "#a3304f", "#e0587f", "#ffc2d6"] },
+    4: { name: "Celular", emoji: "📱", who: "NERU", price: 12, tag: "El motor por dentro", imgs: ["neru/r3d_emocionado.png"], c: ["#352544", "#6b5a3a", "#e8d44d", "#fff8bf"] },
+    5: { name: "Triple Baka", emoji: "💥", who: "TRÍO BAKA", price: 25, big: true, tag: "Todo + tu video personalizado", imgs: ["avatars/miku_render.png", "avatars/neru_render.png", "avatars/teto_render.png"], c: ["#2a1240", "#7a2a6a", "#ff5fa2", "#ffe066"] },
+  };
+  const SLUGS = ["puerro", "atun", "baguette", "celular", "triple_baka"];
+  const badge = (i) => `badge_${i}_${SLUGS[i - 1]}.png`;
+  const n = Number(new URLSearchParams(location.search).get("tier") || 1);
+  const t = TIERS[n];
+  const s = document.documentElement.style;
+  [["--dark", 0], ["--mid", 1], ["--main", 2], ["--light", 3]].forEach(([k, i]) => s.setProperty(k, t.c[i]));
+  document.getElementById("pill").textContent = `NIVEL ${n} · ${t.who}`;
+  if (t.big) s.setProperty("--name-size", "124px");
+  else if (t.name.length >= 7) s.setProperty("--name-size", "112px");
+  document.getElementById("name").innerHTML = t.big ? t.name.replace(" ", "<br>") + ` <img class="badge" src="${badge(n)}" alt="">` : `${t.name} <img class="badge" src="${badge(n)}" alt="">`;
+  document.getElementById("price").innerHTML = `$${t.price} <small>USD / mes</small>`;
+  document.getElementById("tag").textContent = t.tag;
+  const art = document.getElementById("art");
+  if (t.imgs.length > 1) art.classList.add("trio");
+  art.innerHTML = t.imgs.map((p) => `<img src="${p.startsWith("avatars/") ? p : A + p}" alt="">`).join("");
+  if (t.imgs.length > 1) document.querySelector(".stage").classList.add("wide");
+  // Patron de fondo determinista (sin azar): el objeto del nivel repetido en una grilla inclinada.
+  const deco = document.getElementById("deco");
+  const pics = n === 5 ? [badge(1), badge(3), badge(4)] : [badge(n)];
+  let html = "", k = 0;
+  for (let y = -20; y < 800; y += 150) for (let x = (y / 150) % 2 ? 40 : 120; x < 1600; x += 190) {
+    html += `<img src="${pics[k % pics.length]}" style="left:${x}px;top:${y}px;transform:rotate(${(k++ % 3 - 1) * 14}deg)" alt="">`;
+  }
+  deco.innerHTML = html;
+</script>
+</body>
+</html>

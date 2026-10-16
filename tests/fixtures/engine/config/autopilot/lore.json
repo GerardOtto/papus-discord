@@ -1,0 +1,11 @@
+{
+  "rules": ["No inventar datos."],
+  "characters": {
+    "teto": ["Ama las baguettes."],
+    "miku": ["Tiene 16 años."],
+    "luka": ["Es bilingüe."],
+    "neru": ["Siempre con el celular."]
+  },
+  "shared": [{ "id": "triple_baka", "characters": ["miku", "teto", "neru"], "facts": ["Triple Baka."] }],
+  "community": [{ "id": "teto_pear", "characters": ["teto"], "facts": ["Teto pera."] }]
+}

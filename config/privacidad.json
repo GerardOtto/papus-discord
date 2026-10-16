@@ -1,0 +1,28 @@
+{
+  "$comment": "El proceso de GyroP (herramientas, programas, IA, cómo se hacen los videos) es PRIVADO: se ofrece en un nivel de Ko-fi. Capa 1: si el mensaje pregunta por eso, el bot responde con una frase fija (sin LLM, sin cuota): 'pregunta_ia' (chiste con IA, la Vocaloid) o 'secreto_estudio'. Capa 3: si una respuesta del LLM menciona algún término de 'terminosProhibidos', se descarta y se usa la frase fija. Las palabras se comparan sin acentos ni mayúsculas. Lo revisa GyroP.",
+  "sujetos": [
+    "gyrop", "yairo", "tus videos", "tu video", "sus videos", "su video", "los videos", "el video", "estos videos",
+    "este video", "el canal", "tu canal", "las voces", "los guiones", "el guion", "los guion", "las animaciones",
+    "la animacion", "los reels", "el reel", "las miniaturas", "las imagenes", "los personajes del canal"
+  ],
+  "preguntaIA": [
+    "ia", "i.a", "inteligencia artificial", "ai", "chatgpt", "chat gpt", "gpt", "openai", "claude", "anthropic", "gemini",
+    "copilot", "llm", "generado con", "generada con", "generados con", "generadas con", "hecho con ia", "hechos con ia",
+    "es ia", "son ia", "usa ia", "usas ia", "usan ia", "con ia", "por ia", "un bot hace", "una maquina"
+  ],
+  "preguntaProceso": [
+    "como hace", "como haces", "como hacen", "como hiciste", "como hizo", "como crea", "como creas", "como edita",
+    "como editas", "como anima", "como animas", "con que hace", "con que haces", "con que edita", "con que editas",
+    "con que programa", "que programa", "que programas", "que software", "que herramienta", "que herramientas", "que app",
+    "que aplicacion", "que editor", "que usa para", "que usas para", "que pc", "que computadora", "el motor", "tu motor",
+    "render", "renderiza", "tts", "texto a voz", "sintetizador de voz", "voz sintetica", "programa usa", "programas usa",
+    "plugin", "plantilla", "workflow", "automatiza", "automatizado"
+  ],
+  "terminosProhibidos": [
+    "remotion", "fish audio", "fish.audio", "elevenlabs", "eleven labs", "chatgpt", "openai", "anthropic", "claude",
+    "gemini", "groq", "llama 3", "nemotron", "cloudflare", "openrouter", "modelo de lenguaje", "llm", "tts", "text to speech",
+    "texto a voz", "sintesis de voz", "voz sintetica", "clonacion de voz", "motor de videos", "el motor de gyrop",
+    "autopilot", "autopiloto", "pipeline", "timeline", "whisper", "ffmpeg", "puppeteer", "python", "typescript",
+    "node.js", "script de", "prompt"
+  ]
+}

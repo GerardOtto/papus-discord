@@ -1,0 +1,7 @@
+{
+  "$comment": "Biografía ('Sobre mí') de cada bot, máximo 400 caracteres. Se aplica con: npm run perfiles (junto con assets/bots/<id>_avatar.png y _banner.png, que genera scripts/make_avatars.py). Borrador para revisión de GyroP.",
+  "teto": "¡Papu papu! Soy Kasane Teto, la que empezó como broma y se quedó para siempre. 🥖\n\nDoy la bienvenida a los Papus nuevos, animo el server y celebro sus cumpleaños.\n\nMenciónanos con @ para platicar: 7 mensajes al día, compartidos entre los cuatro. ¡teto-teetoo!\n\nPersonaje del canal de GyroP · respuestas libres generadas con IA.",
+  "miku": "¡¿QUÉ?! ¡Soy Hatsune Miku, la idol número 01! 🎤\n\nLlevo las votaciones de los próximos videos y anuncio los estrenos, el calendario y las noticias Vocaloid.\n\nMenciónanos con @ para platicar: 7 mensajes al día, compartidos entre los cuatro.\n\nPersonaje del canal de GyroP · respuestas libres generadas con IA.",
+  "luka": "Megurine Luka. Corrijo mitos con datos. 🐟\n\nRecibo sus tips y curiosidades para los videos; si uno se usa, sale en los créditos y en #salón-de-la-fama. Siempre con fuente, please.\n\nMenciónanos con @ para platicar: 7 mensajes al día, compartidos entre los cuatro.\n\nPersonaje del canal de GyroP · respuestas libres generadas con IA.",
+  "neru": "akita neru. modero el server… no es que me importe. 📱\n\nlas reglas están en #reglas. léanlas.\n\nsi me mencionas con @, contesto. o algo. 7 mensajes al día entre los cuatro.\n\npersonaje del canal de GyroP · respuestas libres generadas con IA."
+}

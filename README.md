@@ -5,8 +5,65 @@ Bots y automatización del servidor de Discord de los Papus (canal Vocaloid de G
 - Plan y decisiones: [docs/PLAN.md](docs/PLAN.md)
 - Reglas para trabajar en el repo: [CLAUDE.md](CLAUDE.md)
 
-Estado: base creada. El código empieza con el desarrollo.
-
-## Configuración (cuando exista el código)
+## Uso
 1. Copiar `.env.example` a `.env` y completar los tokens de los 4 bots y las claves de las APIs.
-2. `ENGINE_DIR` apunta a la carpeta del motor (`../Proyecto1`) para leer el lore y el calendario.
+2. `npm install`
+3. `npm run check` revisa `.env`, datos del motor y APIs; `npm run check -- --llm` además prueba la personalidad
+   de los 4 personajes en cada API (se puede pasar un mensaje: `npm run check -- --llm "hola Teto"`).
+4. `npm start` conecta los 4 bots. `npm test` corre las pruebas.
+
+## Qué se edita sin tocar código
+| Archivo | Qué contiene |
+|---|---|
+| `content/personajes/*.md` | Instrucciones de personalidad (comunes y de cada bot). Los datos de lore vienen del motor. |
+| `content/frases/*.json` | Frases fijas por bot y situación (30-40 por grupo, sin repetir). |
+| `config/moderacion.json` | Listas de insultos, groserías muy fuertes, odio, estafas, enlaces permitidos y límites. AutoMod se sincroniza al arrancar. |
+| `config/llm.json` | Cadena de LLM: el modelo local (Ollama) y las APIs gratuitas (modelo, límite diario estimado, tiempo máximo). El orden de cada petición lo decide `src/llm/router.ts`: el local primero si la GPU está libre y no está respondiendo a otro Papu; si no, las APIs, de la que más le queda en el día a la que menos. |
+| `config/ollama/*.Modelfile` | Modelos locales con su ventana de contexto. Crear o actualizar: `ollama create papus-gemma -f config/ollama/papus-gemma.Modelfile`. Comparar modelos: `npm run bench:local -- <modelo> [otro]`. |
+| `config/engine-paths.json` | Rutas de los datos del motor (solo lectura). |
+| `config/servidor.json` | Categorías, canales (con emoji), quién los ve y quién escribe, roles y seguridad. `npm run servidor` muestra los cambios; `npm run servidor -- --apply` los aplica (Teto necesita Administrador mientras corre). Nunca borra. |
+| `content/canales.json` | Mensaje fijado de guía de cada canal y qué Vocaloid lo firma. `npm run guias -- --apply` publica o **edita** (no duplica). Imágenes: `python scripts/make_reactions.py`. |
+| `content/perfiles.json` | Biografía de cada bot. Avatares y banners: `npm run avatares` (elige la cara en `SPEC` de `scripts/make_avatars.py`); se aplican con `npm run perfiles`. |
+
+## Estructura
+- `src/services/` lógica de conversación y moderación (probada sin Discord).
+- `src/discord/` conexión de los 4 bots, comandos, AutoMod y canales.
+- `src/llm/` interfaz única, cadena de respaldo, cola y armado de la petición.
+- `src/moderation/` reglas fijas, strikes y reglas de AutoMod.
+- `src/quota/`, `src/phrases/`, `src/engine/`, `src/db/`.
+- Datos del bot: `data/papus.sqlite` (cuotas, strikes, mazos de frases, uso de APIs). No se sube al repo.
+
+## Funcionamiento diario
+- **Arranque automático:** la tarea "Papus Discord" del Programador de tareas inicia los bots 30 s después de iniciar
+  sesión, sin ventana, y los reinicia si fallan (`npm run autostart`; quitarla: `npm run autostart -- quitar`).
+  Registro: `data/bots.log`.
+- **Ícono en la bandeja** (tarea "Papus Bandeja"; `npm run bandeja`): las chicas rotando con punto verde si están en
+  línea, Neru gris con punto rojo si no. Menú: bots, lista de pedidos, carpetas (Proyecto Vocaloid, motor, bots) y
+  enlaces (Discord, Ko-fi, Cloudflare). Íconos: `npm run iconos`.
+- **Detener y reiniciar con despedida:** `npm run detener` y `npm run reiniciar` (o desde el ícono) dejan
+  `data/detener.flag`; las chicas se despiden y el reinicio automático respeta la detención.
+- **Al apagar el PC:** un script de cierre de sesión de Windows (directiva local) las despide antes de apagar
+  (`npm run despedida-al-apagar`, como administrador; quitarlo: `npm run despedida-al-apagar -- quitar`).
+- **Suspensión:** al despertar, si estuvieron más de 30 min fuera, una de las chicas saluda.
+- **Lista de pedidos:** `npm run pedidos` abre en el navegador la cola con todos los detalles (`data/pedidos.html`).
+- **Cloudflare (`worker/`):** Miku y Luka responden sus comandos 24/7, aunque el PC esté apagado. Publicar cambios del
+  worker o de sus frases: `npm run worker:deploy` (necesita `CLOUDFLARE_DEPLOY_TOKEN` en `.env`).
+- **Emojis exclusivos** (Puerro y superiores): `python scripts/make_emojis.py` y luego `npm run emojis`.
+
+## Comandos
+| Quién | Comando | Dónde corre |
+|---|---|---|
+| Todos | `/cuota` (Teto) | PC |
+| Atún y superiores | `/tip` (Luka): dato + fuente | Cloudflare |
+| Triple Baka | `/pedido`, `/mi-pedido` (Miku) | Cloudflare |
+| GyroP | `/cola ver · detalle · estado · agregar` (Miku) | Cloudflare |
+| Todos | Menú de colores en #tu-color (Miku): color del nombre de la paleta Vocaloid | Cloudflare |
+| GyroP | `/votacion abrir · cerrar` (Miku): encuesta, aviso 12 h antes y ganador | Cloudflare |
+| GyroP | `/votacion candidato · candidatos · quitar · semanal · desempate` (Miku): votación semanal automática (`config/votaciones.json`); el 2.º lugar vuelve con candidatos nuevos | Cloudflare |
+| GyroP | `/calendario`, `/estreno`, `/noticia` (Miku) | Cloudflare |
+| GyroP | `/tip-usado` (Luka): lleva un tip al Salón de la Fama | Cloudflare |
+| GyroP | `/strikes`, `/perdonar` (Neru) | PC |
+
+Automático (PC): Teto da el rol **Papu** a cada uno al entrar y **Fundador** a quien tenga un nivel en la primera semana
+(`config/servidor.json`); cuando GyroP publica en un canal de nivel de solo lectura, Teto avisa en #vitrina dónde y
+para quién (nunca qué). Automático (Cloudflare): Miku abre la votación semanal y la anuncia en #vitrina.

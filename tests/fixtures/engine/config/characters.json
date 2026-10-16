@@ -1,0 +1,8 @@
+{
+  "characters": {
+    "teto": { "displayName": "Teto", "subtitleColor": "#E58FB5", "avatarDir": "assets/characters/teto", "reactions": { "feliz": "feliz.png" } },
+    "miku": { "displayName": "Miku", "subtitleColor": "#39C5BB", "avatarDir": "assets/characters/miku", "reactions": {} },
+    "luka": { "displayName": "Luka", "subtitleColor": "#E285B2", "avatarDir": "assets/characters/luka", "reactions": {} },
+    "neru": { "displayName": "Neru", "subtitleColor": "#E8D44D", "avatarDir": "assets/characters/neru", "reactions": { "enojado": "enojado.png", "feliz": "falta.png" } }
+  }
+}

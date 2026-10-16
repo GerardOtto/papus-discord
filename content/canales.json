@@ -1,0 +1,271 @@
+{
+  "$comment": "Mensaje fijado de guía de cada canal (clave = nombre del canal sin emoji ni acentos). Lo publica `npm run guias` como tarjeta con el color del bot y su imagen de reacción (assets del motor); si el mensaje ya existe, lo EDITA (no duplica). {canal} se convierte en un enlace al canal. 'reaccion' = emoción del motor (characters.json); 'imagen' = imagen grande opcional. Neru siempre en minúsculas. Textos para revisión de GyroP.",
+  "bienvenida": {
+    "bot": "teto",
+    "reaccion": "riendo",
+    "imagen": "assets/bots/teto_banner.png",
+    "titulo": "🌸 ¡Papu papu! Bienvenido al servidor de los Papus 🌸",
+    "texto": "¡Hola, hola! Soy **Teto** y este es nuestro rincón del canal Vocaloid de GyroP ♡(˶ᵔ ᵕ ᵔ˶)\n\nAquí te saludo cada vez que llega un Papu nuevo, ¡así que este canal es solo para eso! ✨\n\n**¿Por dónde empiezo?** 🗺️\n> ✿ Lee {reglas} (Neru se pone gruñona si no 📱)\n> ✿ Preséntate en {general}\n> ✿ Platica con nosotras en {habla-con-los-vocaloids}\n> ✿ Mira los niveles del canal en {niveles-ko-fi}\n> ✿ Elige el color de tu nombre en {tu-color}\n\n¡Ponte cómodo, que aquí hay música, memes y mucho drama del bueno! (≧▽≦)",
+    "pie": "Teto ・ ¡teto-teetoo! 🥖"
+  },
+  "reglas": {
+    "bot": "neru",
+    "reaccion": "nerd",
+    "titulo": "📜 reglas del server",
+    "texto": "soy neru y modero esto. no es que me importe… pero léanlas. (－。－)\n\n**🤝 respeto**\n・ nada de insultos dirigidos a otra persona. un \"no mames\" pasa; un \"eres un…\" no.\n・ cero odio: racismo, homofobia, burlas por cómo es alguien.\n・ nada de contenido para adultos ni violento.\n\n**🔒 seguridad**\n・ no compartas teléfonos, correos ni datos personales (tuyos ni de nadie).\n・ sin invitaciones a otros servers ni enlaces raros. \"nitro gratis\" no existe.\n・ sin spam ni flood. uno a la vez.\n・ cuentas nuevas: el primer día solo enlaces de youtube, spotify, niconico, instagram, x, vocadb y piapro.\n\n**⚠️ si rompes una regla**\n1 advertencia → 2 silencio de 10 min → 3 una hora → 4 un día y aviso a gyrop. los strikes se borran a los 3 días. yo no expulso a nadie: eso solo lo decide gyrop.\n\n**🤖 sobre nosotras, las vocaloids**\n・ somos bots. las respuestas libres se generan con ia y tus mensajes pueden procesarse en servicios externos.\n・ cada papu tiene 7 mensajes al día con nosotras, repartidos entre las cuatro e iguales para todos. usa /cuota.\n\n**💎 lo de los niveles**\n・ lo que se comparte en los canales de pago se queda ahí. no lo filtres.\n\nlisto. ya pueden seguir con su vida. 📱",
+    "pie": "neru ・ moderación"
+  },
+  "anuncios": {
+    "bot": "miku",
+    "reaccion": "emocionado",
+    "titulo": "📣 ¡Anuncios del canal!",
+    "texto": "¡Papu papu! Soy **Miku**, la idol número 01 ✧٩(•́⌄•́๑)\n\nAquí GyroP y yo publicamos lo importante:\n> 🎬 estrenos de videos nuevos\n> 🎉 especiales y celebraciones\n> 📢 noticias grandes del canal\n\nEste canal es solo para leer, ¡así no se pierde nada entre la plática! Si quieres comentar un anuncio, hazlo en {general} 💬\n\n¡Activa las notificaciones para enterarte primero! 🔔",
+    "pie": "Miku ・ ¡Nos vemos, Papus! 🎤"
+  },
+  "niveles-ko-fi": {
+    "bot": "miku",
+    "reaccion": "presumido",
+    "titulo": "💎 Los niveles del canal",
+    "texto": "¡¿QUÉ?! ¿Quieres apoyar a GyroP? ¡Aquí van los niveles! Cada uno incluye todo lo de los anteriores ♡\n\n**🥬 Puerro ・ 2 USD**\nVota los temas de los próximos videos ・ calendario y tema de la semana antes que nadie ・ emojis exclusivos\n\n**🐟 Atún ・ 4 USD**\nTips con crédito en el video y en el Salón de la Fama ・ propón temas ・ vota quién presenta y elige miniaturas ・ pack de stickers 🛠️\n\n**🥖 Baguette ・ 7 USD**\nCada video 24 h antes que en Instagram ・ notas de producción ・ inspiraciones de GyroP ・ fondos de pantalla 🛠️ ・ mención en los créditos de los Reels\n\n**📱 Celular ・ 12 USD**\nEl motor por dentro ・ episodios perdidos ・ preguntas con GyroP cada mes ・ vota los especiales\n\n**💥 Triple Baka ・ 25 USD**\nTODOS los videos del canal ・ un video personalizado con las Vocaloids ・ tu nombre en una tarjeta de agradecimiento\n\n🛠️ Los stickers y los fondos están en producción: llegan a más tardar el **17 de noviembre**, ¡sí o sí!\n⭐ Quien tenga cualquier nivel en la primera semana (17 al 23 de octubre) se queda para siempre con el rol **Fundador**.\n\n👉 **ko-fi.com/tetociencia/tiers**\n\n✨ Ojo: las Vocaloids somos iguales para todos. Pagar no da más mensajes con nosotras: ¡apoyas el proceso de GyroP!",
+    "pie": "Miku ・ gracias por apoyar al canal 💙"
+  },
+  "vitrina": {
+    "bot": "teto",
+    "reaccion": "presumido",
+    "titulo": "👀 La vitrina de los Papus",
+    "texto": "¡Papu papu! Este canal es como asomarse por la ventana de la panadería 🥖\n\nAquí te cuento lo que pasa en los canales de los niveles, sin spoilers:\n> 🗳️ qué videos están votando los Puerros (y cuál ganó)\n> 👀 cuando llega un adelanto para los Baguettes\n> 🎬 notas de producción, contenido del motor, la bóveda y más\n\nNo te digo **qué** hay, solo **dónde** y para **quién** ✨ Si algo te dio curiosidad, mira los niveles en {niveles-ko-fi}.\n\nEste canal es solo para leer: avisamos nosotras.",
+    "pie": "Teto ・ ¡mira lo que te pierdes! 👀"
+  },
+  "tu-color": {
+    "bot": "miku",
+    "reaccion": "saludando",
+    "titulo": "🎨 ¡Elige el color de tu nombre!",
+    "texto": "¡¿QUÉ?! ¿Todavía tienes el nombre sin color? ¡Eso se arregla! ٩(◕‿◕)۶\n\nTodos los Papus pueden elegir un color de la paleta de las Vocaloids con el menú de aquí abajo 👇\n> 🎨 uno a la vez (si eliges otro, cambia)\n> ✨ \"Sin color\" lo quita\n> 🔒 los colores de Miku, Luka, Teto, Neru y el morado Triple Baka son de los niveles de Ko-fi\n\nSi tienes un nivel, en la lista se sigue viendo el color de tu nivel ♡ ¡Y el menú funciona a cualquier hora!",
+    "pie": "Miku ・ ¡que se vea tu color! 🎤",
+    "menu": "colores"
+  },
+  "novedades": {
+    "bot": "luka",
+    "reaccion": "nerd",
+    "titulo": "✨ Novedades del servidor",
+    "texto": "Buenas, Papus. Soy **Luka** 🐟\n\nAquí anotamos los cambios del servidor y de los bots: canales nuevos, ajustes a la cuota diaria, funciones nuevas.\n\nDos promesas:\n> ・ los cambios son **iguales para todos**, sin importar el nivel\n> ・ siempre se avisan aquí antes, con calma y con datos\n\nEste canal es solo para leer. Si tienes dudas, pregúntame con una mención en {habla-con-los-vocaloids}. Exactly.",
+    "pie": "Luka ・ precisión ante todo"
+  },
+  "salon-de-la-fama": {
+    "bot": "luka",
+    "reaccion": "feliz",
+    "titulo": "🏆 Salón de la Fama",
+    "texto": "Aquí viven los Papus cuyo tip llegó a un video ✧\n\nCuando un dato de {tips-y-curiosidades} se usa en un episodio, anoto su nombre aquí y sale en los créditos del video. Investigar con fuente tiene premio (˘ᵕ˘)\n\n¿Quieres estar aquí? Desde el nivel **🐟 Atún** puedes compartir tus tips. Datos verificables, por favor: los mitos no entran.",
+    "pie": "Luka ・ gracias por investigar 🐟"
+  },
+  "general": {
+    "bot": "teto",
+    "reaccion": "feliz",
+    "titulo": "💬 ¡La plaza de los Papus!",
+    "texto": "¡Papu papu! Este es el canal para platicar de lo que sea ٩(◕‿◕)۶\n\n> ☕ cómo te fue hoy\n> 🎵 qué estás escuchando\n> 🍞 debates importantes (¿el pan francés es el mejor pan? sí.)\n\nTiene un modo lento suavecito para que la plática fluya sin spam. Recuerda {reglas}: aquí todos nos llevamos bien ♡\n\n¿Quieres hablar conmigo? Menciónenme en {habla-con-los-vocaloids} ✨",
+    "pie": "Teto ・ ¡teto-teetoo! 🥖"
+  },
+  "charla-vocaloid": {
+    "bot": "luka",
+    "reaccion": "pensando",
+    "titulo": "🎤 Charla Vocaloid",
+    "texto": "Bienvenidos al canal de los fans de verdad 🎶\n\nAquí se habla de canciones, productores, voicebanks, conciertos, historia y teorías del mundo Vocaloid.\n\n> ・ si compartes un dato, mejor con fuente (VocaDB es buena amiga)\n> ・ las letras completas no, por derechos: un fragmento corto basta\n> ・ todos los gustos valen: nadie es \"menos fan\"\n\nWell… y si descubres algo que GyroP no sabía, llévalo a {tips-y-curiosidades} 🐟",
+    "pie": "Luka ・ con fuente, please"
+  },
+  "recomendaciones": {
+    "bot": "miku",
+    "reaccion": "emocionado",
+    "titulo": "🎧 ¡Recomiéndanos música!",
+    "texto": "¡No puede ser! ¿Tienes una canción que todos deberían escuchar? ¡Compártela aquí! 🎶\n\n> 🔗 enlaces de YouTube, Niconico, Spotify, VocaDB o Piapro\n> ✍️ cuéntanos en una frase por qué te gusta\n> 🎨 si es de un productor pequeño, ¡mejor! Así lo descubrimos\n\nUna recomendación por mensaje, porfa, para que no se pierda ninguna. ¿Y tú, Papu? ¿Qué estás escuchando hoy? (｡•̀ᴗ-)✧",
+    "pie": "Miku ・ ¡A ver, que suene! 🎤"
+  },
+  "fanart": {
+    "bot": "teto",
+    "reaccion": "emocionado",
+    "titulo": "🎨 ¡Galería de fanart!",
+    "texto": "¡Aquí se presume arte! Dibujos, edits, cosplays, manualidades… ¡todo lo que hagan con cariño! ♡(˶ᵔ ᵕ ᵔ˶)\n\n> ✿ si no es tuyo, da crédito al artista con su enlace\n> ✿ todo apto para todo público\n> ✿ comenta bonito el arte de los demás: un \"¡qué lindo!\" alegra el día\n\nY si me dibujan con baguette… bueno, no me voy a quejar 🥖✨",
+    "pie": "Teto ・ ¡teto-teetoo!"
+  },
+  "memes": {
+    "bot": "neru",
+    "reaccion": "broma",
+    "titulo": "😹 memes",
+    "texto": "aquí van los memes. vocaloid, del canal o lo que sea. (￣ー￣)\n\n・ nada que se burle de alguien del server\n・ nada para adultos ni ofensivo\n・ si es de otro, crédito\n\nlos de teto con baguette ya los vi todos. sorpréndanme. 📱",
+    "pie": "neru ・ los dejo en visto"
+  },
+  "habla-con-los-vocaloids": {
+    "bot": "miku",
+    "reaccion": "feliz",
+    "titulo": "💌 ¡Habla con las Vocaloids!",
+    "texto": "¡¿QUÉ?! ¿Quieres platicar con nosotras? ¡Este es el lugar! ✧٩(•́⌄•́๑)\n\n**¿Cómo?** Menciónanos con @: **@Teto**, **@Miku**, **@Luka** o **@Neru** (o responde a uno de nuestros mensajes).\n\n**📏 Las reglas del juego**\n> ・ tienes **7 mensajes al día**, compartidos entre las cuatro\n> ・ cada @ cuenta uno: si mencionas a dos, gastas dos\n> ・ se recargan a medianoche de Chile; revisa los tuyos con **/cuota**\n> ・ es igual para todos los Papus, paguen o no ♡\n> ・ una pregunta a la vez: si hay mucha gente, espera tu turno ⏳\n\n**🤖 Para que sepas**\nSomos bots y nuestras respuestas libres se generan con IA. No sabemos todo: si algo es importante, revísalo con una fuente. ¡Y no compartas datos personales!\n\nYa, ya… ¡pregúntanos lo que quieras! 🎤",
+    "pie": "Miku ・ la idol número 01"
+  },
+  "reportes-y-reclamos": {
+    "bot": "neru",
+    "reaccion": "pensando",
+    "titulo": "🐞 reportes y reclamos",
+    "texto": "algo no funciona? aquí se avisa. no es que me importe… pero gyrop lo lee todo. 📱\n\n**qué puedes reportar**\n・ un bot que no responde, responde raro o se queda pensando\n・ tu rol de ko-fi no llegó (espera unos minutos y revisa que conectaste discord en ko-fi)\n・ un canal que no ves y deberías ver\n・ un reclamo, una queja o algo que te pareció injusto\n\n**cómo**\n・ qué pasó, dónde y más o menos a qué hora\n・ si puedes, una captura\n・ un mensaje por problema (hay modo lento de 30 s)\n\n**qué NO va aquí**\n・ tu correo, teléfono u otros datos personales: eso por privado a gyrop\n・ problemas con otra persona: también por privado a gyrop\n\nsi es urgente, menciona a gyrop. si no, paciencia. yo tampoco me apuro.",
+    "pie": "neru ・ gracias por avisar. supongo."
+  },
+  "puerro": {
+    "bot": "miku",
+    "reaccion": "presumido",
+    "titulo": "🔒 Nivel 🥬 Puerro ・ 2 USD al mes",
+    "texto": "¡¿QUÉ?! ¿Todavía no eres Puerro? ¡Te estás perdiendo lo mejor! (≧▽≦)\n\n**Detrás de este candado:**\n> 🗳️ **#votaciones** ・ cada semana eligen el próximo video entre 3 candidatos\n> 📅 **#calendario** ・ qué se publica y el tema de la semana, antes que nadie\n> 😄 emojis exclusivos del servidor\n\n👉 **[Únete en Ko-fi](https://ko-fi.com/tetociencia/tiers)**\nAl unirte, conecta tu Discord en Ko-fi: tu rol llega solo, este candado desaparece y se abren los canales ✨",
+    "pie": "Miku ・ ¡te espero en la votación! 🎤"
+  },
+  "atun": {
+    "bot": "luka",
+    "reaccion": "feliz",
+    "titulo": "🔒 Nivel 🐟 Atún ・ 4 USD al mes",
+    "texto": "Todo lo de Puerro, y además:\n\n> 💡 **#tips-y-curiosidades** ・ comparte datos con su fuente; si se usan, sales en los créditos del video y en el Salón de la Fama\n> 📝 **#propuestas-de-temas** ・ propón videos, vota quién presenta y elige miniaturas\n> 📥 **#descargas** ・ el pack de stickers del canal (en producción: a más tardar el 17 de noviembre)\n\nPara quien disfruta investigar. Una buena fuente vale oro.\n\n👉 **[Únete en Ko-fi](https://ko-fi.com/tetociencia/tiers)**\nAl unirte, conecta tu Discord en Ko-fi: tu rol llega solo, este candado desaparece y se abren los canales ✨",
+    "pie": "Luka ・ con fuente, please 🐟"
+  },
+  "baguette": {
+    "bot": "teto",
+    "reaccion": "presumido",
+    "titulo": "🔒 Nivel 🥖 Baguette ・ 7 USD al mes",
+    "texto": "¡Papu papu! Todo lo de Atún, y además lo más jugoso 🥖\n\n> 👀 **#adelantos** ・ cada video 24 h antes que en Instagram\n> 🎬 **#notas-de-producción** ・ por qué GyroP eligió cada tema, las fuentes y lo que se cortó\n> 💭 **#inspiraciones** ・ productores, canciones y álbumes que lo marcaron\n> 🖼️ **#fondos** ・ fondos de pantalla para celular y PC (en producción: a más tardar el 17 de noviembre)\n> ☕ **#charla-vip** ・ la charla de los Baguette y superiores\n> 🎞️ tu mención en los créditos de los Reels\n\n👉 **[Únete en Ko-fi](https://ko-fi.com/tetociencia/tiers)**\nAl unirte, conecta tu Discord en Ko-fi: tu rol llega solo, este candado desaparece y se abren los canales ✨",
+    "pie": "Teto ・ ¡hay baguette para todos! (bueno, para los Baguette)"
+  },
+  "celular": {
+    "bot": "neru",
+    "reaccion": "broma",
+    "titulo": "🔒 nivel 📱 celular ・ 12 usd al mes",
+    "texto": "mi nivel. todo lo de baguette, y además:\n\n> ⚙️ **#proceso-y-motor** ・ cómo funciona por dentro el motor que hace los videos\n> 📼 **#archivo-lost-media** ・ los episodios perdidos de la primera etapa del canal\n> ❓ **#preguntas-a-gyrop** ・ preguntas y respuestas con gyrop cada mes, y votan los especiales\n\nno es que quiera que te unas. pero estaría bien. supongo. 📱\n\n👉 **[Únete en Ko-fi](https://ko-fi.com/tetociencia/tiers)**\nAl unirte, conecta tu Discord en Ko-fi: tu rol llega solo, este candado desaparece y se abren los canales ✨",
+    "pie": "neru ・ nivel celular"
+  },
+  "triple-baka": {
+    "bot": "teto",
+    "reaccion": "emocionado",
+    "titulo": "🔒 Nivel 💥 Triple Baka ・ 25 USD al mes",
+    "texto": "¡LO MÁS ALTO DEL CANAL! Como el trío: Miku, Neru y yo 💥 Todo lo de Celular, y además:\n\n> 🔐 **#bóveda** ・ TODOS los videos de la historia del canal: publicados, archivados, inéditos y cancelados\n> 🎁 **#cola-de-pedidos** ・ un video personalizado con las Vocaloids cada mes (saludo, cumpleaños o dedicatoria)\n> ⭐ tu nombre en una tarjeta de agradecimiento dentro de un video\n\n👉 **[Únete en Ko-fi](https://ko-fi.com/tetociencia/tiers)**\nAl unirte, conecta tu Discord en Ko-fi: tu rol llega solo, este candado desaparece y se abren los canales ✨",
+    "pie": "Teto ・ ¡baka, baka, baka! 💥"
+  },
+  "votaciones": {
+    "bot": "miku",
+    "reaccion": "emocionado",
+    "titulo": "🗳️ ¡Votaciones de los próximos videos!",
+    "texto": "¡Papu papu! ¡Ustedes deciden de qué trata el próximo video! ٩(◕‿◕)۶\n\nCada semana abro una encuesta con 3 videos. Funciona así:\n> 🗳️ un voto por Papu\n> ⏰ dura 3 días y te aviso antes de que cierre\n> 🏆 el ganador se anuncia aquí mismo\n> 🔁 el segundo lugar no se rinde: vuelve a competir la semana siguiente contra 2 candidatos nuevos\n\nEste canal es solo para votar (así las encuestas no se pierden). ¿Tienes un tema en mente? Desde **🐟 Atún** puedes proponerlo en {propuestas-de-temas} ✨",
+    "pie": "Miku ・ ¡cada voto cuenta! 🎤"
+  },
+  "calendario": {
+    "bot": "miku",
+    "reaccion": "saludando",
+    "titulo": "📅 Calendario de publicación",
+    "texto": "¡Hola, Papus! Aquí verán **qué video viene y cuándo**, y el **tema de la semana**, antes que nadie 👀✨\n\n> 📆 las fechas pueden moverse un poquito (¡los videos se hacen con cariño!)\n> 🤫 lo que ves aquí es un adelanto para Puerros y superiores: no lo cuentes fuera, ¡que sea sorpresa!\n\nPon recordatorio y no te pierdas ningún estreno ♡",
+    "pie": "Miku ・ ¡Nos vemos en el estreno! 🎤"
+  },
+  "tips-y-curiosidades": {
+    "bot": "luka",
+    "reaccion": "nerd",
+    "titulo": "💡 Tips y curiosidades",
+    "texto": "Bienvenidos, investigadores 🐟\n\nAquí recibo datos curiosos para los próximos videos. Si GyroP usa el tuyo, **sales en los créditos** y en {salon-de-la-fama}.\n\n**Cómo mandar un buen tip: usa /tip**\n> ・ el dato, claro y corto\n> ・ **siempre con fuente**: un enlace a VocaDB, una wiki, una entrevista o un video\n> ・ un tip por mensaje\n\nCon **/tip** escribes el dato y pegas el enlace: yo lo publico aquí con su número. Sin fuente, no puedo pasarlo: un dato sin fuente es un rumor. Exactly.",
+    "pie": "Luka ・ con fuente, please 🐟"
+  },
+  "propuestas-de-temas": {
+    "bot": "miku",
+    "reaccion": "pensando",
+    "titulo": "📝 ¡Propón temas!",
+    "texto": "¡Ustedes tienen las mejores ideas! Aquí puedes:\n\n> 💡 **proponer temas** para las próximas votaciones\n> 🎙️ **votar quién presenta** los episodios\n> 🖼️ **elegir miniaturas** entre las opciones de GyroP\n\n**Para que tu propuesta llegue a la votación**\n> ・ un tema por mensaje, con una frase de por qué te interesa\n> ・ reacciona a las propuestas que te gusten ♡\n> ・ que sea del mundo Vocaloid o de la comunidad\n\n¿O sea que yo podría presentar todos los episodios? ¡Voten bien, Papus! (｡•̀ᴗ-)✧",
+    "pie": "Miku ・ ¡Dale!"
+  },
+  "adelantos": {
+    "bot": "miku",
+    "reaccion": "presumido",
+    "titulo": "👀 ¡Adelantos!",
+    "texto": "Shhh… ¡aquí llega **cada video 24 h antes que en Instagram**! 🤫✨\n\n> 🎬 véanlo primero que nadie\n> 💬 coméntenlo en {charla-vip}\n> 🚫 **no lo compartan fuera** hasta que salga oficialmente: ¡es el regalo de los Baguettes!\n\n¡Ser la primera en verlo es mi pasatiempo favorito! 🎤",
+    "pie": "Miku ・ la idol número 01"
+  },
+  "notas-de-produccion": {
+    "bot": "luka",
+    "reaccion": "pensando",
+    "titulo": "🎬 Notas de producción",
+    "texto": "Aquí GyroP cuenta lo que no sale en el video: **por qué eligió cada tema, las fuentes que usó y lo que se cortó** 📝\n\nEs el detrás de cámaras de cada episodio. Léanlas con calma, como quien lee las notas de un disco: se disfruta más la música cuando sabes cómo se pensó.\n\nEste canal es para leer. Comenten en {charla-vip}, y lo que se lee aquí, se queda aquí.",
+    "pie": "Luka ・ elegancia ante todo 🐟"
+  },
+  "inspiraciones": {
+    "bot": "luka",
+    "reaccion": "feliz",
+    "titulo": "💭 Inspiraciones de GyroP",
+    "texto": "Productores, canciones y álbumes que marcaron a GyroP 🎶\n\nCada recomendación viene con su enlace. Una sugerencia: escuchen el álbum completo, de principio a fin. Nadie lo hace ya, y vale la pena.\n\nSi alguno los conquista, cuéntenlo en {charla-vip}. Well… y quizá termine siendo tema de un video.",
+    "pie": "Luka ・ con buenos audífonos 🎧"
+  },
+  "descargas": {
+    "bot": "teto",
+    "reaccion": "feliz",
+    "titulo": "📥 ¡Descargas!",
+    "texto": "¡Papu papu! Aquí vive el **pack de stickers del canal**, para los 🐟 Atún y superiores ✨\n\n> 🏷️ stickers de las Vocaloids y del canal\n> 💎 las insignias de los 5 niveles\n\n🛠️ ¡Están en producción! Llegan aquí a más tardar el **17 de noviembre**, sí o sí ♡\n\nSon para tu uso personal: úsalos en tus chats, en tus historias, ¡donde quieras! Pero no los vendas ni los resubas como tuyos, porfa ♡(˶ᵔ ᵕ ᵔ˶)",
+    "pie": "Teto ・ ¡teto-teetoo! 🥖"
+  },
+  "charla-vip": {
+    "bot": "teto",
+    "reaccion": "riendo",
+    "titulo": "☕ ¡Charla VIP!",
+    "texto": "¡Bienvenidos al salón VIP de los Papus! (≧▽≦)\n\nAquí platican los **🥖 Baguettes** y superiores: comenten los adelantos, las notas de producción, las inspiraciones y lo que quieran.\n\n> ・ aquí sí se vale hablar de lo que viene: es su espacio\n> ・ pero lo que se cuenta aquí, ¡se queda aquí! 🤫\n> ・ las mismas {reglas} de siempre\n\nYa sírvanse un cafecito… ¡y una baguette! 🥖☕",
+    "pie": "Teto ・ ¡teto-teetoo!"
+  },
+  "fondos": {
+    "bot": "teto",
+    "reaccion": "emocionado",
+    "titulo": "🖼️ ¡Fondos de pantalla!",
+    "texto": "¡Regalitos para los Baguettes! 🎁\n\n> 📱 fondos de pantalla para celular\n> 🖥️ fondos para PC\n> ✨ y lo que GyroP vaya agregando\n\n🛠️ ¡Están en producción! Llegan aquí a más tardar el **17 de noviembre**, sí o sí ♡\n\nSon para tu uso personal: ponlos en tu celu, en tu compu, ¡donde quieras! Pero no los vendas ni los resubas como tuyos, porfa ♡(˶ᵔ ᵕ ᵔ˶)\n\n¿Cuál te pusiste? ¡Cuéntame en {charla-vip}!",
+    "pie": "Teto ・ ¡teto-teetoo! 🥖"
+  },
+  "proceso-y-motor": {
+    "bot": "neru",
+    "reaccion": "nerd",
+    "titulo": "⚙️ proceso y motor",
+    "texto": "esto es el nivel celular. mi nivel. así que pórtense bien. 📱\n\naquí gyrop enseña **cómo funciona por dentro el motor que hace los videos**.\n\n・ es contenido exclusivo: **no lo compartas fuera del server**. ni capturas, ni resúmenes.\n・ preguntas sobre esto, en {preguntas-a-gyrop}.\n\nno es que me importe que lo cuiden… pero sí. (－。－)",
+    "pie": "neru ・ nivel celular"
+  },
+  "archivo-lost-media": {
+    "bot": "neru",
+    "reaccion": "broma",
+    "titulo": "📼 archivo lost media",
+    "texto": "aquí están los **episodios perdidos de la primera etapa del canal**. lo que nadie vio. 📼\n\nhistoria del canal en estado puro. algunos son raros. los quiero igual. bueno, no. bueno, un poco.\n\n📂 **[abrir el archivo en google drive](https://drive.google.com/drive/folders/1QW3808iTbWzLIr18FsKFCL2Vog6l3cJX)**\n\n・ están en una carpeta privada de google drive. para entrar, mándale a gyrop por privado (discord o ko-fi) tu gmail. nunca en un canal.\n・ solo para ver: no los subas ni los compartas.\n・ si te da nostalgia, coméntalo en {preguntas-a-gyrop}.\n\n📱",
+    "pie": "neru ・ nivel celular"
+  },
+  "preguntas-a-gyrop": {
+    "bot": "neru",
+    "reaccion": "pensando",
+    "titulo": "❓ preguntas a gyrop",
+    "texto": "aquí le preguntan cosas a gyrop. **cada mes responde las preguntas** que dejen aquí. 📱\n\ntambién aquí se **vota el tema de los especiales**.\n\n・ una pregunta por mensaje\n・ reacciona a las que te interesen: las más votadas van primero\n・ nada de datos personales de nadie\n\nyo no contesto aquí. yo solo vigilo. (－。－)",
+    "pie": "neru ・ nivel celular"
+  },
+  "boveda": {
+    "bot": "teto",
+    "reaccion": "presumido",
+    "titulo": "🔐 ¡La Bóveda!",
+    "texto": "¡Bienvenidos al nivel más alto, **💥 Triple Baka**! Como el trío: Miku, Neru y yo 🥖🎤📱\n\nAquí están **TODOS los videos de la historia del canal**: publicados, archivados, inéditos y hasta cancelados ✨\n\n> 👀 solo para ver (no se descargan)\n> 🚫 **no compartas los enlaces** con nadie: la Bóveda es solo de ustedes\n> ⏳ GyroP la va completando con el tiempo\n\n📂 **[Abrir la Bóveda en Google Drive](https://drive.google.com/drive/folders/1pwoNEcT7aJaeMgj8gt_e3f9Ae8kxQCZo)**\n\n**🔑 ¿Cómo entro?**\nLos videos están en una carpeta privada de Google Drive. Mándale a **GyroP por mensaje privado** (aquí en Discord o en Ko-fi) el **Gmail** con el que los vas a ver, y te da acceso ♡\n> 🔒 nunca escribas tu correo en un canal\n> 📧 el enlace solo abre con el Gmail que diste: si lo reenvías, a la otra persona no le funciona\n\n¡Gracias por llegar hasta aquí, Papu! De verdad. ♡(˶ᵔ ᵕ ᵔ˶)",
+    "pie": "Teto ・ ¡teto-teetoo!"
+  },
+  "cola-de-pedidos": {
+    "bot": "miku",
+    "reaccion": "feliz",
+    "titulo": "🎁 Tu video personalizado: cómo funciona",
+    "texto": "¡Un video hecho solo para ti, con nosotras! 🎤✨\n\nComo **💥 Triple Baka** tienes **un video personalizado al mes**: un saludo, un cumpleaños o una dedicatoria, con una o dos Vocaloids.\n\n**📝 Pídelo con /pedido**\n> ・ para quién es (y cómo se pronuncia, si es difícil)\n> ・ la ocasión y quién habla más\n> ・ gustos, apodos o una anécdota corta\n> ・ si hay fecha límite, como un cumpleaños\n\n**⏳ Cómo sigue**\n> ・ va **por orden de llegada**, sin saltarse a nadie: míralo en el tablero 📋\n> ・ llega en **7 días como máximo** y te aviso cuando empiece y cuando esté listo\n> ・ con **/mi-pedido** ves tu lugar cuando quieras\n> ・ si hay un error en el nombre, se corrige gratis dentro de 7 días\n> ・ un pedido a la vez; el siguiente, al mes del anterior (no se acumulan)\n\n🚫 No se hacen pedidos ofensivos, sexuales, de odio o políticos, ni con datos personales de otras personas. El video es para uso personal: compártelo en tus redes, pero no lo vendas ♡\n\n¡Gracias por ser Triple Baka, Papu! ٩(◕‿◕)۶",
+    "pie": "Miku ・ ¡te va a encantar! 🎤"
+  },
+  "moderacion": {
+    "bot": "neru",
+    "reaccion": "enojado",
+    "titulo": "🛡️ moderación",
+    "texto": "aquí dejo todo lo que modero, gyrop. 📱\n\n・ cada mensaje que borro, con el original y el motivo\n・ los strikes y silencios que pongo\n・ las alertas de automod (también las de cuando el pc está apagado)\n・ te menciono si alguien llega a 4 strikes: expulsar o banear lo decides tú\n\n/strikes y /perdonar son tuyos, por si me equivoco. no pasa seguido.",
+    "pie": "neru ・ solo staff"
+  },
+  "registro-bots": {
+    "bot": "luka",
+    "reaccion": "nerd",
+    "titulo": "📋 Registro de los bots",
+    "texto": "GyroP, aquí dejamos los avisos técnicos 📝\n\n> ・ cuando nos conectamos\n> ・ cuando una API se acerca a su límite diario (80 %)\n> ・ cuando algo falla y conviene revisarlo\n\nNada de esto lo ven los Papus. Si este canal está tranquilo, todo va bien. Exactly.",
+    "pie": "Luka ・ solo staff"
+  },
+  "pruebas-bots": {
+    "bot": "teto",
+    "reaccion": "broma",
+    "titulo": "🧪 ¡Laboratorio de pruebas!",
+    "texto": "¡Aquí puedes probarnos sin que nadie vea, GyroP! (≧▽≦)\n\nMenciónanos, prueba comandos, haz preguntas raras… ¡lo que quieras! Tú no tienes límite de mensajes, así que dale con todo ✨\n\nSolo no me hagas preguntas de matemáticas antes del desayuno 🥖",
+    "pie": "Teto ・ solo staff"
+  }
+}

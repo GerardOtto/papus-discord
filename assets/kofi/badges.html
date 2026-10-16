@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<!-- Insignias de los niveles (SVG dibujado a mano, 512x512, fondo transparente). ?badge=1..5 elige la insignia;
+     render: node scripts/render-kofi.mjs. Mismo trazo para todas: contorno oscuro de 9 px, borde blanco de sticker. -->
+<style>
+  @font-face { font-family: "Fredoka"; font-weight: 700; src: url("../../../Proyecto1/assets/fonts/fredoka-latin-700-normal.woff2") format("woff2"); }
+  html, body { margin: 0; width: 512px; height: 512px; overflow: hidden; background: transparent; }
+  svg { display: block; }
+  .ol { stroke: #15131f; stroke-width: 9; stroke-linejoin: round; stroke-linecap: round; }
+  text { font-family: "Fredoka", sans-serif; font-weight: 700; }
+</style>
+</head>
+<body>
+<svg id="svg" width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <!-- Borde blanco de sticker alrededor de cada objeto -->
+    <filter id="sticker" x="-20%" y="-20%" width="140%" height="140%">
+      <feMorphology in="SourceAlpha" operator="dilate" radius="9" result="d"/>
+      <feFlood flood-color="#ffffff"/>
+      <feComposite in2="d" operator="in" result="w"/>
+      <feDropShadow in="w" dx="0" dy="6" stdDeviation="5" flood-color="#000" flood-opacity=".35" result="ws"/>
+      <feMerge><feMergeNode in="ws"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <radialGradient id="bg" cx="50%" cy="45%" r="60%"><stop offset="0" stop-color="#2a2740"/><stop offset="1" stop-color="#121019"/></radialGradient>
+    <linearGradient id="stalk" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#ffffff"/><stop offset="1" stop-color="#dfe8d6"/></linearGradient>
+    <linearGradient id="tunaGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#26355f"/><stop offset=".48" stop-color="#5f78b0"/><stop offset=".62" stop-color="#c9d4ea"/><stop offset="1" stop-color="#eef2fa"/></linearGradient>
+    <linearGradient id="bread" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f3bd63"/><stop offset="1" stop-color="#c4762b"/></linearGradient>
+
+    <g id="leek">
+      <path class="ol" d="M -34 -20 C -50 -90 -95 -150 -122 -192 L -80 -214 C -60 -160 -30 -100 -8 -30 Z" fill="#2f8f3e"/>
+      <path class="ol" d="M 34 -20 C 50 -90 95 -150 122 -192 L 80 -214 C 60 -160 30 -100 8 -30 Z" fill="#2f8f3e"/>
+      <path class="ol" d="M -26 -20 L -32 -232 L 32 -232 L 26 -20 Z" fill="#52b84f"/>
+      <path d="M 0 -40 L 0 -220" stroke="#8fdc84" stroke-width="7" stroke-linecap="round"/>
+      <rect class="ol" x="-40" y="-40" width="80" height="225" rx="34" fill="url(#stalk)"/>
+      <path d="M -36 -38 L 36 -38 L 36 10 C 10 0 -10 0 -36 10 Z" fill="#cfe9a6"/>
+      <path class="ol" d="M -40 -40 L 40 -40" fill="none"/>
+      <path d="M -14 186 L -20 206 M 0 188 L 0 210 M 14 186 L 20 206" stroke="#15131f" stroke-width="6" stroke-linecap="round"/>
+      <rect class="ol" x="-48" y="62" width="96" height="50" rx="12" fill="#39c5bb"/>
+      <text x="0" y="99" font-size="36" fill="#ffffff" text-anchor="middle">01</text>
+    </g>
+
+    <g id="tuna">
+      <path class="ol" d="M -30 -76 L 8 -138 L 44 -82 Z" fill="#26355f"/>
+      <path class="ol" d="M -18 60 L 12 104 L 36 62 Z" fill="#9fb1d6"/>
+      <path class="ol" d="M -148 0 L -224 -80 Q -198 0 -224 80 Z" fill="#26355f"/>
+      <path class="ol" d="M -158 0 C -110 -80 70 -102 180 -8 C 184 -2 184 4 178 10 C 80 82 -110 72 -158 0 Z" fill="url(#tunaGrad)"/>
+      <path d="M -112 -38 l 10 -16 l 8 14 Z M -86 -50 l 10 -16 l 8 14 Z M -112 38 l 10 16 l 8 -14 Z M -86 48 l 10 16 l 8 -14 Z" fill="#f2cf3a" stroke="#15131f" stroke-width="3" stroke-linejoin="round"/>
+      <path d="M 96 -56 C 78 -20 78 20 96 56" fill="none" stroke="#15131f" stroke-width="7" stroke-linecap="round"/>
+      <path class="ol" d="M 62 8 L 8 42 L 58 30 Z" fill="#4a5f94"/>
+      <circle cx="136" cy="-20" r="17" fill="#ffffff" stroke="#15131f" stroke-width="6"/>
+      <circle cx="140" cy="-19" r="8" fill="#15131f"/>
+      <circle cx="143" cy="-23" r="3" fill="#ffffff"/>
+      <path d="M 180 -2 L 160 4" stroke="#15131f" stroke-width="6" stroke-linecap="round"/>
+      <path class="ol" d="M -62 -84 L -24 -90 L -14 76 L -52 72 Z" fill="#e285b2"/>
+      <path class="ol" d="M -40 -92 C -96 -146 -118 -78 -40 -92 Z" fill="#ef9cc4"/>
+      <path class="ol" d="M -40 -92 C 14 -150 40 -80 -40 -92 Z" fill="#ef9cc4"/>
+      <circle class="ol" cx="-40" cy="-92" r="13" fill="#c45f92"/>
+    </g>
+
+    <g id="baguette">
+      <rect class="ol" x="-205" y="-54" width="410" height="108" rx="54" fill="url(#bread)"/>
+      <path d="M -175 -24 L -132 22 M -118 -24 L -75 22 M 75 -24 L 118 22 M 132 -24 L 175 22" stroke="#f9dc9c" stroke-width="15" stroke-linecap="round"/>
+      <path class="ol" d="M -78 -80 L -50 -70 L -22 -82 L 6 -70 L 34 -82 L 62 -70 L 82 -78 L 92 80 L -88 80 Z" fill="#efe2c4"/>
+      <rect class="ol" x="-86" y="-30" width="174" height="60" rx="6" fill="#e0425f"/>
+      <text x="1" y="15" font-size="42" fill="#ffffff" text-anchor="middle" letter-spacing="2">TETO</text>
+    </g>
+
+    <g id="phone">
+      <path d="M 78 150 C 120 160 128 196 104 212" fill="none" stroke="#15131f" stroke-width="6" stroke-linecap="round"/>
+      <path class="ol" d="M 104 202 C 82 182 108 164 116 182 C 124 164 150 182 128 202 L 116 214 Z" fill="#ff7aa8" stroke-width="6"/>
+      <rect class="ol" x="-82" y="-218" width="164" height="196" rx="28" fill="#f2cf3a"/>
+      <rect x="-24" y="-208" width="48" height="8" rx="4" fill="#15131f"/>
+      <rect class="ol" x="-60" y="-190" width="120" height="140" rx="14" fill="#1d1a2e" stroke-width="7"/>
+      <rect x="-46" y="-174" width="74" height="26" rx="13" fill="#e8d44d"/>
+      <rect x="-26" y="-138" width="74" height="26" rx="13" fill="#8a7fd0"/>
+      <circle cx="-24" cy="-88" r="7" fill="#e8d44d"/><circle cx="0" cy="-88" r="7" fill="#e8d44d"/><circle cx="24" cy="-88" r="7" fill="#e8d44d"/>
+      <rect class="ol" x="-72" y="-30" width="144" height="32" rx="12" fill="#d4ad1c"/>
+      <rect class="ol" x="-82" y="-4" width="164" height="214" rx="28" fill="#f2cf3a"/>
+      <circle cx="0" cy="34" r="22" fill="#1d1a2e"/><circle cx="0" cy="34" r="8" fill="#f2cf3a"/>
+      <rect x="-64" y="22" width="32" height="16" rx="6" fill="#1d1a2e"/><rect x="32" y="22" width="32" height="16" rx="6" fill="#1d1a2e"/>
+      <g fill="#1d1a2e" id="keys"></g>
+    </g>
+  </defs>
+  <g id="frame"></g>
+  <g id="item" filter="url(#sticker)"></g>
+</svg>
+<script>
+  // Teclado del celular: grilla 3x4 (determinista).
+  const keys = document.getElementById("keys");
+  for (let r = 0; r < 4; r++) for (let c = 0; c < 3; c++) {
+    const k = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+    Object.entries({ x: -56 + c * 40, y: 72 + r * 32, width: 32, height: 22, rx: 8 }).forEach(([a, v]) => k.setAttribute(a, v));
+    keys.appendChild(k);
+  }
+  const BADGES = {
+    1: { color: "#39c5bb", items: [["leek", 256, 262, 35, 0.78]] },
+    2: { color: "#e285b2", items: [["tuna", 266, 266, -20, 0.78]] },
+    3: { color: "#e0587f", items: [["baguette", 256, 256, -38, 0.92]] },
+    4: { color: "#e8d44d", items: [["phone", 250, 262, 12, 0.8]] },
+    5: { color: "#9b6cff", items: [["leek", 158, 232, -24, 0.5], ["phone", 356, 222, 16, 0.5], ["baguette", 256, 214, -86, 0.5]], banner: "TRIPLE BAKA" },
+  };
+  const n = Number(new URLSearchParams(location.search).get("badge") || 1);
+  const b = BADGES[n];
+  // Marco hexagonal: borde blanco de sticker, borde del color del nivel, fondo oscuro y confeti del color.
+  const hex = "M 256 40 L 442 148 L 442 364 L 256 472 L 70 364 L 70 148 Z";
+  const tri = (x, y, r) => `<path d="M 0 -14 L 13 9 L -13 9 Z" transform="translate(${x} ${y}) rotate(${r})" fill="${b.color}"/>`;
+  document.getElementById("frame").innerHTML =
+    `<path d="${hex}" fill="#ffffff" stroke="#ffffff" stroke-width="44" stroke-linejoin="round"/>` +
+    `<path d="${hex}" fill="url(#bg)" stroke="${b.color}" stroke-width="20" stroke-linejoin="round"/>` +
+    tri(122, 196, 20) + tri(140, 340, -30) + tri(392, 172, 45) + tri(386, 344, 10) + tri(256, 92, 0);
+  document.getElementById("item").innerHTML = b.items.map(([id, x, y, r, s]) =>
+    `<use href="#${id}" transform="translate(${x} ${y}) rotate(${r}) scale(${s})"/>`).join("") +
+    (b.banner ? `<g transform="translate(256 392)">
+        <path class="ol" d="M -214 -6 L -186 -34 L -186 34 Z M 214 -6 L 186 -34 L 186 34 Z" fill="#b8457e"/>
+        <path class="ol" d="M -192 -38 L 192 -38 L 200 34 L -200 34 Z" fill="#ff5fa2"/>
+        <text x="0" y="14" font-size="46" fill="#ffffff" text-anchor="middle" letter-spacing="1">${b.banner}</text></g>` : "");
+</script>
+</body>
+</html>

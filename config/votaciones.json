@@ -1,0 +1,10 @@
+{
+  "$comment": "Votación semanal de Miku en #votaciones (Puerro y superiores), la abre sola el worker de Cloudflare. Cada ronda: el segundo lugar de la anterior (si hubo) + candidatos nuevos de la lista de espera hasta completar 'opciones'. 'primera' = cuándo se abre la primera (hora de Chile); las siguientes, 'cadaDias' después de la anterior. Dura 'duraDias'. 'semilla' = candidatos iniciales (solo si la lista está vacía). GyroP agrega candidatos con /votacion candidato y ve la lista con /votacion candidatos. Para cambiar la hora, edita 'primera' y despliega (npm run worker:deploy).",
+  "canal": "votaciones",
+  "pregunta": "¿Qué video quieren para la próxima semana?",
+  "primera": "2026-10-17T18:00:00-03:00",
+  "cadaDias": 7,
+  "duraDias": 3,
+  "opciones": 3,
+  "semilla": ["Video de Kafu", "Video de Ruko", "Video de Momo"]
+}

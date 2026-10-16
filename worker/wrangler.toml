@@ -1,0 +1,17 @@
+# Worker de Cloudflare de los Papus (Miku y Luka, 24/7). Lo despliega `npm run worker:deploy`, que crea la base D1,
+# completa database_id, sube los tokens como secretos y conecta los comandos de Discord a este worker.
+name = "papus-bots"
+main = "src/index.ts"
+compatibility_date = "2026-10-01"
+compatibility_flags = ["nodejs_compat"]
+
+[triggers]
+crons = ["*/15 * * * *"]
+
+[[d1_databases]]
+binding = "DB"
+database_name = "papus"
+database_id = "90a57d9d-5386-4867-9e11-ae6b62238ca8"
+
+[observability]
+enabled = true

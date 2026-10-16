@@ -1,0 +1,57 @@
+{
+  "$comment": "Cadena de respaldo del LLM (regla 5). preferencia \"apis\" (decisión de GyroP, 16 oct. 2026, porque responden mejor que el modelo local): las APIs se TURNAN, cada mensaje a la que le queda más cupo del día (a igual cupo, la que se usó hace más tiempo), y el modelo LOCAL (Ollama en el PC de GyroP) queda de respaldo si todas fallan, están limitadas por minuto o sin cupo. Con preferencia \"local\": el local primero (más privado y sin límite) y las APIs de respaldo, salvo si la tarjeta está ocupada. Todos usan el formato compatible con OpenAI. Cambiar un modelo aquí no requiere tocar código; probar la personalidad antes (npm run check -- --llm; modelos locales: npm run bench:local -- <modelo>). Una sola cuenta por proveedor. dailyRequests = peticiones diarias gratuitas ESTIMADAS (verificar en el panel de cada API): reparten los turnos, alimentan el aviso del 80 % y el cálculo de la cuota (PLAN §5). timeoutMs por proveedor reemplaza al general.",
+  "preferencia": "apis",
+  "providers": [
+    {
+      "name": "local",
+      "baseUrl": "http://localhost:11434/v1",
+      "model": "papus-gemma",
+      "timeoutMs": 25000,
+      "extra": {
+        "reasoning_effort": "none"
+      }
+    },
+    {
+      "name": "groq",
+      "baseUrl": "https://api.groq.com/openai/v1",
+      "model": "openai/gpt-oss-120b",
+      "keyEnv": "GROQ_API_KEY",
+      "dailyRequests": 1000,
+      "extra": {
+        "reasoning_effort": "low"
+      }
+    },
+    {
+      "name": "gemini",
+      "baseUrl": "https://generativelanguage.googleapis.com/v1beta/openai",
+      "model": "gemini-3.5-flash-lite",
+      "keyEnv": "GEMINI_API_KEY",
+      "dailyRequests": 1000,
+      "extra": {
+        "reasoning_effort": "low"
+      }
+    },
+    {
+      "name": "openrouter",
+      "baseUrl": "https://openrouter.ai/api/v1",
+      "model": "nvidia/nemotron-3-super-120b-a12b:free",
+      "keyEnv": "OPENROUTER_API_KEY",
+      "dailyRequests": 50,
+      "extra": {
+        "reasoning": {
+          "enabled": false
+        }
+      }
+    },
+    {
+      "name": "cloudflare",
+      "baseUrl": "https://api.cloudflare.com/client/v4/accounts/{CLOUDFLARE_ACCOUNT_ID}/ai/v1",
+      "model": "@cf/meta/llama-3.3-70b-instruct-fp8-fast",
+      "keyEnv": "CLOUDFLARE_API_TOKEN",
+      "dailyRequests": 170
+    }
+  ],
+  "timeoutMs": 30000,
+  "maxTokens": 700,
+  "temperature": 0.9
+}

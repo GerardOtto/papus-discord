@@ -1,0 +1,5 @@
+# Modelo local de los bots (Ollama): Gemma 4 E4B con ventana de 6144 tokens (una mencion a los 4 bots con
+# historial y videos ronda 3500 + la respuesta; la ventana por defecto de 4096 la recortaria sin avisar).
+# Crear o actualizar: ollama create papus-gemma -f config/ollama/papus-gemma.Modelfile
+FROM gemma4:e4b
+PARAMETER num_ctx 6144

@@ -1,0 +1,43 @@
+{
+  "name": "papus-discord",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Bots del servidor de Discord de los Papus (Teto, Miku, Luka y Neru): cuota compartida, frases fijas, LLM gratuito con respaldo y moderacion por reglas.",
+  "type": "module",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "start": "node --disable-warning=ExperimentalWarning --import tsx src/main.ts",
+    "check": "node --disable-warning=ExperimentalWarning --import tsx scripts/check.ts",
+    "typecheck": "tsc",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "perfiles": "node --disable-warning=ExperimentalWarning --import tsx scripts/apply-profiles.ts",
+    "avatares": "python scripts/make_avatars.py",
+    "bench:local": "node --disable-warning=ExperimentalWarning --import tsx scripts/bench-local.ts",
+    "servidor": "node --disable-warning=ExperimentalWarning --import tsx scripts/setup-server.ts",
+    "guias": "node --disable-warning=ExperimentalWarning --import tsx scripts/post-guides.ts",
+    "worker:deploy": "node --disable-warning=ExperimentalWarning --import tsx scripts/worker-deploy.ts",
+    "worker:typecheck": "tsc -p worker/tsconfig.json",
+    "emojis": "node --disable-warning=ExperimentalWarning --import tsx scripts/setup-emojis.ts",
+    "autostart": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/autostart.ps1",
+    "detener": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/stop-bots.ps1",
+    "bandeja": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/autostart.ps1 bandeja",
+    "iconos": "python scripts/make_tray_icons.py",
+    "reiniciar": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/stop-bots.ps1 -Reiniciar",
+    "despedida-al-apagar": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/logoff-script.ps1",
+    "pedidos": "node --disable-warning=ExperimentalWarning --import tsx scripts/pedidos.ts"
+  },
+  "dependencies": {
+    "discord.js": "14.27.0",
+    "tsx": "4.23.15"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^5.20261016.1",
+    "@types/node": "24.10.1",
+    "typescript": "5.7.3",
+    "vitest": "5.0.3",
+    "wrangler": "^4.151.1"
+  }
+}

@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<!-- Portada de producto de la tienda de Ko-fi (1200x1200). ?p=1..3 (Express, Personalizado, Especial); render: node scripts/render-kofi.mjs.
+     Lo importante va al centro; los avatares son los renders de assets/kofi/avatars. -->
+<style>
+  @font-face { font-family: "Fredoka"; font-weight: 600; src: url("../../../Proyecto1/assets/fonts/fredoka-latin-600-normal.woff2") format("woff2"); }
+  @font-face { font-family: "Fredoka"; font-weight: 700; src: url("../../../Proyecto1/assets/fonts/fredoka-latin-700-normal.woff2") format("woff2"); }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { width: 1200px; height: 1200px; overflow: hidden; }
+  body { font-family: "Fredoka", sans-serif; font-weight: 700; color: #fff; position: relative;
+    background: radial-gradient(circle at 50% 62%, var(--mid) 0%, var(--dark) 70%); }
+  .deco { position: absolute; inset: 0; }
+  .deco img { position: absolute; width: 110px; opacity: .1; }
+  .top { position: absolute; top: 70px; left: 0; right: 0; display: flex; flex-direction: column; align-items: center; gap: 14px; z-index: 5; }
+  .kicker { font-size: 34px; font-weight: 600; letter-spacing: 3px; background: rgba(255,255,255,.14); border: 3px solid var(--light); border-radius: 999px; padding: 6px 26px; }
+  .name { font-size: 112px; line-height: .95; text-align: center; color: var(--light); -webkit-text-stroke: 4px var(--dark); paint-order: stroke fill;
+    text-shadow: 0 8px 0 var(--dark), 0 14px 26px rgba(0,0,0,.4); }
+  .sub { font-size: 44px; }
+  .chips { display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; max-width: 980px; margin-top: 8px; }
+  .chips span { font-size: 30px; font-weight: 600; background: rgba(0,0,0,.28); border: 2px solid rgba(255,255,255,.35); border-radius: 999px; padding: 6px 20px; }
+  .art { position: absolute; left: 0; right: 0; bottom: 0; height: 640px; }
+  .art::before { content: ""; position: absolute; width: 560px; height: 560px; border-radius: 50%; left: 320px; top: 90px; background: var(--main); opacity: .5; filter: blur(10px); border: 10px solid var(--light); }
+  .art img { position: absolute; bottom: 0; -webkit-mask-image: linear-gradient(to bottom, #000 80%, transparent 100%); filter: drop-shadow(0 16px 26px rgba(0,0,0,.45)); }
+  .price { position: absolute; right: 22px; top: 22px; z-index: 6; width: 196px; height: 196px; border-radius: 50%; background: var(--main); color: var(--dark);
+    border: 8px solid #fff; display: flex; flex-direction: column; align-items: center; justify-content: center; box-shadow: 0 14px 30px rgba(0,0,0,.4); transform: rotate(-8deg); }
+  .price b { font-size: 80px; line-height: .9; }
+  .price small { font-size: 24px; }
+  .price em { font-style: normal; font-size: 19px; margin-top: 6px; background: var(--dark); color: #fff; border-radius: 999px; padding: 3px 12px; }
+  .time { position: absolute; left: 70px; bottom: 100px; z-index: 6; font-size: 40px; background: #fff; color: var(--dark); border-radius: 22px; padding: 10px 26px; box-shadow: 0 10px 24px rgba(0,0,0,.35); transform: rotate(4deg); }
+</style>
+</head>
+<body>
+<div class="deco" id="deco"></div>
+<div class="art" id="art"></div>
+<div class="top">
+  <div class="kicker" id="kicker"></div>
+  <div class="name" id="name"></div>
+  <div class="sub" id="sub"></div>
+  <div class="chips" id="chips"></div>
+</div>
+<div class="time" id="time"></div>
+<div class="price" id="price"></div>
+<script>
+  const OCASIONES = ["Cumpleaños", "Graduación", "Logros", "Ánimo", "Dedicatorias", "Saludo para tu canal"];
+  // imgs: [archivo, left, height, z, voltear?, subir (px)?]
+  const P = {
+    1: { kicker: "SALUDO EXPRESS", name: "Tu Vocaloid<br>te saluda", sub: "con tu nombre y tu ocasión", time: "30 segundos", price: 10, libre: 15, badge: "badge_1_puerro.png",
+         imgs: [["miku_render.png", 340, 600, 2]], c: ["#0a3a3e", "#1f8f88", "#39c5bb", "#b8f5ee"] },
+    2: { kicker: "VIDEO PERSONALIZADO", name: "Un video<br>solo para ti", sub: "con hasta 2 Vocaloids", time: "1 minuto", price: 20, libre: 25, badge: "badge_3_baguette.png",
+         imgs: [["miku_render.png", 240, 560, 1], ["teto_render.png", 470, 620, 2]], c: ["#4a1530", "#a3304f", "#e0587f", "#ffc2d6"] },
+    3: { kicker: "VIDEO ESPECIAL", name: "Hecho a<br>tu medida", sub: "con hasta 3 Vocaloids", time: "2 minutos", price: 30, libre: 35, badge: "badge_5_triple_baka.png",
+         imgs: [["miku_render.png", 160, 520, 1], ["neru_render.png", 630, 610, 1, true], ["teto_render.png", 400, 620, 2]], c: ["#2a1240", "#7a2a6a", "#ff5fa2", "#ffe066"] },
+    // 4: entrada gratis al Discord (producto de 0 USD); los 4 personajes de los bots de Discord
+    4: { kicker: "DISCORD DE LOS PAPUS", name: "Entrada<br>gratis", sub: "habla con Miku, Teto, Luka y Neru", time: "Para todos los Papus", free: true,
+         badge: ["badge_1_puerro.png", "badge_2_atun.png", "badge_3_baguette.png", "badge_4_celular.png"],
+         chips: ["Bots de Discord", "Charla Vocaloid", "Recomendaciones", "Fanart", "Memes", "Sesiones de escucha", "Estrenos"],
+         imgs: [["../../../Proyecto1/assets/characters/luka/saludando_2.png", 40, 520, 1, true], ["miku_render.png", 250, 540, 2], ["neru_render.png", 620, 550, 2, true, 40], ["teto_render.png", 430, 640, 3]],
+         c: ["#1a1a4a", "#3a3a8a", "#7289da", "#c9d4ff"] },
+  };
+  const n = Number(new URLSearchParams(location.search).get("p") || 1);
+  const p = P[n];
+  const s = document.documentElement.style;
+  [["--dark", 0], ["--mid", 1], ["--main", 2], ["--light", 3]].forEach(([k, i]) => s.setProperty(k, p.c[i]));
+  document.getElementById("kicker").textContent = p.kicker;
+  document.getElementById("name").innerHTML = p.name;
+  document.getElementById("sub").textContent = p.sub;
+  document.getElementById("chips").innerHTML = (p.chips || [...OCASIONES, "Tema libre"]).map((o) => `<span>${o}</span>`).join("");
+  document.getElementById("time").textContent = p.time;
+  document.getElementById("price").innerHTML = p.free ? `<b style="font-size:46px">GRATIS</b>` : `<b>${p.price}</b><small>USD</small><em>Tema libre ${p.libre}</em>`;
+  document.getElementById("art").innerHTML = p.imgs.map(([f, left, h, z, flip, up]) => `<img src="${f.includes("/") ? f : "avatars/" + f}" style="left:${left}px;height:${h}px;z-index:${z}${up ? `;bottom:${up}px` : ""}${flip ? ";transform:scaleX(-1)" : ""}" alt="">`).join("");
+  // Patron de fondo determinista con la insignia del producto.
+  let html = "", k = 0;
+  for (let y = -20; y < 1200; y += 170) for (let x = (y / 170) % 2 ? 30 : 120; x < 1200; x += 200)
+    html += `<img src="${[].concat(p.badge)[k % [].concat(p.badge).length]}" style="left:${x}px;top:${y}px;transform:rotate(${(k++ % 3 - 1) * 14}deg)" alt="">`;
+  document.getElementById("deco").innerHTML = html;
+</script>
+</body>
+</html>

@@ -1,0 +1,161 @@
+// Respuestas libres a menciones (el UNICO uso del LLM, regla 4). Flujo:
+// cuota (una unidad por @, en orden) -> cola (una pendiente por Papu, espera maxima) -> una sola llamada
+// para todos los @ -> cada bot publica su parte. Sin respuesta = se devuelve la cuota.
+import type { VideoEntry } from "../catalog/videos";
+import type { PrivacyGuard } from "./privacy";
+import type { BotId } from "../config";
+import type { CharacterInfo } from "../engine/reader";
+import type { LLMChain } from "../llm/chain";
+import { buildRequest, parseReplies, type HistoryLine, type PersonaLibrary } from "../llm/prompt";
+import type { RequestQueue } from "../llm/queue";
+import type { Phrases } from "../phrases/catalog";
+import type { Quota } from "../quota/quota";
+
+export interface IncomingMention {
+  messageId: string;
+  channelId: string;
+  authorId: string;
+  authorName: string;
+  /** Lo escribio GyroP (por su id): los bots le hablan como a su productor. */
+  fromOwner?: boolean;
+  /** Texto con menciones legibles ("@Teto"). */
+  text: string;
+  /** Bots mencionados, en el orden en que aparecen (sin repetir). */
+  bots: BotId[];
+  history: () => Promise<HistoryLine[]>;
+}
+
+/** Lo que el servicio necesita de Discord (en las pruebas, un doble). */
+export interface ChatPort {
+  reply(bot: BotId, channelId: string, replyTo: string, content: string, pingUserId: string): Promise<void>;
+  /** Muestra "escribiendo…" mientras dure la espera; devuelve la funcion para detenerlo. */
+  typing(bot: BotId, channelId: string): () => void;
+  react(bot: BotId, channelId: string, messageId: string, emoji: string): Promise<void>;
+}
+
+export interface ConversationDeps {
+  quota: Quota;
+  queue: RequestQueue;
+  chain: LLMChain;
+  phrases: Phrases;
+  personas: PersonaLibrary;
+  characters: Record<BotId, CharacterInfo>;
+  port: ChatPort;
+  llm: { maxTokens: number; temperature: number };
+  /** Videos relacionados con el mensaje (solo titulo y estado); sin catalogo, los bots no saben de videos. */
+  videos?: (text: string) => VideoEntry[];
+  /** Datos de cultura Vocaloid (PersonaLibrary.culture()); van al LLM solo los que vienen al caso. */
+  culture?: string[];
+  /** Proceso privado de GyroP: preguntas -> frase fija sin LLM; respuestas que filtren herramientas -> descartadas. */
+  privacy?: PrivacyGuard;
+  log?: (msg: string) => void;
+  onQueueLength?: (length: number) => void;
+}
+
+export type ConversationOutcome = "answered" | "partial" | "busy" | "no_quota" | "timeout" | "failed" | "private";
+
+export class ConversationService {
+  constructor(private readonly d: ConversationDeps) {}
+
+  async handle(m: IncomingMention): Promise<ConversationOutcome> {
+    const { quota, queue, port, phrases } = this.d;
+    if (m.bots.length === 0) throw new Error("handle() sin bots mencionados");
+    const papu = `<@${m.authorId}>`;
+
+    // Preguntas sobre el proceso de GyroP (IA, herramientas, como se hacen los videos): frase fija de cada bot
+    // mencionado. El LLM nunca ve la pregunta y no se gasta cuota (regla 4).
+    const topic = this.d.privacy?.classify(m.text);
+    if (topic) {
+      for (const bot of m.bots) await port.reply(bot, m.channelId, m.messageId, phrases.pick(bot, topic, { papu }), m.authorId);
+      return "private";
+    }
+
+    // Ya tiene una peticion en la cola: no se cobra ni se responde, solo un reloj de arena.
+    if (queue.hasPending(m.authorId)) {
+      await port.react(m.bots[0]!, m.channelId, m.messageId, "⏳").catch(() => {});
+      return "busy";
+    }
+
+    const reservation = quota.reserve(m.authorId, m.bots.length);
+    const granted = m.bots.slice(0, reservation.units);
+    const denied = m.bots.slice(reservation.units);
+    // Los @ que no alcanzan responden su frase de cuota agotada (sin LLM, sin costo).
+    for (const bot of denied) {
+      await port.reply(bot, m.channelId, m.messageId, phrases.pick(bot, "cuota_agotada", { papu }), m.authorId);
+    }
+    if (granted.length === 0) return "no_quota";
+
+    const stopTyping = granted.map((b) => port.typing(b, m.channelId));
+    const characters = granted.map((b) => this.d.characters[b]);
+    const result = await queue.enqueue(m.authorId, async (signal) => {
+      const history = await m.history();
+      const req = buildRequest(
+        { characters, papuName: m.authorName, fromOwner: m.fromOwner, message: m.text, history, videos: this.d.videos?.(m.text) ?? [], culture: this.d.culture },
+        this.d.personas,
+        this.d.llm,
+      );
+      return this.d.chain.chat(req, signal);
+    });
+    this.d.onQueueLength?.(queue.length);
+    stopTyping.forEach((stop) => stop());
+
+    if (result.status === "busy") {
+      // Carrera entre hasPending y enqueue: se devuelve todo.
+      quota.refund(reservation);
+      return "busy";
+    }
+    if (result.status === "timeout") {
+      quota.refund(reservation);
+      await port.reply(granted[0]!, m.channelId, m.messageId, phrases.pick(granted[0]!, "cola_llena", { papu }), m.authorId);
+      return "timeout";
+    }
+    if (result.status === "error") {
+      quota.refund(reservation);
+      this.d.log?.(`LLM sin respuesta: ${(result.error as Error)?.message ?? result.error}`);
+      await port.reply(granted[0]!, m.channelId, m.messageId, phrases.pick(granted[0]!, "sin_api", { papu }), m.authorId);
+      return "failed";
+    }
+
+    const replies = parseReplies(result.value.text, characters);
+    let answered = 0;
+    let replaced = 0;
+    for (const bot of granted) {
+      const text = replies[bot];
+      if (!text) continue;
+      if (this.d.privacy?.leaks(text, m.text)) {
+        // La respuesta menciona herramientas o el proceso: se descarta y va la frase fija (sin cobro).
+        this.d.log?.(`Respuesta de ${bot} descartada por privacidad`);
+        await port.reply(bot, m.channelId, m.messageId, phrases.pick(bot, "secreto_estudio", { papu }), m.authorId);
+        replaced++;
+        continue;
+      }
+      await port.reply(bot, m.channelId, m.messageId, text, m.authorId);
+      answered++;
+    }
+    if (replaced > 0) quota.refund(reservation, replaced);
+    if (answered === 0 && replaced > 0) return "private";
+    const missing = granted.length - answered - replaced;
+    if (missing > 0) {
+      // El modelo no respondio por alguno: esas unidades se devuelven.
+      quota.refund(reservation, missing);
+      if (answered === 0) {
+        await port.reply(granted[0]!, m.channelId, m.messageId, phrases.pick(granted[0]!, "sin_api", { papu }), m.authorId);
+        return "failed";
+      }
+      return "partial";
+    }
+    return "answered";
+  }
+}
+
+/** Bots mencionados en orden de aparicion: <@id> en el texto y, al final, el autor del mensaje respondido. */
+export function mentionedBots(content: string, botByUserId: ReadonlyMap<string, BotId>, repliedToUserId?: string | null): BotId[] {
+  const out: BotId[] = [];
+  for (const [, id] of content.matchAll(/<@!?(\d+)>/g)) {
+    const bot = botByUserId.get(id!);
+    if (bot && !out.includes(bot)) out.push(bot);
+  }
+  const replied = repliedToUserId ? botByUserId.get(repliedToUserId) : undefined;
+  if (replied && !out.includes(replied)) out.push(replied);
+  return out;
+}

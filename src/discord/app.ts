@@ -1,0 +1,599 @@
+// Los 4 bots en un solo programa (PLAN §4). Neru es el "centro": recibe los mensajes, modera primero y
+// luego reparte las menciones; cada bot publica con su propia aplicacion. Los bots no se responden entre ellos.
+import {
+  ActivityType,
+  AutoModerationActionType,
+  AutoModerationRuleEventType,
+  AutoModerationRuleTriggerType,
+  Client,
+  Events,
+  GatewayIntentBits,
+  MessageFlags,
+  MessageType,
+  REST,
+  Routes,
+  type AutoModerationActionOptions,
+  type ChatInputCommandInteraction,
+  type Guild,
+  type Message,
+  type SendableChannels,
+} from "discord.js";
+import { BOT_IDS, type BotId, type Config } from "../config";
+import { kvDelete, kvGet, kvSet, type Db } from "../db/database";
+import type { CharacterInfo } from "../engine/reader";
+import { logError, type LogFn } from "../log";
+import { buildAutoModRules, type AutoModRuleSpec } from "../moderation/automod";
+import type { StrikeStore } from "../moderation/strikes";
+import type { Phrases } from "../phrases/catalog";
+import type { DeckStore } from "../phrases/deck";
+import { founderWindowOpen, needsFounder, type FounderSettings } from "../services/founders";
+import { nextPresenceBot, parseFarewell, startDecision, type FarewellRecord } from "../services/presence";
+import { shouldTease } from "../services/vitrina";
+import type { Quota } from "../quota/quota";
+import type { ModerationSettings } from "../moderation/rules";
+import { mentionedBots, type ChatPort, type ConversationService } from "../services/conversation";
+import type { AutoModHit, ModerationPort, ModerationService } from "../services/moderation";
+import { nextDayStart } from "../time";
+import { CHANNELS, channelKey, chunk, findTextChannel } from "./channels";
+import { commandsFor } from "./commands";
+
+const INTENTS: Record<BotId, GatewayIntentBits[]> = {
+  neru: [
+    GatewayIntentBits.Guilds,
+    GatewayIntentBits.GuildMessages,
+    GatewayIntentBits.MessageContent,
+    GatewayIntentBits.GuildMembers,
+    GatewayIntentBits.AutoModerationConfiguration,
+    GatewayIntentBits.AutoModerationExecution,
+  ],
+  teto: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMembers],
+  miku: [GatewayIntentBits.Guilds],
+  luka: [GatewayIntentBits.Guilds],
+};
+
+const STATUS: Record<BotId, string> = {
+  teto: "🥖 en el estudio con GyroP",
+  miku: "🎤 lista para la próxima votación",
+  luka: "🐟 revisando tips",
+  neru: "📱 vigilando… o algo",
+};
+
+const HISTORY_LINES = 5;
+/** Bots cuyos comandos atiende este programa (Miku y Luka: Cloudflare). */
+const LOCAL_COMMAND_BOTS: BotId[] = ["teto", "neru"];
+const HEARTBEAT_MS = 60_000;
+const LAST_SEEN_KEY = "last_seen";
+const FAREWELL_KEY = "farewell";
+
+export interface AppDeps {
+  config: Config;
+  db: Db;
+  quota: Quota;
+  strikes: StrikeStore;
+  phrases: Phrases;
+  /** Mazos persistidos (para rotar que bot saluda o se despide). */
+  decks: DeckStore;
+  characters: Record<BotId, CharacterInfo>;
+  moderationSettings: ModerationSettings;
+  /** Se crean con los puertos de esta app (necesitan los clientes conectados). */
+  makeConversation: (port: ChatPort) => ConversationService;
+  makeModeration: (port: ModerationPort, exempt: () => ReadonlySet<string>) => ModerationService;
+  /** Dueños (compartido con la cuota): aqui se agrega el dueño del servidor al conectar. */
+  owners: Set<string>;
+  /** Insignia Fundador por tiempo limitado (null = ya no se entrega). */
+  founders: FounderSettings | null;
+  /** Rol que Teto da a cada Papu al entrar (null = ninguno). */
+  everyoneRole: string | null;
+  /** Canales de nivel que se anuncian en #vitrina (clave -> nivel con emoji). */
+  vitrina: Map<string, string>;
+  log: LogFn;
+}
+
+export class PapusApp {
+  readonly clients: Record<BotId, Client>;
+  private readonly botByUserId = new Map<string, BotId>();
+  private guild!: Guild;
+  private ownerId: string | null;
+  private conversation!: ConversationService;
+  private moderation!: ModerationService;
+  private heartbeat: ReturnType<typeof setInterval> | null = null;
+
+  constructor(private readonly d: AppDeps) {
+    this.ownerId = d.config.ownerId;
+    this.clients = Object.fromEntries(BOT_IDS.map((id) => [id, new Client({ intents: INTENTS[id] })])) as Record<BotId, Client>;
+  }
+
+  async start(): Promise<void> {
+    const { config, log } = this.d;
+    await Promise.all(
+      BOT_IDS.map(async (id) => {
+        const client = this.clients[id];
+        const ready = new Promise<void>((resolve) => client.once(Events.ClientReady, () => resolve()));
+        await client.login(config.tokens[id]);
+        await ready;
+        this.botByUserId.set(client.user!.id, id);
+        client.user!.setPresence({ status: "online", activities: [{ name: "estado", type: ActivityType.Custom, state: STATUS[id] }] });
+        log(`${id} en línea como ${client.user!.tag}`);
+      }),
+    );
+
+    this.guild = await this.clients.neru.guilds.fetch(config.guildId);
+    await this.guild.channels.fetch();
+    this.ownerId ??= this.guild.ownerId;
+    this.d.owners.add(this.guild.ownerId);
+    if (this.ownerId) this.d.owners.add(this.ownerId);
+
+    this.conversation = this.d.makeConversation(this.chatPort());
+    this.moderation = this.d.makeModeration(this.moderationPort(), () => this.d.owners);
+
+    await this.registerCommands();
+    await this.syncAutoMod();
+    this.wireEvents();
+
+    const lastSeen = Number(kvGet(this.d.db, LAST_SEEN_KEY) ?? 0);
+    await this.greetOnStart(lastSeen || null).catch((e) => logError("saludo", e));
+    if (lastSeen > 0) await this.reconnectTasks(lastSeen).catch((e) => logError("tareas de reconexión", e));
+    this.touchLastSeen();
+    this.lastBeat = Date.now();
+    this.heartbeat = setInterval(() => this.beat(), HEARTBEAT_MS);
+    await this.report(`✅ Bots en línea (${BOT_IDS.join(", ")}).`);
+  }
+
+  private stopping = false;
+  private readonly tipNudges = new Map<string, number>();
+
+  async stop(): Promise<void> {
+    if (this.stopping) return;
+    this.stopping = true;
+    if (this.heartbeat) clearInterval(this.heartbeat);
+    await this.farewell().catch((e) => logError("despedida", e));
+    this.touchLastSeen();
+    await Promise.all(BOT_IDS.map((id) => this.clients[id].destroy()));
+  }
+
+  /** Saludo en #general al conectarse, salvo reinicio rapido (entonces se borra la despedida anterior). */
+  private async greetOnStart(lastSeen: number | null): Promise<void> {
+    const farewell = parseFarewell(kvGet(this.d.db, FAREWELL_KEY));
+    kvDelete(this.d.db, FAREWELL_KEY);
+    const { greet, deleteFarewell } = startDecision(lastSeen, farewell);
+    if (deleteFarewell) {
+      const ch = await this.sendable(deleteFarewell.bot, deleteFarewell.channelId).catch(() => null);
+      if (ch && "messages" in ch) await ch.messages.delete(deleteFarewell.messageId).catch(() => {});
+    }
+    if (!greet) return;
+    const general = findTextChannel(this.guild, CHANNELS.general);
+    if (!general) return;
+    const bot = nextPresenceBot(this.d.decks);
+    const ch = await this.sendable(bot, general.id);
+    await ch.send({ content: this.d.phrases.pick(bot, "saludo_conexion"), allowedMentions: { parse: [] } });
+  }
+
+  /** Despedida en #general al apagar; se guarda para poder borrarla si el reinicio es rapido. */
+  private async farewell(): Promise<void> {
+    const general = this.guild ? findTextChannel(this.guild, CHANNELS.general) : null;
+    if (!general) return;
+    const bot = nextPresenceBot(this.d.decks);
+    const ch = await this.sendable(bot, general.id);
+    const msg = await ch.send({ content: this.d.phrases.pick(bot, "despedida"), allowedMentions: { parse: [] } });
+    const record: FarewellRecord = { bot, channelId: general.id, messageId: msg.id, at: Date.now() };
+    kvSet(this.d.db, FAREWELL_KEY, JSON.stringify(record));
+  }
+
+  /** Aviso en #registro-bots (y consola). */
+  async report(text: string): Promise<void> {
+    this.d.log(text);
+    const ch = this.guild ? findTextChannel(this.guild, CHANNELS.registro) : null;
+    await ch?.send({ content: text, allowedMentions: { parse: [] } }).catch(() => {});
+  }
+
+  private touchLastSeen(): void {
+    kvSet(this.d.db, LAST_SEEN_KEY, String(Date.now()));
+  }
+
+  private lastBeat = 0;
+
+  /**
+   * Latido cada minuto. Si entre dos latidos paso mucho tiempo, el PC estuvo suspendido: al despertar se saluda (si
+   * fueron mas de 30 min) y se hacen las tareas de reconexion (bienvenidas, resumen de Neru, "ya volvi").
+   */
+  private beat(): void {
+    const now = Date.now();
+    const gap = now - this.lastBeat;
+    this.lastBeat = now;
+    const prevSeen = Number(kvGet(this.d.db, LAST_SEEN_KEY) ?? now);
+    this.touchLastSeen();
+    if (gap < HEARTBEAT_MS * 3) return;
+    this.d.log(`El PC despertó tras ${Math.round(gap / 60_000)} min de suspensión`);
+    void (async () => {
+      await this.greetOnStart(prevSeen);
+      await this.reconnectTasks(prevSeen);
+    })().catch((e) => logError("despertar", e));
+  }
+
+  // ───────────────────────── eventos ─────────────────────────
+
+  private wireEvents(): void {
+    const neru = this.clients.neru;
+    neru.on(Events.MessageCreate, (m) => void this.onMessage(m).catch((e) => logError("mensaje", e)));
+    neru.on(Events.AutoModerationActionExecution, (exec) => {
+      if (exec.action.type !== AutoModerationActionType.BlockMessage || exec.guild.id !== this.guild.id) return;
+      const ruleName = exec.autoModerationRule?.name ?? "AutoMod";
+      void this.moderation
+        .handleAutoModHit({ userId: exec.userId, channelId: exec.channelId, ruleName, content: exec.content })
+        .catch((e) => logError("AutoMod", e));
+    });
+    this.clients.teto.on(Events.GuildMemberAdd, (member) => {
+      if (member.user.bot || member.guild.id !== this.guild.id) return;
+      void this.welcome([member.id]).catch((e) => logError("bienvenida", e));
+      void this.grantEveryone([member.id]).catch((e) => logError("rol Papu", e));
+    });
+    // Ko-fi da el rol del nivel; si es la primera semana, Teto agrega la insignia Fundador.
+    this.clients.teto.on(Events.GuildMemberUpdate, (_old, member) => {
+      const f = this.d.founders;
+      if (!f || member.user.bot || member.guild.id !== this.guild.id || !founderWindowOpen(f, Date.now())) return;
+      if (needsFounder(f, member.roles.cache.map((r) => r.name))) void this.grantFounders([member.id]).catch((e) => logError("Fundador", e));
+    });
+    for (const id of BOT_IDS) {
+      this.clients[id].on(Events.InteractionCreate, (i) => {
+        if (i.isChatInputCommand()) void this.onCommand(id, i).catch((e) => logError(`comando /${i.commandName}`, e));
+      });
+      this.clients[id].on(Events.Error, (e) => logError(`cliente ${id}`, e));
+    }
+  }
+
+  private async onMessage(m: Message): Promise<void> {
+    if (m.author.bot || m.system || !m.inGuild() || m.guildId !== this.guild.id) return;
+    if (m.type !== MessageType.Default && m.type !== MessageType.Reply) return;
+
+    // 1) Moderacion primero (reglas fijas, nunca el LLM).
+    const replied = m.reference?.messageId ? await m.fetchReference().catch(() => null) : null;
+    const others = m.mentions.users.filter((u) => !u.bot && u.id !== m.author.id);
+    const targetsSomeone = others.size > 0 || (!!replied && !replied.author.bot && replied.author.id !== m.author.id);
+    const joined = m.member?.joinedTimestamp ?? Date.now();
+    const violation = await this.moderation.handle({
+      messageId: m.id,
+      channelId: m.channelId,
+      authorId: m.author.id,
+      text: m.content,
+      targetsSomeone,
+      memberAgeHours: (Date.now() - joined) / 3_600_000,
+    });
+    if (violation?.remove) return;
+
+    // GyroP publico en un canal de nivel: aviso en #vitrina (donde y para quien, nunca que).
+    if (this.d.owners.has(m.author.id)) await this.teaseVitrina(m.channelId).catch((e) => logError("vitrina", e));
+    // Reporte nuevo: aviso a GyroP en #registro-bots (con enlace al mensaje).
+    else if (m.channel.isTextBased() && "name" in m.channel && channelKey(m.channel.name) === CHANNELS.reportes) {
+      await this.report(`📮 Reporte nuevo de <@${m.author.id}> en <#${m.channelId}>: ${m.url}`);
+    }
+
+    // 2) Menciones a los bots (en orden; responder a un bot cuenta como mencionarlo).
+    const bots = mentionedBots(m.content, this.botByUserId, replied?.author.bot ? replied.author.id : null);
+    if (bots.length === 0) {
+      await this.tipWithoutSource(m).catch((e) => logError("falta de fuente", e));
+      return;
+    }
+    await this.conversation.handle({
+      messageId: m.id,
+      channelId: m.channelId,
+      authorId: m.author.id,
+      authorName: this.speakerName(m),
+      fromOwner: this.d.owners.has(m.author.id),
+      text: m.cleanContent,
+      bots,
+      history: () => this.history(m),
+    });
+  }
+
+  /** En #tips-y-curiosidades, un dato sin enlace recibe la frase de Luka "falta la fuente" (max. una cada 30 min por Papu). */
+  private async tipWithoutSource(m: Message): Promise<void> {
+    if (!("name" in m.channel) || channelKey(m.channel.name ?? "") !== "tips-y-curiosidades") return;
+    if (/https?:\/\//i.test(m.content) || m.content.trim().length < 15) return;
+    const last = this.tipNudges.get(m.author.id) ?? 0;
+    if (Date.now() - last < 30 * 60_000) return;
+    this.tipNudges.set(m.author.id, Date.now());
+    const ch = await this.sendable("luka", m.channelId);
+    await ch.send({
+      content: this.d.phrases.pick("luka", "falta_fuente", { papu: `<@${m.author.id}>` }),
+      reply: { messageReference: m.id, failIfNotExists: false },
+      allowedMentions: { users: [m.author.id] },
+    });
+  }
+
+  private async history(m: Message) {
+    const msgs = await m.channel.messages.fetch({ before: m.id, limit: HISTORY_LINES }).catch(() => null);
+    if (!msgs) return [];
+    return [...msgs.values()]
+      .reverse()
+      .filter((x) => x.cleanContent.trim())
+      .map((x) => {
+        const bot = this.botByUserId.get(x.author.id);
+        return { author: bot ? this.d.characters[bot].displayName : this.speakerName(x), text: x.cleanContent };
+      });
+  }
+
+  /** Nombre para el LLM: GyroP por su id (un Papu que se ponga "GyroP" de apodo queda marcado como Papu). */
+  private speakerName(m: Message): string {
+    if (this.d.owners.has(m.author.id)) return "GyroP";
+    const name = m.member?.displayName ?? m.author.displayName;
+    return /gyro\s*p/i.test(name) ? `${name} (un Papu, no GyroP)` : name;
+  }
+
+  private async onCommand(bot: BotId, i: ChatInputCommandInteraction): Promise<void> {
+    if (bot === "teto" && i.commandName === "cuota") {
+      const left = this.d.quota.remaining(i.user.id);
+      const hours = Math.ceil((nextDayStart(new Date(), this.d.config.quotaTimeZone) - Date.now()) / 3_600_000);
+      const text = Number.isFinite(left)
+        ? `Te quedan **${left} de ${this.d.quota.limit}** mensajes con los Vocaloids hoy (se comparten entre los 4; cada @ cuenta uno). Se recargan en ~${hours} h, a medianoche de Chile.`
+        : "No tienes límite de mensajes (eres GyroP).";
+      await i.reply({ content: text, flags: MessageFlags.Ephemeral });
+      return;
+    }
+    if (bot === "neru" && (i.commandName === "strikes" || i.commandName === "perdonar")) {
+      if (!this.d.owners.has(i.user.id)) {
+        await i.reply({ content: "eso solo lo usa GyroP. 📱", flags: MessageFlags.Ephemeral });
+        return;
+      }
+      const target = i.options.getUser("papu", true);
+      if (i.commandName === "strikes") {
+        await i.reply({ content: `${target} tiene ${this.d.strikes.active(target.id)} strikes activos (vencen a los 3 días).`, flags: MessageFlags.Ephemeral });
+      } else {
+        const n = this.d.strikes.clear(target.id);
+        await i.reply({ content: `listo. borré ${n} strikes de ${target}. 📱`, flags: MessageFlags.Ephemeral });
+        await this.modLog(`🧽 GyroP perdonó ${n} strikes de ${target}.`);
+      }
+    }
+  }
+
+  // ───────────────────────── puertos ─────────────────────────
+
+  private async sendable(bot: BotId, channelId: string): Promise<SendableChannels> {
+    const ch = await this.clients[bot].channels.fetch(channelId);
+    if (!ch?.isSendable()) throw new Error(`${bot} no puede escribir en el canal ${channelId}`);
+    return ch;
+  }
+
+  private chatPort(): ChatPort {
+    return {
+      reply: async (bot, channelId, replyTo, content, pingUserId) => {
+        const ch = await this.sendable(bot, channelId);
+        await ch.send({
+          content,
+          reply: { messageReference: replyTo, failIfNotExists: false },
+          allowedMentions: { users: [pingUserId], repliedUser: true },
+        });
+      },
+      typing: (bot, channelId) => {
+        let stopped = false;
+        const tick = () => void this.sendable(bot, channelId).then((ch) => (!stopped ? ch.sendTyping() : undefined)).catch(() => {});
+        tick();
+        const timer = setInterval(tick, 8000);
+        return () => {
+          stopped = true;
+          clearInterval(timer);
+        };
+      },
+      react: async (bot, channelId, messageId, emoji) => {
+        const ch = await this.sendable(bot, channelId);
+        if (!("messages" in ch)) return;
+        const msg = await ch.messages.fetch(messageId);
+        await msg.react(emoji);
+      },
+    };
+  }
+
+  private moderationPort(): ModerationPort {
+    return {
+      deleteMessage: async (channelId, messageId) => {
+        const ch = await this.sendable("neru", channelId);
+        if ("messages" in ch) await ch.messages.delete(messageId);
+      },
+      timeout: async (userId, minutes, reason) => {
+        const member = await this.guild.members.fetch(userId);
+        if (!member.moderatable) {
+          await this.modLog(`⚠️ No pude silenciar a <@${userId}>: el rol de Neru debe estar más arriba que el suyo.`);
+          return;
+        }
+        await member.timeout(minutes * 60_000, reason);
+      },
+      say: async (channelId, content, pingUserId) => {
+        const ch = await this.sendable("neru", channelId);
+        await ch.send({ content, allowedMentions: { users: pingUserId ? [pingUserId] : [] } });
+      },
+      log: async (e) => {
+        const lines = [
+          `**${e.kind}** · <@${e.userId}>${e.channelId ? ` en <#${e.channelId}>` : ""}`,
+          `${e.detail} → ${e.action}${e.activeStrikes !== null ? ` · strikes activos: ${e.activeStrikes}` : ""}`,
+          e.excerpt ? `> ${e.excerpt.slice(0, 400).replace(/\n/g, "\n> ")}` : "",
+        ].filter(Boolean);
+        await this.modLog(lines.join("\n"));
+      },
+      notifyOwner: async (content) => {
+        await this.modLog(`${this.ownerId ? `<@${this.ownerId}> ` : ""}${content}`, true);
+      },
+    };
+  }
+
+  private async modLog(content: string, pingOwner = false): Promise<void> {
+    const ch = findTextChannel(this.guild, CHANNELS.moderacion);
+    if (!ch) {
+      this.d.log(`[moderación] ${content}`);
+      return;
+    }
+    const neruCh = await this.sendable("neru", ch.id);
+    await neruCh.send({ content, allowedMentions: { users: pingOwner && this.ownerId ? [this.ownerId] : [] } });
+  }
+
+  // ───────────────────────── AutoMod y comandos ─────────────────────────
+
+  private async registerCommands(): Promise<void> {
+    // Miku y Luka responden sus comandos desde Cloudflare (worker/), 24/7: sus comandos los registra
+    // `npm run worker:deploy`. Aqui solo los de Teto y Neru, que usan la base local (cuota y strikes).
+    for (const id of LOCAL_COMMAND_BOTS) {
+      const client = this.clients[id];
+      const rest = new REST().setToken(this.d.config.tokens[id]);
+      await rest
+        .put(Routes.applicationGuildCommands(client.application!.id, this.d.config.guildId), { body: commandsFor(id) })
+        .catch((e) => logError(`registrar comandos de ${id}`, e));
+    }
+  }
+
+  private async syncAutoMod(): Promise<void> {
+    const alert = findTextChannel(this.guild, CHANNELS.moderacion);
+    const existing = await this.guild.autoModerationRules.fetch();
+    for (const spec of buildAutoModRules(this.d.moderationSettings)) {
+      const data = autoModPayload(spec, alert?.id ?? null);
+      const found = existing.find((r) => r.name === spec.name);
+      try {
+        if (found) await found.edit(data);
+        else await this.guild.autoModerationRules.create(data);
+      } catch (e) {
+        await this.report(`⚠️ AutoMod: no pude ${found ? "actualizar" : "crear"} la regla "${spec.name}": ${(e as Error).message}`);
+      }
+    }
+    this.d.log(`AutoMod sincronizado${alert ? "" : " (sin canal #moderación: las alertas no se guardan)"}`);
+  }
+
+  // ───────────────────────── bienvenidas y reconexión ─────────────────────────
+
+  private async welcome(userIds: string[]): Promise<void> {
+    const target = findTextChannel(this.guild, CHANNELS.bienvenida, CHANNELS.general);
+    if (!target) return;
+    const ch = await this.sendable("teto", target.id);
+    if (userIds.length === 1) {
+      await ch.send({ content: this.d.phrases.pick("teto", "bienvenida", { papu: `<@${userIds[0]}>` }), allowedMentions: { users: userIds } });
+      return;
+    }
+    for (const group of chunk(userIds, 25)) {
+      const papus = group.map((u) => `<@${u}>`).join(", ");
+      await ch.send({ content: this.d.phrases.pick("teto", "bienvenida_grupal", { papus }), allowedMentions: { users: group } });
+    }
+  }
+
+  /** Al volver (PLAN §9): bienvenida grupal, resumen de Neru y "ya volví" donde quedaron menciones sin responder. */
+  private async reconnectTasks(lastSeen: number): Promise<void> {
+    const members = await this.guild.members.fetch();
+    const newcomers = members.filter((mb) => !mb.user.bot && (mb.joinedTimestamp ?? 0) > lastSeen).map((mb) => mb.id);
+    if (newcomers.length) await this.welcome(newcomers);
+
+    const everyone = this.d.everyoneRole;
+    if (everyone) {
+      const missing = members.filter((mb) => !mb.user.bot && !mb.roles.cache.some((r) => channelKey(r.name) === channelKey(everyone))).map((mb) => mb.id);
+      if (missing.length) await this.grantEveryone(missing).catch((e) => logError("rol Papu", e));
+    }
+
+    const f = this.d.founders;
+    if (f && founderWindowOpen(f, Date.now(), lastSeen)) {
+      const missing = members.filter((mb) => !mb.user.bot && needsFounder(f, mb.roles.cache.map((r) => r.name))).map((mb) => mb.id);
+      if (missing.length) await this.grantFounders(missing).catch((e) => logError("Fundador", e));
+    }
+
+    const hits = await this.offlineAutoModHits(lastSeen);
+    const summary = await this.moderation.applyOfflineHits(hits);
+    const general = findTextChannel(this.guild, CHANNELS.general);
+    if (summary && general) await (await this.sendable("neru", general.id)).send({ content: summary, allowedMentions: { parse: [] } });
+
+    const botIds = new Set(this.botByUserId.keys());
+    for (const ch of this.guild.channels.cache.values()) {
+      if (!ch.isTextBased() || ch.isThread() || ch.isVoiceBased()) continue;
+      const msgs = await ch.messages.fetch({ limit: 50 }).catch(() => null);
+      const pending = msgs?.some(
+        (x) => x.createdTimestamp > lastSeen && !x.author.bot && [...x.mentions.users.keys()].some((u) => botIds.has(u)),
+      );
+      if (pending) {
+        const tetoCh = await this.sendable("teto", ch.id).catch(() => null);
+        await tetoCh?.send({ content: this.d.phrases.pick("teto", "ya_volvi"), allowedMentions: { parse: [] } });
+      }
+    }
+  }
+
+  /** Da la insignia Fundador (con los permisos de Teto) y avisa en #registro-bots. */
+  private async grantFounders(userIds: string[]): Promise<void> {
+    const f = this.d.founders;
+    if (!f) return;
+    for (const id of userIds) {
+      await this.grantRole(id, f.role, "Fundador: nivel de Ko-fi en la primera semana");
+      await this.report(`⭐ <@${id}> es Fundador (nivel de Ko-fi en la primera semana).`);
+    }
+  }
+
+  /** Rol Papu para todos (al entrar, o al volver para quienes entraron con los bots apagados). */
+  private async grantEveryone(userIds: string[]): Promise<void> {
+    const role = this.d.everyoneRole;
+    if (!role) return;
+    for (const id of userIds) await this.grantRole(id, role, "Rol de todos los Papus");
+  }
+
+  /** Da un rol con los permisos de Teto ("Gestionar roles"). */
+  private async grantRole(userId: string, roleName: string, reason: string): Promise<void> {
+    const guild = await this.clients.teto.guilds.fetch(this.guild.id);
+    const role = guild.roles.cache.find((r) => channelKey(r.name) === channelKey(roleName));
+    if (!role) throw new Error(`No existe el rol ${roleName} (npm run servidor -- --apply)`);
+    await guild.members.addRole({ user: userId, role: role.id, reason });
+  }
+
+  private async teaseVitrina(channelId: string): Promise<void> {
+    const ch = this.guild.channels.cache.get(channelId);
+    const nivel = ch ? this.d.vitrina.get(channelKey(ch.name)) : undefined;
+    const vitrina = findTextChannel(this.guild, "vitrina");
+    if (!ch || !nivel || !vitrina) return;
+    const key = `vitrina:${channelId}`;
+    const now = Date.now();
+    if (!shouldTease(Number(kvGet(this.d.db, key) ?? NaN) || null, now)) return;
+    kvSet(this.d.db, key, String(now));
+    const niveles = findTextChannel(this.guild, "niveles-ko-fi");
+    const content = this.d.phrases.pick("teto", "vitrina_nuevo", { canal: `<#${ch.id}>`, nivel, niveles: niveles ? `<#${niveles.id}>` : "ko-fi.com/tetociencia/tiers" });
+    await (await this.sendable("teto", vitrina.id)).send({ content, allowedMentions: { parse: [] } });
+  }
+
+  /** Alertas de AutoMod en #moderación posteriores a la ultima vez que los bots estuvieron en linea. */
+  private async offlineAutoModHits(lastSeen: number): Promise<AutoModHit[]> {
+    const ch = findTextChannel(this.guild, CHANNELS.moderacion);
+    if (!ch) return [];
+    const msgs = await ch.messages.fetch({ limit: 100 }).catch(() => null);
+    if (!msgs) return [];
+    return [...msgs.values()]
+      .filter((x) => x.type === MessageType.AutoModerationAction && x.createdTimestamp > lastSeen)
+      .map((x) => {
+        const fields = x.embeds[0]?.fields ?? [];
+        const field = (n: string) => fields.find((f) => f.name === n)?.value ?? null;
+        return {
+          userId: x.author.id,
+          channelId: field("channel_id"),
+          ruleName: field("rule_name") ?? "AutoMod",
+          content: x.embeds[0]?.description ?? "",
+        };
+      });
+  }
+}
+
+function autoModPayload(spec: AutoModRuleSpec, alertChannelId: string | null) {
+  const actions: AutoModerationActionOptions[] = [
+    { type: AutoModerationActionType.BlockMessage, metadata: { customMessage: spec.blockMessage } },
+  ];
+  if (alertChannelId) actions.push({ type: AutoModerationActionType.SendAlertMessage, metadata: { channel: alertChannelId } });
+  if (spec.timeoutSeconds && spec.trigger.type !== "spam") {
+    actions.push({ type: AutoModerationActionType.Timeout, metadata: { durationSeconds: spec.timeoutSeconds } });
+  }
+  const t = spec.trigger;
+  const trigger =
+    t.type === "keyword"
+      ? {
+          triggerType: AutoModerationRuleTriggerType.Keyword,
+          triggerMetadata: { keywordFilter: t.keywords, regexPatterns: t.regex, allowList: t.allow },
+        }
+      : t.type === "mention_spam"
+        ? {
+            triggerType: AutoModerationRuleTriggerType.MentionSpam,
+            triggerMetadata: { mentionTotalLimit: t.limit, mentionRaidProtectionEnabled: true },
+          }
+        : { triggerType: AutoModerationRuleTriggerType.Spam };
+  return {
+    name: spec.name,
+    eventType: AutoModerationRuleEventType.MessageSend,
+    ...trigger,
+    actions,
+    enabled: true,
+  };
+}
+
