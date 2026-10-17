@@ -16,7 +16,19 @@ import { OCCASIONS, OrderError, OrderQueue, PRODUCTS, STATE_LABEL, type Occasion
 import type { Sql } from "../../src/orders/sql";
 import { advanceDeck, fill, type DeckState } from "../../src/phrases/deck-core";
 import { COLOR_MENU_ID, colorKey, NO_COLOR } from "../../src/setup/color-menu";
-import { nextRoundAt, parseRoundSettings, rankRound, resolveTie, type RoundResult, type RoundSettings } from "../../src/votes/rounds";
+import {
+  ideaText,
+  nextRoundAt,
+  parseHonorSettings,
+  parseRoundSettings,
+  pickIdeas,
+  rankRound,
+  resolveTie,
+  type HonorSettings,
+  type IdeaMessage,
+  type RoundResult,
+  type RoundSettings,
+} from "../../src/votes/rounds";
 import { channelKey, DiscordError, type BotKey, type DiscordApi } from "./discord";
 
 export interface Option {
@@ -56,6 +68,8 @@ export interface WorkerDeps {
   commandTimeoutMs?: number;
   /** Votacion semanal (por defecto, config/votaciones.json). */
   rounds?: RoundSettings;
+  /** Votacion de los Papus de honor (por defecto, config/votaciones.json -> honor). */
+  honor?: HonorSettings;
 }
 
 const PHRASES = { miku: mikuPhrases as unknown as Record<string, string[]>, luka: lukaPhrases as unknown as Record<string, string[]> } satisfies Record<BotKey, Record<string, string[]>>;
@@ -72,6 +86,7 @@ const POLL_QUESTIONS: Record<string, string> = {
   votaciones: "¿Qué tema quieren para el próximo video?",
   "propuestas-de-temas": "¿Cuál eligen, Papus?",
   "preguntas-a-gyrop": "¿Qué tema quieren para el especial?",
+  "votacion-de-honor": "¿Qué video quieren que salga esta semana, Papus de honor?",
 };
 
 class UserError extends Error {}
@@ -93,11 +108,13 @@ export class PapusWorker {
   private readonly rng: () => number;
   private channelCache: Map<string, string> | null = null;
   private readonly rounds: RoundSettings;
+  private readonly honor: HonorSettings;
 
   constructor(private readonly d: WorkerDeps) {
     this.now = d.now ?? Date.now;
     this.rng = d.rng ?? Math.random;
     this.rounds = d.rounds ?? parseRoundSettings(votesConfig);
+    this.honor = d.honor ?? parseHonorSettings(votesConfig.honor);
     this.rules = new RuleSet(moderation as ModerationSettings);
     this.orders = new OrderQueue(
       d.sql,
@@ -317,6 +334,10 @@ export class PapusWorker {
     if (sub === "quitar") return this.removeCandidate(o.str("nombre", true));
     if (sub === "semanal") return this.openRoundNow();
     if (sub === "desempate") return this.breakTie(o.str("opcion", true));
+    if (sub === "listo") return this.addReady(o.str("nombre", true));
+    if (sub === "listos") return this.listHonor();
+    if (sub === "quitar-listo") return this.removeReady(o.str("nombre", true));
+    if (sub === "honor") return this.openHonorNow();
     const canal = o.str("canal") ?? "votaciones";
     const ch = await this.channel(canal);
     if (!ch) throw new UserError(`No encuentro el canal #${canal}.`);
@@ -556,6 +577,139 @@ export class PapusWorker {
     return { content: `Publicado en <#${ch}> ✨` };
   }
 
+  // ───────────────────────── votacion de los Papus de honor (Miku) ─────────────────────────
+
+  private async addReady(text: string): Promise<Reply> {
+    const names = text.split("|").map((x) => x.trim()).filter(Boolean);
+    const added: string[] = [];
+    for (const n of names) {
+      if (n.length > 55) throw new UserError(`"${n.slice(0, 30)}…" es muy largo (máximo 55 caracteres, lo que cabe en una encuesta).`);
+      const prev = await this.d.sql.get<{ id: number; estado: string }>("SELECT id, estado FROM listos WHERE nombre = ?", n);
+      if (!prev) await this.d.sql.run("INSERT INTO listos (nombre, estado, creado_at) VALUES (?, 'espera', ?)", n, this.now());
+      else if (prev.estado === "quitado") await this.d.sql.run("UPDATE listos SET estado = 'espera', creado_at = ? WHERE id = ?", this.now(), prev.id);
+      else continue;
+      added.push(n);
+    }
+    return { content: added.length ? `Videos listos para la votación de honor: ${added.map((x) => `**${x}**`).join(", ")} 🏅` : "Esos ya estaban en la lista." };
+  }
+
+  private async removeReady(name: string): Promise<Reply> {
+    const r = await this.d.sql.run("UPDATE listos SET estado = 'quitado' WHERE nombre = ? AND estado = 'espera'", name.trim());
+    if (!r.changes) throw new UserError(`"${name}" no está en la lista de videos listos (o está en una votación abierta).`);
+    return { content: `Listo: **${name.trim()}** salió de la lista.` };
+  }
+
+  private async lastHonorOpen(): Promise<number | null> {
+    return (await this.d.sql.get<{ abierta_at: number }>("SELECT abierta_at FROM rondas_honor ORDER BY id DESC LIMIT 1"))?.abierta_at ?? null;
+  }
+
+  private async listHonor(): Promise<Reply> {
+    const h = this.honor;
+    const ready = await this.d.sql.all<{ nombre: string; estado: string }>(
+      "SELECT nombre, estado FROM listos WHERE estado IN ('en_votacion', 'espera') ORDER BY CASE estado WHEN 'en_votacion' THEN 0 ELSE 1 END, creado_at, id",
+    );
+    const last = await this.lastHonorOpen();
+    const open = await this.d.sql.get<{ id: number }>("SELECT id FROM rondas_honor WHERE estado = 'abierta' LIMIT 1");
+    const ideas = await this.collectIdeas(last ?? this.now() - h.cadaDias * DAY);
+    const lines = ["**🎬 Videos listos**", ...(ready.length ? ready.map((r) => `${r.estado === "en_votacion" ? "🗳️ en votación" : "⏳ en espera"} · **${r.nombre}**`) : ["(ninguno: agrégalos con /votacion listo)"])];
+    lines.push("", `**💡 Ideas que van ganando en #${h.charla}** (${h.emoji})`, ...(ideas.length ? ideas.map((i) => `• ${i.text} · ${i.likes} ${h.emoji} · <@${i.authorId}>`) : ["(ninguna con apoyo todavía)"]));
+    lines.push("", open ? "🗳️ Hay una votación de honor abierta." : `⏭️ Próxima votación de honor: <t:${unix(nextRoundAt(h, last))}:f>`);
+    return { embeds: [{ title: "🏅 Votación de honor", description: lines.join("\n").slice(0, 4000), color: this.d.colors.miku }] };
+  }
+
+  /** Ideas de #charla-de-honor desde `since`: las `ideas` con mas reacciones (sin la del autor ni bots), sin usar ni prohibidas. */
+  private async collectIdeas(since: number): Promise<IdeaMessage[]> {
+    const h = this.honor;
+    const ch = await this.channel(h.charla);
+    if (!ch) return [];
+    type Msg = { id: string; content: string; timestamp: string; pinned?: boolean; author: { id: string; bot?: boolean }; reactions?: { emoji: { name: string }; count: number }[] };
+    const msgs: Msg[] = [];
+    let before = "";
+    for (let page = 0; page < 5; page++) {
+      const list = await this.d.discord.call<Msg[]>("miku", "GET", `/channels/${ch}/messages?limit=100${before ? `&before=${before}` : ""}`);
+      msgs.push(...list);
+      if (list.length < 100 || Date.parse(list.at(-1)!.timestamp) < since) break;
+      before = list.at(-1)!.id;
+    }
+    const raw = msgs
+      .filter((m) => !m.author.bot && !m.pinned && Date.parse(m.timestamp) >= since)
+      .map((m) => ({ m, n: m.reactions?.find((r) => r.emoji.name === h.emoji)?.count ?? 0 }))
+      .filter((x) => x.n > 0)
+      .sort((a, b) => b.n - a.n)
+      .slice(0, 10);
+    const ideas: IdeaMessage[] = [];
+    for (const { m } of raw) {
+      if (await this.kvGet(`idea_usada:${m.id}`)) continue;
+      const text = ideaText(m.content);
+      const v = this.rules.check({ text, targetsSomeone: false, memberAgeHours: 1000 });
+      if (!text || v?.remove) continue;
+      const users = await this.d.discord.call<{ id: string; bot?: boolean }[]>(
+        "miku",
+        "GET",
+        `/channels/${ch}/messages/${m.id}/reactions/${encodeURIComponent(h.emoji)}?limit=100`,
+      );
+      const likes = users.filter((u) => !u.bot && u.id !== m.author.id).length;
+      ideas.push({ id: m.id, authorId: m.author.id, text, createdAt: Date.parse(m.timestamp), likes });
+    }
+    return pickIdeas(ideas, h.ideas);
+  }
+
+  private async openHonorNow(): Promise<Reply> {
+    const r = await this.startHonor();
+    if (!r.ok) throw new UserError(r.reason);
+    return { content: `Votación de honor abierta en <#${r.ch}> hasta el <t:${unix(r.endsAt)}:f>: ${r.options.map((x) => `**${x}**`).join(", ")} 🏅` };
+  }
+
+  /** Abre la ronda: hasta `listos` videos listos (los mas antiguos) + las ideas mas apoyadas desde la ronda anterior. */
+  private async startHonor(): Promise<{ ok: true; ch: string; endsAt: number; options: string[] } | { ok: false; reason: string }> {
+    const h = this.honor;
+    if (await this.d.sql.get<{ id: number }>("SELECT id FROM rondas_honor WHERE estado = 'abierta' LIMIT 1")) return { ok: false, reason: "Ya hay una votación de honor abierta." };
+    const ready = await this.d.sql.all<{ id: number; nombre: string }>("SELECT id, nombre FROM listos WHERE estado = 'espera' ORDER BY creado_at, id LIMIT ?", h.listos);
+    const last = await this.lastHonorOpen();
+    const ideas = await this.collectIdeas(last ?? this.now() - h.cadaDias * DAY);
+    const seen = new Set<string>();
+    const options = [...ready.map((r) => r.nombre), ...ideas.map((i) => i.text)].filter((o) => !seen.has(o.toLowerCase()) && seen.add(o.toLowerCase()));
+    if (options.length < 2) {
+      return {
+        ok: false,
+        reason: `Hay ${options.length} opción(es) y se necesitan al menos 2: agrega videos listos con /votacion listo, o que los Papus de honor apoyen ideas con ${h.emoji} en #${h.charla}.`,
+      };
+    }
+    const ch = await this.channel(h.canal);
+    if (!ch) return { ok: false, reason: `No encuentro el canal #${h.canal}.` };
+    const poll = await this.openPoll(h.canal, ch, h.pregunta, options, h.duraDias);
+    for (const r of ready) await this.d.sql.run("UPDATE listos SET estado = 'en_votacion' WHERE id = ?", r.id);
+    for (const i of ideas) await this.kvSet(`idea_usada:${i.id}`, String(this.now()));
+    await this.d.sql.run("INSERT INTO rondas_honor (votacion_id, opciones, estado, abierta_at) VALUES (?, ?, 'abierta', ?)", poll.id, JSON.stringify(options), this.now());
+    if (ideas.length) {
+      const authors = [...new Set(ideas.map((i) => i.authorId))];
+      await this.d.discord.call("miku", "POST", `/channels/${ch}/messages`, {
+        content: `💡 Las ideas de la charla de esta semana son de ${authors.map((a) => `<@${a}>`).join(" y ")}. ¡Gracias por proponer! ♡`,
+        allowed_mentions: { users: authors },
+      });
+    }
+    return { ok: true, ch, endsAt: poll.endsAt, options };
+  }
+
+  /** Cada 15 min: abre la votacion de honor cuando toca; si no hay opciones suficientes, avisa a GyroP (una vez al dia). */
+  private async honorTasks(): Promise<void> {
+    if (await this.d.sql.get<{ id: number }>("SELECT id FROM rondas_honor WHERE estado = 'abierta' LIMIT 1")) return;
+    if (this.now() < nextRoundAt(this.honor, await this.lastHonorOpen())) return;
+    const r = await this.startHonor();
+    if (!r.ok) await this.remindOwner("honor", `🏅 Tocaba abrir la votación de honor, pero no se pudo: ${r.reason}`);
+  }
+
+  /** Al cerrar la encuesta de honor: el video listo que gano queda como ganador; los demas vuelven a la lista. */
+  private async closeHonor(votacionId: number, ganador: string[]): Promise<void> {
+    const round = await this.d.sql.get<{ id: number; opciones: string }>("SELECT id, opciones FROM rondas_honor WHERE votacion_id = ? AND estado = 'abierta'", votacionId);
+    if (!round) return;
+    const winner = ganador.length === 1 ? ganador[0]! : null;
+    for (const o of JSON.parse(round.opciones) as string[]) {
+      await this.d.sql.run("UPDATE listos SET estado = ? WHERE nombre = ? AND estado = 'en_votacion'", o === winner ? "ganador" : "espera", o);
+    }
+    await this.d.sql.run("UPDATE rondas_honor SET estado = 'cerrada', ganador = ? WHERE id = ?", ganador.join(" | ") || null, round.id);
+  }
+
   // ───────────────────────── color del nombre (menu de Miku en #tu-color) ─────────────────────────
 
   /** Deja al Papu con un solo color de la paleta (o ninguno). Quien tiene nivel sigue viendose con el de su nivel. */
@@ -638,6 +792,7 @@ export class PapusWorker {
   async cron(): Promise<void> {
     await this.pollTasks();
     await this.roundTasks().catch((e) => console.error("votación semanal", e));
+    await this.honorTasks().catch((e) => console.error("votación de honor", e));
     for (const o of await this.orders.dueSoon()) {
       const key = `aviso_plazo:${o.id}:${o.plazoAt}`;
       if (await this.kvGet(key)) continue;
@@ -677,6 +832,7 @@ export class PapusWorker {
         : "Nadie votó esta vez… ¡GyroP decide! 🎤";
       await this.d.discord.call("miku", "POST", `/channels/${v.channel_id}/messages`, { content, ...ref, allowed_mentions: { parse: [] } });
       await this.d.sql.run("UPDATE votaciones SET cerrada = 1, ganador = ? WHERE id = ?", ganador.join(" | ") || null, v.id);
+      await this.closeHonor(v.id, ganador).catch((e) => console.error("cierre de honor", e));
     }
   }
 

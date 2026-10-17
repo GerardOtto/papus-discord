@@ -37,6 +37,14 @@ const shot = (page, query, out, width, height, scale = 1) => {
   if (!fs.existsSync(out) || fs.statSync(out).size === 0) throw new Error(`No se genero ${out}`);
   console.log(`ok ${path.relative(root, out)}`);
 };
+// Portadas de historias destacadas de Instagram (1080x1920, icono centrado). Solo esto: node scripts/render-kofi.mjs destacadas
+const destacadas = () => {
+  for (const s of ["discord", "kofi"]) shot("assets/historias/destacada.html", `s=${s}`, path.join(root, `assets/historias/destacada_${s}.png`), 1080, 1920);
+};
+if (process.argv.includes("destacadas")) {
+  destacadas();
+  process.exit(0);
+}
 // Primero las insignias (512x512, transparentes): las imagenes de los niveles las usan.
 for (const [i, slug] of TIERS.entries()) shot("assets/kofi/badges.html", `badge=${i + 1}`, path.join(root, `assets/kofi/badge_${i + 1}_${slug}.png`), 512, 512);
 for (const [i, slug] of TIERS.entries()) shot("assets/kofi/tier.html", `tier=${i + 1}`, path.join(root, `assets/kofi/tier_${i + 1}_${slug}.png`), 1600, 800);
@@ -50,3 +58,6 @@ execFileSync(chrome, ["--headless", "--disable-gpu", "--allow-file-access-from-f
   `--print-to-pdf=${pdf}`, pathToFileURL(path.join(root, "assets/kofi/guia-pedido.html")).href], { stdio: "ignore" });
 if (!fs.existsSync(pdf) || fs.statSync(pdf).size === 0) throw new Error(`No se genero ${pdf}`);
 console.log(`ok ${path.relative(root, pdf)}`);
+// Historias destacadas del perfil con boton (1080x1920): Discord y Ko-fi.
+for (const s of ["discord", "kofi"]) shot("assets/historias/historia.html", `s=${s}`, path.join(root, `assets/historias/historia_${s}.png`), 1080, 1920);
+destacadas();

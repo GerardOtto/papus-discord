@@ -2,11 +2,19 @@
 import { existsSync } from "node:fs";
 import path from "node:path";
 
-export const BOT_IDS = ["teto", "miku", "luka", "neru"] as const;
+/** Las 4 chicas con tareas en el servidor (bienvenidas, votaciones, tips, moderacion): sus tokens son obligatorios. */
+export const CORE_BOT_IDS = ["teto", "miku", "luka", "neru"] as const;
+/** Vocaloids solo para conversar (sin tareas): se conectan solo si su token esta en .env. */
+export const CHAT_BOT_IDS = ["gakupo", "kaito", "flower", "ia", "haku", "gumi"] as const;
+export const BOT_IDS = [...CORE_BOT_IDS, ...CHAT_BOT_IDS] as const;
+export type CoreBotId = (typeof CORE_BOT_IDS)[number];
+export type ChatBotId = (typeof CHAT_BOT_IDS)[number];
 export type BotId = (typeof BOT_IDS)[number];
 
 export interface Config {
-  tokens: Record<BotId, string>;
+  tokens: Record<CoreBotId, string> & Partial<Record<ChatBotId, string>>;
+  /** Bots que se conectan: las 4 chicas y los de conversacion con token. */
+  activeBots: BotId[];
   guildId: string;
   /** Usuario de Discord de GyroP (exento de moderacion y unico que usa comandos de administracion). */
   ownerId: string | null;
@@ -26,6 +34,8 @@ export interface Config {
 
 export class ConfigError extends Error {}
 
+export const isCoreBot = (id: BotId): id is CoreBotId => (CORE_BOT_IDS as readonly string[]).includes(id);
+
 const opt = (env: NodeJS.ProcessEnv, key: string): string | null => {
   const v = env[key]?.trim();
   return v ? v : null;
@@ -39,10 +49,14 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env, rootDir = proce
     return v ?? "";
   };
 
-  const tokens = Object.fromEntries(BOT_IDS.map((id) => [id, req(`DISCORD_TOKEN_${id.toUpperCase()}`)])) as Record<
-    BotId,
+  const tokens: Config["tokens"] = Object.fromEntries(CORE_BOT_IDS.map((id) => [id, req(`DISCORD_TOKEN_${id.toUpperCase()}`)])) as Record<
+    CoreBotId,
     string
   >;
+  for (const id of CHAT_BOT_IDS) {
+    const t = opt(env, `DISCORD_TOKEN_${id.toUpperCase()}`);
+    if (t) tokens[id] = t;
+  }
   const guildId = req("DISCORD_GUILD_ID");
   if (missing.length) throw new ConfigError(`Faltan variables en .env: ${missing.join(", ")}`);
 
@@ -59,6 +73,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env, rootDir = proce
   const deliveryDir = opt(env, "DELIVERY_DIR");
   return {
     tokens,
+    activeBots: BOT_IDS.filter((id) => !!tokens[id]),
     guildId,
     ownerId: opt(env, "OWNER_USER_ID"),
     llm: {

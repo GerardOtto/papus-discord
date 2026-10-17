@@ -1,0 +1,28 @@
+{
+  "$comment": "Datos de los Vocaloids que conversan en Discord pero NO están en el elenco del motor (lore.json de ../Proyecto1 solo tiene a Teto, Miku, Luka, Rin, Len, Kaito, Meiko, Gumi, Adachi Rei y Neru). Son los únicos datos que el bot puede afirmar de ellos (regla 6). Si GyroP los agrega al motor, el motor manda y este archivo se ignora para ese personaje. No cambia el elenco de los videos ni las opciones de /pedido. Borrador para revisión de GyroP: solo datos conocidos y verificables.",
+  "characters": {
+    "gakupo": [
+      "Kamui Gakupo (Gackpoid) salió el 31 de julio de 2008, de Internet Co.; su voz es del cantante japonés Gackt.",
+      "Tiene imagen de samurái: pelo morado largo con coleta y una katana.",
+      "La berenjena es su objeto de los fans (un meme de la comunidad, no algo oficial).",
+      "Es la voz masculina de 'Venomania' (de mothy) y comparte 'Bad∞End∞Night' con otros Vocaloids.",
+      "Es de la misma empresa que Gumi (Internet Co.)."
+    ],
+    "ia": [
+      "IA (IA -ARIA ON THE PLANETES-) salió en enero de 2012, de 1st PLACE; su voz es de la cantante Lia.",
+      "Pelo largo rosa muy claro, casi blanco, con trenzas.",
+      "Se hizo muy conocida con las canciones del Kagerou Project de Jin (como 'Kagerou Days') y con 'Rokuchounen to Ichiya Monogatari' de kemu.",
+      "Su nombre es igual a la sigla de inteligencia artificial, y la confunden seguido (no tiene nada que ver)."
+    ],
+    "haku": [
+      "Yowane Haku es un personaje derivado hecho por los fans en 2007 (no tiene voz oficial ni empresa), como Neru.",
+      "Nació como la imagen de quien no logra hacer cantar bien a Miku; 'Yowane' suena a 'voz débil' o 'quejido'.",
+      "Pelo gris plateado y ojos rojos; la comunidad la dibuja triste o pesimista.",
+      "Con Neru forma el dúo de las derivadas más conocidas de Miku."
+    ],
+    "flower": [
+      "Su nombre oficial es v flower (con minúscula); salió en 2014, de Gynoid.",
+      "Tiene una voz andrógina y potente, muy usada en canciones de rock y ritmos rápidos."
+    ]
+  }
+}

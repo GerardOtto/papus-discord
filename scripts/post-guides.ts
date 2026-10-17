@@ -7,7 +7,7 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { REST, Routes } from "discord.js";
-import { BOT_IDS, loadConfig, loadDotEnv, type BotId } from "../src/config";
+import { CORE_BOT_IDS, loadConfig, loadDotEnv, type CoreBotId } from "../src/config";
 import { kvGet, kvSet, openDb } from "../src/db/database";
 import { channelKey } from "../src/discord/channels";
 import { EngineReader } from "../src/engine/reader";
@@ -15,7 +15,7 @@ import { colorMenu } from "../src/setup/color-menu";
 import { loadLayout } from "../src/setup/layout";
 
 interface Guide {
-  bot: BotId;
+  bot: CoreBotId;
   reaccion: string;
   imagen?: string;
   titulo: string;
@@ -33,8 +33,9 @@ const guides = Object.entries(JSON.parse(readFileSync(path.join(ROOT, "content/c
   ([k]) => !k.startsWith("$"),
 );
 const engine = new EngineReader(config.engineDir);
-const color = Object.fromEntries(BOT_IDS.map((id) => [id, engine.character(id).color])) as Record<BotId, number>;
-const rest = Object.fromEntries(BOT_IDS.map((id) => [id, new REST().setToken(config.tokens[id])])) as Record<BotId, REST>;
+// Las guias las publican las 4 chicas (los Vocaloids de conversacion no tienen guias).
+const color = Object.fromEntries(CORE_BOT_IDS.map((id) => [id, engine.character(id).color])) as Record<CoreBotId, number>;
+const rest = Object.fromEntries(CORE_BOT_IDS.map((id) => [id, new REST().setToken(config.tokens[id])])) as Record<CoreBotId, REST>;
 const db = openDb(path.join(config.dataDir, "papus.sqlite"));
 
 const channels = (await rest.teto.get(Routes.guildChannels(config.guildId))) as { id: string; name: string; type: number }[];
@@ -70,7 +71,7 @@ for (const [key, g] of guides) {
   if ((embed.description as string).length > 4096) throw new Error(`El texto de ${key} pasa de 4096 caracteres`);
 
   const stateKey = `guia:${key}`;
-  const prev = JSON.parse(kvGet(db, stateKey) ?? "null") as { bot: BotId; channelId: string; messageId: string } | null;
+  const prev = JSON.parse(kvGet(db, stateKey) ?? "null") as { bot: CoreBotId; channelId: string; messageId: string } | null;
   const editable = prev && prev.bot === g.bot && prev.channelId === ch.id;
   if (!APPLY) {
     console.log(`• #${ch.name}: ${editable ? "editar" : "publicar y fijar"} el mensaje de ${g.bot} (${(embed.description as string).length} caracteres)`);

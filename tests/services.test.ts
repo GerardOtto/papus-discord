@@ -229,12 +229,15 @@ describe("ModerationService", () => {
 
   it("mayúsculas: solo aviso, sin borrar ni strike, y no más de uno cada 10 min", async () => {
     const { svc, port, advance } = modSetup();
-    await svc.handle(msg("MIKU ES LA MEJOR DEL MUNDO"));
-    await svc.handle(msg("TETO TAMBIEN ES LA MEJOR"));
+    const shout = (s: string) => `${s} `.repeat(8); // mensajes largos (la regla aplica desde 100 caracteres)
+    await svc.handle(msg("MIKU ES LA MEJOR")); // grito corto: pasa sin aviso
+    expect(port.said).toHaveLength(0);
+    await svc.handle(msg(shout("MIKU ES LA MEJOR DEL MUNDO")));
+    await svc.handle(msg(shout("TETO TAMBIEN ES LA MEJOR")));
     expect(port.said).toHaveLength(1);
     expect(port.deleted).toEqual([]);
     advance(11 * 60_000);
-    await svc.handle(msg("LUKA ES LA MÁS ELEGANTE"));
+    await svc.handle(msg(shout("LUKA ES LA MÁS ELEGANTE")));
     expect(port.said).toHaveLength(2);
   });
 

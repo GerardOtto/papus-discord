@@ -1,4 +1,4 @@
-"""Genera los avatares cuadrados (1024x1024) y los banners (1360x480) de los 4 bots desde los avatares del motor
+"""Genera los avatares cuadrados (1024x1024) y los banners (1360x480) de los bots desde los avatares del motor
 (solo lectura) y su paleta de characters.json. Salida: assets/bots/<id>_avatar.png y <id>_banner.png.
 Uso: python scripts/make_avatars.py   (ENGINE_DIR por defecto ../Proyecto1)
 Para cambiar la cara de un bot, editar SPEC (archivo y recorte relativo al contenido visible de la imagen)."""
@@ -18,6 +18,12 @@ SPEC = {
     "miku": {"avatar": ("feliz_11.png", 0.50, 0.42, 0.95), "banner": "emocionado_6.png"},
     "luka": {"avatar": ("feliz_21.png", 0.50, 0.40, 0.95), "banner": "emocionado_5.png"},
     "neru": {"avatar": ("neutral_2.png", 0.50, 0.42, 0.95), "banner": "r3d_emocionado_5.png"},
+    "gakupo": {"avatar": ("nerd_2.png", 0.50, 0.42, 0.95), "banner": "maduro_feliz.png"},
+    "kaito": {"avatar": ("feliz.png", 0.50, 0.40, 0.95), "banner": "emocionado.png"},
+    "flower": {"avatar": ("feliz.png", 0.50, 0.40, 0.95), "banner": "presumido.png"},
+    "ia": {"avatar": ("feliz.png", 0.50, 0.40, 0.95), "banner": "saludando.png"},
+    "haku": {"avatar": ("feliz.png", 0.50, 0.40, 0.95), "banner": "saludando.png"},
+    "gumi": {"avatar": ("feliz.png", 0.50, 0.40, 0.95), "banner": "emocionado.png"},
 }
 AVATAR = 1024
 BANNER = (1360, 480)
@@ -40,6 +46,17 @@ def radial(size, inner, outer, center=(0.5, 0.45)):
             t = min(1.0, ((x - cx) ** 2 + (y - cy) ** 2) ** 0.5 / rmax)
             px[x, y] = tuple(int(inner[i] + (outer[i] - inner[i]) * t) for i in range(3))
     return small.resize(size, Image.BICUBIC).filter(ImageFilter.GaussianBlur(6))
+
+
+def palette_of(char):
+    """Paleta del motor (oscuro, medio, claro); si no la tiene (IA, Haku), sale de su subtitleColor."""
+    if char.get("palette"):
+        return char["palette"]
+    mid = hex_rgb(char["subtitleColor"])
+    to_hex = lambda c: "#%02X%02X%02X" % tuple(c)
+    dark = [int(v * 0.22) for v in mid]
+    light = [int(v + (255 - v) * 0.7) for v in mid]
+    return [to_hex(dark), to_hex(mid), to_hex(light)]
 
 
 def visible(img):
@@ -99,7 +116,7 @@ def main():
     chars = json.load(open(os.path.join(ENGINE, "config/characters.json"), encoding="utf-8"))["characters"]
     os.makedirs(OUT, exist_ok=True)
     for cid in sys.argv[1:] or SPEC:
-        palette = chars[cid]["palette"]
+        palette = palette_of(chars[cid])
         make_avatar(cid, palette)
         make_banner(cid, palette)
         print(f"ok {cid}")

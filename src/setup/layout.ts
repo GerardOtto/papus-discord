@@ -12,12 +12,16 @@ export interface ChannelSpec {
   lento?: number;
   /** Canal "candado": lo ven todos MENOS quien tiene este nivel o uno superior (le muestra a quien no paga lo que hay detrás). */
   ocultarDesde?: string;
+  /** Los bots de musica externos ven y escriben aqui (en los demas canales de texto no entran). */
+  musica?: boolean;
+  /** Canal de voz (sin tema ni modo lento); los bots de musica pueden entrar. */
+  voz?: boolean;
 }
 
 export interface CategorySpec {
   nombre: string;
   antes?: string[];
-  /** "todos", "staff" o el nombre del nivel minimo. */
+  /** "todos", "staff", el nombre del nivel minimo, o "rol:<nombre>" (solo ese rol de rolesExtra, ej. Papu de honor). */
   leen: string;
   canales: ChannelSpec[];
 }
@@ -52,13 +56,15 @@ export const PERM = {
   SEND_MESSAGES_IN_THREADS: 1n << 38n,
   SEND_POLLS: 1n << 49n,
   PIN_MESSAGES: 1n << 51n,
+  CONNECT: 1n << 20n,
+  SPEAK: 1n << 21n,
 } as const;
 
 /** Lo que se le quita a los Papus en un canal de solo lectura (siguen pudiendo reaccionar, votar y usar comandos). */
 export const WRITE_BITS =
   PERM.SEND_MESSAGES | PERM.CREATE_PUBLIC_THREADS | PERM.CREATE_PRIVATE_THREADS | PERM.SEND_MESSAGES_IN_THREADS | PERM.SEND_POLLS;
 const READ_BITS = PERM.VIEW_CHANNEL | PERM.READ_MESSAGE_HISTORY;
-/** Los 4 bots ven y escriben en todos los canales (regla 2), con encuestas para Miku y fijar sus mensajes de guia. */
+/** Todos los bots (rol Vocaloids) ven y escriben en todos los canales (regla 2), con encuestas para Miku y fijar sus mensajes de guia. */
 export const BOT_BITS =
   READ_BITS |
   PERM.SEND_MESSAGES |
@@ -84,32 +90,55 @@ export interface RoleIds {
   bots: string;
   /** Rol de los bots de musica externos: no ven los canales de texto (solo voz). */
   music?: string;
+  /** Roles especiales para "rol:<nombre>" (clave nameKey -> id). */
+  extra?: Record<string, string>;
+}
+
+export interface ChannelOptions {
+  ocultarDesde?: string;
+  musica?: boolean;
+  voz?: boolean;
 }
 
 /** Permisos de un canal segun quien lo lee y si los Papus escriben. */
-export function overwritesFor(leen: string, escriben: boolean, roles: RoleIds, ocultarDesde?: string): Overwrite[] {
+export function overwritesFor(leen: string, escriben: boolean, roles: RoleIds, opts: ChannelOptions = {}): Overwrite[] {
+  const { ocultarDesde, musica = false, voz = false } = opts;
   const out: Overwrite[] = [];
   const everyone: Overwrite = { id: roles.everyone, allow: 0n, deny: 0n };
   out.push(everyone);
   if (!escriben) everyone.deny |= WRITE_BITS;
   if (ocultarDesde) {
-    const idx = roles.tiers.findIndex((t) => t.name === ocultarDesde);
+    const idx = roles.tiers.findIndex((t) => nameKey(t.name) === nameKey(ocultarDesde));
     if (idx < 0) throw new Error(`Nivel desconocido en config/servidor.json (ocultarDesde): ${ocultarDesde}`);
     // Quien ya tiene ese nivel (o uno superior) ve los canales de verdad: el candado desaparece.
     for (const t of roles.tiers.slice(idx)) out.push({ id: t.id, allow: 0n, deny: PERM.VIEW_CHANNEL });
   }
 
-  if (leen !== "todos") {
+  if (leen.startsWith("rol:")) {
+    everyone.deny |= PERM.VIEW_CHANNEL;
+    const name = leen.slice(4).trim();
+    const id = roles.extra?.[nameKey(name)];
+    if (!id) throw new Error(`Rol desconocido en config/servidor.json (leen): ${name}`);
+    out.push({ id, allow: READ_BITS, deny: 0n });
+  } else if (leen !== "todos") {
     everyone.deny |= PERM.VIEW_CHANNEL;
     if (leen !== "staff") {
-      const idx = roles.tiers.findIndex((t) => t.name === leen);
+      const idx = roles.tiers.findIndex((t) => nameKey(t.name) === nameKey(leen));
       if (idx < 0) throw new Error(`Nivel desconocido en config/servidor.json: ${leen}`);
       // Ese nivel y todos los superiores (acumulativos).
       for (const t of roles.tiers.slice(idx)) out.push({ id: t.id, allow: READ_BITS, deny: 0n });
     }
   }
   out.push({ id: roles.bots, allow: BOT_BITS, deny: 0n });
-  if (roles.music) out.push({ id: roles.music, allow: 0n, deny: PERM.VIEW_CHANNEL });
+  if (roles.music) {
+    out.push(
+      voz
+        ? { id: roles.music, allow: PERM.VIEW_CHANNEL | PERM.CONNECT | PERM.SPEAK, deny: 0n }
+        : musica
+        ? { id: roles.music, allow: READ_BITS | PERM.SEND_MESSAGES | PERM.EMBED_LINKS | PERM.ATTACH_FILES | PERM.ADD_REACTIONS, deny: 0n }
+        : { id: roles.music, allow: 0n, deny: PERM.VIEW_CHANNEL },
+    );
+  }
   return out.filter((o) => o.allow || o.deny);
 }
 
@@ -131,4 +160,15 @@ export function nameKey(name: string): string {
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "");
+}
+
+/**
+ * Reordena un grupo de roles dentro de los mismos puestos que ya ocupan (no mueve a nadie de afuera). `topDown` = ids
+ * del más alto al más bajo. Devuelve solo los cambios. Discord muestra el color del rol más alto: así el color de
+ * #tu-color queda sobre las insignias (Papu de honor, Fundador) y debajo de los niveles.
+ */
+export function reorderWithin(current: { id: string; position: number }[], topDown: string[]): { id: string; position: number }[] {
+  const slots = current.map((r) => r.position).sort((a, b) => b - a);
+  const now = new Map(current.map((r) => [r.id, r.position]));
+  return topDown.map((id, i) => ({ id, position: slots[i]! })).filter((r) => now.get(r.id) !== r.position);
 }

@@ -80,3 +80,21 @@ CREATE TABLE IF NOT EXISTS rondas (
   segundo     TEXT,
   abierta_at  INTEGER NOT NULL
 );
+
+-- Votacion de los Papus de honor (config/votaciones.json -> honor). Videos que GyroP tiene listos para subir:
+-- estado espera | en_votacion | ganador | quitado. Las ideas de #charla-de-honor ya usadas quedan en kv (idea_usada:<id>).
+CREATE TABLE IF NOT EXISTS listos (
+  id        INTEGER PRIMARY KEY AUTOINCREMENT,
+  nombre    TEXT NOT NULL UNIQUE COLLATE NOCASE,
+  estado    TEXT NOT NULL DEFAULT 'espera',
+  creado_at INTEGER NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS rondas_honor (
+  id          INTEGER PRIMARY KEY AUTOINCREMENT,
+  votacion_id INTEGER NOT NULL,
+  opciones    TEXT NOT NULL,
+  estado      TEXT NOT NULL,
+  ganador     TEXT,
+  abierta_at  INTEGER NOT NULL
+);

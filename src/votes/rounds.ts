@@ -46,6 +46,70 @@ export function resolveTie(options: string[], counts: Record<string, number>, wi
 }
 
 /** Cuando toca abrir la ronda siguiente. */
-export function nextRoundAt(s: RoundSettings, lastOpenedAt: number | null): number {
+export function nextRoundAt(s: Pick<RoundSettings, "primera" | "cadaDias">, lastOpenedAt: number | null): number {
   return lastOpenedAt === null ? s.primera : Math.max(s.primera, lastOpenedAt + s.cadaDias * 86_400_000);
+}
+
+// ───────────── Votación de los Papus de honor ─────────────
+// Cada ronda: hasta `listos` videos que GyroP tiene listos para subir + las `ideas` propuestas en #charla-de-honor con
+// más reacciones `emoji` desde la ronda anterior (sin contar la del autor ni la de bots).
+
+export interface HonorSettings {
+  canal: string;
+  charla: string;
+  pregunta: string;
+  primera: number;
+  cadaDias: number;
+  duraDias: number;
+  listos: number;
+  ideas: number;
+  emoji: string;
+}
+
+export function parseHonorSettings(raw: Omit<HonorSettings, "primera"> & { primera: string }): HonorSettings {
+  const primera = Date.parse(raw.primera);
+  if (Number.isNaN(primera)) throw new Error(`Fecha inválida en config/votaciones.json (honor): ${raw.primera}`);
+  if (raw.listos + raw.ideas < 2 || raw.listos + raw.ideas > 10) throw new Error("config/votaciones.json (honor): listos + ideas va de 2 a 10");
+  return { ...raw, primera };
+}
+
+export interface IdeaMessage {
+  id: string;
+  authorId: string;
+  text: string;
+  createdAt: number;
+  /** Reacciones que cuentan (sin la del autor ni bots). */
+  likes: number;
+}
+
+/** Texto de la idea para la encuesta (máx. 55): primera línea, sin menciones, enlaces ni formato. */
+export function ideaText(content: string): string {
+  const line =
+    content
+      .split("\n")
+      .map((l) => l.trim())
+      .find(Boolean) ?? "";
+  const clean = line
+    .replace(/<a?:\w+:\d+>/g, "")
+    .replace(/<[@#&!]+\d+>/g, "")
+    .replace(/https?:\/\/\S+/g, "")
+    .replace(/[*_~`>|]/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+  return clean.length > 55 ? `${clean.slice(0, 54).trimEnd()}…` : clean;
+}
+
+/** Las ideas más apoyadas (al menos 1 like; a igual apoyo, la más antigua), sin repetir el mismo texto. */
+export function pickIdeas(ideas: IdeaMessage[], n: number): IdeaMessage[] {
+  const seen = new Set<string>();
+  return ideas
+    .filter((i) => i.likes > 0 && i.text)
+    .sort((a, b) => b.likes - a.likes || a.createdAt - b.createdAt)
+    .filter((i) => {
+      const k = i.text.toLowerCase();
+      if (seen.has(k)) return false;
+      seen.add(k);
+      return true;
+    })
+    .slice(0, n);
 }

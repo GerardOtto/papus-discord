@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { BOT_IDS } from "../src/config";
+import { CORE_BOT_IDS } from "../src/config";
 import { DeckStore } from "../src/phrases/deck";
 import { nextPresenceBot, parseFarewell, QUICK_RESTART_MS, startDecision, type FarewellRecord } from "../src/services/presence";
 import { memDb, seededRng } from "./helpers";
@@ -29,10 +29,10 @@ describe("startDecision", () => {
 });
 
 describe("nextPresenceBot", () => {
-  it("rota entre los 4 sin repetir", () => {
+  it("rota entre las 4 chicas sin repetir (los Vocaloids de conversacion no saludan)", () => {
     const decks = new DeckStore(memDb(), seededRng(9));
     const four = Array.from({ length: 4 }, () => nextPresenceBot(decks));
-    expect([...four].sort()).toEqual([...BOT_IDS].sort());
+    expect([...four].sort()).toEqual([...CORE_BOT_IDS].sort());
   });
 });
 

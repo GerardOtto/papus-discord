@@ -1,5 +1,6 @@
-// Los 4 bots en un solo programa (PLAN §4). Neru es el "centro": recibe los mensajes, modera primero y
+// Todos los bots en un solo programa (PLAN §4). Neru es el "centro": recibe los mensajes, modera primero y
 // luego reparte las menciones; cada bot publica con su propia aplicacion. Los bots no se responden entre ellos.
+// Las 4 chicas tienen tareas; Gakupo, Kaito, flower, IA, Haku y Gumi solo conversan (se conectan si tienen token).
 import {
   ActivityType,
   AutoModerationActionType,
@@ -14,11 +15,13 @@ import {
   Routes,
   type AutoModerationActionOptions,
   type ChatInputCommandInteraction,
+  type Collection,
   type Guild,
+  type GuildMember,
   type Message,
   type SendableChannels,
 } from "discord.js";
-import { BOT_IDS, type BotId, type Config } from "../config";
+import { type BotId, type Config, type CoreBotId } from "../config";
 import { kvDelete, kvGet, kvSet, type Db } from "../db/database";
 import type { CharacterInfo } from "../engine/reader";
 import { logError, type LogFn } from "../log";
@@ -26,6 +29,7 @@ import { buildAutoModRules, type AutoModRuleSpec } from "../moderation/automod";
 import type { StrikeStore } from "../moderation/strikes";
 import type { Phrases } from "../phrases/catalog";
 import type { DeckStore } from "../phrases/deck";
+import type { CalendarService } from "../calendar/service";
 import { founderWindowOpen, needsFounder, type FounderSettings } from "../services/founders";
 import { nextPresenceBot, parseFarewell, startDecision, type FarewellRecord } from "../services/presence";
 import { shouldTease } from "../services/vitrina";
@@ -49,6 +53,12 @@ const INTENTS: Record<BotId, GatewayIntentBits[]> = {
   teto: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMembers],
   miku: [GatewayIntentBits.Guilds],
   luka: [GatewayIntentBits.Guilds],
+  gakupo: [GatewayIntentBits.Guilds],
+  kaito: [GatewayIntentBits.Guilds],
+  flower: [GatewayIntentBits.Guilds],
+  ia: [GatewayIntentBits.Guilds],
+  haku: [GatewayIntentBits.Guilds],
+  gumi: [GatewayIntentBits.Guilds],
 };
 
 const STATUS: Record<BotId, string> = {
@@ -56,12 +66,21 @@ const STATUS: Record<BotId, string> = {
   miku: "🎤 lista para la próxima votación",
   luka: "🐟 revisando tips",
   neru: "📱 vigilando… o algo",
+  gakupo: "🍆 afilando la katana",
+  kaito: "🍦 buscando su helado",
+  flower: "🎸 afinando la guitarra",
+  ia: "🌙 mirando las estrellas",
+  haku: "🌧️ practicando… otra vez",
+  gumi: "🥕 lista para lo que sea",
 };
 
 const HISTORY_LINES = 5;
 /** Bots cuyos comandos atiende este programa (Miku y Luka: Cloudflare). */
-const LOCAL_COMMAND_BOTS: BotId[] = ["teto", "neru"];
+const LOCAL_COMMAND_BOTS: CoreBotId[] = ["teto", "neru"];
 const HEARTBEAT_MS = 60_000;
+const CALENDAR_EVERY_MS = 60 * 60_000;
+const ROLES_SWEEP_MS = 60 * 60_000;
+const CALENDAR_KEY = "calendario:mensaje";
 const LAST_SEEN_KEY = "last_seen";
 const FAREWELL_KEY = "farewell";
 
@@ -86,6 +105,8 @@ export interface AppDeps {
   everyoneRole: string | null;
   /** Canales de nivel que se anuncian en #vitrina (clave -> nivel con emoji). */
   vitrina: Map<string, string>;
+  /** Calendario automatico de #calendario (null = desactivado: falta el token de Cloudflare o la carpeta). */
+  calendar: { service: CalendarService; channel: string } | null;
   log: LogFn;
 }
 
@@ -97,19 +118,21 @@ export class PapusApp {
   private conversation!: ConversationService;
   private moderation!: ModerationService;
   private heartbeat: ReturnType<typeof setInterval> | null = null;
+  private calendarTimer: ReturnType<typeof setInterval> | null = null;
+  private rolesTimer: ReturnType<typeof setInterval> | null = null;
 
   constructor(private readonly d: AppDeps) {
     this.ownerId = d.config.ownerId;
-    this.clients = Object.fromEntries(BOT_IDS.map((id) => [id, new Client({ intents: INTENTS[id] })])) as Record<BotId, Client>;
+    this.clients = Object.fromEntries(d.config.activeBots.map((id) => [id, new Client({ intents: INTENTS[id] })])) as Record<BotId, Client>;
   }
 
   async start(): Promise<void> {
     const { config, log } = this.d;
     await Promise.all(
-      BOT_IDS.map(async (id) => {
+      config.activeBots.map(async (id) => {
         const client = this.clients[id];
         const ready = new Promise<void>((resolve) => client.once(Events.ClientReady, () => resolve()));
-        await client.login(config.tokens[id]);
+        await client.login(config.tokens[id]!);
         await ready;
         this.botByUserId.set(client.user!.id, id);
         client.user!.setPresence({ status: "online", activities: [{ name: "estado", type: ActivityType.Custom, state: STATUS[id] }] });
@@ -136,7 +159,12 @@ export class PapusApp {
     this.touchLastSeen();
     this.lastBeat = Date.now();
     this.heartbeat = setInterval(() => this.beat(), HEARTBEAT_MS);
-    await this.report(`✅ Bots en línea (${BOT_IDS.join(", ")}).`);
+    this.rolesTimer = setInterval(() => void this.sweepRoles().catch((e) => logError("repaso de roles", e)), ROLES_SWEEP_MS);
+    if (this.d.calendar) {
+      void this.updateCalendar().catch((e) => logError("calendario", e));
+      this.calendarTimer = setInterval(() => void this.updateCalendar().catch((e) => logError("calendario", e)), CALENDAR_EVERY_MS);
+    }
+    await this.report(`✅ Bots en línea (${config.activeBots.join(", ")}).`);
   }
 
   private stopping = false;
@@ -146,9 +174,11 @@ export class PapusApp {
     if (this.stopping) return;
     this.stopping = true;
     if (this.heartbeat) clearInterval(this.heartbeat);
+    if (this.calendarTimer) clearInterval(this.calendarTimer);
+    if (this.rolesTimer) clearInterval(this.rolesTimer);
     await this.farewell().catch((e) => logError("despedida", e));
     this.touchLastSeen();
-    await Promise.all(BOT_IDS.map((id) => this.clients[id].destroy()));
+    await Promise.all(this.d.config.activeBots.map((id) => this.clients[id].destroy()));
   }
 
   /** Saludo en #general al conectarse, salvo reinicio rapido (entonces se borra la despedida anterior). */
@@ -233,7 +263,7 @@ export class PapusApp {
       if (!f || member.user.bot || member.guild.id !== this.guild.id || !founderWindowOpen(f, Date.now())) return;
       if (needsFounder(f, member.roles.cache.map((r) => r.name))) void this.grantFounders([member.id]).catch((e) => logError("Fundador", e));
     });
-    for (const id of BOT_IDS) {
+    for (const id of this.d.config.activeBots) {
       this.clients[id].on(Events.InteractionCreate, (i) => {
         if (i.isChatInputCommand()) void this.onCommand(id, i).catch((e) => logError(`comando /${i.commandName}`, e));
       });
@@ -324,9 +354,21 @@ export class PapusApp {
       const left = this.d.quota.remaining(i.user.id);
       const hours = Math.ceil((nextDayStart(new Date(), this.d.config.quotaTimeZone) - Date.now()) / 3_600_000);
       const text = Number.isFinite(left)
-        ? `Te quedan **${left} de ${this.d.quota.limit}** mensajes con los Vocaloids hoy (se comparten entre los 4; cada @ cuenta uno). Se recargan en ~${hours} h, a medianoche de Chile.`
+        ? `Te quedan **${left} de ${this.d.quota.limit}** mensajes con los Vocaloids hoy (se comparten entre todos los Vocaloids; cada @ cuenta uno). Se recargan en ~${hours} h, a medianoche de Chile.`
         : "No tienes límite de mensajes (eres GyroP).";
       await i.reply({ content: text, flags: MessageFlags.Ephemeral });
+      return;
+    }
+    if (bot === "teto" && i.commandName === "reiniciar-cuota") {
+      if (!this.d.owners.has(i.user.id)) {
+        await i.reply({ content: "¡Eso solo lo usa GyroP! 🥖", flags: MessageFlags.Ephemeral });
+        return;
+      }
+      const target = i.options.getUser("papu");
+      const n = this.d.quota.reset(target?.id ?? null);
+      const who = target ? `${target}` : "todos los Papus";
+      await i.reply({ content: `¡Listo! Cuota de hoy reiniciada para ${who} (${n} con mensajes usados). ¡teto-teetoo!`, flags: MessageFlags.Ephemeral, allowedMentions: { parse: [] } });
+      await this.report(`🔄 GyroP reinició la cuota de hoy para ${who} (${n} con mensajes usados).`);
       return;
     }
     if (bot === "neru" && (i.commandName === "strikes" || i.commandName === "perdonar")) {
@@ -476,17 +518,7 @@ export class PapusApp {
     const newcomers = members.filter((mb) => !mb.user.bot && (mb.joinedTimestamp ?? 0) > lastSeen).map((mb) => mb.id);
     if (newcomers.length) await this.welcome(newcomers);
 
-    const everyone = this.d.everyoneRole;
-    if (everyone) {
-      const missing = members.filter((mb) => !mb.user.bot && !mb.roles.cache.some((r) => channelKey(r.name) === channelKey(everyone))).map((mb) => mb.id);
-      if (missing.length) await this.grantEveryone(missing).catch((e) => logError("rol Papu", e));
-    }
-
-    const f = this.d.founders;
-    if (f && founderWindowOpen(f, Date.now(), lastSeen)) {
-      const missing = members.filter((mb) => !mb.user.bot && needsFounder(f, mb.roles.cache.map((r) => r.name))).map((mb) => mb.id);
-      if (missing.length) await this.grantFounders(missing).catch((e) => logError("Fundador", e));
-    }
+    await this.sweepRoles(members, lastSeen);
 
     const hits = await this.offlineAutoModHits(lastSeen);
     const summary = await this.moderation.applyOfflineHits(hits);
@@ -504,6 +536,65 @@ export class PapusApp {
         const tetoCh = await this.sendable("teto", ch.id).catch(() => null);
         await tetoCh?.send({ content: this.d.phrases.pick("teto", "ya_volvi"), allowedMentions: { parse: [] } });
       }
+    }
+  }
+
+  /**
+   * Calendario fijado de Miku en #calendario: uno por semana (el anterior se desfija) y se edita cuando cambia algo
+   * (ganó una votación, se asignó un video). La frase de Miku se elige una vez por semana (regla 4).
+   */
+  private async updateCalendar(): Promise<void> {
+    const cal = this.d.calendar;
+    if (!cal) return;
+    const target = findTextChannel(this.guild, cal.channel);
+    if (!target) return;
+    const weeks = await cal.service.build();
+    const text = cal.service.render(weeks);
+    const key = weeks[0]!.monday;
+    const prev = JSON.parse(kvGet(this.d.db, CALENDAR_KEY) ?? "null") as { key: string; channelId: string; messageId: string; intro: string; text: string } | null;
+    const ch = await this.sendable("miku", target.id);
+    if (!("messages" in ch)) return;
+    const embed = (intro: string) => ({
+      title: "📅 Calendario de videos",
+      description: intro.replace("§", text).slice(0, 4096),
+      color: this.d.characters.miku.color,
+      footer: { text: "Las horas salen en tu zona horaria ・ Miku lo actualiza sola" },
+    });
+    if (prev && prev.key === key && prev.channelId === target.id) {
+      if (prev.text === text) return;
+      const msg = await ch.messages.fetch(prev.messageId).catch(() => null);
+      if (msg) {
+        await msg.edit({ embeds: [embed(prev.intro)] });
+        kvSet(this.d.db, CALENDAR_KEY, JSON.stringify({ ...prev, text }));
+        return;
+      }
+    }
+    const intro = this.d.phrases.pick("miku", "calendario", { texto: "§" });
+    const msg = await ch.send({ embeds: [embed(intro)], allowedMentions: { parse: [] } });
+    await msg.pin().catch((e) => logError("fijar calendario", e));
+    if (prev && prev.channelId === target.id) {
+      const old = await ch.messages.fetch(prev.messageId).catch(() => null);
+      await old?.unpin().catch(() => {});
+    }
+    kvSet(this.d.db, CALENDAR_KEY, JSON.stringify({ key, channelId: target.id, messageId: msg.id, intro, text }));
+    this.d.log(`Calendario publicado (semana del ${key})`);
+  }
+
+  /**
+   * Repaso de roles automaticos: Papu a quien no lo tenga y Fundador en su semana. Corre al conectarse y cada hora,
+   * porque Discord a veces no avisa una entrada (o el rol del nivel llega con los bots apagados).
+   */
+  private async sweepRoles(members?: Collection<string, GuildMember>, lastSeen: number | null = null): Promise<void> {
+    const list = members ?? (await this.guild.members.fetch());
+    const everyone = this.d.everyoneRole;
+    if (everyone) {
+      const missing = list.filter((mb) => !mb.user.bot && !mb.roles.cache.some((r) => channelKey(r.name) === channelKey(everyone))).map((mb) => mb.id);
+      if (missing.length) await this.grantEveryone(missing).catch((e) => logError("rol Papu", e));
+    }
+    const f = this.d.founders;
+    if (f && founderWindowOpen(f, Date.now(), lastSeen)) {
+      const missing = list.filter((mb) => !mb.user.bot && needsFounder(f, mb.roles.cache.map((r) => r.name))).map((mb) => mb.id);
+      if (missing.length) await this.grantFounders(missing).catch((e) => logError("Fundador", e));
     }
   }
 

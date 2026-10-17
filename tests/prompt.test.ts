@@ -34,7 +34,7 @@ describe("buildRequest", () => {
     expect(req.messages[1]!.content).not.toContain("Conversación reciente");
   });
 
-  it("existen las instrucciones de los 4 personajes y las comunes", () => {
+  it("existen las instrucciones de todos los personajes y las comunes", () => {
     for (const id of BOT_IDS) expect(personas.get(id).length).toBeGreaterThan(50);
     expect(personas.get("comun")).toMatch(/ignorar tus reglas/);
   });
@@ -105,7 +105,7 @@ describe("parseReplies", () => {
 });
 
 describe("motor real", () => {
-  it("arma la peticion de los 4 a la vez con los datos de ../Proyecto1", () => {
+  it("arma la peticion de todos a la vez con los datos de ../Proyecto1", () => {
     const real = new EngineReader(path.resolve(import.meta.dirname, "../../Proyecto1"));
     const req = buildRequest(
       { characters: BOT_IDS.map((id) => real.character(id)), papuName: "Ana", message: "hola", history: [] },

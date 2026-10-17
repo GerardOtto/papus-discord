@@ -23,6 +23,20 @@ describe("Quota", () => {
     expect(q.remaining("b", NOON)).toBe(5);
   });
 
+  it("GyroP la reinicia a mano: a todos o a un Papu, solo el dia de hoy", () => {
+    const q = new Quota(memDb(), 5, TZ);
+    const ayer = new Date(NOON.getTime() - 86_400_000);
+    q.reserve("a", 5, ayer);
+    q.reserve("a", 5, NOON);
+    q.reserve("b", 2, NOON);
+    expect(q.reset("b", NOON)).toBe(1);
+    expect(q.remaining("b", NOON)).toBe(5);
+    expect(q.remaining("a", NOON)).toBe(0);
+    expect(q.reset(null, NOON)).toBe(1);
+    expect(q.remaining("a", NOON)).toBe(5);
+    expect(q.remaining("a", ayer)).toBe(0);
+  });
+
   it("se reinicia a medianoche de Chile, no de UTC", () => {
     const q = new Quota(memDb(), 5, TZ);
     q.reserve("papu", 5, new Date("2026-10-15T23:30:00-03:00"));

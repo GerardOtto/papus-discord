@@ -23,6 +23,12 @@ export function commandsFor(bot: BotId, cast: CastMember[] = []): RESTPostAPICha
           .setName("cuota")
           .setDescription("Cuántos mensajes con los Vocaloids te quedan hoy")
           .toJSON(),
+        new SlashCommandBuilder()
+          .setName("reiniciar-cuota")
+          .setDescription("Devuelve los mensajes de hoy a todos los Papus, o a uno (solo GyroP)")
+          .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
+          .addUserOption((o) => o.setName("papu").setDescription("Solo a este Papu (si lo dejas vacío, a todos)"))
+          .toJSON(),
       ];
     case "miku":
       return [
@@ -115,6 +121,7 @@ export function commandsFor(bot: BotId, cast: CastMember[] = []): RESTPostAPICha
                     { name: "🗳️ votaciones (Puerro): tema del próximo video", value: "votaciones" },
                     { name: "📝 propuestas-de-temas (Atún): presentador o miniatura", value: "propuestas-de-temas" },
                     { name: "❓ preguntas-a-gyrop (Celular): tema del especial", value: "preguntas-a-gyrop" },
+                    { name: "🏅 votacion-de-honor (Papus de honor): video de la semana", value: "votacion-de-honor" },
                   ),
               )
               .addStringOption((o) => o.setName("pregunta").setDescription("Pregunta de la encuesta (por defecto: el tema del próximo video)").setMaxLength(250))
@@ -133,6 +140,7 @@ export function commandsFor(bot: BotId, cast: CastMember[] = []): RESTPostAPICha
                     { name: "🗳️ votaciones", value: "votaciones" },
                     { name: "📝 propuestas-de-temas", value: "propuestas-de-temas" },
                     { name: "❓ preguntas-a-gyrop", value: "preguntas-a-gyrop" },
+                    { name: "🏅 votacion-de-honor", value: "votacion-de-honor" },
                   ),
               ),
           )
@@ -150,6 +158,20 @@ export function commandsFor(bot: BotId, cast: CastMember[] = []): RESTPostAPICha
               .addStringOption((o) => o.setName("nombre").setDescription("Nombre exacto del candidato").setRequired(true).setMaxLength(55)),
           )
           .addSubcommand((s) => s.setName("semanal").setDescription("Abre ya la ronda semanal (normalmente Miku la abre sola)"))
+          .addSubcommand((s) =>
+            s
+              .setName("listo")
+              .setDescription("🏅 Agrega videos que tienes listos para subir a la votación de honor")
+              .addStringOption((o) => o.setName("nombre").setDescription("Video listo; varios separados con |").setRequired(true).setMaxLength(500)),
+          )
+          .addSubcommand((s) => s.setName("listos").setDescription("🏅 Votación de honor: videos listos, ideas que van ganando y próxima fecha"))
+          .addSubcommand((s) =>
+            s
+              .setName("quitar-listo")
+              .setDescription("🏅 Saca un video de la lista de listos")
+              .addStringOption((o) => o.setName("nombre").setDescription("Nombre exacto del video").setRequired(true).setMaxLength(55)),
+          )
+          .addSubcommand((s) => s.setName("honor").setDescription("🏅 Abre ya la votación de honor (normalmente Miku la abre sola cada 2 semanas, los lunes)"))
           .addSubcommand((s) =>
             s
               .setName("desempate")

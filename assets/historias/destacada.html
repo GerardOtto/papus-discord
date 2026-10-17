@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<!-- Portadas de historias destacadas de Instagram (1080x1920). ?s=discord | kofi; render: node scripts/render-kofi.mjs destacadas.
+     Instagram recorta un circulo del centro: todo lo importante va en el circulo central (diametro ~760 px). Misma
+     estetica que historia.html (colores de cada marca, rayos, insignias de los niveles de fondo). -->
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { width: 1080px; height: 1920px; overflow: hidden; }
+  body { position: relative; background: radial-gradient(circle at 50% 50%, var(--mid) 0%, var(--dark) 70%); }
+  .deco img { position: absolute; width: 120px; opacity: .1; }
+  .rays { position: absolute; left: 50%; top: 50%; width: 1700px; height: 1700px; margin: -850px 0 0 -850px; border-radius: 50%;
+          background: repeating-conic-gradient(from 0deg, rgba(255,255,255,.08) 0 8deg, transparent 8deg 16deg); }
+  .badge { position: absolute; left: 50%; top: 50%; width: 700px; height: 700px; margin: -350px 0 0 -350px; border-radius: 50%;
+           background: radial-gradient(circle at 50% 38%, var(--btnLight) 0%, var(--btn) 62%, var(--btnShadow) 100%);
+           border: 22px solid #fff; box-shadow: 0 26px 0 var(--btnShadow), 0 40px 70px rgba(0,0,0,.45);
+           display: flex; align-items: center; justify-content: center; }
+  .badge img { width: 380px; height: 380px; filter: brightness(0) invert(1) drop-shadow(0 10px 0 rgba(0,0,0,.18)); }
+  .spark { position: absolute; color: var(--accent); font-size: 90px; line-height: 1; text-shadow: 0 6px 14px rgba(0,0,0,.35); }
+</style>
+</head>
+<body>
+<div class="rays"></div>
+<div class="deco" id="deco"></div>
+<div class="badge"><img id="ico" alt=""></div>
+<span class="spark" style="left:190px;top:640px">✦</span>
+<span class="spark" style="right:180px;top:1150px;font-size:70px">✦</span>
+<span class="spark" style="right:230px;top:600px;font-size:54px">✦</span>
+<script>
+  const S = {
+    discord: {
+      ico: "discord-symbol.svg",
+      deco: ["../kofi/badge_1_puerro.png", "../kofi/badge_3_baguette.png", "../kofi/badge_4_celular.png", "../kofi/badge_2_atun.png"],
+      c: { dark: "#141640", mid: "#3b42b8", accent: "#ffd34d", btn: "#5865f2", btnLight: "#7b86ff", btnShadow: "#3640b0" },
+    },
+    kofi: {
+      ico: "kofi-symbol.svg",
+      deco: ["../kofi/badge_5_triple_baka.png", "../kofi/badge_1_puerro.png", "../kofi/badge_3_baguette.png", "../kofi/badge_4_celular.png"],
+      c: { dark: "#3a1020", mid: "#c2414a", accent: "#ffe066", btn: "#ff5e5b", btnLight: "#ff8a86", btnShadow: "#c23f3c" },
+    },
+  };
+  const s = S[new URLSearchParams(location.search).get("s") || "discord"];
+  const r = document.documentElement.style;
+  Object.entries(s.c).forEach(([k, v]) => r.setProperty(`--${k}`, v));
+  document.getElementById("ico").src = s.ico;
+  // Mismo patron de fondo que historia.html.
+  let html = "", k = 0;
+  for (let y = 40; y < 1920; y += 230) for (let x = (k % 2 ? 40 : 160); x < 1080; x += 260)
+    html += `<img src="${s.deco[k++ % s.deco.length]}" style="left:${x}px;top:${y}px;transform:rotate(${(k % 3 - 1) * 14}deg)" alt="">`;
+  document.getElementById("deco").innerHTML = html;
+</script>
+</body>
+</html>

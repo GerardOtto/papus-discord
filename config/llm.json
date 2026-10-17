@@ -28,7 +28,7 @@
       "keyEnv": "GEMINI_API_KEY",
       "dailyRequests": 1000,
       "extra": {
-        "reasoning_effort": "low"
+        "reasoning_effort": "minimal"
       }
     },
     {

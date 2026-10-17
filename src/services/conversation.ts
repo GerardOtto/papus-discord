@@ -6,6 +6,7 @@ import type { PrivacyGuard } from "./privacy";
 import type { BotId } from "../config";
 import type { CharacterInfo } from "../engine/reader";
 import type { LLMChain } from "../llm/chain";
+import type { ChatResponse } from "../llm/provider";
 import { buildRequest, parseReplies, type HistoryLine, type PersonaLibrary } from "../llm/prompt";
 import type { RequestQueue } from "../llm/queue";
 import type { Phrases } from "../phrases/catalog";
@@ -64,7 +65,8 @@ export class ConversationService {
 
     // Preguntas sobre el proceso de GyroP (IA, herramientas, como se hacen los videos): frase fija de cada bot
     // mencionado. El LLM nunca ve la pregunta y no se gasta cuota (regla 4).
-    const topic = this.d.privacy?.classify(m.text);
+    // Sin las menciones a los bots: "@IA ¿viste el video?" le habla a IA (la Vocaloid), no pregunta si GyroP usa IA.
+    const topic = this.d.privacy?.classify(withoutBotMentions(m.text, Object.values(this.d.characters).map((c) => c.displayName)));
     if (topic) {
       for (const bot of m.bots) await port.reply(bot, m.channelId, m.messageId, phrases.pick(bot, topic, { papu }), m.authorId);
       return "private";
@@ -94,7 +96,22 @@ export class ConversationService {
         this.d.personas,
         this.d.llm,
       );
-      return this.d.chain.chat(req, signal);
+      // Una respuesta cortada o sin el JSON de cada personaje se descarta y responde la siguiente API. Si ninguna
+      // responde completo, se usa la mejor parcial (los que faltan se devuelven a la cuota más abajo).
+      let partial: ChatResponse | null = null;
+      try {
+        return await this.d.chain.chat(req, signal, (res) => {
+          const parsed = parseReplies(res.text, characters);
+          const got = characters.filter((c) => parsed[c.id]).length;
+          if (got === characters.length) return true;
+          if (got > 0 && !partial) partial = res;
+          this.d.log?.(`Respuesta incompleta de ${res.provider} (${got} de ${characters.length}, ${res.text.length} car.); pruebo con otra API`);
+          return false;
+        });
+      } catch (e) {
+        if (partial) return partial;
+        throw e;
+      }
     });
     this.d.onQueueLength?.(queue.length);
     stopTyping.forEach((stop) => stop());
@@ -146,6 +163,13 @@ export class ConversationService {
     }
     return "answered";
   }
+}
+
+/** Quita las menciones legibles a los bots ("@IA", "@Teto") de un texto. */
+export function withoutBotMentions(text: string, names: string[]): string {
+  if (!names.length) return text;
+  const alt = names.map((n) => n.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|");
+  return text.replace(new RegExp(`@(?:${alt})(?![\\p{L}\\p{N}])`, "giu"), " ");
 }
 
 /** Bots mencionados en orden de aparicion: <@id> en el texto y, al final, el autor del mensaje respondido. */

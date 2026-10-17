@@ -68,6 +68,26 @@ describe("LLMChain", () => {
   });
 });
 
+describe("LLMChain: respuestas que no sirven", () => {
+  const prov = (name: string, text: string): LLMProvider => ({ name, chat: async () => ({ text, provider: name, model: "m" }) });
+
+  it("una respuesta cortada se descarta y responde la siguiente API (sin dejar en descanso a la primera)", async () => {
+    const used: [string, boolean][] = [];
+    const chain = new LLMChain([prov("gemini", '{"miku": "¡Ay, papu, World is Mine es'), prov("groq", '{"miku": "¡World is Mine!"}')], {
+      record: (p, ok) => used.push([p, ok]),
+    });
+    const accept = (r: { text: string }) => r.text.trim().endsWith("}");
+    expect((await chain.chat({ messages: [] }, undefined, accept)).provider).toBe("groq");
+    expect(used).toEqual([["gemini", false], ["groq", true]]);
+    expect(chain.available().map((p) => p.name)).toEqual(["gemini", "groq"]);
+  });
+
+  it("si ninguna sirve, error de todas", async () => {
+    const chain = new LLMChain([prov("a", "x"), prov("b", "y")]);
+    await expect(chain.chat({ messages: [] }, undefined, () => false)).rejects.toBeInstanceOf(AllProvidersFailedError);
+  });
+});
+
 describe("OpenAICompatibleProvider", () => {
   const make = (fetchFn: typeof fetch) =>
     new OpenAICompatibleProvider({ name: "groq", baseUrl: "https://x/v1", model: "m", apiKey: "SECRETO", fetchFn });

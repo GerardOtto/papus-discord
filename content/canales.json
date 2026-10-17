@@ -12,7 +12,7 @@
     "bot": "neru",
     "reaccion": "nerd",
     "titulo": "📜 reglas del server",
-    "texto": "soy neru y modero esto. no es que me importe… pero léanlas. (－。－)\n\n**🤝 respeto**\n・ nada de insultos dirigidos a otra persona. un \"no mames\" pasa; un \"eres un…\" no.\n・ cero odio: racismo, homofobia, burlas por cómo es alguien.\n・ nada de contenido para adultos ni violento.\n\n**🔒 seguridad**\n・ no compartas teléfonos, correos ni datos personales (tuyos ni de nadie).\n・ sin invitaciones a otros servers ni enlaces raros. \"nitro gratis\" no existe.\n・ sin spam ni flood. uno a la vez.\n・ cuentas nuevas: el primer día solo enlaces de youtube, spotify, niconico, instagram, x, vocadb y piapro.\n\n**⚠️ si rompes una regla**\n1 advertencia → 2 silencio de 10 min → 3 una hora → 4 un día y aviso a gyrop. los strikes se borran a los 3 días. yo no expulso a nadie: eso solo lo decide gyrop.\n\n**🤖 sobre nosotras, las vocaloids**\n・ somos bots. las respuestas libres se generan con ia y tus mensajes pueden procesarse en servicios externos.\n・ cada papu tiene 7 mensajes al día con nosotras, repartidos entre las cuatro e iguales para todos. usa /cuota.\n\n**💎 lo de los niveles**\n・ lo que se comparte en los canales de pago se queda ahí. no lo filtres.\n\nlisto. ya pueden seguir con su vida. 📱",
+    "texto": "soy neru y modero esto. no es que me importe… pero léanlas. (－。－)\n\n**🤝 respeto**\n・ nada de insultos dirigidos a otra persona. un \"no mames\" pasa; un \"eres un…\" no.\n・ cero odio: racismo, homofobia, burlas por cómo es alguien.\n・ nada de contenido para adultos ni violento.\n\n**🔒 seguridad**\n・ no compartas teléfonos, correos ni datos personales (tuyos ni de nadie).\n・ sin invitaciones a otros servers ni enlaces raros. \"nitro gratis\" no existe.\n・ sin spam ni flood. uno a la vez.\n・ cuentas recién llegadas: la primera hora solo enlaces conocidos (gifs, youtube, spotify, redes, arte…). después, libre.\n\n**⚠️ si rompes una regla**\n1 advertencia → 2 silencio de 10 min → 3 una hora → 4 un día y aviso a gyrop. los strikes se borran a los 3 días. yo no expulso a nadie: eso solo lo decide gyrop.\n\n**🤖 sobre nosotras, las vocaloids**\n・ somos bots. las respuestas libres se generan con ia y tus mensajes pueden procesarse en servicios externos.\n・ cada papu tiene 7 mensajes al día con los vocaloids, repartidos entre todos e iguales para todos. usa /cuota.\n\n**💎 lo de los niveles**\n・ lo que se comparte en los canales de pago se queda ahí. no lo filtres.\n\nlisto. ya pueden seguir con su vida. 📱",
     "pie": "neru ・ moderación"
   },
   "anuncios": {
@@ -97,8 +97,15 @@
     "bot": "miku",
     "reaccion": "feliz",
     "titulo": "💌 ¡Habla con las Vocaloids!",
-    "texto": "¡¿QUÉ?! ¿Quieres platicar con nosotras? ¡Este es el lugar! ✧٩(•́⌄•́๑)\n\n**¿Cómo?** Menciónanos con @: **@Teto**, **@Miku**, **@Luka** o **@Neru** (o responde a uno de nuestros mensajes).\n\n**📏 Las reglas del juego**\n> ・ tienes **7 mensajes al día**, compartidos entre las cuatro\n> ・ cada @ cuenta uno: si mencionas a dos, gastas dos\n> ・ se recargan a medianoche de Chile; revisa los tuyos con **/cuota**\n> ・ es igual para todos los Papus, paguen o no ♡\n> ・ una pregunta a la vez: si hay mucha gente, espera tu turno ⏳\n\n**🤖 Para que sepas**\nSomos bots y nuestras respuestas libres se generan con IA. No sabemos todo: si algo es importante, revísalo con una fuente. ¡Y no compartas datos personales!\n\nYa, ya… ¡pregúntanos lo que quieras! 🎤",
+    "texto": "¡¿QUÉ?! ¿Quieres platicar con nosotras? ¡Este es el lugar! ✧٩(•́⌄•́๑)\n\n**¿Cómo?** Menciónanos con @: **@Teto**, **@Miku**, **@Luka** o **@Neru** (o responde a uno de nuestros mensajes). ¡Y también platican **@Gakupo**, **@Kaito**, **@flower**, **@IA**, **@Haku** y **@Gumi**!\n\n**📏 Las reglas del juego**\n> ・ tienes **7 mensajes al día**, compartidos entre todos los Vocaloids\n> ・ cada @ cuenta uno: si mencionas a dos, gastas dos\n> ・ se recargan a medianoche de Chile; revisa los tuyos con **/cuota**\n> ・ es igual para todos los Papus, paguen o no ♡\n> ・ una pregunta a la vez: si hay mucha gente, espera tu turno ⏳\n\n**🤖 Para que sepas**\nSomos bots y nuestras respuestas libres se generan con IA. No sabemos todo: si algo es importante, revísalo con una fuente. ¡Y no compartas datos personales!\n\nYa, ya… ¡pregúntanos lo que quieras! 🎤",
     "pie": "Miku ・ la idol número 01"
+  },
+  "comandos-de-bots": {
+    "bot": "miku",
+    "reaccion": "feliz",
+    "titulo": "🤖 ¡Comandos de los bots!",
+    "texto": "¡Papu papu! Aquí puedes usar los comandos sin llenar los otros canales ♪\n\n**🎵 Música**\n> 1️⃣ entra a un canal de voz (Zona de descanso, Sala comunitaria o Sala de transmisión)\n> 2️⃣ escribe **/play** y el nombre de la canción (Jockie Music o Chip)\n> 3️⃣ **/skip** salta, **/stop** detiene. Con varias copias de Jockie, cada sala puede tener su música\n\n**💌 Nosotras**\n> 📊 **/cuota** (Teto) ・ cuántos mensajes te quedan hoy con nosotras\n> 💡 **/tip** (Luka) ・ comparte un dato con su fuente (desde 🐟 Atún)\n> 🎁 **/pedido** y **/mi-pedido** (Miku) ・ tu video personalizado (💥 Triple Baka)\n\nPara platicar con nosotras, mejor en {habla-con-los-vocaloids} ✨",
+    "pie": "Miku ・ ¡pon una canción mía! 🎤"
   },
   "reportes-y-reclamos": {
     "bot": "neru",
@@ -153,7 +160,7 @@
     "bot": "miku",
     "reaccion": "saludando",
     "titulo": "📅 Calendario de publicación",
-    "texto": "¡Hola, Papus! Aquí verán **qué video viene y cuándo**, y el **tema de la semana**, antes que nadie 👀✨\n\n> 📆 las fechas pueden moverse un poquito (¡los videos se hacen con cariño!)\n> 🤫 lo que ves aquí es un adelanto para Puerros y superiores: no lo cuentes fuera, ¡que sea sorpresa!\n\nPon recordatorio y no te pierdas ningún estreno ♡",
+    "texto": "¡Hola, Papus! Aquí verán **qué video viene y cuándo**, y el **tema de la semana**, antes que nadie 👀✨\n\n> 🗓️ cada semana fijo aquí el calendario de **2 semanas**: lunes, miércoles y viernes, con la hora en tu zona horaria\n> 🗳️ los lunes, el que eligieron los Puerros · 🎬 los miércoles, el de GyroP · 🏅 algunos viernes, el de los Papus de honor\n> ✏️ lo voy actualizando sola cuando gana una votación\n> 📆 las fechas pueden moverse un poquito (¡los videos se hacen con cariño!)\n> 🤫 lo que ves aquí es un adelanto para Puerros y superiores: no lo cuentes fuera, ¡que sea sorpresa!\n\nPon recordatorio y no te pierdas ningún estreno ♡",
     "pie": "Miku ・ ¡Nos vemos en el estreno! 🎤"
   },
   "tips-y-curiosidades": {
@@ -246,6 +253,20 @@
     "titulo": "🎁 Tu video personalizado: cómo funciona",
     "texto": "¡Un video hecho solo para ti, con nosotras! 🎤✨\n\nComo **💥 Triple Baka** tienes **un video personalizado al mes**: un saludo, un cumpleaños o una dedicatoria, con una o dos Vocaloids.\n\n**📝 Pídelo con /pedido**\n> ・ para quién es (y cómo se pronuncia, si es difícil)\n> ・ la ocasión y quién habla más\n> ・ gustos, apodos o una anécdota corta\n> ・ si hay fecha límite, como un cumpleaños\n\n**⏳ Cómo sigue**\n> ・ va **por orden de llegada**, sin saltarse a nadie: míralo en el tablero 📋\n> ・ llega en **7 días como máximo** y te aviso cuando empiece y cuando esté listo\n> ・ con **/mi-pedido** ves tu lugar cuando quieras\n> ・ si hay un error en el nombre, se corrige gratis dentro de 7 días\n> ・ un pedido a la vez; el siguiente, al mes del anterior (no se acumulan)\n\n🚫 No se hacen pedidos ofensivos, sexuales, de odio o políticos, ni con datos personales de otras personas. El video es para uso personal: compártelo en tus redes, pero no lo vendas ♡\n\n¡Gracias por ser Triple Baka, Papu! ٩(◕‿◕)۶",
     "pie": "Miku ・ ¡te va a encantar! 🎤"
+  },
+  "charla-de-honor": {
+    "bot": "teto",
+    "reaccion": "emocionado",
+    "titulo": "🏅 ¡Bienvenidos a la Sala de honor!",
+    "texto": "¡Papu papu! Si estás aquí es porque GyroP te eligió como **🏅 Papu de honor**: de los más fieles y activos del canal. ¡Qué orgullo! ٩(ˊᗜˋ*)و ♡\n\n**💬 Este canal es para ponerse de acuerdo**\n> 💡 propongan los temas que quieren ver en un video\n> 👍 apoyen con **👍** las ideas que más les gusten (el tuyo en tu propia idea no cuenta, jeje)\n> 🗳️ cada **dos semanas** (los lunes) las **2 ideas con más 👍** pasan solas a la votación en {votacion-de-honor}\n\n**✨ Tips para proponer**\n> ✿ un tema por mensaje, para que se pueda reaccionar a cada uno\n> ✿ cuenta en una línea por qué estaría bueno (¡un dato curioso suma puntos!)\n> ✿ temas de Vocaloid: canciones, productores, personajes, historia, memes… (≧▽≦)\n\nPara platicar en voz están **🎙️ Sala de honor** y **🎧 Rincón de honor** ♪\n\nSer Papu de honor no se compra: se gana participando. ¡Gracias por estar siempre! (っ˘ω˘ς)",
+    "pie": "Teto ・ ¡los Papus de honor son lo máximo! 🥖"
+  },
+  "votacion-de-honor": {
+    "bot": "miku",
+    "reaccion": "emocionado",
+    "titulo": "🗳️ ¡La votación de los Papus de honor!",
+    "texto": "¡¿QUÉ?! ¡Ustedes también eligen un video cada semana! ٩(◕‿◕)۶\n\n**Cómo funciona**\n> 📅 se abre sola cada **dos semanas**, el **lunes a las 18:00** (hora de Chile), y cierra el jueves\n> 🎬 trae videos que GyroP **ya tiene listos para subir**\n> 💡 y las **2 ideas con más 👍** de {charla-de-honor}\n> 🗳️ un voto por Papu de honor; te aviso antes de que cierre\n> 🏆 el ganador se anuncia aquí mismo y sale un **viernes**: ese mismo si es un video listo, o el siguiente si es una idea nueva\n\nSi además tienes un nivel de Ko-fi, ¡votas aquí **y** en la votación de los Puerros! Doble poder ✌(◕‿-)✌\n\nEste canal es solo para votar (así las encuestas no se pierden). Las ideas, en {charla-de-honor} ♡",
+    "pie": "Miku ・ ¡que gane el mejor! 🎤"
   },
   "moderacion": {
     "bot": "neru",

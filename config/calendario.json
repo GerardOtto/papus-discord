@@ -1,0 +1,7 @@
+{
+  "$comment": "Calendario automático de #calendario (Puerro y superiores). Miku lo publica fijado desde el PC con 2 semanas (la actual y la próxima; el fin de semana, las 2 que vienen) y lo edita cuando cambia algo. Lunes = ganador Ko-fi, miércoles = de GyroP, viernes = Papus de honor o GyroP (docs/PLAN.md). Los de GyroP salen de '1. Videos finales' (del número más bajo al más alto) y no cambian una vez asignados. 'hora' en 'zona' = la del calendario del motor; Discord la muestra en la hora de cada Papu.",
+  "canal": "calendario",
+  "hora": "13:00",
+  "zona": "America/Mexico_City",
+  "semanas": 2
+}

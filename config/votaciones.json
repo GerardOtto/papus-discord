@@ -6,5 +6,21 @@
   "cadaDias": 7,
   "duraDias": 3,
   "opciones": 3,
-  "semilla": ["Video de Kafu", "Video de Ruko", "Video de Momo"]
+  "semilla": [
+    "Video de Kafu",
+    "Video de Ruko",
+    "Video de Momo"
+  ],
+  "honor": {
+    "$comment": "Votación semanal de los Papus de honor (#votacion-de-honor), también automática: hasta \"listos\" videos que GyroP tiene listos para subir (los agrega con /votacion listo) + las \"ideas\" propuestas en #charla-de-honor con más reacciones \"emoji\" desde la ronda anterior (no cuenta la del autor ni bots; una idea usada no se repite). Si no hay al menos 2 opciones, no abre y avisa a GyroP. Calendario (decisión de GyroP, 17 oct. 2026): 3 videos por semana; lunes = ganador Ko-fi, miércoles = de GyroP, viernes = alterna Papus de honor / GyroP. Por eso la de honor va cada 2 semanas, abre el lunes 18:00 y cierra el jueves 18:00: si gana un video listo sale ese viernes; si gana una idea, el viernes siguiente.",
+    "canal": "votacion-de-honor",
+    "charla": "charla-de-honor",
+    "pregunta": "¿Qué video quieren que salga esta semana, Papus de honor?",
+    "primera": "2026-10-19T18:00:00-03:00",
+    "cadaDias": 14,
+    "duraDias": 3,
+    "listos": 2,
+    "ideas": 2,
+    "emoji": "👍"
+  }
 }

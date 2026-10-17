@@ -3,7 +3,7 @@
   "engine": {
     "lore": {
       "path": "config/autopilot/lore.json",
-      "use": "Datos de cada personaje (characters.<id>), dinamicas compartidas (shared), memes de la comunidad (community) y reglas de lore (rules). Fuente de las instrucciones de personalidad de los 4 bots.",
+      "use": "Datos de cada personaje (characters.<id>), dinamicas compartidas (shared), memes de la comunidad (community) y reglas de lore (rules). Fuente de las instrucciones de personalidad de los bots (los que no están en el elenco del motor usan content/lore-extra.json).",
       "usedBy": [
         "teto",
         "miku",
@@ -40,7 +40,7 @@
     },
     "avatars": {
       "path": "assets/characters/{id}/",
-      "use": "Imagenes por emocion de cada personaje (ej.: neru/enojado.png para avisos de moderacion, teto/r3d_saludando.png para bienvenidas). Base de los avatares cuadrados de los 4 bots.",
+      "use": "Imagenes por emocion de cada personaje (ej.: neru/enojado.png para avisos de moderacion, teto/r3d_saludando.png para bienvenidas). Base de los avatares cuadrados de los bots.",
       "usedBy": [
         "teto",
         "miku",
@@ -50,9 +50,9 @@
     },
     "calendario": {
       "path": "projects/_autopilot/calendario.json",
-      "use": "reels[]: when (con timezone), episodeId, title, hookTitle, state, finalNumber. Calendario de publicacion y anuncio de estrenos.",
+      "use": "reels[]: when (con timezone), episodeId, title, hookTitle, state, finalNumber. Calendario de publicacion y anuncio de estrenos. Lo usa el calendario de #calendario solo para los títulos con sus signos (por finalNumber).",
       "usedBy": [
-        "miku"
+        "calendario"
       ]
     },
     "history": {
@@ -119,9 +119,10 @@
     "$comment": "Carpetas del escritorio (DELIVERY_DIR = Desktop/Proyecto vocaloid). Opcionales. El catalogo de los bots usa SOLO las carpetas 2 y 5, y solo NOMBRES DE CARPETAS (titulo y estado); nunca se abren archivos ni se exponen rutas, fechas o numeros. Las carpetas 1 (finales) y 6 (archivados) NO se exponen: spoilers y beneficio del nivel Celular (decision de GyroP, 16 oct. 2026).",
     "finales": {
       "path": "1. Videos finales/",
-      "use": "Videos listos para publicar. NO va al catalogo de los bots (spoilers); solo uso interno de Miku para saber que hay listo.",
+      "use": "Videos listos para publicar. NO va al catálogo de las respuestas de los bots (spoilers). Desde el 17 oct. 2026 (decisión de GyroP), sus TÍTULOS salen en el calendario de #calendario (Puerro y superiores), en los días de GyroP, del número más bajo al más alto (src/calendar/).",
       "usedBy": [
-        "miku"
+        "miku",
+        "calendario"
       ]
     },
     "revision": {

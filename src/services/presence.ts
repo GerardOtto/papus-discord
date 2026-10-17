@@ -1,12 +1,12 @@
 // Saludo al conectarse y despedida al apagar (frases fijas, regla 4). Un reinicio rapido no deja un "adios"
 // colgado: si los bots vuelven antes de 30 min, la despedida se borra y no hay saludo.
-import { BOT_IDS, type BotId } from "../config";
+import { CORE_BOT_IDS, type CoreBotId } from "../config";
 import type { DeckStore } from "../phrases/deck";
 
 export const QUICK_RESTART_MS = 30 * 60_000;
 
 export interface FarewellRecord {
-  bot: BotId;
+  bot: CoreBotId;
   channelId: string;
   messageId: string;
   at: number;
@@ -29,16 +29,16 @@ export function startDecision(lastSeen: number | null, farewell: FarewellRecord 
   return { greet: true, deleteFarewell: null };
 }
 
-/** Bot que saluda o se despide: rota entre los 4 sin repetir (mazo persistido). */
-export function nextPresenceBot(decks: DeckStore): BotId {
-  return BOT_IDS[decks.next("presencia.bot", BOT_IDS.length)]!;
+/** Bot que saluda o se despide: rota entre las 4 chicas sin repetir (mazo persistido). */
+export function nextPresenceBot(decks: DeckStore): CoreBotId {
+  return CORE_BOT_IDS[decks.next("presencia.bot", CORE_BOT_IDS.length)]!;
 }
 
 export function parseFarewell(raw: string | null): FarewellRecord | null {
   if (!raw) return null;
   try {
     const r = JSON.parse(raw) as FarewellRecord;
-    return r && (BOT_IDS as readonly string[]).includes(r.bot) && r.channelId && r.messageId ? r : null;
+    return r && (CORE_BOT_IDS as readonly string[]).includes(r.bot) && r.channelId && r.messageId ? r : null;
   } catch {
     return null;
   }

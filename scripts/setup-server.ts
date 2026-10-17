@@ -3,8 +3,8 @@
 //   npm run servidor             -> solo muestra lo que haria
 //   npm run servidor -- --apply  -> lo ejecuta (usa la app de Teto: necesita "Administrador" mientras corre)
 import { ChannelType, REST, Routes } from "discord.js";
-import { BOT_IDS, loadConfig, loadDotEnv } from "../src/config";
-import { nameKey, overwritesFor, sameOverwrites, type CategorySpec, type ChannelSpec, type Overwrite, type RoleIds } from "../src/setup/layout";
+import { loadConfig, loadDotEnv } from "../src/config";
+import { nameKey, overwritesFor, reorderWithin, sameOverwrites, type CategorySpec, type ChannelSpec, type Overwrite, type RoleIds } from "../src/setup/layout";
 import { loadLayout } from "../src/setup/layout";
 
 loadDotEnv();
@@ -52,9 +52,10 @@ for (const w of wantRoles) {
     log(`crear rol "${w.rol}" (${w.color}${w.separado ? ", separado en la lista" : ""})`);
     // Sin permisos propios: el acceso a los canales va por los permisos de cada canal.
     if (APPLY) await rest.post(Routes.guildRoles(G), { body: { name: w.rol, color: hex(w.color), hoist: w.separado, mentionable: false, permissions: "0" } });
-  } else if (r.color !== hex(w.color) || r.hoist !== w.separado) {
-    log(`ajustar rol "${r.name}": color ${w.color}, ${w.separado ? "separado" : "no separado"} en la lista`);
-    if (APPLY) await rest.patch(Routes.guildRole(G, r.id), { body: { color: hex(w.color), hoist: w.separado } });
+  } else if (r.name !== w.rol || r.color !== hex(w.color) || r.hoist !== w.separado) {
+    // Mismo rol (se reconoce sin emojis ni acentos): se renombra en vez de duplicar. Ko-fi asigna por id, no por nombre.
+    log(`ajustar rol "${r.name}"${r.name !== w.rol ? ` → "${w.rol}"` : ""}: color ${w.color}, ${w.separado ? "separado" : "no separado"} en la lista`);
+    if (APPLY) await rest.patch(Routes.guildRole(G, r.id), { body: { name: w.rol, color: hex(w.color), hoist: w.separado } });
   }
 }
 if (APPLY) roles = await api<ApiRole[]>(() => rest.get(Routes.guildRoles(G)));
@@ -78,6 +79,7 @@ const roleIds: RoleIds = {
     const m = layout.rolesExtra.find((r) => r.musica);
     return m ? placeholder(m.rol) : undefined;
   })(),
+  extra: Object.fromEntries(layout.rolesExtra.map((r) => [nameKey(r.rol), placeholder(r.rol)])),
 };
 
 // Bots de musica externos (Jockie, Chip…): su rol, que los deja solo en los canales de voz.
@@ -92,10 +94,10 @@ for (const botId of musicSpec?.musica ?? []) {
   }
 }
 
-// Rol Vocaloids a los 4 bots, y por encima de los niveles (para que salgan juntos arriba en la lista).
+// Rol Vocaloids a todos los bots con token (las 4 chicas y los de conversacion), y por encima de los niveles (para que salgan juntos arriba en la lista).
 const botRole = layout.rolesExtra.find((r) => r.bots)!;
-for (const id of BOT_IDS) {
-  const r2 = new REST().setToken(config.tokens[id]);
+for (const id of config.activeBots) {
+  const r2 = new REST().setToken(config.tokens[id]!);
   const u = await api<{ id: string }>(() => r2.get(Routes.user()));
   const m = await api<{ roles: string[] }>(() => rest.get(Routes.guildMember(G, u.id)));
   const vid = byName(botRole.rol)?.id;
@@ -109,6 +111,20 @@ const voc = byName(botRole.rol);
 if (top && (!voc || voc.position <= top.position)) {
   log(`subir "${botRole.rol}" por encima de "${top.name}" en la lista de roles`);
   if (APPLY && voc) await rest.patch(Routes.guildRoles(G), { body: [{ id: voc.id, position: top.position + 1 }] });
+}
+
+// Colores de #tu-color por encima de las insignias (Papu de honor, Fundador) y de Papu: el color que elige cada uno
+// se ve aunque tenga una insignia. Debajo de los niveles: quien paga sigue viéndose con el color de su nivel.
+{
+  const colorRoles = (layout.coloresPapu?.colores ?? []).map((c) => byName(c.rol)).filter((r): r is ApiRole => !!r);
+  // Las insignias mantienen su orden actual entre ellas.
+  const badges = layout.rolesExtra.filter((r) => !r.bots && !r.musica).map((r) => byName(r.rol)).filter((r): r is ApiRole => !!r).sort((a, b) => b.position - a.position);
+  const group = [...colorRoles, ...badges];
+  const changes = reorderWithin(group, group.map((r) => r.id));
+  if (changes.length) {
+    log(`ordenar roles: colores de #tu-color sobre ${badges.map((b) => `"${b.name}"`).join(", ")}`);
+    if (APPLY) await rest.patch(Routes.guildRoles(G), { body: changes });
+  }
 }
 
 // Teto (Papu y Fundador) y Miku (colores, desde el worker) dan roles: necesitan "Gestionar roles" en su rol de bot,
@@ -144,7 +160,7 @@ for (const cat of layout.categorias as CategorySpec[]) {
   const catOw = overwritesFor(cat.leen, true, roleIds);
   let c = find(ChannelType.GuildCategory, cat);
   if (!c) {
-    log(`crear categoría "${cat.nombre}" (la ven: ${cat.leen === "todos" ? "todos" : cat.leen === "staff" ? "solo GyroP y los bots" : `${cat.leen} y superiores`})`);
+    log(`crear categoría "${cat.nombre}" (la ven: ${cat.leen === "todos" ? "todos" : cat.leen === "staff" ? "solo GyroP y los bots" : cat.leen.startsWith("rol:") ? `solo ${cat.leen.slice(4)}` : `${cat.leen} y superiores`})`);
     if (APPLY) c = await api<ApiChannel>(() => rest.post(Routes.guildChannels(G), { body: { name: cat.nombre, type: ChannelType.GuildCategory, permission_overwrites: toApi(catOw) } }));
   } else {
     const changes: Record<string, unknown> = {};
@@ -158,14 +174,17 @@ for (const cat of layout.categorias as CategorySpec[]) {
   if (c) managedIds.add(c.id);
 
   for (const ch of cat.canales as ChannelSpec[]) {
-    const ow = overwritesFor(cat.leen, ch.escriben, roleIds, ch.ocultarDesde);
-    const body = { name: ch.nombre, topic: ch.tema ?? "", rate_limit_per_user: ch.lento ?? 0, permission_overwrites: toApi(ow) };
-    const existing = find(ChannelType.GuildText, ch);
+    const ow = overwritesFor(cat.leen, ch.escriben, roleIds, ch);
+    const type = ch.voz ? ChannelType.GuildVoice : ChannelType.GuildText;
+    const body: { name: string; topic?: string; rate_limit_per_user?: number; permission_overwrites: ReturnType<typeof toApi> } = ch.voz
+      ? { name: ch.nombre, permission_overwrites: toApi(ow) }
+      : { name: ch.nombre, topic: ch.tema ?? "", rate_limit_per_user: ch.lento ?? 0, permission_overwrites: toApi(ow) };
+    const existing = find(type, ch);
     const who = ch.escriben ? "escriben los que leen" : "solo leen (escriben los bots y GyroP)";
     if (!existing) {
-      log(`  crear #${ch.nombre} en "${cat.nombre}" (${who}${ch.lento ? `, modo lento ${ch.lento} s` : ""})`);
+      log(ch.voz ? `  crear voz "${ch.nombre}" en "${cat.nombre}"` : `  crear #${ch.nombre} en "${cat.nombre}" (${who}${ch.lento ? `, modo lento ${ch.lento} s` : ""})`);
       if (APPLY) {
-        const created = await api<ApiChannel>(() => rest.post(Routes.guildChannels(G), { body: { ...body, type: ChannelType.GuildText, parent_id: c?.id } }));
+        const created = await api<ApiChannel>(() => rest.post(Routes.guildChannels(G), { body: { ...body, type, parent_id: c?.id } }));
         managedIds.add(created.id);
       }
       continue;
@@ -173,10 +192,11 @@ for (const cat of layout.categorias as CategorySpec[]) {
     managedIds.add(existing.id);
     const changes: Record<string, unknown> = {};
     // Discord guarda los nombres de canales de texto en minusculas y con guiones en vez de espacios.
-    if (existing.name !== ch.nombre.toLowerCase().replace(/\s+/g, "-")) changes.name = ch.nombre;
+    // (los de voz conservan mayusculas y espacios).
+    if (existing.name !== (ch.voz ? ch.nombre : ch.nombre.toLowerCase().replace(/\s+/g, "-"))) changes.name = ch.nombre;
     if (c && existing.parent_id !== c.id) changes.parent_id = c.id;
-    if ((existing.topic ?? "") !== body.topic) changes.topic = body.topic;
-    if ((existing.rate_limit_per_user ?? 0) !== body.rate_limit_per_user) changes.rate_limit_per_user = body.rate_limit_per_user;
+    if (!ch.voz && (existing.topic ?? "") !== body.topic) changes.topic = body.topic;
+    if (!ch.voz && (existing.rate_limit_per_user ?? 0) !== body.rate_limit_per_user) changes.rate_limit_per_user = body.rate_limit_per_user;
     if (!sameOverwrites(fromApi(existing.permission_overwrites), ow)) changes.permission_overwrites = body.permission_overwrites;
     if (Object.keys(changes).length) {
       const what = [changes.name && `renombrar a #${ch.nombre}`, changes.parent_id && `mover a "${cat.nombre}"`, changes.topic !== undefined && "tema", changes.rate_limit_per_user !== undefined && "modo lento", changes.permission_overwrites && `permisos (${who})`].filter(Boolean);

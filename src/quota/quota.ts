@@ -1,4 +1,4 @@
-// Cuota diaria unica por Papu, compartida entre los 4 bots e igual para todos los niveles (regla 1).
+// Cuota diaria unica por Papu, compartida entre todos los bots e igual para todos los niveles (regla 1).
 // Una unidad por cada @ a un bot. Se reserva al recibir la mencion y se devuelve si el Papu
 // no recibe respuesta del LLM (espera maxima superada o todas las APIs caidas).
 import { transaction, type Db } from "../db/database";
@@ -62,6 +62,18 @@ export class Quota {
     this.db
       .prepare("UPDATE quota_usage SET used = MAX(0, used - ?) WHERE user_id = ? AND day = ?")
       .run(n, res.userId, res.day);
+  }
+
+  /**
+   * Reinicio manual de GyroP (/reiniciar-cuota): borra el uso de HOY de un Papu o de todos.
+   * Devuelve a cuantos Papus se les devolvieron mensajes.
+   */
+  reset(userId: string | null = null, now = new Date()): number {
+    const day = dayKey(now, this.timeZone);
+    const res = userId
+      ? this.db.prepare("DELETE FROM quota_usage WHERE day = ? AND user_id = ? AND used > 0").run(day, userId)
+      : this.db.prepare("DELETE FROM quota_usage WHERE day = ? AND used > 0").run(day);
+    return Number(res.changes);
   }
 
   /** Borra registros de dias viejos (mantenimiento). */

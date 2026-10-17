@@ -51,7 +51,7 @@ Triple Baka sube a 25 USD para compensar el trabajo de los videos personalizados
 ### Productos de pago único en Ko-fi (fuera de las membresías)
 | Producto | Precio | Detalle |
 |---|---|---|
-| 🎥 **Videos personalizados** (3 productos por largo) | 30 s: 10 / 15 USD · 1 min: 20 / 25 USD · 2 min: 30 / 35 USD | Precio base = saludo con plantilla para una ocasión (variantes: cumpleaños, graduación, logro, ánimo, dedicatoria, saludo para canal); **Tema libre** = variante +5 USD (guion propio, chistes de autor e investigación de datos y relaciones entre Vocaloids). Entrega: saludos 7 días, tema libre 14. Precios del tema libre a reajustar cuando se conozca la demanda (15 oct. 2026). Misma **cola FIFO** que Triple Baka. Decisión (15 oct. 2026): **sin** regla de permanencia: el video de Triple Baka está garantizado aunque el Papu cancele después. La **bóveda es solo para ver**: lista **no listada en YouTube** con los enlaces en #bóveda; nunca subir los videos como archivos a Discord. Los de 30 s requieren el formato corto del motor (ADR). |
+| 🎥 **Videos personalizados** (3 productos por largo) | 30 s: 10 / 15 USD · 1 min: 20 / 25 USD · 2 min: 30 / 35 USD | Precio base = saludo con plantilla para una ocasión (variantes: cumpleaños, graduación, logro, ánimo, dedicatoria, saludo para canal); **Tema libre** = variante +5 USD (guion propio, chistes de autor e investigación de datos y relaciones entre Vocaloids). Entrega: saludos 7 días, tema libre 14. Precios del tema libre a reajustar cuando se conozca la demanda (15 oct. 2026). Misma **cola FIFO** que Triple Baka. Decisión (15 oct. 2026): **sin** regla de permanencia: el video de Triple Baka está garantizado aunque el Papu cancele después. La Bóveda incluye además los **borradores de Reels, miniaturas e historias** (opción 1 de GyroP, 16 oct. 2026). La **bóveda es solo para ver**: carpeta privada de **Google Drive** compartida con el Gmail del Papu (así está publicado en Ko-fi, 16 oct. 2026; desactivar la descarga para lectores); nunca subir los videos como archivos a Discord. Los de 30 s requieren el formato corto del motor (ADR). |
 | 🖼️ Pack de fondos de pantalla | 3 USD | Fondos de marca para celular y PC (descarga en la tienda de Ko-fi). |
 | ✨ Pack de stickers | 2 USD | Stickers de marca y las 5 insignias de los niveles. |
 | ☕ Donación única | Libre | Agradecimiento con frase fija de un bot en #anuncios. |
@@ -62,7 +62,7 @@ Triple Baka sube a 25 USD para compensar el trabajo de los videos personalizados
 **Ningún plan de pago da exclusividades con los bots.**
 
 - Los bots son **omnipresentes**: están en todos los canales (gratis y de pago) y cumplen sus funciones en todos.
-- **Cuota diaria única por Papu: 7 mensajes** (GyroP la subió de 5 a 7 antes de abrir, 16 oct. 2026), compartida entre los 4 bots (no 7 por personaje), igual para todos los niveles, siempre.
+- **Cuota diaria única por Papu: 7 mensajes** (GyroP la subió de 5 a 7 antes de abrir, 16 oct. 2026), compartida entre todos los bots (no 7 por personaje), igual para todos los niveles, siempre.
 - Un mensaje con varias menciones gasta **una unidad por cada @**. Si la cuota no alcanza, responden los primeros mencionados (en orden) y el resto da su frase de cuota agotada.
 - Sin prioridad en la cola por pagar.
 - GyroP asume el riesgo de licencias de los personajes (decisión tomada; no volver a plantearlo).
@@ -105,6 +105,18 @@ Lore: voz de Crypton (2009), 20 años, bilingüe japonés e inglés (suelta algu
 Tsundere y desganada; frases cortas en minúsculas, "…", 📱; le importa el servidor pero jamás lo admite.
 Lore: creada por fans en 2channel (2008), no es Vocaloid oficial; su nombre es un juego de palabras ("me aburrí, me voy a dormir"); siempre con el celular; hace poco empezó a hablar, pero prefiere escribir.
 Relaciones: molesta a Teto por comer, desde el celular; trío de Triple Baka.
+
+### Vocaloids de conversación (17 oct. 2026)
+Decisión de GyroP: **Gakupo, Kaito, flower, IA, Haku y Gumi** están en el servidor solo para platicar, como las chicas:
+responden menciones libres con el LLM, gastan la misma cuota compartida (una unidad por @) y no tienen tareas, comandos,
+saludos ni despedidas. Son seis aplicaciones de Discord más, en el mismo programa y con el rol Vocaloids; cada una se
+conecta solo si su token está en `.env` (`DISCORD_TOKEN_GAKUPO`, etc.), así que faltar uno no impide arrancar.
+- Personalidad: `content/personajes/<id>.md`; frases fijas (cuota, cola, falla y privacidad): `content/frases/<id>.json`.
+- Lore: Kaito y Gumi vienen del motor. Gakupo, IA, Haku y flower no están en el elenco del motor, así que sus datos
+  salen de `content/lore-extra.json` (solo datos verificables; si GyroP los agrega al motor, manda el motor). No cambian
+  el elenco de los videos ni las opciones de `/pedido`.
+- IA se llama igual que la sigla: las menciones a los bots se quitan antes de la capa 1 de privacidad, para que
+  "@IA ¿viste el video?" no se tome como una pregunta sobre si GyroP usa IA.
 
 ## 5. LLM: cadena de APIs gratuitas
 
@@ -170,7 +182,7 @@ Reglas fijas, **nunca el LLM** (instantáneas, sin cuota, imposibles de engañar
 | Flood (> 5 mensajes en 10 s) | Modo lento suave de respaldo en #general y #habla-con-los-vocaloids | Borra y suma strike |
 | Mismo mensaje 3 veces en 60 s | Filtro de spam nativo (parcial) | Borra y suma strike |
 | Enlaces de cuentas con menos de 24 h | — | Borra (lista permitida: YouTube, Niconico, Spotify, Instagram, X, VocaDB, Piapro) |
-| Mayúsculas (> 70 % en mensajes de > 15 caracteres) | — | Solo aviso |
+| Mayúsculas (> 70 % en mensajes de > 100 caracteres; GyroP la relajó el 17 oct. 2026) | — | Solo aviso |
 | Raid (muchas cuentas nuevas en pocos minutos) | Verificación y alertas nativas | Sube el nivel de verificación y avisa |
 
 ### Tolerancia a groserías: **media** (al menos durante la prueba)
@@ -266,6 +278,10 @@ autopiloto, el bot los exporta en su propio repo (por ejemplo `data/exports/vota
 
 ### Valores por defecto (confirmar o cambiar)
 - Votaciones: semanales, opciones definidas por GyroP con un comando, 3 días, voto único, empate lo decide GyroP; encuestas nativas de Discord.
+- **Calendario de publicación (17 oct. 2026): 3 videos por semana.** Lunes = ganador de la votación Ko-fi (Puerro y
+  superiores; abre el sábado, cierra el martes). Miércoles = de GyroP. Viernes = alterna Papus de honor / GyroP: la
+  votación de honor va cada 2 semanas (lunes 18:00 a jueves 18:00); si gana un video listo sale ese viernes, si gana una
+  idea, el viernes siguiente. ~13 videos al mes: ~4 Ko-fi, ~2 de honor y ~7 de GyroP (los especiales salen de los suyos).
 - Calendario y noticias: los publica GyroP con un comando y Miku los presenta (alternativa: leer `projects/_autopilot/calendario.json` y las fuentes RSS de `config/autopilot/sources.json` del motor).
 - Tips: comando `/tip` con texto y fuente obligatoria; GyroP lo marca como "usado" y se actualiza #salón-de-la-fama.
 - Cumpleaños: `/cumple` opcional; Teto saluda ese día.

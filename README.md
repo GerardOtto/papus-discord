@@ -1,21 +1,26 @@
 # papus-discord
 
-Bots y automatización del servidor de Discord de los Papus (canal Vocaloid de GyroP): Teto, Miku, Luka y Neru.
+Bots y automatización del servidor de Discord de los Papus (canal Vocaloid de GyroP): Teto, Miku, Luka y Neru, más
+Gakupo, Kaito, flower, IA, Haku y Gumi, que solo conversan.
 
 - Plan y decisiones: [docs/PLAN.md](docs/PLAN.md)
 - Reglas para trabajar en el repo: [CLAUDE.md](CLAUDE.md)
 
 ## Uso
-1. Copiar `.env.example` a `.env` y completar los tokens de los 4 bots y las claves de las APIs.
+1. Copiar `.env.example` a `.env` y completar los tokens de los 4 bots, las claves de las APIs y (opcional) los tokens de
+   los Vocaloids de conversación: el que no tenga token simplemente no se conecta.
 2. `npm install`
 3. `npm run check` revisa `.env`, datos del motor y APIs; `npm run check -- --llm` además prueba la personalidad
    de los 4 personajes en cada API (se puede pasar un mensaje: `npm run check -- --llm "hola Teto"`).
-4. `npm start` conecta los 4 bots. `npm test` corre las pruebas.
+4. `npm start` conecta los bots. `npm test` corre las pruebas.
+5. `npm run conversaciones [-- --desde AAAA-MM-DD | --horas N]` exporta las conversaciones con los Vocaloids (solo
+   lectura, Papus con seudónimo) a `data/revision/` para buscar alucinaciones y refinar las fichas. Borrar el informe al terminar.
 
 ## Qué se edita sin tocar código
 | Archivo | Qué contiene |
 |---|---|
 | `content/personajes/*.md` | Instrucciones de personalidad (comunes y de cada bot). Los datos de lore vienen del motor. |
+| `content/lore-extra.json` | Datos de los Vocaloids de conversación que el motor no tiene (Gakupo, IA, Haku, flower). Si el motor los agrega, manda el motor. |
 | `content/frases/*.json` | Frases fijas por bot y situación (30-40 por grupo, sin repetir). |
 | `config/moderacion.json` | Listas de insultos, groserías muy fuertes, odio, estafas, enlaces permitidos y límites. AutoMod se sincroniza al arrancar. |
 | `config/llm.json` | Cadena de LLM: el modelo local (Ollama) y las APIs gratuitas (modelo, límite diario estimado, tiempo máximo). El orden de cada petición lo decide `src/llm/router.ts`: el local primero si la GPU está libre y no está respondiendo a otro Papu; si no, las APIs, de la que más le queda en el día a la que menos. |
@@ -27,7 +32,7 @@ Bots y automatización del servidor de Discord de los Papus (canal Vocaloid de G
 
 ## Estructura
 - `src/services/` lógica de conversación y moderación (probada sin Discord).
-- `src/discord/` conexión de los 4 bots, comandos, AutoMod y canales.
+- `src/discord/` conexión de los bots, comandos, AutoMod y canales.
 - `src/llm/` interfaz única, cadena de respaldo, cola y armado de la petición.
 - `src/moderation/` reglas fijas, strikes y reglas de AutoMod.
 - `src/quota/`, `src/phrases/`, `src/engine/`, `src/db/`.
@@ -59,6 +64,7 @@ Bots y automatización del servidor de Discord de los Papus (canal Vocaloid de G
 | GyroP | `/cola ver · detalle · estado · agregar` (Miku) | Cloudflare |
 | Todos | Menú de colores en #tu-color (Miku): color del nombre de la paleta Vocaloid | Cloudflare |
 | GyroP | `/votacion abrir · cerrar` (Miku): encuesta, aviso 12 h antes y ganador | Cloudflare |
+| GyroP | `/votacion listo · listos · quitar-listo · honor` (Miku): votación de los Papus de honor, automática cada 2 semanas (lunes 18:00 a jueves 18:00): videos listos + las 2 ideas con más 👍 de #charla-de-honor | Cloudflare |
 | GyroP | `/votacion candidato · candidatos · quitar · semanal · desempate` (Miku): votación semanal automática (`config/votaciones.json`); el 2.º lugar vuelve con candidatos nuevos | Cloudflare |
 | GyroP | `/calendario`, `/estreno`, `/noticia` (Miku) | Cloudflare |
 | GyroP | `/tip-usado` (Luka): lleva un tip al Salón de la Fama | Cloudflare |

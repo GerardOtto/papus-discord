@@ -11,6 +11,14 @@ describe("loadConfig", () => {
     expect(c.ownerId).toBeNull();
   });
 
+  it("los Vocaloids de conversacion son opcionales: se conectan solo con token", () => {
+    expect(loadConfig({ ...BASE_ENV }).activeBots).toEqual(["teto", "miku", "luka", "neru"]);
+    const c = loadConfig({ ...BASE_ENV, DISCORD_TOKEN_IA: "i", DISCORD_TOKEN_GAKUPO: " " });
+    expect(c.activeBots).toEqual(["teto", "miku", "luka", "neru", "ia"]);
+    expect(c.tokens.ia).toBe("i");
+    expect(c.tokens.gakupo).toBeUndefined();
+  });
+
   it("falla nombrando las variables que faltan, sin mostrar valores", () => {
     const { DISCORD_TOKEN_MIKU: _, ...env } = BASE_ENV;
     expect(() => loadConfig(env)).toThrow(/DISCORD_TOKEN_MIKU/);

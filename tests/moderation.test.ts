@@ -80,15 +80,25 @@ describe("RuleSet: datos personales, invitaciones y estafas", () => {
 });
 
 describe("RuleSet: enlaces y mayúsculas", () => {
-  it("cuenta nueva: solo enlaces de la lista permitida", () => {
-    expect(check("mira https://www.youtube.com/watch?v=x", { memberAgeHours: 2 })).toBeNull();
-    expect(check("mira https://open.spotify.com/track/1", { memberAgeHours: 2 })).toBeNull();
-    expect(check("mira https://raro.xyz", { memberAgeHours: 2 })).toBe("enlace_cuenta_nueva");
-    expect(check("mira https://raro.xyz", { memberAgeHours: 48 })).toBeNull();
+  it("cuenta recién llegada (primera hora): solo enlaces de la lista permitida", () => {
+    expect(check("mira https://www.youtube.com/watch?v=x", { memberAgeHours: 0.2 })).toBeNull();
+    expect(check("mira https://open.spotify.com/track/1", { memberAgeHours: 0.2 })).toBeNull();
+    expect(check("mira https://raro.xyz", { memberAgeHours: 0.2 })).toBe("enlace_cuenta_nueva");
+    expect(check("mira https://raro.xyz", { memberAgeHours: 2 })).toBeNull(); // pasada la primera hora, libre
   });
 
-  it("mayúsculas: más de 70 % en mensajes de más de 15 caracteres, solo aviso", () => {
-    const v = rules.check({ text: "MIKU ES LA MEJOR DE TODAS", targetsSomeone: false, memberAgeHours: 1000 });
+  it("los GIFs del buscador de Discord (Klipy, Tenor, Giphy) pasan siempre", () => {
+    for (const gif of ["https://klipy.com/gifs/hatsune-miku-deco-27-1", "https://tenor.com/view/teto-123", "https://media.giphy.com/media/x/giphy.gif", "https://i.imgur.com/abc.gif"]) {
+      expect(check(gif, { memberAgeHours: 0 }), gif).toBeNull();
+    }
+    // Las estafas y las invitaciones se siguen borrando para todos.
+    expect(check("nitro gratis https://discord-gift.xyz", { memberAgeHours: 1000 })).toBe("estafa");
+  });
+
+  it("mayúsculas: solo en mensajes largos (más de 100 caracteres) con más de 70 %, y solo aviso", () => {
+    expect(check("MIKU ES LA MEJOR DE TODAS, AAAAAAA, TETO TERRITORY")).toBeNull(); // gritos cortos pasan
+    const long = "AAAAA ".repeat(25);
+    const v = rules.check({ text: long, targetsSomeone: false, memberAgeHours: 1000 });
     expect(v).toMatchObject({ kind: "mayusculas", remove: false, strike: false });
     expect(check("AAAAAAA")).toBeNull();
     expect(capsRatio("hola <:Teto:123> MIKU")).toBeCloseTo(4 / 8);

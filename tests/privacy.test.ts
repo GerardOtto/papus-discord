@@ -137,6 +137,20 @@ describe("ConversationService + privacidad", () => {
     expect(quota.remaining("papu")).toBe(5);
   });
 
+  it("'@IA ¿viste el video?' le habla a IA (la Vocaloid): responde el LLM, no la frase de privacidad", async () => {
+    const { svc, port, mention, calls } = setup('{"ia": "Mmm… sí, me gustó mucho."}');
+    expect(await svc.handle(mention("@IA ¿viste el video nuevo?", ["ia"]))).toBe("answered");
+    expect(calls()).toBe(1);
+    expect(port.sent[0]!.content).toContain("me gustó");
+  });
+
+  it("'@IA ¿GyroP usa IA en sus videos?' sigue siendo privado", async () => {
+    const { svc, port, mention, calls } = setup("{}");
+    expect(await svc.handle(mention("@IA ¿GyroP usa IA en sus videos?", ["ia"]))).toBe("private");
+    expect(calls()).toBe(0);
+    expect(port.sent[0]!.content).toMatch(/ia.*vocaloid/i);
+  });
+
   it("si el LLM igual menciona una herramienta, la respuesta se descarta, va la frase fija y no se cobra", async () => {
     const { svc, port, quota, mention } = setup('{"teto": "GyroP usa Remotion y Fish Audio, ¡teto-teetoo!"}');
     expect(await svc.handle(mention("@Teto cuéntame algo del estudio", ["teto"]))).toBe("private");

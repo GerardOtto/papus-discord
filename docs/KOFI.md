@@ -7,24 +7,15 @@ desde `assets/kofi/tier.html`. El nivel Puerro y el trío usan renders propios e
 
 Reemplazar `[LINK DEL DISCORD]` por la invitación permanente del servidor antes de publicar.
 
-## Bio
+## Bio (publicada; verificada en ko-fi.com/tetociencia el 16 oct. 2026)
 
-**¡Hola, Papus! Soy GyroP** 🎤
+Soy GyroP, el P detrás del canal Vocaloid de los Papus 🎤 Apoya el proyecto y únete al Discord: desde 🥬 Puerro hasta 💥 Triple Baka, vota los próximos temas, mira el detrás de cámaras, accede a todos los videos del canal y recibe uno hecho solo para ti.
+Aquellos que decidan apoyar al canal del 17 al 23 de Octubre recibirán el rol exclusivo de Papu Fundador permanentemente!!.
+¡Gracias, Papu! 💙
 
-Soy el P detrás del canal: escribo los guiones, armo el motor que da vida a los videos y hago que los Vocaloids nos
-cuenten su historia. Estoy en el fandom desde 2012 y Vocaloid fue mi infancia; este canal es mi forma de devolverle algo.
+Meta activa: 💻 Renders más rápidos (meta a largo plazo!), $600: "Cada material gráfico y video producido por mí pasa horas en total renderizándose en mi PC. Con una mejor tarjeta gráfica, los videos salen mucho más rápido, y eso se traduce en más episodios, más videos personalizados y menos espera en la cola."
 
-Apoya el proyecto y entra a nuestro Discord con tu rol (cada nivel incluye todo lo de los anteriores):
-
-🥬 **Puerro ($2):** vota los temas de los próximos videos, mira el calendario de publicación y desbloquea emojis exclusivos.
-🐟 **Atún ($4):** comparte tips y curiosidades (¡si usamos el tuyo, sales en los créditos!), propón temas y ayuda a elegir miniaturas.
-🥖 **Baguette ($7):** mira cada video 24 h antes que nadie, lee mis notas de producción y descarga fondos de pantalla del canal.
-📱 **Celular ($12):** descubre cómo funciona el motor por dentro y los episodios perdidos del canal, y hazme preguntas cada mes.
-💥 **Triple Baka ($25):** acceso inmediato para ver TODOS los videos de la historia del canal (publicados, archivados, inéditos y cancelados), tu nombre en un video y un **video personalizado con los Vocaloids** solo para ti.
-
-🎥 ¿Solo quieres un video personalizado con los Vocaloids? Pídelo con un pago único en la tienda: saludos desde $10 o un tema libre desde $15.
-
-Todo apoyo, por pequeño que sea, ayuda a que sigan saliendo videos. ¡Gracias por estar aquí, Papu! 💙
+(La bio larga anterior, con un párrafo por nivel, quedó descartada.)
 
 ## Antes de configurar los niveles en Ko-fi
 1. Crear el servidor y los 5 roles con sus colores: Puerro `#39C5BB`, Atún `#E285B2`, Baguette `#E91E63` (rojo Teto; decisión de GyroP, 16 oct. 2026), Celular `#E8D44D`, Triple Baka `#9B6CFF`.
@@ -32,20 +23,20 @@ Todo apoyo, por pequeño que sea, ayuda a que sigan saliendo videos. ¡Gracias p
 3. Subir el rol del bot de Ko-fi POR ENCIMA de los 5 roles (si no, no puede asignarlos).
 4. En cada nivel de Ko-fi, elegir su rol. Ko-fi da solo el rol del nivel: cada canal de pago se abre a su rol y a todos los superiores.
 
-## Descripciones de los niveles
+## Descripciones de los niveles (publicadas; verificadas en ko-fi.com/tetociencia el 16 oct. 2026)
 
 ### 🥬 Puerro ($2/mes)
 ¡El primer paso para ser parte del canal! Únete al Discord con tu rol y ayúdanos a decidir qué viene:
 • Vota los temas de los próximos videos
 • Mira el calendario de publicación y el tema de la semana antes que nadie
-• Emojis exclusivos del servidor
+• Emojis exclusivos del servidor (próximamente)
 
 ### 🐟 Atún ($4/mes)
 Todo lo de Puerro, más:
 • Comparte tips y curiosidades: si usamos el tuyo, ¡sales en los créditos del video y en el Salón de la Fama!
 • Propón temas para las votaciones
 • Vota quién presenta los episodios y elige miniaturas
-• Pack de stickers del canal (en producción: listo a más tardar el 17 de noviembre)
+• Pack de stickers del canal (en producción: listos a más tardar el 17 de noviembre)
 
 ### 🥖 Baguette ($7/mes)
 Todo lo de Atún, más:
@@ -53,21 +44,30 @@ Todo lo de Atún, más:
 • Notas de producción: por qué elegí cada tema, las fuentes y lo que se cortó
 • Mis inspiraciones: productores, canciones y álbumes que me marcaron
 • Fondos de pantalla del canal para celular y PC (en producción: listos a más tardar el 17 de noviembre)
-• Mención en los comentarios de los Reels
+• Mención en los créditos de los Reels
 
 ### 📱 Celular ($12/mes)
 Todo lo de Baguette, más:
 • Cómo funciona el motor que hace los videos, por dentro
-• Tomas falladas y el antes y después de cada episodio
-• Los episodios perdidos de la primera etapa del canal
+• Los episodios perdidos de la primera etapa del canal (se ven en una carpeta privada de Google Drive con tu Gmail).
 • Preguntas y respuestas conmigo cada mes
 • Vota el tema de los especiales
 
 ### 💥 Triple Baka ($25/mes)
 ¡Lo más alto del canal! Todo lo de Celular, más:
-• Acceso inmediato para ver TODOS los videos de la historia del canal: publicados, archivados, inéditos y cancelados
-• Un video personalizado con los Vocaloids cada mes (saludo, cumpleaños o dedicatoria), por orden de llegada
+• Acceso inmediato para ver TODOS los videos de la historia del canal: publicados, archivados, inéditos y cancelados, más los borradores de Reels, miniaturas e historias (se ven en una carpeta privada de Google Drive con tu Gmail).
+• Un video personalizado con los Vocaloids (saludo, cumpleaños o dedicatoria), por orden de llegada, todos los meses, no acumulables.
 • Tu nombre en una tarjeta de agradecimiento dentro de un video
+
+Beneficios que Ko-fi muestra debajo de cada nivel (etiquetas): Puerro: Discord access, Join my community · Atún: + Exclusive
+content, Exclusive requests · Baguette: + Social media shout-out, Behind the scenes · Celular y Triple Baka: + Direct messages.
+
+Decisión de GyroP (16 oct. 2026, opción 1): los borradores de Reels, miniaturas e historias van en la Bóveda de Triple Baka
+(subcarpeta "Borradores" de la carpeta de Drive). Pegar la línea nueva de Triple Baka en Ko-fi.
+
+Diferencias con versiones anteriores de este documento: sin "Tomas falladas y antes y después" en Celular, sin charla VIP en
+Baguette (la mención es en los créditos de los Reels, no en los comentarios), y la Bóveda y el lost media se ven en una
+carpeta privada de Google Drive (no en una lista no listada de YouTube).
 
 ### 🎥 Videos personalizados (pago único, en la tienda)
 Ver la sección "Productos de la tienda": 30 s, 1 minuto o 2 minutos, como saludo para una ocasión ($10 / $20 / $30) o con tema libre ($15 / $25 / $35).

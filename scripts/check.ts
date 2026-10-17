@@ -3,14 +3,14 @@
 //   npm run check            -> configuracion, motor y proveedores con clave
 //   npm run check -- --llm   -> ademas, una respuesta de cada personaje en cada API
 import { STATE_FOLDERS, VideoCatalog } from "../src/catalog/videos";
-import { BOT_IDS, loadConfig, loadDotEnv } from "../src/config";
+import { BOT_IDS, CORE_BOT_IDS, loadConfig, loadDotEnv } from "../src/config";
 import { EngineReader } from "../src/engine/reader";
 import { buildProviders, loadLLMSettings } from "../src/llm/index";
 import { buildRequest, parseReplies, PersonaLibrary } from "../src/llm/prompt";
 
 loadDotEnv();
 const config = loadConfig();
-console.log("✔ .env completo");
+console.log(`✔ .env completo (bots con token: ${config.activeBots.join(", ")})`);
 
 const engine = new EngineReader(config.engineDir, config.deliveryDir);
 const missing = engine.missing();
@@ -31,9 +31,9 @@ if (process.argv.includes("--llm")) {
   const videos = catalog.relevantTo(message);
   console.log(`\nMensaje de prueba: "${message}"`);
   console.log(`Videos enviados al LLM: ${videos.length ? videos.map((v) => `${v.title} (${v.state})`).join(" | ") : "ninguno"}\n`);
-  // Como en el servidor: responden solo los personajes nombrados en el mensaje (o los 4 si no nombra a ninguno).
+  // Como en el servidor: responden solo los personajes nombrados en el mensaje (o las 4 chicas si no nombra a ninguno).
   const named = characters.filter((c) => new RegExp(`\\b${c.displayName}\\b`, "i").test(message));
-  const targets = named.length ? named : characters;
+  const targets = named.length ? named : characters.filter((c) => (CORE_BOT_IDS as readonly string[]).includes(c.id));
   for (const p of providers) {
     const req = buildRequest({ characters: targets, papuName: "Papu de prueba", message, history: [], videos }, personas, {
       maxTokens: settings.maxTokens,

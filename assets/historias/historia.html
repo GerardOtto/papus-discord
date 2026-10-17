@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<!-- Historias destacadas del perfil con un "boton" (1080x1920). ?s=discord | kofi; render: node scripts/render-kofi.mjs.
+     Debajo del boton queda un espacio limpio para el sticker de enlace de Instagram (lo pone GyroP): sin textos de
+     instrucciones dentro de la imagen. Zonas seguras de Instagram: nada importante en los 220 px de arriba ni de abajo. -->
+<style>
+  @font-face { font-family: "Fredoka"; font-weight: 600; src: url("../../../Proyecto1/assets/fonts/fredoka-latin-600-normal.woff2") format("woff2"); }
+  @font-face { font-family: "Fredoka"; font-weight: 700; src: url("../../../Proyecto1/assets/fonts/fredoka-latin-700-normal.woff2") format("woff2"); }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { width: 1080px; height: 1920px; overflow: hidden; }
+  body { font-family: "Fredoka", sans-serif; font-weight: 700; color: #fff; position: relative;
+         background: radial-gradient(circle at 50% 40%, var(--mid) 0%, var(--dark) 72%); }
+  .deco img { position: absolute; width: 120px; opacity: .1; }
+  .rays { position: absolute; left: 50%; top: 820px; width: 1600px; height: 1600px; margin: -800px 0 0 -800px;
+          background: repeating-conic-gradient(from 0deg, rgba(255,255,255,.07) 0 8deg, transparent 8deg 16deg); border-radius: 50%; }
+  .brand { position: absolute; top: 250px; left: 0; right: 0; display: flex; justify-content: center; }
+  .brand img { height: 92px; filter: drop-shadow(0 6px 10px rgba(0,0,0,.35)); }
+  .title { position: absolute; top: 370px; left: 60px; right: 60px; text-align: center; font-size: 104px; line-height: .98;
+           -webkit-text-stroke: 5px var(--dark); paint-order: stroke fill; text-shadow: 0 9px 0 var(--dark), 0 16px 26px rgba(0,0,0,.35); }
+  .title em { font-style: normal; color: var(--accent); }
+  .sub { position: absolute; top: 600px; left: 0; right: 0; text-align: center; font-size: 50px; font-weight: 600; text-shadow: 0 3px 8px rgba(0,0,0,.4); }
+  .cast { position: absolute; left: 0; right: 0; top: 660px; height: 560px; }
+  .cast img { position: absolute; bottom: 0; -webkit-mask-image: linear-gradient(to bottom, #000 80%, transparent 100%);
+              filter: drop-shadow(0 14px 22px rgba(0,0,0,.4)); }
+  .btn { position: absolute; left: 90px; right: 90px; top: 1240px; height: 230px; border-radius: 120px; background: var(--btn);
+         border: 12px solid #fff; display: flex; align-items: center; justify-content: center; gap: 34px;
+         box-shadow: 0 18px 0 var(--btnShadow), 0 30px 50px rgba(0,0,0,.45); }
+  .btn img { width: 140px; height: 140px; filter: brightness(0) invert(1); }
+  .btn span { font-size: 96px; line-height: 1; }
+  .tag { position: absolute; top: 1205px; right: 120px; transform: rotate(8deg); background: var(--accent); color: var(--dark);
+         font-size: 46px; padding: 8px 26px; border-radius: 999px; border: 6px solid #fff; z-index: 3; }
+  .chips { position: absolute; top: 1510px; left: 70px; right: 70px; display: flex; flex-wrap: wrap; justify-content: center; gap: 14px; }
+  .chips span { font-size: 40px; font-weight: 600; background: rgba(0,0,0,.28); border: 3px solid rgba(255,255,255,.4); border-radius: 999px; padding: 6px 22px; }
+  .spark { position: absolute; color: var(--accent); font-size: 60px; }
+</style>
+</head>
+<body>
+<div class="rays"></div>
+<div class="deco" id="deco"></div>
+<div class="brand"><img src="../kofi/brand/logo_horizontal_contorno.png" alt=""></div>
+<div class="title" id="title"></div>
+<div class="sub" id="sub"></div>
+<div class="cast" id="cast"></div>
+<div class="tag" id="tag"></div>
+<div class="btn"><img id="ico" alt=""><span id="label"></span></div>
+<span class="spark" style="left:70px;top:1180px">✦</span><span class="spark" style="right:80px;top:640px">✦</span>
+<script>
+  const C = "../../../Proyecto1/assets/characters/";
+  const S = {
+    discord: {
+      title: "El <em>Discord</em><br>de los Papus", sub: "Habla con Miku, Teto, Luka y Neru", tag: "¡GRATIS!",
+      label: "Discord", ico: "discord-symbol.svg", deco: ["../kofi/badge_1_puerro.png", "../kofi/badge_3_baguette.png", "../kofi/badge_4_celular.png", "../kofi/badge_2_atun.png"],
+      c: { dark: "#141640", mid: "#3b42b8", accent: "#ffd34d", btn: "#5865f2", btnShadow: "#3640b0" },
+      cast: [[C + "luka/saludando_2.png", 30, 470, 1, true], ["../kofi/avatars/miku_render.png", 220, 500, 2], ["../kofi/avatars/neru_render.png", 600, 490, 2, true, 70], ["../kofi/avatars/teto_render.png", 410, 560, 3]],
+    },
+    kofi: {
+      title: "Apoya el canal<br>en <em>Ko-fi</em>", sub: "Membresías y videos personalizados", tag: "¡Desde $2!",
+      label: "Ko-fi", ico: "kofi-symbol.svg", deco: ["../kofi/badge_5_triple_baka.png", "../kofi/badge_1_puerro.png", "../kofi/badge_3_baguette.png", "../kofi/badge_4_celular.png"],
+      c: { dark: "#3a1020", mid: "#c2414a", accent: "#ffe066", btn: "#ff5e5b", btnShadow: "#c23f3c" },
+      cast: [["../kofi/avatars/miku_render.png", 70, 500, 1], ["../kofi/avatars/neru_render.png", 560, 500, 1, true, 70], ["../kofi/avatars/teto_render.png", 330, 570, 2]],
+    },
+  };
+  const s = S[new URLSearchParams(location.search).get("s") || "discord"];
+  const r = document.documentElement.style;
+  Object.entries(s.c).forEach(([k, v]) => r.setProperty(`--${k.replace("btnShadow", "btnShadow")}`, v));
+  document.getElementById("title").innerHTML = s.title;
+  document.getElementById("sub").textContent = s.sub;
+  document.getElementById("tag").textContent = s.tag;
+  document.getElementById("label").textContent = s.label;
+  document.getElementById("ico").src = s.ico;
+  document.getElementById("cast").innerHTML = s.cast.map(([f, l, h, z, flip, up]) =>
+    `<img src="${f}" style="left:${l}px;height:${h}px;z-index:${z}${up ? `;bottom:${up}px` : ""}${flip ? ";transform:scaleX(-1)" : ""}" alt="">`).join("");
+  // Patron de fondo determinista con las insignias de los niveles.
+  let html = "", k = 0;
+  for (let y = 40; y < 1920; y += 230) for (let x = (k % 2 ? 40 : 160); x < 1080; x += 260)
+    html += `<img src="${s.deco[k++ % s.deco.length]}" style="left:${x}px;top:${y}px;transform:rotate(${(k % 3 - 1) * 14}deg)" alt="">`;
+  document.getElementById("deco").innerHTML = html;
+</script>
+</body>
+</html>

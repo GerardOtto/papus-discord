@@ -2,7 +2,8 @@
 
 ## Objetivo
 Servidor de Discord de la comunidad ("Papus") del canal Vocaloid de GyroP: membresías de Ko-fi por niveles y cuatro
-bots con personalidad (**Teto, Miku, Luka y Neru**) que conversan con LLM gratuitos, cumplen tareas del servidor y moderan.
+bots con personalidad (**Teto, Miku, Luka y Neru**) que conversan con LLM gratuitos, cumplen tareas del servidor y moderan,
+más seis que solo conversan (**Gakupo, Kaito, flower, IA, Haku y Gumi**; opcionales por token, PLAN §4).
 **Plan completo y decisiones: `docs/PLAN.md`** (leer antes de cualquier cambio). Estado (16 oct. 2026): **abre al público
 el 17 oct. 2026, sin prueba cerrada**; prueba de carga cuando esté lo mínimo (gratis + Puerro, Atún, Baguette). Hecho:
 conversación con cuota y cola, LLM local (Ollama) + APIs con reparto, moderación de Neru + AutoMod, bienvenidas, servidor
@@ -15,8 +16,8 @@ Repo hermano: el motor de videos en `../Proyecto1` (fuente del lore, calendario 
 **Rutas de los datos del motor: `config/engine-paths.json`** (solo lectura; el bot nunca escribe en el motor).
 
 ## Reglas (no negociables)
-1. **Ningún plan de pago da exclusividades con los bots**: cuota diaria única por Papu (7 al lanzar), compartida entre los
-   4 bots, igual para todos los niveles; una unidad por cada @ en un mensaje; sin prioridad en la cola por pagar.
+1. **Ningún plan de pago da exclusividades con los bots**: cuota diaria única por Papu (7 al lanzar), compartida entre
+   todos los bots, igual para todos los niveles; una unidad por cada @ en un mensaje; sin prioridad en la cola por pagar.
 2. Los bots son omnipresentes (todos los canales) y no se responden solos entre ellos.
 3. La moderación es por reglas fijas + AutoMod de Discord, **nunca el LLM**. Neru no expulsa ni banea (solo GyroP).
 4. El LLM solo responde menciones libres. Bienvenidas, avisos, votaciones, moderación, cuota agotada, etc. usan grupos de

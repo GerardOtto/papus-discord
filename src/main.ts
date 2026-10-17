@@ -1,8 +1,8 @@
-// Punto de entrada: arma las piezas y conecta los 4 bots. `npm start`.
+// Punto de entrada: arma las piezas y conecta los bots (las 4 chicas y los Vocaloids de conversacion con token). `npm start`.
 import { existsSync, rmSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { STATE_FOLDERS, VideoCatalog } from "./catalog/videos";
-import { BOT_IDS, loadConfig, loadDotEnv, type BotId } from "./config";
+import { BOT_IDS, CHAT_BOT_IDS, loadConfig, loadDotEnv, type BotId } from "./config";
 import { openDb } from "./db/database";
 import { PapusApp } from "./discord/app";
 import { EngineReader } from "./engine/reader";
@@ -20,6 +20,7 @@ import { DeckStore } from "./phrases/deck";
 import { Quota } from "./quota/quota";
 import { loadLayout } from "./setup/layout";
 import { ConversationService } from "./services/conversation";
+import { buildCalendar } from "./calendar/setup";
 import { founderSettings } from "./services/founders";
 import { vitrinaChannels } from "./services/vitrina";
 import { ModerationService } from "./services/moderation";
@@ -35,6 +36,8 @@ async function main(): Promise<void> {
   const engine = new EngineReader(config.engineDir, config.deliveryDir);
   const missing = engine.missing();
   if (missing.length) log(`⚠️ Faltan datos del motor: ${missing.join(", ")}`);
+  const offline = CHAT_BOT_IDS.filter((id) => !config.activeBots.includes(id));
+  if (offline.length) log(`Sin token en .env (no se conectan): ${offline.join(", ")}`);
   const characters = Object.fromEntries(BOT_IDS.map((id) => [id, engine.character(id)])) as Record<BotId, ReturnType<EngineReader["character"]>>;
 
   // Catalogo de videos (solo nombres de carpetas -> titulo y estado) de las carpetas 1, 2, 5 y 6 del escritorio.
@@ -100,6 +103,7 @@ async function main(): Promise<void> {
     founders: founderSettings(layout),
     everyoneRole: layout.rolesExtra.find((r) => r.todos)?.rol ?? null,
     vitrina: vitrinaChannels(layout),
+    calendar: buildCalendar({ db, env: process.env, deliveryDir: config.deliveryDir, engineDir: config.engineDir }),
     log,
     makeConversation: (port) =>
       new ConversationService({

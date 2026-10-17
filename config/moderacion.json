@@ -212,7 +212,28 @@
     "tenor.com",
     "giphy.com",
     "cdn.discordapp.com",
-    "media.discordapp.net"
+    "media.discordapp.net",
+    "klipy.com",
+    "imgur.com",
+    "pinterest.com",
+    "pin.it",
+    "tiktok.com",
+    "reddit.com",
+    "redd.it",
+    "bsky.app",
+    "tumblr.com",
+    "twitch.tv",
+    "soundcloud.com",
+    "bandcamp.com",
+    "music.apple.com",
+    "deezer.com",
+    "pixiv.net",
+    "deviantart.com",
+    "artstation.com",
+    "wikipedia.org",
+    "fandom.com",
+    "ko-fi.com",
+    "tetociencia.workers.dev"
   ],
   "limites": {
     "floodMensajes": 5,
@@ -220,8 +241,8 @@
     "repetidoVeces": 3,
     "repetidoSegundos": 60,
     "mayusculasPorcentaje": 0.7,
-    "mayusculasMinCaracteres": 15,
-    "cuentaNuevaHoras": 24,
+    "mayusculasMinCaracteres": 100,
+    "cuentaNuevaHoras": 1,
     "strikeDias": 3
   }
 }

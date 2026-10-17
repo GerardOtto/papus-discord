@@ -6,7 +6,7 @@ import { describe, expect, it } from "vitest";
 import { sqliteSql } from "../src/orders/sql";
 import { PapusWorker, pollWinner, splitLines, type Interaction, type Option } from "../worker/src/app";
 import { channelKey, DiscordError, verifySignature, type BotKey, type DiscordApi } from "../worker/src/discord";
-import { parseRoundSettings, rankRound, resolveTie, type RoundSettings } from "../src/votes/rounds";
+import { ideaText, parseHonorSettings, parseRoundSettings, pickIdeas, rankRound, resolveTie, type HonorSettings, type RoundSettings } from "../src/votes/rounds";
 import votesConfig from "../config/votaciones.json";
 import { seededRng } from "./helpers";
 
@@ -21,7 +21,7 @@ const ROLES = [
   { id: "r-gumi", name: "🎨 Gumi" },
   { id: "r-kaito", name: "🎨 Kaito" },
 ];
-const CHANNELS = ["🎁・cola-de-pedidos", "📋・registro-bots", "🗳️・votaciones", "📝・propuestas-de-temas", "💡・tips-y-curiosidades", "🏆・salón-de-la-fama", "📅・calendario", "📣・anuncios", "👀・vitrina", "💎・niveles-ko-fi"].map(
+const CHANNELS = ["🎁・cola-de-pedidos", "📋・registro-bots", "🗳️・votaciones", "📝・propuestas-de-temas", "💡・tips-y-curiosidades", "🏆・salón-de-la-fama", "📅・calendario", "📣・anuncios", "👀・vitrina", "💎・niveles-ko-fi", "💬・charla-de-honor", "🗳️・votacion-de-honor"].map(
   (name, i) => ({ id: `c${i}`, name, type: 0 }),
 );
 const ch = (key: string) => CHANNELS.find((c) => channelKey(c.name) === key)!.id;
@@ -38,6 +38,8 @@ class FakeDiscord implements DiscordApi {
   edits: unknown[] = [];
   dmFails = false;
   poll: unknown = null;
+  charla: unknown[] = [];
+  reactors: Record<string, { id: string; bot?: boolean }[]> = {};
   private n = 0;
   async call<T>(bot: BotKey, method: string, p: string, body?: unknown): Promise<T> {
     this.calls.push({ bot, method, path: p, body: body as Record<string, unknown> });
@@ -48,6 +50,8 @@ class FakeDiscord implements DiscordApi {
       if (this.dmFails) throw new DiscordError(403, "Cannot send messages to this user");
       return { id: "dm1" } as T;
     }
+    if (method === "GET" && p.includes("/reactions/")) return (this.reactors[p.split("/messages/")[1]!.split("/")[0]!] ?? []) as T;
+    if (method === "GET" && p.includes("/messages?limit")) return this.charla as T;
     if (method === "GET" && /\/messages\/\w+$/.test(p)) return { poll: this.poll } as T;
     if (method === "PATCH" && p.includes("/messages/")) return {} as T;
     return { id: `m${++this.n}` } as T;
@@ -70,7 +74,10 @@ class FakeDiscord implements DiscordApi {
 const T0 = 1_800_000_000_000;
 
 // Por defecto la votacion semanal queda lejos (no se mezcla con las otras pruebas).
-function setup(rounds: RoundSettings = parseRoundSettings({ ...votesConfig, primera: "2100-01-01T00:00:00Z" })) {
+function setup(
+  rounds: RoundSettings = parseRoundSettings({ ...votesConfig, primera: "2100-01-01T00:00:00Z" }),
+  honor: HonorSettings = parseHonorSettings({ ...votesConfig.honor, primera: "2100-01-01T00:00:00Z" }),
+) {
   const db = new DatabaseSync(":memory:");
   db.exec(readFileSync(path.join(ROOT, "worker/schema.sql"), "utf8"));
   let t = T0;
@@ -86,6 +93,7 @@ function setup(rounds: RoundSettings = parseRoundSettings({ ...votesConfig, prim
     rng: seededRng(4),
     commandTimeoutMs: 50,
     rounds,
+    honor,
   });
   return { w, discord, advance: (ms: number) => (t += ms) };
 }
@@ -280,6 +288,83 @@ describe("worker: votación semanal (Miku)", () => {
     expect(rankRound(["A", "B", "C"], { A: 1, B: 4, C: 1 })).toEqual({ winner: "B", tied: [], second: "A" });
     expect(rankRound(["A", "B", "C"], { A: 0, B: 0, C: 0 })).toEqual({ winner: null, tied: ["A", "B", "C"], second: null });
     expect(resolveTie(["A", "B", "C"], { A: 3, B: 3, C: 1 }, "B")).toEqual({ winner: "B", tied: [], second: "A" });
+  });
+});
+
+describe("worker: votación de los Papus de honor", () => {
+  const DAY = 86_400_000;
+  const honorSetup = () =>
+    setup(undefined, parseHonorSettings({ ...votesConfig.honor, primera: new Date(T0 + DAY).toISOString() }));
+  const at = (h: number) => new Date(T0 - h * 3_600_000).toISOString();
+  const msg = (id: string, author: string, content: string, likes: number, hoursAgo = 2, bot = false) => ({
+    id,
+    content,
+    timestamp: at(hoursAgo),
+    author: { id: author, bot },
+    reactions: likes ? [{ emoji: { name: "👍" }, count: likes }] : [],
+  });
+  const polls = (d: FakeDiscord) => d.posts("votacion-de-honor").filter((c) => c.body?.poll);
+  const options = (d: FakeDiscord) => (polls(d).at(-1)!.body!.poll as { answers: { poll_media: { text: string } }[] }).answers.map((a) => a.poll_media.text);
+
+  it("cada 2 semanas: videos listos + las 2 ideas con más 👍 (sin contar al autor ni a bots)", async () => {
+    const { w, discord, advance } = honorSetup();
+    await w.route("miku", cmd("votacion", OWNER, [], sub("listo", [opt("nombre", "Video de KAFU | Video de Haku")])));
+    discord.charla = [
+      msg("m1", "ana", "**Video de Gumi** porque canta Matryoshka", 3),
+      msg("m2", "bob", "Saga del mal parte 2 https://vocadb.net/x", 2),
+      msg("m3", "carl", "solo me di like yo", 1),
+      msg("m4", "dani", "idea viejísima", 5, 24 * 30),
+      msg("m5", "bot1", "soy un bot", 4, 2, true),
+    ];
+    discord.reactors = {
+      m1: [{ id: "ana" }, { id: "bob" }, { id: "carl" }], // 2 que cuentan
+      m2: [{ id: "ana" }, { id: "x", bot: true }], // 1 que cuenta
+      m3: [{ id: "carl" }], // solo el autor: no cuenta
+    };
+    advance(DAY);
+    await w.cron();
+    expect(options(discord)).toEqual(["Video de KAFU", "Video de Haku", "Video de Gumi porque canta Matryoshka", "Saga del mal parte 2"]);
+    const credit = discord.posts("votacion-de-honor").find((c) => JSON.stringify(c.body).includes("ideas de la charla"))!;
+    expect(credit.body!.allowed_mentions).toEqual({ users: ["ana", "bob"] });
+
+    // Cierre: gana un video listo; el otro vuelve a la lista. Las ideas usadas no se repiten.
+    advance(3 * DAY);
+    const answers = options(discord).map((text, i) => ({ answer_id: i + 1, poll_media: { text } }));
+    discord.poll = { answers, results: { is_finalized: true, answer_counts: [{ id: 1, count: 4 }, { id: 3, count: 2 }] } };
+    await w.cron();
+    expect(JSON.stringify(discord.posts("votacion-de-honor").at(-1)!.body)).toContain("Video de KAFU");
+    // Ronda siguiente (cada 2 semanas): las ideas ya se usaron y solo queda Haku → no alcanza, avisa a GyroP.
+    advance(10 * DAY);
+    await w.cron();
+    expect(polls(discord)).toHaveLength(1); // a los 13 días todavía no toca
+    advance(1 * DAY);
+    await w.cron();
+    expect(polls(discord)).toHaveLength(1);
+    expect(JSON.stringify(discord.posts("registro-bots").at(-1)!.body)).toContain("Hay 1 opción");
+    // Con una idea nueva apoyada, sí abre.
+    discord.charla = [msg("m6", "eva", "Especial de Teto SV", 1, -5 * 24)];
+    discord.reactors = { m6: [{ id: "bob" }] };
+    await w.route("miku", cmd("votacion", OWNER, [], sub("honor", [])));
+    expect(options(discord)).toEqual(["Video de Haku", "Especial de Teto SV"]);
+  });
+
+  it("si no hay al menos 2 opciones, no abre y avisa a GyroP una vez al día", async () => {
+    const { w, discord, advance } = honorSetup();
+    await w.route("miku", cmd("votacion", OWNER, [], sub("listo", [opt("nombre", "Video de KAFU")])));
+    advance(DAY);
+    await w.cron();
+    await w.cron();
+    expect(polls(discord)).toHaveLength(0);
+    const warn = discord.posts("registro-bots").filter((c) => JSON.stringify(c.body).includes("votación de honor"));
+    expect(warn).toHaveLength(1);
+  });
+
+  it("ideaText y pickIdeas", () => {
+    expect(ideaText("**Saga del mal** <@123> https://x.com\notra línea")).toBe("Saga del mal");
+    expect(ideaText("a".repeat(80))).toHaveLength(55);
+    const i = (id: string, likes: number, createdAt: number, text = id) => ({ id, authorId: "a", text, likes, createdAt });
+    expect(pickIdeas([i("b", 2, 2), i("a", 2, 1), i("c", 5, 3), i("d", 0, 0)], 2).map((x) => x.id)).toEqual(["c", "a"]);
+    expect(pickIdeas([i("x", 3, 1, "Gumi"), i("y", 2, 2, "gumi")], 2).map((x) => x.id)).toEqual(["x"]);
   });
 });
 

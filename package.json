@@ -27,7 +27,8 @@
     "iconos": "python scripts/make_tray_icons.py",
     "reiniciar": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/stop-bots.ps1 -Reiniciar",
     "despedida-al-apagar": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/logoff-script.ps1",
-    "pedidos": "node --disable-warning=ExperimentalWarning --import tsx scripts/pedidos.ts"
+    "pedidos": "node --disable-warning=ExperimentalWarning --import tsx scripts/pedidos.ts",
+    "conversaciones": "node --disable-warning=ExperimentalWarning --import tsx scripts/conversaciones.ts"
   },
   "dependencies": {
     "discord.js": "14.27.0",

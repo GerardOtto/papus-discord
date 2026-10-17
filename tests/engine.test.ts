@@ -1,6 +1,6 @@
 import path from "node:path";
 import { describe, expect, it } from "vitest";
-import { BOT_IDS } from "../src/config";
+import { BOT_IDS, CORE_BOT_IDS } from "../src/config";
 import { EngineDataError, EngineReader } from "../src/engine/reader";
 import { FIXTURE_ENGINE } from "./helpers";
 
@@ -15,6 +15,15 @@ describe("EngineReader (fixture)", () => {
     expect(teto.shared).toEqual(["Triple Baka."]);
     expect(teto.community).toEqual(["Teto pera."]);
     expect(r.character("luka").shared).toEqual([]);
+  });
+
+  it("los Vocaloids fuera del elenco del motor toman sus datos de content/lore-extra.json; el motor manda", () => {
+    expect(r.character("kaito").lore).toEqual(["Le gusta el helado."]);
+    const ia = r.character("ia");
+    expect(ia.displayName).toBe("IA");
+    expect(ia.lore.join(" ")).toMatch(/1st PLACE/);
+    // El elenco de los videos (/pedido) sigue siendo el del motor.
+    expect(r.cast().map((c) => c.id)).not.toContain("ia");
   });
 
   it("devuelve la imagen de una emocion solo si el archivo existe", () => {
@@ -48,12 +57,12 @@ describe("EngineReader (motor real en ../Proyecto1)", () => {
     expect(r.missing()).toEqual([]);
   });
 
-  it("tiene lore, color y avatares de los 4 bots", () => {
+  it("tiene lore y color de todos los bots, y avatares de las 4 chicas", () => {
     for (const id of BOT_IDS) {
       const c = r.character(id);
       expect(c.lore.length, id).toBeGreaterThan(0);
       expect(c.color, id).toBeGreaterThan(0);
-      expect(r.reactionImage(c, "saludando"), id).not.toBeNull();
     }
+    for (const id of CORE_BOT_IDS) expect(r.reactionImage(r.character(id), "saludando"), id).not.toBeNull();
   });
 });

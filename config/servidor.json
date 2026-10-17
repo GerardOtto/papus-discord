@@ -1,24 +1,24 @@
 {
-  "$comment": "Estructura del servidor (PLAN §8 + niveles publicados en ko-fi.com/tetociencia/tiers). La aplica `npm run servidor` (primero muestra el plan; con --apply lo ejecuta). Nunca borra: lo que no está aquí queda intacto. 'leen': todos | staff | <nivel mínimo> (ese rol y todos los superiores; los niveles son acumulativos). 'escriben': true = quienes leen pueden escribir; false = solo los bots y GyroP (los Papus leen, reaccionan, votan encuestas y usan comandos). Los nombres llevan un emoji y '・' (los bots buscan los canales sin el emoji). 'antes' = nombres anteriores del mismo canal (se renombra en vez de duplicar). Los 4 bots ven y escriben en todos los canales (regla 2).",
+  "$comment": "Estructura del servidor (PLAN §8 + niveles publicados en ko-fi.com/tetociencia/tiers). La aplica `npm run servidor` (primero muestra el plan; con --apply lo ejecuta). Nunca borra: lo que no está aquí queda intacto. 'leen': todos | staff | <nivel mínimo> (ese rol y todos los superiores; los niveles son acumulativos). 'escriben': true = quienes leen pueden escribir; false = solo los bots y GyroP (los Papus leen, reaccionan, votan encuestas y usan comandos). Los nombres llevan un emoji y '・' (los bots buscan los canales sin el emoji). 'antes' = nombres anteriores del mismo canal (se renombra en vez de duplicar). Todos los bots (rol Vocaloids) ven y escriben en todos los canales (regla 2).",
   "niveles": [
     {
-      "rol": "Puerro",
+      "rol": "🥬 Puerro",
       "color": "#39C5BB"
     },
     {
-      "rol": "Atún",
+      "rol": "🐟 Atún",
       "color": "#E285B2"
     },
     {
-      "rol": "Baguette",
+      "rol": "🥖 Baguette",
       "color": "#E91E63"
     },
     {
-      "rol": "Celular",
+      "rol": "📱 Celular",
       "color": "#E8D44D"
     },
     {
-      "rol": "Triple Baka",
+      "rol": "💥 Triple Baka",
       "color": "#9B6CFF"
     }
   ],
@@ -28,10 +28,10 @@
       "color": "#39C5BB",
       "separado": true,
       "bots": true,
-      "$comment": "Agrupa a los 4 bots en la lista de miembros (PLAN §4)."
+      "$comment": "Agrupa a todos los bots (las 4 chicas y los Vocaloids de conversación) en la lista de miembros (PLAN §4)."
     },
     {
-      "rol": "Fundador",
+      "rol": "⭐ Fundador",
       "color": "#FFD166",
       "separado": false,
       "hasta": "2026-10-24T00:00:00-03:00",
@@ -66,7 +66,7 @@
   ],
   "coloresPapu": {
     "canal": "tu-color",
-    "$comment": "Colores que cada Papu elige en #tu-color (menú de Miku, lo atiende el worker 24/7). Paleta de las Vocaloids del motor (Proyecto1/config/characters.json) SIN las de los niveles (Miku, Luka, Teto, Neru y el morado Triple Baka) ni las que se confunden con ellas. Quedan debajo de los niveles: quien paga sigue viéndose con el color de su nivel.",
+    "$comment": "Colores que cada Papu elige en #tu-color (menú de Miku, lo atiende el worker 24/7). Paleta de las Vocaloids del motor (Proyecto1/config/characters.json) SIN las de los niveles (Miku, Luka, Teto, Neru y el morado Triple Baka) ni las que se confunden con ellas. Quedan debajo de los niveles (quien paga sigue viéndose con el color de su nivel) y encima de las insignias Papu de honor y Fundador (el color elegido se ve aunque tenga una insignia; decisión de GyroP, 17 oct. 2026). Lo ordena `npm run servidor`.",
     "colores": [
       {
         "rol": "🎨 Rin y Len",
@@ -201,7 +201,30 @@
           "nombre": "💌・habla-con-los-vocaloids",
           "escriben": true,
           "lento": 3,
-          "tema": "Menciona a @Teto, @Miku, @Luka o @Neru para platicar: 7 mensajes al día, compartidos entre las cuatro (/cuota)."
+          "tema": "Menciona a @Teto, @Miku, @Luka, @Neru, @Gakupo, @Kaito, @flower, @IA, @Haku o @Gumi para platicar: 7 mensajes al día, compartidos entre todos (/cuota)."
+        },
+        {
+          "nombre": "🎉・eventos",
+          "antes": [
+            "eventos"
+          ],
+          "escriben": true,
+          "tema": "Sesiones de escucha, cumpleaños de las Vocaloids y eventos de la comunidad."
+        },
+        {
+          "nombre": "🗣️・ideas-y-opiniones",
+          "antes": [
+            "ideas-y-opiniones"
+          ],
+          "escriben": true,
+          "tema": "Ideas para el servidor y el canal, y lo que opinas de todo."
+        },
+        {
+          "nombre": "🤖・comandos-de-bots",
+          "escriben": true,
+          "musica": true,
+          "lento": 2,
+          "tema": "Aquí se usan los comandos: /cuota de Teto, /tip de Luka, /pedido de Miku y los bots de música (/play). Entra a un canal de voz y pide tu canción."
         },
         {
           "nombre": "🐞・reportes-y-reclamos",
@@ -350,6 +373,34 @@
           "nombre": "🎁・cola-de-pedidos",
           "escriben": false,
           "tema": "Tu video personalizado con los Vocaloids, por orden de llegada: pide el tuyo y mira tu posición."
+        }
+      ]
+    },
+    {
+      "nombre": "🏅 Sala de honor",
+      "leen": "rol:🏅 Papu de honor",
+      "$comment": "Solo los Papus de honor (los da GyroP a mano). Cada semana votan un video aparte de la votación de Puerro: videos que GyroP ya tiene listos para subir + temas que ellos propongan en #charla-de-honor. Quien además tenga un nivel vota en las dos. Sin ventajas con los bots (regla 1).",
+      "canales": [
+        {
+          "nombre": "💬・charla-de-honor",
+          "escriben": true,
+          "lento": 3,
+          "tema": "Ponte de acuerdo con los demás Papus de honor: qué temas quieren ver en los videos. Los más apoyados pasan a la votación de la semana."
+        },
+        {
+          "nombre": "🗳️・votacion-de-honor",
+          "escriben": false,
+          "tema": "Cada semana eligen un video entre los que GyroP tiene listos para subir y los temas que propusieron en #charla-de-honor."
+        },
+        {
+          "nombre": "🎙️ Sala de honor",
+          "escriben": true,
+          "voz": true
+        },
+        {
+          "nombre": "🎧 Rincón de honor",
+          "escriben": true,
+          "voz": true
         }
       ]
     },

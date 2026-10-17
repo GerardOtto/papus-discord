@@ -35,7 +35,11 @@ export class LLMChain {
     return this.providers.filter((p) => (this.cooldownUntil.get(p.name) ?? 0) <= t);
   }
 
-  async chat(req: ChatRequest, signal?: AbortSignal): Promise<ChatResponse> {
+  /**
+   * `accept`: si la respuesta llega pero no sirve (ej.: cortada a la mitad, sin el JSON de cada personaje), se prueba
+   * con el siguiente proveedor en vez de devolverla. Ese proveedor no descansa: fue un tropiezo, no una caída.
+   */
+  async chat(req: ChatRequest, signal?: AbortSignal, accept?: (res: ChatResponse) => boolean): Promise<ChatResponse> {
     const errors: LLMError[] = [];
     const candidates = this.router ? this.router.order(this.available()) : this.available();
     for (const p of candidates) {
@@ -43,6 +47,11 @@ export class LLMChain {
       this.router?.begin(p.name);
       try {
         const res = await p.chat(req, signal);
+        if (accept && !accept(res)) {
+          errors.push(new LLMError(`${p.name}: respuesta ilegible`, p.name));
+          this.usage?.record(p.name, false);
+          continue;
+        }
         this.usage?.record(p.name, true);
         return res;
       } catch (e) {

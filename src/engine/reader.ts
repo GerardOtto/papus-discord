@@ -1,5 +1,6 @@
 // Lector de los datos del motor de videos (../Proyecto1). SOLO LECTURA: este modulo no tiene
-// ninguna funcion que escriba; las rutas salen de config/engine-paths.json.
+// ninguna funcion que escriba; las rutas salen de config/engine-paths.json. Los Vocaloids que el motor no tiene en
+// su elenco (Gakupo, IA, Haku, flower) toman sus datos de content/lore-extra.json; si el motor los agrega, manda el motor.
 import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 import type { BotId } from "../config";
@@ -41,8 +42,16 @@ export class EngineReader {
     readonly engineDir: string,
     readonly deliveryDir: string | null = null,
     pathsFile = path.join(REPO_ROOT, "config/engine-paths.json"),
+    private readonly extraLoreFile = path.join(REPO_ROOT, "content/lore-extra.json"),
   ) {
     this.paths = JSON.parse(readFileSync(pathsFile, "utf8")) as EnginePaths;
+  }
+
+  /** Datos de los Vocaloids fuera del elenco del motor (content/lore-extra.json -> characters.<id>). */
+  private extraLore(id: string): string[] | undefined {
+    if (!existsSync(this.extraLoreFile)) return undefined;
+    const extra = JSON.parse(readFileSync(this.extraLoreFile, "utf8")) as { characters?: Record<string, string[]> };
+    return extra.characters?.[id];
   }
 
   /** Ruta absoluta de un dato del motor; `vars` reemplaza {id}, {episodeId}, etc. */
@@ -92,7 +101,7 @@ export class EngineReader {
     const lore = this.readJson<Lore>("lore");
     const chars = this.readJson<Chars>("characters");
     const c = chars.characters[id];
-    const facts = lore.characters[id];
+    const facts = lore.characters[id] ?? this.extraLore(id);
     if (!c || !facts) throw new EngineDataError(`El motor no tiene datos del personaje ${id}`);
     const pick = (list: { characters: string[]; facts: string[] }[]) =>
       list.filter((x) => x.characters.includes(id)).flatMap((x) => x.facts);
