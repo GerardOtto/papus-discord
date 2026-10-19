@@ -14,7 +14,9 @@ Gakupo, Kaito, flower, IA, Haku y Gumi, que solo conversan.
    de los 4 personajes en cada API (se puede pasar un mensaje: `npm run check -- --llm "hola Teto"`).
 4. `npm start` conecta los bots. `npm test` corre las pruebas.
 5. `npm run conversaciones [-- --desde AAAA-MM-DD | --horas N]` exporta las conversaciones con los Vocaloids (solo
-   lectura, Papus con seudónimo) a `data/revision/` para buscar alucinaciones y refinar las fichas. Borrar el informe al terminar.
+   lectura, Papus con seudónimo) a `data/revision/` para buscar alucinaciones y refinar las fichas. Además deja
+   `general-<fecha>.md`: **todo #general** y sus hilos con nombres reales, y arriba lo que en otro canal habría sido
+   sanción, para moderar a mano el canal de lenguaje libre (`/advertir`, `/strikes`). Borrar los informes al terminar.
 
 ## Qué se edita sin tocar código
 | Archivo | Qué contiene |
@@ -53,7 +55,14 @@ Gakupo, Kaito, flower, IA, Haku y Gumi, que solo conversan.
 - **Lista de pedidos:** `npm run pedidos` abre en el navegador la cola con todos los detalles (`data/pedidos.html`).
 - **Cloudflare (`worker/`):** Miku y Luka responden sus comandos 24/7, aunque el PC esté apagado. Publicar cambios del
   worker o de sus frases: `npm run worker:deploy` (necesita `CLOUDFLARE_DEPLOY_TOKEN` en `.env`).
-- **Emojis exclusivos** (Puerro y superiores): `python scripts/make_emojis.py` y luego `npm run emojis`.
+- **Ícono animado y cartel de invitación** (17 oct. 2026, nivel 1 de mejoras): `assets/servidor/icono.html` (las 4 chicas
+  se turnan) y `cartel.html` (concierto con 6 Vocaloids, centro libre para la tarjeta de Discord). Generar:
+  `python scripts/make_icono.py` y `node scripts/render-servidor.mjs cartel`. El ícono anterior está en `icono_anterior.png`.
+- **Emojis** (17 oct. 2026): dos packs. **Gratis** (todos): caras de las 10 Vocaloids y reacciones de la biblioteca de
+  stickers del motor (gatos, nugget, chibis). **Pago** (Puerro y superiores): las insignias y caras de
+  `scripts/make_emojis.py` más lo mejor de la biblioteca (bailes MMD, Mesmerizer, nendoroids…), varios animados.
+  Generar: `python scripts/make_emojis.py` y `python scripts/make_emoji_samples.py` (escribe `assets/emojis/packs.json`,
+  la lista exacta que se sube); subir: `npm run emojis`. Nadie más que GyroP puede crear emojis, stickers ni eventos.
 
 ## Comandos
 | Quién | Comando | Dónde corre |
@@ -69,6 +78,7 @@ Gakupo, Kaito, flower, IA, Haku y Gumi, que solo conversan.
 | GyroP | `/calendario`, `/estreno`, `/noticia` (Miku) | Cloudflare |
 | GyroP | `/tip-usado` (Luka): lleva un tip al Salón de la Fama | Cloudflare |
 | GyroP | `/strikes`, `/perdonar` (Neru) | PC |
+| GyroP | `/advertir @papu [motivo]` o clic derecho en un mensaje → Apps → **Advertir (Neru)**: aviso público de Neru (frases `aviso`), sin borrar ni strike; queda en #moderación | PC |
 
 Automático (PC): Teto da el rol **Papu** a cada uno al entrar y **Fundador** a quien tenga un nivel en la primera semana
 (`config/servidor.json`); cuando GyroP publica en un canal de nivel de solo lectura, Teto avisa en #vitrina dónde y

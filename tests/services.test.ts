@@ -10,9 +10,14 @@ import { StrikeStore } from "../src/moderation/strikes";
 import { Phrases } from "../src/phrases/catalog";
 import { DeckStore } from "../src/phrases/deck";
 import { Quota } from "../src/quota/quota";
-import { ConversationService, mentionedBots, type ChatPort, type IncomingMention } from "../src/services/conversation";
-import { ModerationService, type ModerationPort } from "../src/services/moderation";
+import { ConversationService, isTrivialReply, mentionedBots, type ChatPort, type IncomingMention } from "../src/services/conversation";
+import { ModerationService, strikeLine, type ModerationPort } from "../src/services/moderation";
 import { FIXTURE_ENGINE, memDb, seededRng } from "./helpers";
+import neruPhrases from "../content/frases/neru.json";
+
+/** El mensaje de Neru trae una frase de ese grupo. */
+const fromGroup = (said: string | undefined, group: "invitacion" | "estafa") =>
+  (neruPhrases[group] as string[]).some((p) => !!said?.includes(p.split("{papu}").pop()!.trim()));
 
 const engine = new EngineReader(FIXTURE_ENGINE);
 const characters = Object.fromEntries(BOT_IDS.map((id) => [id, engine.character(id)])) as Record<BotId, ReturnType<EngineReader["character"]>>;
@@ -88,7 +93,19 @@ describe("ConversationService", () => {
     expect(port.sent[0]!.content).toContain("<@papu>"); // frase fija, no LLM
     expect(port.sent[1]).toEqual({ bot: "teto", content: "hola" });
     expect(quota.remaining("papu")).toBe(0);
+    // Ya recibió el aviso hoy: si insiste, solo una luna (caso real: Neru respondió 6 veces "se acabó").
     expect(await svc.handle(mention(["miku"]))).toBe("no_quota");
+    expect(await svc.handle(mention(["teto"]))).toBe("no_quota");
+    expect(port.sent).toHaveLength(2);
+    expect(port.reactions).toEqual(["🌙", "🌙"]);
+  });
+
+  it("sin cuota desde el primer mensaje: un aviso y luego lunas", async () => {
+    const { svc, port } = setup(llm('{"teto": "hola"}'), { quota: 0 });
+    expect(await svc.handle(mention(["teto"]))).toBe("no_quota");
+    expect(await svc.handle(mention(["teto"]))).toBe("no_quota");
+    expect(port.sent).toHaveLength(1);
+    expect(port.reactions).toEqual(["🌙"]);
   });
 
   it("si todas las APIs fallan: frase sin_api y se devuelve la cuota", async () => {
@@ -130,6 +147,13 @@ describe("ConversationService", () => {
   });
 });
 
+describe("isTrivialReply", () => {
+  it.each(["XD", "xddd", "jajaja", "<:SiDuro:1553173607574667324>", "AEA", "😂😂", "ok", "Jsjsjs", "uwu"])("'%s' no es hablarle al bot", (t) =>
+    expect(isTrivialReply(t)).toBe(true),
+  );
+  it.each(["y de Miku?", "Brutal", "bueno", "what?", "Te quiero teto"])("'%s' sí", (t) => expect(isTrivialReply(t)).toBe(false));
+});
+
 describe("mentionedBots", () => {
   const ids = new Map<string, BotId>([
     ["11", "teto"],
@@ -147,7 +171,8 @@ class FakeMod implements ModerationPort {
   deleted: string[] = [];
   timeouts: { userId: string; minutes: number }[] = [];
   said: string[] = [];
-  logs: { kind: string; action: string }[] = [];
+  replies: (string | undefined)[] = [];
+  logs: { kind: string; action: string; activeStrikes?: number | null }[] = [];
   owner: string[] = [];
   async deleteMessage(_c: string, id: string) {
     this.deleted.push(id);
@@ -155,11 +180,12 @@ class FakeMod implements ModerationPort {
   async timeout(userId: string, minutes: number) {
     this.timeouts.push({ userId, minutes });
   }
-  async say(_c: string, content: string) {
+  async say(_c: string, content: string, _ping: string | null, replyTo?: string) {
     this.said.push(content);
+    this.replies.push(replyTo);
   }
-  async log(e: { kind: string; action: string }) {
-    this.logs.push({ kind: e.kind, action: e.action });
+  async log(e: { kind: string; action: string; activeStrikes: number | null }) {
+    this.logs.push({ kind: e.kind, action: e.action, activeStrikes: e.activeStrikes });
   }
   async notifyOwner(c: string) {
     this.owner.push(c);
@@ -214,17 +240,75 @@ describe("ModerationService", () => {
     ]);
   });
 
+  it("aviso de GyroP: frase de Neru respondiendo al mensaje, sin borrar ni strike, y queda en el registro", async () => {
+    const { svc, port } = modSetup();
+    await svc.warn({ userId: "papu", channelId: "c", messageId: "m1", excerpt: "qué menso", motivo: "ojo con\nel tono" });
+    expect(port.said[0]).toContain("<@papu>");
+    expect(port.said[0]).toContain("> ojo con el tono");
+    expect(port.replies[0]).toBe("m1");
+    expect(port.deleted).toEqual([]);
+    expect(port.timeouts).toEqual([]);
+    expect(port.logs).toEqual([{ kind: "aviso", action: "sin borrar · sin strike", activeStrikes: 0 }]);
+    // No suma: el siguiente insulto sigue siendo el strike 1.
+    await svc.handle(msg("eres un pendejo"));
+    expect(port.said[1]).toContain("**strike 1 de 4**");
+  });
+
+  it("llama la atención en público: cita lo que dijo (tapado) y en qué strike va", async () => {
+    const { svc, port, advance } = modSetup();
+    await svc.handle(msg("CHUPALO", { targetsBot: true }));
+    expect(port.said[0]).toContain("> C\\*\\*\\*\\*\\*\\*");
+    expect(port.said[0]).not.toMatch(/chupalo/i);
+    expect(port.said[0]).toContain("**strike 1 de 4** · advertencia. al siguiente, 10 min de silencio.");
+    advance(60_000);
+    await svc.handle(msg("eres un pendejo"));
+    expect(port.said[1]).toContain("**strike 2 de 4** · 10 min de silencio.");
+  });
+
+  it("autolesión: frase fija de apoyo con las líneas de ayuda, aviso a GyroP y sin strike (una vez cada 6 h)", async () => {
+    const { svc, port, advance } = modSetup();
+    const m = msg("@Neru palabras de motivación para no terminar con todo?", { messageId: "m1" });
+    expect(await svc.handle(m)).toBeNull();
+    expect(await svc.support(m)).toBe(true);
+    expect(port.said[0]).toContain("<@papu>");
+    expect(port.said[0]).toContain("800 911 2000");
+    expect(port.replies[0]).toBe("m1");
+    expect(port.owner[0]).toContain("terminar con todo");
+    expect(port.deleted).toEqual([]);
+    expect(port.timeouts).toEqual([]);
+    // Si sigue hablando del tema, le responde el Vocaloid (no se repite la frase fija).
+    advance(60_000);
+    expect(await svc.support(msg("ya no quiero vivir"))).toBe(false);
+    advance(6 * 3_600_000);
+    expect(await svc.support(msg("ya no quiero vivir"))).toBe(true);
+    expect(await svc.support(msg("me quiero morir del cringe", { authorId: "otro" }))).toBe(false);
+  });
+
+  it("las invitaciones no se citan (sería volver a exponer el enlace)", async () => {
+    const { svc, port } = modSetup();
+    await svc.handle(msg("únanse discord.gg/abc123"));
+    expect(port.said[0]).not.toContain("abc123");
+    expect(port.said[0]).toContain("strike 1 de 4");
+  });
+
+  it("strikeLine sigue la escalera real (Neru no expulsa: al 4.º decide GyroP)", () => {
+    expect(strikeLine(3, { kind: "silencio", minutes: 60, notifyOwner: false })).toContain("al 4.º, un día sin escribir y gyrop decide si te quedas");
+    expect(strikeLine(6, { kind: "silencio", minutes: 1440, notifyOwner: true })).toContain("**strike 4 de 4** · un día de silencio. gyrop ya está avisado");
+  });
+
   it("GyroP esta exento", async () => {
     const { svc, port } = modSetup();
     expect(await svc.handle(msg("eres un pendejo", { authorId: "gyrop" }))).toBeNull();
     expect(port.deleted).toEqual([]);
   });
 
-  it("datos personales: borra y explica con su frase propia", async () => {
+  it("teléfonos y correos se pueden compartir en el chat; las invitaciones se borran con su frase propia", async () => {
     const { svc, port } = modSetup();
-    await svc.handle(msg("mi cel 55 1234 5678"));
+    expect(await svc.handle(msg("mi cel 55 1234 5678 o papu@gmail.com"))).toBeNull();
+    expect(port.deleted).toEqual([]);
+    await svc.handle(msg("únanse discord.gg/abc123"));
     expect(port.deleted).toHaveLength(1);
-    expect(port.said[0]).toMatch(/datos|número|teléfono|correo/i);
+    expect(fromGroup(port.said[0], "invitacion")).toBe(true);
   });
 
   it("mayúsculas: solo aviso, sin borrar ni strike, y no más de uno cada 10 min", async () => {
@@ -262,5 +346,13 @@ describe("ModerationService", () => {
     ]);
     expect(summary).toContain("2");
     expect(await svc.applyOfflineHits([])).toBeNull();
+  });
+
+  it("bloqueo de AutoMod en vivo: una invitación lleva la frase de invitaciones y una estafa la de estafas", async () => {
+    const { svc, port } = modSetup();
+    await svc.handleAutoModHit({ userId: "a", channelId: "c", ruleName: "Neru · datos y estafas", content: "únanse discord.gg/abc" });
+    await svc.handleAutoModHit({ userId: "b", channelId: "c", ruleName: "Neru · datos y estafas", content: "nitro gratis" });
+    expect(fromGroup(port.said[0], "invitacion")).toBe(true);
+    expect(fromGroup(port.said[1], "estafa")).toBe(true);
   });
 });

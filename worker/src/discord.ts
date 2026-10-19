@@ -13,6 +13,19 @@ export interface DiscordApi {
 
 const API = "https://discord.com/api/v10";
 
+/**
+ * Candado contra @everyone y @here: los bots tienen ese permiso (Discord lo exige para mencionar los roles de nivel,
+ * que no son mencionables), asi que ningun mensaje lo usa aunque el texto lo traiga. Solo notifica a los usuarios y
+ * roles que el envio nombra; sin `allowed_mentions`, solo a los usuarios.
+ */
+export function safeMentions(body: unknown): unknown {
+  if (!body || typeof body !== "object" || Array.isArray(body)) return body;
+  const b = body as Record<string, unknown>;
+  if (!("content" in b || "embeds" in b || "poll" in b || "allowed_mentions" in b)) return body;
+  const am = (b.allowed_mentions ?? { parse: ["users"] }) as { parse?: string[] };
+  return { ...b, allowed_mentions: { ...am, parse: (am.parse ?? []).filter((p) => p === "users") } };
+}
+
 export class DiscordError extends Error {
   constructor(
     readonly status: number,
@@ -42,7 +55,7 @@ export function restApi(tokens: Record<BotKey, string>, fetchFn: typeof fetch = 
         await send(`${API}${path}`, {
           method,
           headers: { Authorization: `Bot ${tokens[bot]}`, "Content-Type": "application/json" },
-          body: body === undefined ? undefined : JSON.stringify(body),
+          body: body === undefined ? undefined : JSON.stringify(safeMentions(body)),
         }),
       ),
     editOriginal: async (applicationId, token, body) => {
@@ -52,7 +65,7 @@ export function restApi(tokens: Record<BotKey, string>, fetchFn: typeof fetch = 
         const res = await send(`${API}/webhooks/${applicationId}/${token}/messages/@original`, {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(body),
+          body: JSON.stringify(safeMentions(body)),
         });
         if (res.status === 404 && attempt < 6) {
           await new Promise((r) => setTimeout(r, 300 * (attempt + 1)));
@@ -67,7 +80,7 @@ export function restApi(tokens: Record<BotKey, string>, fetchFn: typeof fetch = 
         await send(`${API}/webhooks/${applicationId}/${token}`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(body),
+          body: JSON.stringify(safeMentions(body)),
         }),
       );
     },

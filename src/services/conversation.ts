@@ -51,11 +51,18 @@ export interface ConversationDeps {
   privacy?: PrivacyGuard;
   log?: (msg: string) => void;
   onQueueLength?: (length: number) => void;
+  /** Trato especial de quien escribe con cada bot (config/especiales.json). */
+  notesFor?: (authorId: string, bots: BotId[]) => Partial<Record<BotId, string>>;
+  /** Fecha de hoy en palabras para el LLM. */
+  today?: () => string;
 }
 
 export type ConversationOutcome = "answered" | "partial" | "busy" | "no_quota" | "timeout" | "failed" | "private";
 
 export class ConversationService {
+  /** Papus que ya recibieron hoy el aviso de cuota agotada ("dia:id"): despues solo una reaccion, sin otro mensaje. */
+  private readonly warnedNoQuota = new Set<string>();
+
   constructor(private readonly d: ConversationDeps) {}
 
   async handle(m: IncomingMention): Promise<ConversationOutcome> {
@@ -81,7 +88,17 @@ export class ConversationService {
     const reservation = quota.reserve(m.authorId, m.bots.length);
     const granted = m.bots.slice(0, reservation.units);
     const denied = m.bots.slice(reservation.units);
-    // Los @ que no alcanzan responden su frase de cuota agotada (sin LLM, sin costo).
+    // Los @ que no alcanzan responden su frase de cuota agotada (sin LLM, sin costo). Una vez al dia por Papu: si
+    // insiste, solo una luna (asi el canal no se llena de "se acabo").
+    const warnKey = `${reservation.day}:${m.authorId}`;
+    if (granted.length === 0 && this.warnedNoQuota.has(warnKey)) {
+      await port.react(m.bots[0]!, m.channelId, m.messageId, "🌙").catch(() => {});
+      return "no_quota";
+    }
+    if (denied.length) {
+      if (this.warnedNoQuota.size > 5000) this.warnedNoQuota.clear();
+      this.warnedNoQuota.add(warnKey);
+    }
     for (const bot of denied) {
       await port.reply(bot, m.channelId, m.messageId, phrases.pick(bot, "cuota_agotada", { papu }), m.authorId);
     }
@@ -92,7 +109,7 @@ export class ConversationService {
     const result = await queue.enqueue(m.authorId, async (signal) => {
       const history = await m.history();
       const req = buildRequest(
-        { characters, papuName: m.authorName, fromOwner: m.fromOwner, message: m.text, history, videos: this.d.videos?.(m.text) ?? [], culture: this.d.culture },
+        { characters, papuName: m.authorName, fromOwner: m.fromOwner, notes: this.d.notesFor?.(m.authorId, granted), message: m.text, history, videos: this.d.videos?.(m.text) ?? [], culture: this.d.culture, today: this.d.today?.() },
         this.d.personas,
         this.d.llm,
       );
@@ -156,6 +173,7 @@ export class ConversationService {
       // El modelo no respondio por alguno: esas unidades se devuelven.
       quota.refund(reservation, missing);
       if (answered === 0) {
+        this.d.log?.(`Sin respuesta para ${granted.join(", ")} (${result.value.provider}, ${result.value.text.length} car.): ${result.value.text.slice(0, 120).replace(/\s+/g, " ")}`);
         await port.reply(granted[0]!, m.channelId, m.messageId, phrases.pick(granted[0]!, "sin_api", { papu }), m.authorId);
         return "failed";
       }
@@ -170,6 +188,22 @@ export function withoutBotMentions(text: string, names: string[]): string {
   if (!names.length) return text;
   const alt = names.map((n) => n.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|");
   return text.replace(new RegExp(`@(?:${alt})(?![\\p{L}\\p{N}])`, "giu"), " ");
+}
+
+/**
+ * Respuesta a un bot que no dice nada ("XD", "jajaja", un emoji, "AEA"): si no trae un @ explicito, no cuenta como
+ * mencion (no gasta cuota ni recibe respuesta).
+ */
+export function isTrivialReply(text: string): boolean {
+  const words = text
+    .replace(/<a?:\w+:\d+>/g, " ")
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z\s]/g, " ")
+    .split(/\s+/)
+    .filter((w) => w && !/^(?:x+d+|(?:ja|je|ji|js|ks|ha)+[jas]*|a+e+a+|o+k+|u+w+u+|o+w+o+|lol|lmao|xd+)$/.test(w));
+  return words.join("").length < 3;
 }
 
 /** Bots mencionados en orden de aparicion: <@id> en el texto y, al final, el autor del mensaje respondido. */

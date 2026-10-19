@@ -16,11 +16,13 @@ Repo hermano: el motor de videos en `../Proyecto1` (fuente del lore, calendario 
 **Rutas de los datos del motor: `config/engine-paths.json`** (solo lectura; el bot nunca escribe en el motor).
 
 ## Reglas (no negociables)
-1. **Ningún plan de pago da exclusividades con los bots**: cuota diaria única por Papu (7 al lanzar), compartida entre
-   todos los bots, igual para todos los niveles; una unidad por cada @ en un mensaje; sin prioridad en la cola por pagar.
-2. Los bots son omnipresentes (todos los canales) y no se responden solos entre ellos.
+1. **Ningún plan de pago da exclusividades con los bots**: cuota diaria única por Papu (12 desde el 17 oct. 2026; 7 al lanzar), compartida entre
+   todos los bots, igual para todos los niveles; una unidad por cada @ en un mensaje; sin prioridad en la cola por pagar. Única excepción,
+   regalo de GyroP y no de un nivel: 🍍♡Piña♡🍍 (`config/especiales.json`, PLAN §cuota); no se extiende a otros Papus.
+2. Los bots son omnipresentes (todos los canales) y no se responden solos entre ellos. Única excepción: la charla de
+   #general (PLAN §4), donde un Vocaloid le pregunta a otro con @ y este contesta una sola vez.
 3. La moderación es por reglas fijas + AutoMod de Discord, **nunca el LLM**. Neru no expulsa ni banea (solo GyroP).
-4. El LLM solo responde menciones libres. Bienvenidas, avisos, votaciones, moderación, cuota agotada, etc. usan grupos de
+4. El LLM solo responde menciones libres y la charla espontánea de #general (cada 20 min, PLAN §4; no gasta cuota de Papus). Bienvenidas, avisos, votaciones, moderación, cuota agotada, etc. usan grupos de
    30-40 frases fijas elegidas al azar sin repetir (estado persistido). Las frases fijas nunca gastan cuota.
 5. No acoplar a un proveedor de LLM: interfaz única con cadena de respaldo (Groq, Gemini, OpenRouter y Cloudflare por turnos; el local de respaldo).
    Varios proveedores sí; varias cuentas del mismo proveedor, no. "local" = Ollama en el PC de GyroP (Gemma 4 E4B como

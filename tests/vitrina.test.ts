@@ -35,6 +35,8 @@ describe("paleta de colores", () => {
     const tierColors = new Set(layout.niveles.map((n) => n.color.toUpperCase()));
     for (const c of palette) expect(tierColors.has(c.color.toUpperCase())).toBe(false);
     expect(new Set(palette.map((c) => c.color.toUpperCase())).size).toBe(palette.length);
+    // Reservadas a los niveles (decisión de GyroP): ni con otro tono.
+    for (const c of palette) expect(colorKey(c.rol), c.rol).not.toMatch(/^(teto|miku(?!o)|luka|neru|triplebaka)/); // Mikuo es otro personaje
   });
 
   it("menú de Discord con un valor por color y 'sin color'", () => {

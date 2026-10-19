@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { BOT_BITS, loadLayout, nameKey, overwritesFor, PERM, reorderWithin, WRITE_BITS, type Overwrite } from "../src/setup/layout";
+import { BOT_BITS, loadLayout, nameKey, blockBelow, overwritesFor, PERM, WRITE_BITS, type Overwrite } from "../src/setup/layout";
+import { loadEspeciales } from "../src/services/especiales";
 
 const roles = {
   everyone: "E",
@@ -75,25 +76,43 @@ describe("overwritesFor", () => {
   });
 });
 
-describe("reorderWithin", () => {
-  it("sube los colores sobre las insignias usando los mismos puestos, sin tocar a nadie de afuera", () => {
-    // Hoy: honor 14, Fundador 13, Papu 12, colores 11 y 10.
-    const current = [
-      { id: "honor", position: 14 },
-      { id: "fundador", position: 13 },
-      { id: "papu", position: 12 },
-      { id: "rin", position: 11 },
-      { id: "kaito", position: 10 },
+describe("canal de tickets", () => {
+  it("los Papus no escriben ni abren hilos en el canal, pero sí escriben en su hilo; los bots crean y cierran hilos", () => {
+    const roles = { everyone: "E", tiers: [], bots: "B" };
+    const o = overwritesFor("todos", true, roles, { tickets: true });
+    const deny = o.find((x) => x.id === "E")!.deny;
+    expect(deny & PERM.SEND_MESSAGES).toBe(PERM.SEND_MESSAGES);
+    expect(deny & PERM.CREATE_PRIVATE_THREADS).toBe(PERM.CREATE_PRIVATE_THREADS);
+    expect(deny & PERM.SEND_MESSAGES_IN_THREADS).toBe(0n);
+    expect(can(o, "B", PERM.CREATE_PRIVATE_THREADS | PERM.MANAGE_THREADS)).toBe(true);
+    expect(can(overwritesFor("todos", true, roles), "B", PERM.MANAGE_THREADS)).toBe(false);
+  });
+});
+
+describe("blockBelow", () => {
+  it("pone colores e insignias juntos bajo el nivel más bajo, sin tocar lo que está sobre el bot", () => {
+    // Desordenado como lo deja Discord al crear roles: kofi(9) teto(8) puerro(7) honor(6) bot(5) rin(4) papu(3) kaito(2) musica(1)
+    const roles = [
+      { id: "kofi", position: 9 },
+      { id: "teto", position: 8 },
+      { id: "puerro", position: 7 },
+      { id: "honor", position: 6 },
+      { id: "bot", position: 5 },
+      { id: "rin", position: 4 },
+      { id: "papu", position: 3 },
+      { id: "kaito", position: 2 },
+      { id: "musica", position: 1 },
+      { id: "everyone", position: 0 },
     ];
-    const changes = reorderWithin(current, ["rin", "kaito", "honor", "fundador", "papu"]);
-    expect(changes).toEqual([
-      { id: "rin", position: 14 },
-      { id: "kaito", position: 13 },
-      { id: "honor", position: 12 },
-      { id: "fundador", position: 11 },
-      { id: "papu", position: 10 },
-    ]);
-    expect(reorderWithin(changes, ["rin", "kaito", "honor", "fundador", "papu"])).toEqual([]);
+    const block = ["rin", "kaito", "honor", "papu"];
+    const changes = blockBelow(roles, "puerro", block, 8);
+    const after = new Map(roles.map((r) => [r.id, r.position]));
+    for (const c of changes) after.set(c.id, c.position);
+    const order = [...after.entries()].sort((a, b) => b[1] - a[1]).map(([id]) => id);
+    expect(order).toEqual(["kofi", "teto", "puerro", "rin", "kaito", "honor", "papu", "bot", "musica", "everyone"]);
+    expect(changes.some((c) => c.id === "kofi" || c.id === "teto" || c.id === "everyone")).toBe(false);
+    const fixed = roles.map((r) => ({ id: r.id, position: after.get(r.id)! }));
+    expect(blockBelow(fixed, "puerro", block, 8)).toEqual([]);
   });
 });
 
@@ -104,6 +123,18 @@ describe("config/servidor.json", () => {
     // Las categorías nombran el nivel sin emoji ("Puerro"): se reconoce igual.
     const valid = new Set(["todos", "staff", ...layout.niveles.map((n) => nameKey(n.rol)), ...layout.rolesExtra.map((r) => `rol:${r.rol}`)]);
     for (const c of layout.categorias) expect(valid.has(c.leen.startsWith("rol:") ? c.leen : nameKey(c.leen)), c.nombre).toBe(true);
+  });
+  it("el canal privado de Kaito y Piña solo lo ve el rol de Piña (de una sola persona, no de un nivel)", () => {
+    const cat = layout.categorias.find((c) => nameKey(c.nombre) === "kaito-y-pina")!;
+    expect(cat.leen).toBe("rol:💙 Esposa de Kaito");
+    expect(cat.canales.map((c) => nameKey(c.nombre))).toEqual(["kaito-y-pina"]);
+    const especiales = loadEspeciales().filter((p) => p.rol && nameKey(p.rol) === nameKey("💙 Esposa de Kaito"));
+    expect(especiales.map((p) => p.nombre)).toEqual(["🍍♡Piña♡🍍"]);
+    const r = { ...roles, extra: { [nameKey("💙 Esposa de Kaito")]: "K" } };
+    const o = overwritesFor(cat.leen, true, r);
+    expect(get(o, "E")!.deny & PERM.VIEW_CHANNEL).toBe(PERM.VIEW_CHANNEL);
+    expect(can(o, "K", PERM.VIEW_CHANNEL)).toBe(true);
+    for (const t of ["T0", "T1", "T2", "T3", "T4"]) expect(get(o, t), t).toBeUndefined();
   });
   it("sin canales repetidos y con los que usan los bots", () => {
     const names = layout.categorias.flatMap((c) => c.canales.map((x) => nameKey(x.nombre)));

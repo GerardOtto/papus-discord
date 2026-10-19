@@ -44,6 +44,13 @@
       "$comment": "Lo da GyroP a mano a los Papus más fieles y activos (16 oct. 2026). Por ahora solo reconocimiento: sin permisos ni canales extra. Plateado: distinto de los niveles, de Fundador y de la paleta de #tu-color. Separado en la lista de miembros (quien además tiene un nivel aparece en el grupo de su nivel)."
     },
     {
+      "rol": "💙 Esposa de Kaito",
+      "color": "#1E40AF",
+      "separado": true,
+      "sobreNiveles": true,
+      "$comment": "Sin permisos propios; da acceso a su canal privado con Kaito (categoría 💙 Kaito y Piña) (decisión de GyroP, 18 oct. 2026). Exclusivo de 🍍♡Piña♡🍍: Teto se lo da sola según config/especiales.json (por su id). No es de ningún nivel de Ko-fi ni se da a otros Papus. Azul Kaito, más oscuro que 🎨 Kaito de #tu-color. Va encima de todos los niveles e insignias: su color manda, salvo que ella elija uno de #tu-color; entonces Teto le pone ese color a este rol (y vuelve al azul si se lo quita)."
+    },
+    {
       "rol": "Papu",
       "color": "#000000",
       "separado": false,
@@ -66,19 +73,23 @@
   ],
   "coloresPapu": {
     "canal": "tu-color",
-    "$comment": "Colores que cada Papu elige en #tu-color (menú de Miku, lo atiende el worker 24/7). Paleta de las Vocaloids del motor (Proyecto1/config/characters.json) SIN las de los niveles (Miku, Luka, Teto, Neru y el morado Triple Baka) ni las que se confunden con ellas. Quedan debajo de los niveles (quien paga sigue viéndose con el color de su nivel) y encima de las insignias Papu de honor y Fundador (el color elegido se ve aunque tenga una insignia; decisión de GyroP, 17 oct. 2026). Lo ordena `npm run servidor`.",
+    "$comment": "Colores que cada Papu elige en #tu-color (menú de Miku, lo atiende el worker 24/7). Todas las Vocaloids del motor (Proyecto1/config/characters.json) menos las reservadas a los niveles de Ko-fi: Teto, Miku, Luka y Neru (y sus versiones) y el morado Triple Baka (decisión de GyroP, 17 oct. 2026). Rin y Len comparten color; KAFU va un poco más claro para no confundirse con Kaito. Ordenados por familia de color. Máximo 24 (menú de Discord). Quedan debajo de los niveles (quien paga sigue viéndose con el color de su nivel) y encima de las insignias Papu de honor y Fundador (el color elegido se ve aunque tenga una insignia; decisión de GyroP, 17 oct. 2026). Lo ordena `npm run servidor`. Nunca se borran roles: si se quita un color de aquí, su rol queda en el servidor.",
     "colores": [
       {
         "rol": "🎨 Rin y Len",
         "color": "#F2B544"
       },
       {
-        "rol": "🎨 Kaito",
-        "color": "#3D6BFF"
+        "rol": "🎨 Lily",
+        "color": "#F2C200"
       },
       {
-        "rol": "🎨 KAFU",
-        "color": "#5C7CFA"
+        "rol": "🎨 Nero",
+        "color": "#E0A21C"
+      },
+      {
+        "rol": "🎨 Adachi Rei",
+        "color": "#FF7A2F"
       },
       {
         "rol": "🎨 Meiko",
@@ -89,20 +100,52 @@
         "color": "#B3312C"
       },
       {
+        "rol": "🎨 Luki",
+        "color": "#D96A9C"
+      },
+      {
+        "rol": "🎨 IA",
+        "color": "#F4A7C0"
+      },
+      {
+        "rol": "🎨 Ted",
+        "color": "#C77DB5"
+      },
+      {
+        "rol": "🎨 Haku",
+        "color": "#B7A9E6"
+      },
+      {
+        "rol": "🎨 Defoko",
+        "color": "#A98BEA"
+      },
+      {
+        "rol": "🎨 Gakupo",
+        "color": "#A77BFF"
+      },
+      {
+        "rol": "🎨 flower",
+        "color": "#8E5BD8"
+      },
+      {
+        "rol": "🎨 Kaito",
+        "color": "#3D6BFF"
+      },
+      {
+        "rol": "🎨 KAFU",
+        "color": "#5C7CFA"
+      },
+      {
+        "rol": "🎨 Mikuo",
+        "color": "#2FB5AA"
+      },
+      {
         "rol": "🎨 Gumi",
         "color": "#7FCB4B"
       },
       {
         "rol": "🎨 Gumiya",
         "color": "#4E9A2E"
-      },
-      {
-        "rol": "🎨 Adachi Rei",
-        "color": "#FF7A2F"
-      },
-      {
-        "rol": "🎨 Haku",
-        "color": "#B7A9E6"
       }
     ]
   },
@@ -193,6 +236,17 @@
           "tema": "Tus dibujos y los que encuentres (con crédito al artista)."
         },
         {
+          "nombre": "🧸・merch-y-colecciones",
+          "escriben": true,
+          "tema": "Presume tu colección Vocaloid: merch original, bootleg o hecha por ti (peluches, figuras, llaveros, pósters…)."
+        },
+        {
+          "nombre": "📸・instagram-de-los-papus",
+          "escriben": true,
+          "lento": 5,
+          "tema": "Deja tu @ de Instagram para que los Papus se sigan entre ellos."
+        },
+        {
           "nombre": "😹・memes",
           "escriben": true,
           "tema": "Memes Vocaloid y del canal."
@@ -201,7 +255,7 @@
           "nombre": "💌・habla-con-los-vocaloids",
           "escriben": true,
           "lento": 3,
-          "tema": "Menciona a @Teto, @Miku, @Luka, @Neru, @Gakupo, @Kaito, @flower, @IA, @Haku o @Gumi para platicar: 7 mensajes al día, compartidos entre todos (/cuota)."
+          "tema": "Menciona a @Teto, @Miku, @Luka, @Neru, @Gakupo, @Kaito, @flower, @IA, @Haku o @Gumi para platicar: 12 mensajes al día, compartidos entre todos (/cuota)."
         },
         {
           "nombre": "🎉・eventos",
@@ -229,8 +283,8 @@
         {
           "nombre": "🐞・reportes-y-reclamos",
           "escriben": true,
-          "lento": 30,
-          "tema": "Bugs de los bots, problemas con tu rol de Ko-fi, reclamos y todo lo que no funcione. GyroP lo lee todo. Datos personales (correo, etc.) solo por privado."
+          "tickets": true,
+          "tema": "Usa /reporte: Neru te abre un ticket privado (solo lo ven tú y GyroP). Bugs, tu rol de Ko-fi, reclamos y todo lo que no funcione."
         }
       ]
     },
@@ -401,6 +455,18 @@
           "nombre": "🎧 Rincón de honor",
           "escriben": true,
           "voz": true
+        }
+      ]
+    },
+    {
+      "nombre": "💙 Kaito y Piña",
+      "leen": "rol:💙 Esposa de Kaito",
+      "$comment": "Canal privado de 🍍♡Piña♡🍍 con Kaito (decisión de GyroP, 18 oct. 2026): solo lo ve quien tiene el rol 💙 Esposa de Kaito, que es exclusivo de ella (config/especiales.json). Los demás Papus no lo ven. Los bots sí (regla 2: Neru lo modera igual que todo) y GyroP también, como dueño del servidor. Regalo personal, no de un nivel de Ko-fi (regla 1).",
+      "canales": [
+        {
+          "nombre": "💙・kaito-y-piña",
+          "escriben": true,
+          "tema": "El rincón de Piña y Kaito. Escríbele con @Kaito cuando quieras; aquí no los ve nadie más."
         }
       ]
     },

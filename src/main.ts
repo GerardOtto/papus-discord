@@ -19,8 +19,11 @@ import { Phrases } from "./phrases/catalog";
 import { DeckStore } from "./phrases/deck";
 import { Quota } from "./quota/quota";
 import { loadLayout } from "./setup/layout";
+import { GeneralChat } from "./services/charla";
 import { ConversationService } from "./services/conversation";
 import { buildCalendar } from "./calendar/setup";
+import { channelKey } from "./discord/channels";
+import { Especiales, loadEspeciales } from "./services/especiales";
 import { founderSettings } from "./services/founders";
 import { vitrinaChannels } from "./services/vitrina";
 import { ModerationService } from "./services/moderation";
@@ -58,7 +61,9 @@ async function main(): Promise<void> {
   // Dueños (GyroP): sin limite de cuota y exentos de moderacion; pagar NO da exencion. La app agrega al
   // dueño del servidor al conectar, y como el Set es compartido, la cuota y Neru lo ven al instante.
   const owners = new Set<string>(config.ownerId ? [config.ownerId] : []);
-  const quota = new Quota(db, config.dailyQuota, config.quotaTimeZone, owners);
+  // Trato especial de un Papu concreto (config/especiales.json): regalo de GyroP, no de un nivel de Ko-fi.
+  const especiales = new Especiales(loadEspeciales());
+  const quota = new Quota(db, config.dailyQuota, config.quotaTimeZone, { has: (id) => owners.has(id) || especiales.unlimited(id) });
   const queue = new RequestQueue({ concurrency: QUEUE_CONCURRENCY, maxWaitMs: MAX_WAIT_MS });
 
   let app: PapusApp | null = null;
@@ -89,6 +94,10 @@ async function main(): Promise<void> {
   const personas = new PersonaLibrary();
   const privacy = new PrivacyGuard(loadPrivacySettings());
 
+  const today = () =>
+    new Intl.DateTimeFormat("es-CL", { timeZone: config.quotaTimeZone, weekday: "long", day: "numeric", month: "long", year: "numeric" }).format(new Date());
+  const llmOpts = { maxTokens: llmSettings.maxTokens, temperature: llmSettings.temperature };
+
   const layout = loadLayout();
   app = new PapusApp({
     config,
@@ -100,6 +109,11 @@ async function main(): Promise<void> {
     characters,
     moderationSettings,
     owners,
+    especiales,
+    specialColors: {
+      base: new Map(layout.rolesExtra.filter((r) => r.sobreNiveles).map((r) => [channelKey(r.rol), parseInt(r.color.slice(1), 16)])),
+      palette: (layout.coloresPapu?.colores ?? []).map((c) => c.rol),
+    },
     founders: founderSettings(layout),
     everyoneRole: layout.rolesExtra.find((r) => r.todos)?.rol ?? null,
     vitrina: vitrinaChannels(layout),
@@ -114,13 +128,31 @@ async function main(): Promise<void> {
         personas,
         characters,
         port,
-        llm: { maxTokens: llmSettings.maxTokens, temperature: llmSettings.temperature },
+        llm: llmOpts,
         videos: (text) => videos.relevantTo(text),
         culture: personas.culture(),
         privacy,
+        notesFor: (id, bots) => especiales.notesFor(id, bots),
         log,
+        today,
       }),
     makeModeration: (port, exempt) => new ModerationService(new RuleSet(moderationSettings), strikes, phrases, port, exempt),
+    makeGeneralChat: (port) =>
+      new GeneralChat({
+        decks,
+        phrases,
+        chain,
+        queue,
+        personas,
+        characters,
+        port,
+        active: () => config.activeBots,
+        llm: llmOpts,
+        culture: personas.culture(),
+        privacy,
+        today,
+        log,
+      }),
   });
 
   let stopping = false;

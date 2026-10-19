@@ -24,6 +24,13 @@ describe("buildAutoModRules", () => {
     }
   });
 
+  it("en los canales libres no aplican insultos ni muy fuertes; odio, graves y datos sí", () => {
+    const exempt = rules.filter((r) => r.exemptFreeChannels).map((r) => r.name);
+    expect(exempt.sort()).toEqual([`${RULE_PREFIX}insultos dirigidos`, `${RULE_PREFIX}muy fuertes`]);
+    const graves = rules.find((r) => r.name === `${RULE_PREFIX}graves`)!;
+    expect(graves.trigger.type === "keyword" && graves.trigger.keywords).toContain("te voy a violar");
+  });
+
   it("la regla de insultos dirigidos atrapa la segunda persona y deja pasar lo dicho sobre uno mismo", () => {
     const r = rules.find((x) => x.name.endsWith("insultos dirigidos"))!;
     if (r.trigger.type !== "keyword") throw new Error();
@@ -39,14 +46,14 @@ describe("buildAutoModRules", () => {
     expect(r.trigger.regex.join("|")).toContain("c[uúü]l[eé3]r[oó0]");
   });
 
-  it("la regla de datos personales atrapa telefonos sin confundir cifras", () => {
+  it("la regla de datos y estafas atrapa invitaciones, no teléfonos ni correos (se pueden compartir)", () => {
     const r = rules.find((x) => x.name.endsWith("datos y estafas"))!;
     if (r.trigger.type !== "keyword") throw new Error();
     const res = r.trigger.regex.map((s) => new RegExp(s.replace("(?i)", ""), "i"));
     const hits = (t: string) => res.some((re) => re.test(t));
-    expect(hits("55 1234 5678")).toBe(true);
-    expect(hits("+56 9 8765 4321")).toBe(true);
-    expect(hits("yo@correo.com")).toBe(true);
+    expect(hits("55 1234 5678")).toBe(false);
+    expect(hits("+56 9 8765 4321")).toBe(false);
+    expect(hits("yo@correo.com")).toBe(false);
     expect(hits("discord.gg/abc")).toBe(true);
     expect(hits("Mesmerizer tiene 200.000.000 vistas")).toBe(false);
     expect(hits("Teto 2008 2009 2010")).toBe(false);

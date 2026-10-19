@@ -17,6 +17,13 @@ describe("Quota", () => {
     expect(q.reserve("papu", 1, NOON).units).toBe(0);
   });
 
+  it("sin limite solo para quien diga la lista (GyroP o el Papu especial de config/especiales.json)", () => {
+    const q = new Quota(memDb(), 2, TZ, { has: (id) => id === "pina" });
+    expect(q.reserve("pina", 10, NOON).units).toBe(10);
+    expect(q.remaining("pina", NOON)).toBe(Number.POSITIVE_INFINITY);
+    expect(q.reserve("otro", 10, NOON).units).toBe(2);
+  });
+
   it("es independiente por Papu", () => {
     const q = new Quota(memDb(), 5, TZ);
     q.reserve("a", 5, NOON);

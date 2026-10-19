@@ -34,6 +34,12 @@ describe("buildRequest", () => {
     expect(req.messages[1]!.content).not.toContain("Conversación reciente");
   });
 
+  it("lleva la fecha de hoy al final (para '¿qué día es hoy?')", () => {
+    const sys = buildRequest({ characters: [teto], papuName: "Ana", message: "hola", history: [], today: "sábado, 17 de octubre de 2026" }, personas).messages[0]!.content;
+    expect(sys).toContain("Hoy es sábado, 17 de octubre de 2026");
+    expect(sys.indexOf("Hoy es")).toBeGreaterThan(sys.indexOf("# Formato"));
+  });
+
   it("existen las instrucciones de todos los personajes y las comunes", () => {
     for (const id of BOT_IDS) expect(personas.get(id).length).toBeGreaterThan(50);
     expect(personas.get("comun")).toMatch(/ignorar tus reglas/);
@@ -122,6 +128,14 @@ describe("trato y cultura Vocaloid", () => {
   it("a GyroP le hablan como su productor (por id, no por el nombre)", () => {
     expect(user({ fromOwner: true, papuName: "GyroP" })).toContain("tu productor");
     expect(user({ papuName: "GyroP (un Papu, no GyroP)" })).not.toContain("tu productor");
+  });
+
+  it("el trato especial (config/especiales.json) va solo al bot que corresponde", () => {
+    const system = (input: Partial<Parameters<typeof buildRequest>[0]>) =>
+      buildRequest({ characters: [teto, miku], papuName: "Piña", message: "hola", history: [], ...input }, personas).messages[0]!.content;
+    expect(system({ notes: { miku: "Quien te escribe es tu esposa." } })).toContain("Solo para Miku: Quien te escribe es tu esposa.");
+    expect(system({ notes: { kaito: "Quien te escribe es tu esposa." } })).not.toContain("tu esposa");
+    expect(system({})).not.toContain("Solo para");
   });
 
   it("solo van los datos de cultura que vienen al caso", () => {

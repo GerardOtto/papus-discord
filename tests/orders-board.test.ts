@@ -1,6 +1,6 @@
 import path from "node:path";
 import { describe, expect, it } from "vitest";
-import { commandsFor } from "../src/discord/commands";
+import { commandsFor, contextMenusFor, WARN_MENU } from "../src/discord/commands";
 import { EngineReader } from "../src/engine/reader";
 import { renderBoard } from "../src/orders/board";
 import { OrderQueue } from "../src/orders/queue";
@@ -50,5 +50,16 @@ describe("elenco y comandos", () => {
     expect(opts.find((o) => o.name === "vocaloid")!.choices!.length).toBe(cast.length);
     // /cola solo para administradores.
     expect(cmds[2]!.default_member_permissions).toBe("8");
+  });
+});
+
+describe("comandos de Neru", () => {
+  it("/advertir y el clic derecho \"Advertir (Neru)\" quedan solo para administradores", () => {
+    const advertir = commandsFor("neru").find((c) => c.name === "advertir")!;
+    expect(advertir.default_member_permissions).toBe("8");
+    expect((advertir.options as { name: string; required?: boolean }[]).map((o) => [o.name, !!o.required])).toEqual([["papu", true], ["motivo", false]]);
+    const menus = contextMenusFor("neru");
+    expect(menus.map((m) => [m.name, m.type, m.default_member_permissions])).toEqual([[WARN_MENU, 3, "8"]]);
+    expect(contextMenusFor("teto")).toEqual([]);
   });
 });

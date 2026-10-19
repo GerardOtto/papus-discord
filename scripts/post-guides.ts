@@ -3,6 +3,7 @@
 // mensaje en la base del bot: volver a correrlo EDITA el mismo mensaje (no duplica ni vuelve a fijar).
 //   npm run guias             -> muestra qué haría
 //   npm run guias -- --apply  -> publica/edita y fija
+//   npm run guias -- --apply reglas general  -> solo esos canales
 // Imágenes de reacción: python scripts/make_reactions.py (assets/bots/reacciones/).
 import { readFileSync } from "node:fs";
 import path from "node:path";
@@ -29,8 +30,10 @@ loadDotEnv();
 const config = loadConfig();
 const APPLY = process.argv.includes("--apply");
 const ROOT = path.resolve(import.meta.dirname, "..");
+// Canales elegidos (ej.: npm run guias -- --apply reglas general): solo esas guias, sin tocar las demas.
+const only = process.argv.slice(2).filter((a) => !a.startsWith("--"));
 const guides = Object.entries(JSON.parse(readFileSync(path.join(ROOT, "content/canales.json"), "utf8")) as Record<string, Guide>).filter(
-  ([k]) => !k.startsWith("$"),
+  ([k]) => !k.startsWith("$") && (!only.length || only.includes(k)),
 );
 const engine = new EngineReader(config.engineDir);
 // Las guias las publican las 4 chicas (los Vocaloids de conversacion no tienen guias).

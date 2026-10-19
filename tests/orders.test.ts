@@ -14,7 +14,7 @@ function setup(start = 1_800_000_000_000) {
     sqliteSql(memDb()),
     CAST,
     (text) => {
-      const v = rules.check({ text, targetsSomeone: false, memberAgeHours: 1000 });
+      const v = rules.check({ text, targetsSomeone: false, memberAgeHours: 1000, personalData: true });
       return v && v.kind !== "mayusculas" && v.kind !== "enlace_cuenta_nueva" ? v.detail : null;
     },
     () => t,

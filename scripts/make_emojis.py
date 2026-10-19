@@ -26,7 +26,7 @@ FACES = {
     "teto_risa": ("teto", "riendo.png", 0.5, 0.30, 0.60),
     "miku_wow": ("miku", "emocionado_5.png", 0.5, 0.40, 0.80),
     "miku_guino": ("miku", "feliz_11.png", 0.5, 0.40, 0.80),
-    "miku_presume": ("miku", "presumido.png", 0.5, 0.30, 0.60),
+    "miku_presume": ("miku", "presumido.png", 0.40, 0.24, 0.50),
     "luka_feliz": ("luka", "feliz.png", 0.5, 0.40, 0.80),
     "luka_nerd": ("luka", "nerd.png", 0.5, 0.30, 0.60),
     "luka_paz": ("luka", "feliz_21.png", 0.5, 0.40, 0.80),

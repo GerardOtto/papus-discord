@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<!-- Cartel de invitación del servidor (fondo de la página discord.gg/…, 1920x1080). Discord pone la tarjeta de
+     invitación al CENTRO: lo importante va a los costados y arriba. Render: node scripts/render-servidor.mjs
+     Estilo de las portadas de Ko-fi (concierto: focos y barras de luz en los colores del canal). -->
+<style>
+  @font-face { font-family: "Fredoka"; font-weight: 600; src: url("../../../Proyecto1/assets/fonts/fredoka-latin-600-normal.woff2") format("woff2"); }
+  @font-face { font-family: "Fredoka"; font-weight: 700; src: url("../../../Proyecto1/assets/fonts/fredoka-latin-700-normal.woff2") format("woff2"); }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { width: 1920px; height: 1080px; overflow: hidden; }
+  body { font-family: "Fredoka", sans-serif; font-weight: 700; color: #fff; position: relative;
+         background: radial-gradient(ellipse 70% 60% at 50% 38%, #4a1f6e 0%, #2a1240 55%, #120a26 100%); }
+  .abs { position: absolute; }
+  .grid { position: absolute; inset: 0; opacity: .1;
+          background-image: linear-gradient(#fff 1px, transparent 1px), linear-gradient(90deg, #fff 1px, transparent 1px);
+          background-size: 64px 64px; -webkit-mask-image: radial-gradient(ellipse at 50% 30%, #000 20%, transparent 75%); }
+  .beam { position: absolute; top: -80px; width: 380px; height: 1100px; transform-origin: 50% 0; filter: blur(14px); opacity: .32; }
+  .floor { position: absolute; left: 0; right: 0; bottom: 0; height: 300px;
+           background: radial-gradient(ellipse 60% 100% at 50% 100%, rgba(255,95,162,.35), transparent 70%); }
+  .fade { -webkit-mask-image: linear-gradient(to bottom, #000 78%, transparent 100%); }
+  .cast img { position: absolute; bottom: 0; filter: drop-shadow(0 18px 26px rgba(0,0,0,.45)); }
+  .cast .back { filter: drop-shadow(0 12px 18px rgba(0,0,0,.4)) brightness(.86) saturate(.95); }
+  .stick { position: absolute; width: 12px; height: 64px; border-radius: 10px; background: currentColor;
+           box-shadow: 0 0 18px currentColor, 0 0 38px currentColor; }
+  .title { font-size: 64px; line-height: 1; -webkit-text-stroke: 4px #2a1240; paint-order: stroke fill;
+           text-shadow: 0 6px 0 #2a1240, 0 12px 22px rgba(0,0,0,.4); }
+  .spark { position: absolute; font-size: 44px; text-shadow: 0 0 14px currentColor; }
+  .strip { position: absolute; left: 0; right: 0; bottom: 0; height: 12px; display: flex; }
+  .strip span { flex: 1; }
+</style>
+</head>
+<body>
+<div class="grid"></div>
+<div id="beams"></div>
+<div class="floor"></div>
+
+<!-- Elenco: a la izquierda Haku (fondo), Luka y Miku; a la derecha flower (fondo), Neru y Teto. El centro queda libre. -->
+<div class="cast">
+  <img class="back fade" src="../../../Proyecto1/assets/characters/haku/saludando.png" style="left:-20px;height:440px;bottom:500px;transform:rotate(-4deg)" alt="">
+  <img class="back fade" src="../../../Proyecto1/assets/characters/flower/presumido_2.png" style="right:190px;height:420px;bottom:520px;transform:rotate(4deg)" alt="">
+  <img class="back fade" src="../../../Proyecto1/assets/characters/luka/saludando_2.png" style="left:200px;height:580px;bottom:70px" alt="">
+  <img class="back fade" src="../kofi/avatars/neru_render.png" style="right:250px;height:600px;bottom:60px;transform:scaleX(-1)" alt="">
+  <img class="fade" src="../kofi/avatars/miku_render.png" style="left:-10px;height:660px" alt="">
+  <img class="fade" src="../kofi/avatars/teto_render.png" style="right:-10px;height:760px" alt="">
+</div>
+
+<div id="sticks"></div>
+
+<div class="abs" style="left:0;right:0;top:56px;display:flex;flex-direction:column;align-items:center;gap:18px">
+  <img src="../kofi/brand/logo_horizontal_contorno.png" style="height:118px;filter:drop-shadow(0 0 22px rgba(255,95,162,.55))" alt="">
+  <div class="title">El Discord de los <span style="color:#ffe066">Papus</span></div>
+</div>
+
+<span class="spark" style="left:640px;top:120px;color:#ffe066">✦</span>
+<span class="spark" style="left:1250px;top:90px;color:#39c5bb;font-size:34px">✦</span>
+<span class="spark" style="left:1310px;top:250px;color:#ffe066;font-size:28px">✦</span>
+<span class="spark" style="left:560px;top:300px;color:#ff5fa2;font-size:30px">✦</span>
+<span class="spark" style="left:900px;top:30px;color:#fff;font-size:24px">✦</span>
+
+<div class="strip"><span style="background:#3b6fe0"></span><span style="background:#39c5bb"></span><span style="background:#e0587f"></span><span style="background:#e8d44d"></span><span style="background:#e285b2"></span></div>
+<script>
+  const COLORS = ["#39c5bb", "#e285b2", "#e0587f", "#e8d44d", "#9b6cff"];
+  document.getElementById("beams").innerHTML = [[80, 24], [430, -12], [790, 14], [1130, -14], [1480, 12], [1700, -22]].map(([x, r], i) =>
+    `<div class="beam" style="left:${x}px;transform:rotate(${r}deg);background:linear-gradient(to bottom, ${COLORS[i % 5]}, transparent 85%)"></div>`).join("");
+  // Barras de luz del público: dos filas, posiciones fijas (sin azar: el render es reproducible).
+  let st = "";
+  for (let row = 0; row < 2; row++)
+    for (let i = 0; i < 34; i++) {
+      const x = 14 + i * 56 + row * 28, b = 20 + row * 40 + (i * 37 + row * 11) % 30;
+      st += `<div class="stick" style="left:${x}px;bottom:${b}px;color:${COLORS[(i + row * 2) % 5]};transform:rotate(${((i + row) % 5 - 2) * 10}deg);opacity:${row ? .55 : .9}"></div>`;
+    }
+  document.getElementById("sticks").innerHTML = st;
+</script>
+</body>
+</html>

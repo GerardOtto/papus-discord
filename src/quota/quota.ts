@@ -16,8 +16,8 @@ export class Quota {
     private readonly db: Db,
     private readonly dailyLimit: number,
     private readonly timeZone: string,
-    /** Usuarios sin limite (solo GyroP, para probar). Pagar NO da exencion. */
-    private readonly unlimited: ReadonlySet<string> = new Set(),
+    /** Usuarios sin limite (GyroP y el Papu especial que el elija en config/especiales.json). Pagar NO da exencion. */
+    private readonly unlimited: Pick<ReadonlySet<string>, "has"> = new Set(),
   ) {}
 
   get limit(): number {

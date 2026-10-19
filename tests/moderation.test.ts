@@ -50,25 +50,69 @@ describe("RuleSet: tolerancia media", () => {
     expect(check("perdón, soy bien pendejo", { targetsSomeone: true })).toBeNull();
   });
 
+  it("los suaves ('feo', 'tonto') son opinión salvo en segunda persona (caso real: 'que feoo' respondiendo)", () => {
+    expect(check("que feoo", { targetsSomeone: true })).toBeNull();
+    expect(check("ay qué tonto, se me olvidó", { targetsSomeone: true })).toBeNull();
+    expect(check("eres bien fea", { targetsSomeone: true })).toBe("insulto");
+  });
+
+  it("a los bots tampoco se les falta el respeto, pero platicar con groserías no es insultarlos", () => {
+    expect(check("CHUPALO", { targetsBot: true })).toBe("insulto");
+    expect(check("<@123> idiota", { targetsBot: true })).toBe("insulto");
+    expect(check("<@123> eres una basura", { targetsBot: true })).toBe("insulto");
+    expect(check("<@123> el examen de hoy estuvo de la mierda, ayuda", { targetsBot: true })).toBeNull();
+    expect(check("<@123> ay qué pendejo soy", { targetsBot: true })).toBeNull();
+    expect(check("CHUPALO")).toBeNull(); // sin destinatario
+  });
+
+  it("tapa las groserías para citarlas en el aviso público", () => {
+    expect(rules.mask("eres un pendejo")).toEqual({ text: "eres un p\\*\\*\\*\\*\\*\\*", masked: 1 });
+    // "hijo de puta" (muy fuerte) contiene "puta" (insulto): un solo tramo.
+    const m = rules.mask("ya cállate hijo de puta");
+    expect(m.masked).toBe(1);
+    expect(m.text).not.toMatch(/puta/);
+    expect(m.text.startsWith("ya cállate h")).toBe(true);
+    expect(rules.mask("hola, qué tal").masked).toBe(0);
+  });
+
   it("muy fuertes y odio siempre fuera, aunque no vayan dirigidos", () => {
     expect(check("ya vete a la verga")).toBe("muy_fuerte");
     expect(check("hijo de p u t a")).toBe("muy_fuerte"); // separado letra a letra
     expect(check("qué maricón")).toBe("odio");
     expect(check("eres un maricon")).toBe("odio"); // el odio gana al insulto
   });
+
+  it("canal libre (#general): pasan insultos y groserías fuertes; odio, graves, invitaciones y estafas no", () => {
+    const free = { freeLanguage: true };
+    expect(check("eres un pendejo", { ...free, targetsSomeone: true })).toBeNull();
+    expect(check("CHUPALO", { ...free, targetsBot: true })).toBeNull();
+    expect(check("ya vete a la verga", free)).toBeNull();
+    expect(check("hijo de puta", free)).toBeNull();
+    expect(check("qué maricón", free)).toBe("odio");
+    expect(check("te voy a violar", free)).toBe("muy_fuerte");
+    expect(check("matate", free)).toBe("muy_fuerte");
+    expect(check("únete discord.gg/abc123", free)).toBe("invitacion");
+    // Fuera de #general nada cambia.
+    expect(check("eres un pendejo")).toBe("insulto");
+    expect(check("matate")).toBe("muy_fuerte");
+  });
 });
 
 describe("RuleSet: datos personales, invitaciones y estafas", () => {
-  it.each(["mi cel es 55 1234 5678", "llámame al +56 9 8765 4321", "5512345678"])("teléfono: %s", (t) =>
-    expect(check(t)).toBe("datos_personales"),
+  it.each(["mi cel es 55 1234 5678", "llámame al +56 9 8765 4321", "5512345678", "escríbeme a papu.miku@gmail.com"])(
+    "en el chat, teléfonos y correos pasan (decisión de GyroP): %s",
+    (t) => expect(check(t)).toBeNull(),
+  );
+  it.each(["mi cel es 55 1234 5678", "llámame al +56 9 8765 4321", "5512345678"])("en lo que publica un bot, teléfono: %s", (t) =>
+    expect(check(t, { personalData: true })).toBe("datos_personales"),
   );
   it.each(["Teto nació en 2008 2009 2010", "Mesmerizer tiene 200.000.000 vistas", "el 01 de Miku"])(
     "no confunde cifras con teléfonos: %s",
-    (t) => expect(check(t)).toBeNull(),
+    (t) => expect(check(t, { personalData: true })).toBeNull(),
   );
 
-  it("correo e invitaciones", () => {
-    expect(check("escríbeme a papu.miku@gmail.com")).toBe("datos_personales");
+  it("correo (en lo que publica un bot) e invitaciones (siempre)", () => {
+    expect(check("escríbeme a papu.miku@gmail.com", { personalData: true })).toBe("datos_personales");
     expect(check("únanse discord.gg/abc123")).toBe("invitacion");
   });
 
@@ -94,6 +138,35 @@ describe("RuleSet: enlaces y mayúsculas", () => {
     // Las estafas y las invitaciones se siguen borrando para todos.
     expect(check("nitro gratis https://discord-gift.xyz", { memberAgeHours: 1000 })).toBe("estafa");
   });
+
+  it("el nombre de un GIF no es lo que dijo el Papu (caso real: strike por 'p***' dentro de un enlace de Klipy)", () => {
+    const gif = "https://klipy.com/gifs/cat-angry-bravo-gato-puto-maltratando-pikachu-it-boy-da-paraiba";
+    expect(check(gif, { targetsSomeone: true })).toBeNull();
+    expect(check("https://tenor.com/view/hijo-de-puta-123")).toBeNull();
+    // Lo que sí escribe, se sigue revisando.
+    expect(check(`eres un puto ${gif}`, { targetsSomeone: true })).toBe("insulto");
+  });
+});
+
+describe("RuleSet: autolesión (no es infracción)", () => {
+  it.each([
+    "@Neru te quiero mucho me puedas dar algunas palabras de motivación para no terminar con todo?", // caso real 18 oct.
+    "ya no quiero vivir",
+    "a veces pienso en quitarme la vida",
+    "me quiero suicidar",
+    "no quiero seguir viviendo así",
+  ])("la detecta: %s", (t) => {
+    expect(rules.selfHarmPhrase(t)).not.toBeNull();
+    expect(check(t)).toBeNull();
+  });
+
+  it.each(["me quiero morir del cringe", "kms jajaja", "mi mamá me va a matar si no llego", "matate", "https://klipy.com/gifs/ya-no-quiero-vivir-1"])(
+    "no da falsa alarma con la exageración de siempre ni con incitar a otro: %s",
+    (t) => expect(rules.selfHarmPhrase(t)).toBeNull(),
+  );
+});
+
+describe("RuleSet: mayúsculas y teléfonos", () => {
 
   it("mayúsculas: solo en mensajes largos (más de 100 caracteres) con más de 70 %, y solo aviso", () => {
     expect(check("MIKU ES LA MEJOR DE TODAS, AAAAAAA, TETO TERRITORY")).toBeNull(); // gritos cortos pasan

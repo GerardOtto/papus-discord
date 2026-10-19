@@ -13,7 +13,21 @@ export interface CalendarSettings {
   hora: string;
   zona: string;
   semanas: number;
+  /** Videos fijados a mano por GyroP: día "AAAA-MM-DD" -> título (o título con hora propia). Mandan sobre todo lo automático. */
+  fijos?: Record<string, string | FixedVideo>;
 }
+
+/** Video fijado con una hora distinta a la del calendario ("hora" en "zona"; sin "zona", la del calendario). */
+export interface FixedVideo {
+  titulo: string;
+  hora?: string;
+  zona?: string;
+}
+
+const fixedEntries = (s: CalendarSettings): [string, FixedVideo][] =>
+  Object.entries(s.fijos ?? {})
+    .filter(([k]) => !k.startsWith("$"))
+    .map(([k, v]) => [k, typeof v === "string" ? { titulo: v } : v]);
 
 export interface FinalVideo {
   title: string;
@@ -114,7 +128,10 @@ export class CalendarService {
 
     // Videos de GyroP: cada día conserva el que se le asignó; los nuevos salen de los finales, del más antiguo.
     const own = JSON.parse(kvGet(this.d.db, OWN_KEY) ?? "{}") as Record<string, string>;
-    const taken = () => new Set([...Object.values(own), ...ready.map((r) => r.nombre)].map(norm));
+    // Los días fijados a mano sueltan el video que tenían asignado: vuelve a la fila para el próximo día libre.
+    const fixed = Object.fromEntries(fixedEntries(s).map(([k, v]) => [k, v.titulo]));
+    for (const day of Object.keys(fixed)) delete own[day];
+    const taken = () => new Set([...Object.values(own), ...Object.values(fixed), ...ready.map((r) => r.nombre)].map(norm));
     const finales = [...this.d.finales()].sort((a, b) => a.order - b.order);
     const pickOwn = (day: string): string | null => {
       if (own[day]) return own[day]!;
@@ -128,7 +145,9 @@ export class CalendarService {
     const today = dayKey(new Date(now), s.zona);
     let monday = weekToShow(today);
     for (let w = 0; w < s.semanas; w++, monday = addDays(monday, 7)) {
-      const slots = planWeek({ monday, kofi: kofiFor(monday), ...honorFor(monday), own: pickOwn });
+      const slots = planWeek({ monday, kofi: kofiFor(monday), ...honorFor(monday), own: (day) => fixed[day] ?? pickOwn(day) }).map((sl) =>
+        fixed[sl.day] ? { day: sl.day, weekday: sl.weekday, kind: "propio" as const, title: fixed[sl.day]! } : sl,
+      );
       // Un día que dejó de ser de GyroP (ej.: llegó la idea ganadora de honor) libera su video para otro día.
       for (const sl of slots) if (sl.kind !== "propio") delete own[sl.day];
       weeks.push({ monday, current: monday <= today, slots });
@@ -140,13 +159,15 @@ export class CalendarService {
   /** Texto del calendario (va dentro de la frase de Miku). */
   render(weeks: CalendarWeek[]): string {
     const { zona, hora } = this.d.settings;
+    const fixed = Object.fromEntries(fixedEntries(this.d.settings));
     const fmt = (day: string, o: Intl.DateTimeFormatOptions) => new Date(zonedTime(day, "12:00", zona)).toLocaleDateString("es-MX", { timeZone: zona, ...o });
     return weeks
       .map((w, i) => {
         const fri = addDays(w.monday, 4);
         const range = `${fmt(w.monday, { day: "numeric" })} al ${fmt(fri, { day: "numeric", month: "long" })}`;
         const lines = w.slots.map((sl) => {
-          const when = `<t:${Math.floor(zonedTime(sl.day, hora, zona) / 1000)}:t>`;
+          const f = sl.kind === "propio" ? fixed[sl.day] : undefined;
+          const when = `<t:${Math.floor(zonedTime(sl.day, f?.hora ?? hora, f?.zona ?? zona) / 1000)}:t>`;
           const day = fmt(sl.day, { weekday: "long", day: "numeric" });
           const title = sl.title ?? "Por votar";
           const note = sl.pending ? ` · ${sl.pending}` : "";

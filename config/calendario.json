@@ -3,5 +3,10 @@
   "canal": "calendario",
   "hora": "13:00",
   "zona": "America/Mexico_City",
-  "semanas": 2
+  "semanas": 2,
+  "fijos": {
+    "$comment": "Videos fijados a mano: \"AAAA-MM-DD\": \"título\" (o {\"titulo\", \"hora\", \"zona\"} si sale a otra hora). Mandan sobre lo automático (votación, finales); el video que tenía ese día vuelve a la fila. Para soltar un día, se borra su línea.",
+    "2026-10-19": "¿Quién es KAITO? Sus canciones, sus shipeos y su origen",
+    "2026-10-21": { "titulo": "Carrusel de Bad End Night", "hora": "18:00", "zona": "America/Santiago" }
+  }
 }

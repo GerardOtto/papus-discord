@@ -16,6 +16,8 @@ export interface AutoModRuleSpec {
   /** Texto que ve quien intenta enviar el mensaje (max. 150), con la voz de Neru. */
   blockMessage: string;
   timeoutSeconds: number | null;
+  /** No aplica en los canales libres (`canalesLibres`): ahí pasan insultos y groserías muy fuertes. */
+  exemptFreeChannels?: boolean;
 }
 
 const MAX_KEYWORD = 60;
@@ -50,15 +52,12 @@ const keywords = (list: string[]) => [...new Set(list.map((w) => w.toLowerCase()
 export function buildAutoModRules(s: ModerationSettings): AutoModRuleSpec[] {
   // Insultos dirigidos en segunda persona ("eres un…", "tu eres bien…", "callate…").
   const second = "(?i)\\b(?:eres|sos|t[uú] eres|est[aá]s bien|c[aá]llate|pedazo de)\\s+(?:(?:un|una|bien|muy|pinche|tan)\\s+)?";
-  const insults = [...new Set(s.insultos.filter((w) => !w.includes(" ")))].map(accentClass);
+  const insults = [...new Set([...s.insultos, ...(s.insultosSuaves ?? [])].filter((w) => !w.includes(" ")))].map(accentClass);
   const directed = packRegex(second, insults, "\\b").slice(0, MAX_REGEX_COUNT);
 
-  // Datos personales: telefono (MX/CL con o sin lada), correo e invitaciones a otros servidores.
-  const personal = [
-    "(?:\\+\\d{1,3}[\\s.-]?)?\\b\\d{1,3}[\\s.-]?\\d{4}[\\s.-]?\\d{4}\\b",
-    "(?i)\\b[a-z0-9._%+-]+@[a-z0-9.-]+\\.[a-z]{2,}\\b",
-    "(?i)(?:discord(?:app)?\\.com/invite|discord\\.gg|dsc\\.gg)/[a-z0-9-]+",
-  ];
+  // Invitaciones a otros servidores. Telefonos y correos si se pueden compartir (decision de GyroP, 18 oct. 2026).
+  // (La regla conserva su nombre "datos y estafas": renombrarla dejaria la vieja activa en Discord.)
+  const personal = ["(?i)(?:discord(?:app)?\\.com/invite|discord\\.gg|dsc\\.gg)/[a-z0-9-]+"];
 
   return [
     {
@@ -72,12 +71,20 @@ export function buildAutoModRules(s: ModerationSettings): AutoModRuleSpec[] {
       trigger: { type: "keyword", keywords: keywords(s.muyFuertes), regex: [], allow: [] },
       blockMessage: "oye. eso no se dice aquí. — Neru 📱",
       timeoutSeconds: 600,
+      exemptFreeChannels: true,
+    },
+    {
+      name: `${RULE_PREFIX}graves`,
+      trigger: { type: "keyword", keywords: keywords(s.graves ?? []), regex: [], allow: [] },
+      blockMessage: "no. eso no se le dice a nadie, en ningún canal. — Neru 📱",
+      timeoutSeconds: 3600,
     },
     {
       name: `${RULE_PREFIX}insultos dirigidos`,
       trigger: { type: "keyword", keywords: [], regex: directed, allow: [] },
       blockMessage: "oye. aquí no se insulta a nadie. — Neru 📱",
       timeoutSeconds: null,
+      exemptFreeChannels: true,
     },
     {
       name: `${RULE_PREFIX}datos y estafas`,
@@ -87,12 +94,13 @@ export function buildAutoModRules(s: ModerationSettings): AutoModRuleSpec[] {
         regex: personal,
         allow: [],
       },
-      blockMessage: "nada de datos personales, invitaciones ni enlaces raros. es por tu seguridad. — Neru 📱",
+      blockMessage: "nada de invitaciones a otros servers ni enlaces raros. es por tu seguridad. — Neru 📱",
       timeoutSeconds: null,
     },
     {
       name: `${RULE_PREFIX}menciones`,
-      trigger: { type: "mention_spam", limit: 5 },
+      // Menos de 15 menciones (Papus y Vocaloids juntos) por mensaje: decision de GyroP, 19 oct. 2026.
+      trigger: { type: "mention_spam", limit: 14 },
       blockMessage: "demasiadas menciones. calma. — Neru 📱",
       timeoutSeconds: 600,
     },

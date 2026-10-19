@@ -60,7 +60,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env, rootDir = proce
   const guildId = req("DISCORD_GUILD_ID");
   if (missing.length) throw new ConfigError(`Faltan variables en .env: ${missing.join(", ")}`);
 
-  const dailyQuota = Number(opt(env, "DAILY_QUOTA") ?? 7);
+  const dailyQuota = Number(opt(env, "DAILY_QUOTA") ?? 12);
   if (!Number.isInteger(dailyQuota) || dailyQuota < 0) throw new ConfigError("DAILY_QUOTA debe ser un entero >= 0");
 
   const quotaTimeZone = opt(env, "QUOTA_RESET_TZ") ?? "America/Santiago";

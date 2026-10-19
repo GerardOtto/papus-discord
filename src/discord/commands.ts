@@ -1,6 +1,13 @@
 // Comandos de barra por bot. Cada aplicacion registra SOLO los suyos en el servidor (registro por servidor:
 // aparecen al instante). Los de administracion quedan ocultos para quien no es administrador.
-import { PermissionFlagsBits, SlashCommandBuilder, type RESTPostAPIChatInputApplicationCommandsJSONBody } from "discord.js";
+import {
+  ApplicationCommandType,
+  ContextMenuCommandBuilder,
+  PermissionFlagsBits,
+  SlashCommandBuilder,
+  type RESTPostAPIChatInputApplicationCommandsJSONBody,
+  type RESTPostAPIContextMenuApplicationCommandsJSONBody,
+} from "discord.js";
 import type { BotId } from "../config";
 import { OCCASIONS, PRODUCTS, type OccasionId } from "../orders/queue";
 
@@ -8,6 +15,22 @@ export interface CastMember {
   id: string;
   name: string;
 }
+
+/** Los diez Vocaloids del servidor, para elegir quien habla en /charla. */
+const VOCALOID_CHOICES = (
+  [
+    ["teto", "Teto"],
+    ["miku", "Miku"],
+    ["luka", "Luka"],
+    ["neru", "Neru"],
+    ["gakupo", "Gakupo"],
+    ["kaito", "Kaito"],
+    ["flower", "flower"],
+    ["ia", "IA"],
+    ["haku", "Haku"],
+    ["gumi", "Gumi"],
+  ] satisfies [BotId, string][]
+).map(([value, name]) => ({ name, value }));
 
 const occasionChoices = (withTemaLibre: boolean) =>
   (Object.entries(OCCASIONS) as [OccasionId, string][])
@@ -28,6 +51,14 @@ export function commandsFor(bot: BotId, cast: CastMember[] = []): RESTPostAPICha
           .setDescription("Devuelve los mensajes de hoy a todos los Papus, o a uno (solo GyroP)")
           .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
           .addUserOption((o) => o.setName("papu").setDescription("Solo a este Papu (si lo dejas vacío, a todos)"))
+          .toJSON(),
+        new SlashCommandBuilder()
+          .setName("charla")
+          .setDescription("Un Vocaloid escribe ahora mismo por su cuenta en #general (solo GyroP)")
+          .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
+          .addStringOption((o) => o.setName("vocaloid").setDescription("Quién habla (si lo dejas vacío, le toca al siguiente)").addChoices(...VOCALOID_CHOICES))
+          .addStringOption((o) => o.setName("tema").setDescription("De qué habla (si lo dejas vacío, elige solo)").setMaxLength(300))
+          .addStringOption((o) => o.setName("a").setDescription("A qué Vocaloid le pregunta con @ (le contesta una vez)").addChoices(...VOCALOID_CHOICES))
           .toJSON(),
       ];
     case "miku":
@@ -227,12 +258,44 @@ export function commandsFor(bot: BotId, cast: CastMember[] = []): RESTPostAPICha
           .toJSON(),
         new SlashCommandBuilder()
           .setName("perdonar")
-          .setDescription("Borra los strikes activos de un Papu, por un falso positivo (solo GyroP)")
+          .setDescription("Borra los strikes de un Papu y Neru lo anuncia en el canal (solo GyroP)")
           .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
           .addUserOption((o) => o.setName("papu").setDescription("Papu").setRequired(true))
+          .toJSON(),
+        new SlashCommandBuilder()
+          .setName("advertir")
+          .setDescription("Neru le llama la atención a un Papu, sin borrar ni sumar strike (solo GyroP)")
+          .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
+          .addUserOption((o) => o.setName("papu").setDescription("Papu").setRequired(true))
+          .addStringOption((o) => o.setName("motivo").setDescription("Qué cuidar (sale citado bajo la frase de Neru)").setMaxLength(300))
+          .toJSON(),
+        new SlashCommandBuilder()
+          .setName("reporte")
+          .setDescription("Abre un ticket privado con GyroP: bugs, tu rol de Ko-fi, reclamos")
+          .addStringOption((o) => o.setName("motivo").setDescription("Qué pasó, dónde y más o menos a qué hora").setRequired(true).setMaxLength(1000))
+          .toJSON(),
+        new SlashCommandBuilder()
+          .setName("cerrar-ticket")
+          .setDescription("Cierra el ticket de este hilo (solo GyroP)")
+          .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
           .toJSON(),
       ];
     default:
       return [];
   }
+}
+
+/** Nombre del clic derecho sobre un mensaje → Apps → "Advertir (Neru)". */
+export const WARN_MENU = "Advertir (Neru)";
+
+/** Comandos de clic derecho (menu de Apps). */
+export function contextMenusFor(bot: BotId): RESTPostAPIContextMenuApplicationCommandsJSONBody[] {
+  if (bot !== "neru") return [];
+  return [
+    new ContextMenuCommandBuilder()
+      .setName(WARN_MENU)
+      .setType(ApplicationCommandType.Message)
+      .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
+      .toJSON(),
+  ];
 }

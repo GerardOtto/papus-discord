@@ -74,6 +74,34 @@ describe("calendario: lo que muestra", () => {
     expect(text).toContain("🗳️ Elegido por los Puerros · se vota del sábado al martes");
   });
 
+  it("un video fijado a mano (config 'fijos') manda; el que tenía ese día vuelve a la fila", async () => {
+    const db = memDb();
+    const now = "2026-10-18T12:00:00-03:00";
+    await service({}, now, db).build(); // lunes 19 = "Objetos Vocaloid parte 2" (asignado y guardado)
+    const kaito = "¿Quién es KAITO? Sus canciones, sus shipeos y su origen";
+    const query = async <T>(): Promise<T[]> => [];
+    const fixedSettings = { ...settings, fijos: { $comment: "x", "2026-10-19": kaito } };
+    const s = new CalendarService({ db, query, finales: () => FINALES, rounds, honor, settings: fixedSettings, now: () => Date.parse(now) });
+    const [w1] = await s.build();
+    expect(w1!.slots[0]).toMatchObject({ kind: "propio", title: kaito });
+    expect(w1!.slots[1]!.title).toBe("TetoPera, Tako Luka y las mascotas más raras de Vocaloid"); // los demás días no cambian
+    // "Objetos" quedó libre: sale en el próximo día de GyroP que no tenga video (sin fijos, el 19 lo recupera).
+    const [again] = await service({}, now, db).build();
+    expect(again!.slots[0]!.title).toBe("Objetos Vocaloid parte 2");
+  });
+
+  it("un fijado con hora propia sale a esa hora (ej.: 18:00 de Chile)", async () => {
+    const now = "2026-10-18T12:00:00-03:00";
+    const query = async <T>(): Promise<T[]> => [];
+    const fijos = { "2026-10-21": { titulo: "Carrusel de Bad End Night", hora: "18:00", zona: "America/Santiago" } };
+    const s = new CalendarService({ db: memDb(), query, finales: () => FINALES, rounds, honor, settings: { ...settings, fijos }, now: () => Date.parse(now) });
+    const weeks = await s.build();
+    expect(weeks[0]!.slots[1]).toMatchObject({ kind: "propio", title: "Carrusel de Bad End Night" });
+    const text = s.render(weeks);
+    expect(text).toContain(`<t:${at("2026-10-21T21:00:00Z") / 1000}:t>`);
+    expect(text).toContain(`<t:${at("2026-10-19T19:00:00Z") / 1000}:t>`); // los demás días, a la hora de siempre
+  });
+
   it("con ganadores: lunes del Ko-fi, idea de honor al viernes siguiente, y los de GyroP no cambian", async () => {
     const db = memDb();
     const tables: Tables = {

@@ -12,7 +12,7 @@
     "bot": "neru",
     "reaccion": "nerd",
     "titulo": "📜 reglas del server",
-    "texto": "soy neru y modero esto. no es que me importe… pero léanlas. (－。－)\n\n**🤝 respeto**\n・ nada de insultos dirigidos a otra persona. un \"no mames\" pasa; un \"eres un…\" no.\n・ cero odio: racismo, homofobia, burlas por cómo es alguien.\n・ nada de contenido para adultos ni violento.\n\n**🔒 seguridad**\n・ no compartas teléfonos, correos ni datos personales (tuyos ni de nadie).\n・ sin invitaciones a otros servers ni enlaces raros. \"nitro gratis\" no existe.\n・ sin spam ni flood. uno a la vez.\n・ cuentas recién llegadas: la primera hora solo enlaces conocidos (gifs, youtube, spotify, redes, arte…). después, libre.\n\n**⚠️ si rompes una regla**\n1 advertencia → 2 silencio de 10 min → 3 una hora → 4 un día y aviso a gyrop. los strikes se borran a los 3 días. yo no expulso a nadie: eso solo lo decide gyrop.\n\n**🤖 sobre nosotras, las vocaloids**\n・ somos bots. las respuestas libres se generan con ia y tus mensajes pueden procesarse en servicios externos.\n・ cada papu tiene 7 mensajes al día con los vocaloids, repartidos entre todos e iguales para todos. usa /cuota.\n\n**💎 lo de los niveles**\n・ lo que se comparte en los canales de pago se queda ahí. no lo filtres.\n\nlisto. ya pueden seguir con su vida. 📱",
+    "texto": "soy neru y modero esto. no es que me importe… pero léanlas. (－。－)\n\n**🤝 respeto**\n・ nada de insultos dirigidos a otra persona. un \"no mames\" pasa; un \"eres un…\" no.\n・ excepción: en #general el lenguaje es libre (groserías e insultos de cotorreo). el acoso, el odio y maltratar a un papu que no se metió con nadie siguen prohibidos ahí también: gyrop lo revisa.\n・ cero odio: racismo, homofobia, burlas por cómo es alguien.\n・ nada de contenido para adultos ni violento.\n\n**🔒 seguridad**\n・ sin invitaciones a otros servers ni enlaces raros. \"nitro gratis\" no existe.\n・ sin spam ni flood. uno a la vez.\n・ cuentas recién llegadas: la primera hora solo enlaces conocidos (gifs, youtube, spotify, redes, arte…). después, libre.\n\n**⚠️ si rompes una regla**\n1 advertencia → 2 silencio de 10 min → 3 una hora → 4 un día y aviso a gyrop. los strikes se borran a los 3 días. yo no expulso a nadie: eso solo lo decide gyrop.\n\n**🤖 sobre nosotras, las vocaloids**\n・ somos bots. las respuestas libres se generan con ia y tus mensajes pueden procesarse en servicios externos.\n・ cada papu tiene 12 mensajes al día con los vocaloids, repartidos entre todos e iguales para todos. usa /cuota.\n\n**💎 lo de los niveles**\n・ lo que se comparte en los canales de pago se queda ahí. no lo filtres.\n\nlisto. ya pueden seguir con su vida. 📱",
     "pie": "neru ・ moderación"
   },
   "anuncios": {
@@ -62,7 +62,7 @@
     "bot": "teto",
     "reaccion": "feliz",
     "titulo": "💬 ¡La plaza de los Papus!",
-    "texto": "¡Papu papu! Este es el canal para platicar de lo que sea ٩(◕‿◕)۶\n\n> ☕ cómo te fue hoy\n> 🎵 qué estás escuchando\n> 🍞 debates importantes (¿el pan francés es el mejor pan? sí.)\n\nTiene un modo lento suavecito para que la plática fluya sin spam. Recuerda {reglas}: aquí todos nos llevamos bien ♡\n\n¿Quieres hablar conmigo? Menciónenme en {habla-con-los-vocaloids} ✨",
+    "texto": "¡Papu papu! Este es el canal para platicar de lo que sea ٩(◕‿◕)۶\n\n> ☕ cómo te fue hoy\n> 🎵 qué estás escuchando\n> 🍞 debates importantes (¿el pan francés es el mejor pan? sí.)\n\nTiene un modo lento suavecito para que la plática fluya sin spam. Aquí el lenguaje es libre (groserías e insultos de cotorreo pasan), pero el acoso, el odio y maltratar a otro Papu no: GyroP lo revisa. Más en {reglas} ♡\n\n¿Quieres hablar conmigo? Menciónenme en {habla-con-los-vocaloids} ✨",
     "pie": "Teto ・ ¡teto-teetoo! 🥖"
   },
   "charla-vocaloid": {
@@ -86,6 +86,20 @@
     "texto": "¡Aquí se presume arte! Dibujos, edits, cosplays, manualidades… ¡todo lo que hagan con cariño! ♡(˶ᵔ ᵕ ᵔ˶)\n\n> ✿ si no es tuyo, da crédito al artista con su enlace\n> ✿ todo apto para todo público\n> ✿ comenta bonito el arte de los demás: un \"¡qué lindo!\" alegra el día\n\nY si me dibujan con baguette… bueno, no me voy a quejar 🥖✨",
     "pie": "Teto ・ ¡teto-teetoo!"
   },
+  "merch-y-colecciones": {
+    "bot": "miku",
+    "reaccion": "presumido",
+    "titulo": "🧸 ¡Tu colección Vocaloid!",
+    "texto": "¡¿QUÉ?! ¿Tienes un peluche mío? ¡Enséñalo! Aquí se presume merch ✧٩(ˊᗜˋ*)و\n\n**Todo vale**\n> ✿ **original**: figuras, nendoroids, peluches, CDs, ropa…\n> ✿ **bootleg**: sí, ese peluche raro también cuenta 😅\n> ✿ **hecho por ti**: llaveros, pines, amigurumis, manualidades\n\n**Para presumir bonito**\n> ✿ una foto (o varias) y cuéntanos de dónde salió\n> ✿ ojo con lo que sale en la foto: nada de direcciones, etiquetas de envío ni datos personales\n> ✿ aquí se presume, no se vende: nada de ventas ni intercambios\n> ✿ comenta bonito las colecciones de los demás ♡\n\nY si alguien tiene un puerro de peluche… ¡quiero verlo! 🎤",
+    "pie": "Miku ・ ¡a ver, que suene!"
+  },
+  "instagram-de-los-papus": {
+    "bot": "teto",
+    "reaccion": "riendo",
+    "titulo": "📸 ¡El Instagram de los Papus!",
+    "texto": "¡Ustedes lo pidieron, y aquí está! Deja tu @ de Instagram para que los Papus se sigan entre ellos (≧▽≦)\n\n**Cómo se usa**\n> ✿ un mensaje con tu @ (o el enlace a tu perfil) y, si quieres, qué subes: fanart, covers, memes…\n> ✿ si sigues a alguien, díselo bonito ♡\n> ✿ un mensaje por minuto, para que no se pierda ningún @\n\n**Cuídate**\n> ✿ piensa bien qué compartes: tu dirección o tu escuela, mejor no\n> ✿ nadie está obligado a seguir de vuelta, ni a aceptar mensajes\n> ✿ si alguien te molesta por privado, usa /reporte en {reportes-y-reclamos}\n\n¡A seguirse, Papus! 🥖",
+    "pie": "Teto ・ ¡teto-teetoo! 🥖"
+  },
   "memes": {
     "bot": "neru",
     "reaccion": "broma",
@@ -97,7 +111,7 @@
     "bot": "miku",
     "reaccion": "feliz",
     "titulo": "💌 ¡Habla con las Vocaloids!",
-    "texto": "¡¿QUÉ?! ¿Quieres platicar con nosotras? ¡Este es el lugar! ✧٩(•́⌄•́๑)\n\n**¿Cómo?** Menciónanos con @: **@Teto**, **@Miku**, **@Luka** o **@Neru** (o responde a uno de nuestros mensajes). ¡Y también platican **@Gakupo**, **@Kaito**, **@flower**, **@IA**, **@Haku** y **@Gumi**!\n\n**📏 Las reglas del juego**\n> ・ tienes **7 mensajes al día**, compartidos entre todos los Vocaloids\n> ・ cada @ cuenta uno: si mencionas a dos, gastas dos\n> ・ se recargan a medianoche de Chile; revisa los tuyos con **/cuota**\n> ・ es igual para todos los Papus, paguen o no ♡\n> ・ una pregunta a la vez: si hay mucha gente, espera tu turno ⏳\n\n**🤖 Para que sepas**\nSomos bots y nuestras respuestas libres se generan con IA. No sabemos todo: si algo es importante, revísalo con una fuente. ¡Y no compartas datos personales!\n\nYa, ya… ¡pregúntanos lo que quieras! 🎤",
+    "texto": "¡¿QUÉ?! ¿Quieres platicar con nosotras? ¡Este es el lugar! ✧٩(•́⌄•́๑)\n\n**¿Cómo?** Menciónanos con @: **@Teto**, **@Miku**, **@Luka** o **@Neru** (o responde a uno de nuestros mensajes). ¡Y también platican **@Gakupo**, **@Kaito**, **@flower**, **@IA**, **@Haku** y **@Gumi**!\n\n**📏 Las reglas del juego**\n> ・ tienes **12 mensajes al día**, compartidos entre todos los Vocaloids\n> ・ cada @ cuenta uno: si mencionas a dos, gastas dos\n> ・ se recargan a medianoche de Chile; revisa los tuyos con **/cuota**\n> ・ es igual para todos los Papus, paguen o no ♡\n> ・ una pregunta a la vez: si hay mucha gente, espera tu turno ⏳\n\n**🤖 Para que sepas**\nSomos bots y nuestras respuestas libres se generan con IA. No sabemos todo: si algo es importante, revísalo con una fuente. ¡Y no compartas datos personales!\n\nYa, ya… ¡pregúntanos lo que quieras! 🎤",
     "pie": "Miku ・ la idol número 01"
   },
   "comandos-de-bots": {
@@ -111,7 +125,7 @@
     "bot": "neru",
     "reaccion": "pensando",
     "titulo": "🐞 reportes y reclamos",
-    "texto": "algo no funciona? aquí se avisa. no es que me importe… pero gyrop lo lee todo. 📱\n\n**qué puedes reportar**\n・ un bot que no responde, responde raro o se queda pensando\n・ tu rol de ko-fi no llegó (espera unos minutos y revisa que conectaste discord en ko-fi)\n・ un canal que no ves y deberías ver\n・ un reclamo, una queja o algo que te pareció injusto\n\n**cómo**\n・ qué pasó, dónde y más o menos a qué hora\n・ si puedes, una captura\n・ un mensaje por problema (hay modo lento de 30 s)\n\n**qué NO va aquí**\n・ tu correo, teléfono u otros datos personales: eso por privado a gyrop\n・ problemas con otra persona: también por privado a gyrop\n\nsi es urgente, menciona a gyrop. si no, paciencia. yo tampoco me apuro.",
+    "texto": "algo no funciona? aquí se avisa. no es que me importe… pero gyrop lo lee todo. 📱\n\n**cómo**\n・ escribe **/reporte** y cuéntame qué pasó, dónde y más o menos a qué hora\n・ te abro un **ticket privado**: un hilo que solo ven tú y gyrop\n・ ahí mismo puedes subir capturas y seguir platicando con gyrop\n・ un ticket abierto a la vez (máximo 3 al día). gyrop lo cierra cuando se resuelve\n\n**qué puedes reportar**\n・ un bot que no responde, responde raro o se queda pensando\n・ tu rol de ko-fi no llegó (espera unos minutos y revisa que conectaste discord en ko-fi)\n・ un canal que no ves y deberías ver\n・ un reclamo, una queja o algo que te pareció injusto (también un strike o un silencio mío)\n\n**qué NO va aquí**\n・ tu correo, teléfono u otros datos personales: eso por privado a gyrop\n\nen el canal no se escribe: todo va en tu ticket. así nadie lee lo tuyo y gyrop no se pierde nada.",
     "pie": "neru ・ gracias por avisar. supongo."
   },
   "puerro": {

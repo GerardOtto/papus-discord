@@ -6,10 +6,10 @@ import { fill, type DeckStore } from "./deck";
 
 /** Grupos de todos los bots: preguntas sobre el proceso privado de GyroP (src/services/privacy.ts). */
 const PRIVATE_GROUPS = ["pregunta_ia", "secreto_estudio"];
-/** Grupos de las 4 chicas: saludo al conectarse y despedida al apagar (src/discord/app.ts). */
-const PRESENCE_GROUPS = ["saludo_conexion", "despedida"];
-/** Los Vocaloids de conversacion solo necesitan las frases de la conversacion y de privacidad. */
-const CHAT_GROUPS = ["cuota_agotada", "cola_llena", "sin_api", ...PRIVATE_GROUPS];
+/** Grupos de las 4 chicas: saludo al conectarse, despedida al apagar y charla en #general (src/discord/app.ts). */
+const PRESENCE_GROUPS = ["saludo_conexion", "despedida", "charla_general"];
+/** Los Vocaloids de conversacion: frases de la conversacion, de privacidad y de la charla en #general (src/services/charla.ts). */
+const CHAT_GROUPS = ["cuota_agotada", "cola_llena", "sin_api", "charla_general", ...PRIVATE_GROUPS];
 
 /** Grupos obligatorios por bot (PLAN §6 + los que usa el codigo). */
 export const REQUIRED_GROUPS: Record<BotId, string[]> = {
@@ -34,15 +34,18 @@ export const REQUIRED_GROUPS: Record<BotId, string[]> = {
   luka: ["tip_recibido", "falta_fuente", "tip_usado", "cuota_agotada", "cola_llena", "sin_api", ...PRIVATE_GROUPS, ...PRESENCE_GROUPS],
   neru: [
     "advertencia",
+    "aviso",
     "silencio_10",
     "silencio_60",
     "silencio_1440",
-    "datos_personales",
+    "invitacion",
+    "perdon",
     "estafa",
     "mayusculas",
     "enlace_cuenta_nueva",
     "flood",
     "resumen_despertar",
+    "apoyo",
     "cuota_agotada",
     "cola_llena",
     "sin_api",
@@ -73,10 +76,12 @@ export const REQUIRED_FIELDS: Record<string, string[]> = {
   "luka.tip_recibido": ["papu"],
   "luka.tip_usado": ["papu", "video"],
   "neru.advertencia": ["papu"],
+  "neru.aviso": ["papu"],
   "neru.silencio_10": ["papu"],
   "neru.silencio_60": ["papu"],
   "neru.silencio_1440": ["papu"],
   "neru.resumen_despertar": ["n"],
+  "neru.apoyo": ["papu"],
 };
 
 export type PhraseGroups = Record<string, string[]>;

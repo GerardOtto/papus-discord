@@ -78,6 +78,21 @@ const DAY = 86_400_000;
 const HOUR = 3_600_000;
 const unix = (ms: number) => Math.floor(ms / 1000);
 const TIERS = (layout as { niveles: { rol: string }[] }).niveles.map((n) => channelKey(n.rol));
+
+/**
+ * Roles a los que avisa un anuncio (votacion, ultimo aviso, calendario) en ese canal: los que pueden verlo, es decir,
+ * su nivel y los superiores (acumulativos) o el rol del canal ("rol:…"). En canales publicos o de staff, ninguno:
+ * los bots nunca mencionan a @everyone (decision de GyroP, 18 oct. 2026).
+ */
+export function audienceOf(canal: string): string[] {
+  for (const cat of (layout as { categorias: { leen: string; canales: { nombre: string; voz?: boolean }[] }[] }).categorias) {
+    if (!cat.canales.some((c) => !c.voz && channelKey(c.nombre) === canal)) continue;
+    if (cat.leen.startsWith("rol:")) return [channelKey(cat.leen.slice(4))];
+    const idx = TIERS.indexOf(channelKey(cat.leen));
+    return idx < 0 ? [] : TIERS.slice(idx);
+  }
+  return [];
+}
 const BOARD_KEY = "tablero_cola";
 const COMMAND_TIMEOUT_MS = 10_000;
 const SLOW_REPLY =
@@ -120,7 +135,7 @@ export class PapusWorker {
       d.sql,
       d.cast.map((c) => c.id),
       (text) => {
-        const v = this.rules.check({ text, targetsSomeone: false, memberAgeHours: 1000 });
+        const v = this.rules.check({ text, targetsSomeone: false, memberAgeHours: 1000, personalData: true });
         return v && v.kind !== "mayusculas" ? v.detail : null;
       },
       this.now,
@@ -361,10 +376,11 @@ export class PapusWorker {
 
   /** Publica la encuesta nativa con la frase de Miku y la guarda para recordarla y cerrarla. */
   private async openPoll(canal: string, ch: string, pregunta: string, opciones: string[], dias: number): Promise<{ id: number; endsAt: number }> {
-    const content = await this.pick("miku", "votacion_abierta", { tema: opciones.map((x) => `• ${x}`).join("\n") });
+    const aviso = await this.audience(canal);
+    const content = aviso.mention(await this.pick("miku", "votacion_abierta", { tema: opciones.map((x) => `• ${x}`).join("\n") }));
     const msg = await this.d.discord.call<{ id: string }>("miku", "POST", `/channels/${ch}/messages`, {
       content,
-      allowed_mentions: { parse: [] },
+      allowed_mentions: aviso.allowed_mentions,
       poll: {
         question: { text: pregunta },
         answers: opciones.map((text) => ({ poll_media: { text } })),
@@ -573,7 +589,8 @@ export class PapusWorker {
   private async postContent(bot: BotKey, canal: string, content: string): Promise<Reply> {
     const ch = await this.channel(canal);
     if (!ch) throw new UserError(`No encuentro el canal #${canal}.`);
-    await this.d.discord.call(bot, "POST", `/channels/${ch}/messages`, { content, allowed_mentions: { parse: [] } });
+    const aviso = await this.audience(canal);
+    await this.d.discord.call(bot, "POST", `/channels/${ch}/messages`, { content: aviso.mention(content), allowed_mentions: aviso.allowed_mentions });
     return { content: `Publicado en <#${ch}> ✨` };
   }
 
@@ -641,7 +658,7 @@ export class PapusWorker {
     for (const { m } of raw) {
       if (await this.kvGet(`idea_usada:${m.id}`)) continue;
       const text = ideaText(m.content);
-      const v = this.rules.check({ text, targetsSomeone: false, memberAgeHours: 1000 });
+      const v = this.rules.check({ text, targetsSomeone: false, memberAgeHours: 1000, personalData: true });
       if (!text || v?.remove) continue;
       const users = await this.d.discord.call<{ id: string; bot?: boolean }[]>(
         "miku",
@@ -717,8 +734,9 @@ export class PapusWorker {
     const palette = PALETTE.map((c) => ({ ...c, key: colorKey(c.rol) }));
     const choice = palette.find((c) => c.key === value) ?? null;
     if (!choice && value !== NO_COLOR) throw new UserError("Ese color ya no está en la paleta 🙈");
-    const roles = await this.d.discord.call<{ id: string; name: string }[]>("miku", "GET", `/guilds/${this.d.guildId}/roles`);
-    const idOf = new Map(roles.map((r) => [colorKey(r.name), r.id]));
+    const roles = await this.d.discord.call<{ id: string; name: string; managed?: boolean }[]>("miku", "GET", `/guilds/${this.d.guildId}/roles`);
+    // Sin los roles propios de los bots: el de Gumi, Kaito o Haku se llama igual que su color y no se puede asignar.
+    const idOf = new Map(roles.filter((r) => !r.managed).map((r) => [colorKey(r.name), r.id]));
     const target = choice ? idOf.get(choice.key) : undefined;
     if (choice && !target) throw new UserError("Ese color todavía no existe en el servidor. Avísale a GyroP 🙈");
     for (const c of palette) {
@@ -754,7 +772,7 @@ export class PapusWorker {
     const texto = o.str("texto", true).trim();
     const fuente = o.str("fuente", true).trim();
     if (!/^https?:\/\/\S+\.\S+/.test(fuente)) throw new UserError("La fuente tiene que ser un enlace (https://…). Sin fuente es un rumor, no un tip 🐟");
-    const v = this.rules.check({ text: texto, targetsSomeone: false, memberAgeHours: 1000 });
+    const v = this.rules.check({ text: texto, targetsSomeone: false, memberAgeHours: 1000, personalData: true });
     if (v?.remove) throw new UserError(`No puedo publicar ese tip: ${v.detail}.`);
     const ch = await this.channel("tips-y-curiosidades");
     if (!ch) throw new UserError("No encuentro #tips-y-curiosidades.");
@@ -802,14 +820,19 @@ export class PapusWorker {
   }
 
   async pollTasks(): Promise<void> {
-    const open = await this.d.sql.all<{ id: number; channel_id: string; message_id: string; ends_at: number; recordado: number }>(
-      "SELECT id, channel_id, message_id, ends_at, recordado FROM votaciones WHERE cerrada = 0",
+    const open = await this.d.sql.all<{ id: number; canal: string; channel_id: string; message_id: string; ends_at: number; recordado: number }>(
+      "SELECT id, canal, channel_id, message_id, ends_at, recordado FROM votaciones WHERE cerrada = 0",
     );
     const t = this.now();
     for (const v of open) {
       const ref = { message_reference: { message_id: v.message_id, fail_if_not_exists: false } };
       if (!v.recordado && t >= v.ends_at - 12 * HOUR && t < v.ends_at) {
-        await this.d.discord.call("miku", "POST", `/channels/${v.channel_id}/messages`, { content: await this.pick("miku", "ultimo_aviso"), ...ref });
+        const aviso = await this.audience(v.canal);
+        await this.d.discord.call("miku", "POST", `/channels/${v.channel_id}/messages`, {
+          content: aviso.mention(await this.pick("miku", "ultimo_aviso")),
+          ...ref,
+          allowed_mentions: aviso.allowed_mentions,
+        });
         await this.d.sql.run("UPDATE votaciones SET recordado = 1 WHERE id = ?", v.id);
       }
       if (t < v.ends_at) continue;
@@ -851,6 +874,15 @@ export class PapusWorker {
       this.channelCache = new Map(list.filter((c) => c.type === 0).map((c) => [channelKey(c.name), c.id]));
     }
     return this.channelCache.get(key) ?? null;
+  }
+
+  /** Mencion a los roles que ven el canal (audienceOf), solo esos: nunca @everyone ni @here. */
+  private async audience(canal: string): Promise<{ mention: (text: string) => string; allowed_mentions: { parse: string[]; roles: string[] } }> {
+    const keys = new Set(audienceOf(canal));
+    const roles = keys.size ? await this.d.discord.call<{ id: string; name: string; managed?: boolean }[]>("miku", "GET", `/guilds/${this.d.guildId}/roles`) : [];
+    const ids = roles.filter((r) => !r.managed && keys.has(channelKey(r.name))).map((r) => r.id);
+    const prefix = ids.map((id) => `<@&${id}>`).join(" ");
+    return { mention: (text) => (prefix ? `${prefix}\n${text}` : text), allowed_mentions: { parse: [], roles: ids } };
   }
 
   /** ¿Tiene el Papu ese nivel o uno superior? (los niveles son acumulativos; Ko-fi da solo el rol del nivel). */

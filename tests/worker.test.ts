@@ -4,8 +4,9 @@ import path from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import { describe, expect, it } from "vitest";
 import { sqliteSql } from "../src/orders/sql";
-import { PapusWorker, pollWinner, splitLines, type Interaction, type Option } from "../worker/src/app";
-import { channelKey, DiscordError, verifySignature, type BotKey, type DiscordApi } from "../worker/src/discord";
+import { audienceOf, PapusWorker, pollWinner, splitLines, type Interaction, type Option } from "../worker/src/app";
+import { SAFE_MENTIONS } from "../src/discord/app";
+import { channelKey, DiscordError, safeMentions, verifySignature, type BotKey, type DiscordApi } from "../worker/src/discord";
 import { ideaText, parseHonorSettings, parseRoundSettings, pickIdeas, rankRound, resolveTie, type HonorSettings, type RoundSettings } from "../src/votes/rounds";
 import votesConfig from "../config/votaciones.json";
 import { seededRng } from "./helpers";
@@ -18,8 +19,12 @@ const ROLES = [
   { id: "r-baguette", name: "Baguette" },
   { id: "r-celular", name: "Celular" },
   { id: "r-tb", name: "Triple Baka" },
+  { id: "r-honor", name: "🏅 Papu de honor" },
   { id: "r-gumi", name: "🎨 Gumi" },
   { id: "r-kaito", name: "🎨 Kaito" },
+  // Roles propios de los bots Gumi y Kaito: se llaman como el color y vienen después en la lista.
+  { id: "bot-gumi", name: "Gumi", managed: true },
+  { id: "bot-kaito", name: "Kaito", managed: true },
 ];
 const CHANNELS = ["🎁・cola-de-pedidos", "📋・registro-bots", "🗳️・votaciones", "📝・propuestas-de-temas", "💡・tips-y-curiosidades", "🏆・salón-de-la-fama", "📅・calendario", "📣・anuncios", "👀・vitrina", "💎・niveles-ko-fi", "💬・charla-de-honor", "🗳️・votacion-de-honor"].map(
   (name, i) => ({ id: `c${i}`, name, type: 0 }),
@@ -199,6 +204,41 @@ describe("worker: votaciones (Miku)", () => {
     expect(JSON.stringify(last.body)).toContain("Rolling Girl");
     await w.cron();
     expect(discord.posts("votaciones")).toHaveLength(3); // no se anuncia dos veces
+  });
+
+  it("el aviso de la votación y el último aviso mencionan solo a los niveles que ven el canal, nunca a @everyone", async () => {
+    const { w, discord, advance } = setup();
+    await w.route("miku", cmd("votacion", OWNER, [], sub("abrir", [opt("opcion1", "A"), opt("opcion2", "B"), opt("dias", 3, 4)])));
+    advance(61 * 3_600_000);
+    await w.cron();
+    const tiers = ["r-puerro", "r-atun", "r-baguette", "r-celular", "r-tb"];
+    for (const post of discord.posts("votaciones")) {
+      expect(post.body!.allowed_mentions).toEqual({ parse: [], roles: tiers });
+      expect(String(post.body!.content)).toMatch(/^<@&r-puerro> <@&r-atun> <@&r-baguette> <@&r-celular> <@&r-tb>\n/);
+    }
+  });
+
+  it("audienceOf: nivel y superiores, el rol del canal o nadie (canales públicos y de staff)", () => {
+    expect(audienceOf("votaciones")).toEqual(["puerro", "atun", "baguette", "celular", "triplebaka"]);
+    expect(audienceOf("adelantos")).toEqual(["baguette", "celular", "triplebaka"]);
+    expect(audienceOf("votacion-de-honor")).toEqual(["papudehonor"]);
+    for (const publico of ["general", "anuncios", "vitrina", "puerro", "moderacion", "no-existe"]) expect(audienceOf(publico)).toEqual([]);
+  });
+
+  it("safeMentions: nunca @everyone, @here ni roles por texto; solo los usuarios y roles nombrados", () => {
+    expect(safeMentions({ content: "@everyone hola" })).toEqual({ content: "@everyone hola", allowed_mentions: { parse: ["users"] } });
+    expect(safeMentions({ content: "x", allowed_mentions: { parse: ["everyone", "roles", "users"] } })).toEqual({ content: "x", allowed_mentions: { parse: ["users"] } });
+    expect(safeMentions({ content: "x", allowed_mentions: { parse: [], roles: ["r1"] } })).toEqual({ content: "x", allowed_mentions: { parse: [], roles: ["r1"] } });
+    expect(safeMentions({ name: "rol" })).toEqual({ name: "rol" }); // no es un mensaje
+    expect(safeMentions(undefined)).toBeUndefined();
+  });
+
+  it("ningún envío de los bots pide @everyone, @here ni todos los roles", () => {
+    for (const f of ["src/discord/app.ts", "worker/src/app.ts", "scripts/post-guides.ts"]) {
+      const src = readFileSync(path.join(ROOT, f), "utf8");
+      expect(src).not.toMatch(/parse:\s*\[[^\]]*["'](everyone|roles)["']/);
+    }
+    expect(SAFE_MENTIONS.parse).toEqual(["users"]);
   });
 
   it("cerrar antes de tiempo expira la encuesta", async () => {
@@ -385,6 +425,8 @@ describe("worker: color del nombre (menú de Miku)", () => {
     expect(JSON.stringify(discord.edits[0])).toContain("**Gumi**");
     expect(discord.calls.some((c) => c.method === "DELETE" && c.path === "/guilds/g/members/ana/roles/r-kaito")).toBe(true);
     expect(discord.calls.some((c) => c.method === "PUT" && c.path === "/guilds/g/members/ana/roles/r-gumi")).toBe(true);
+    // Nunca el rol del bot que se llama igual (Discord no deja darlo y el color fallaba).
+    expect(discord.calls.some((c) => c.path.includes("/roles/bot-"))).toBe(false);
   });
 
   it("sin color quita el color; con nivel avisa que se ve el del nivel", async () => {
@@ -400,8 +442,11 @@ describe("worker: calendario y anuncios (Miku)", () => {
     const { w, discord } = setup();
     await w.route("miku", cmd("calendario", OWNER, [], [opt("texto", "Lun 20: Teto | Jue 23: Miku")]));
     expect(JSON.stringify(discord.posts("calendario")[0]!.body)).toContain("• Lun 20: Teto\\n• Jue 23: Miku");
+    expect((discord.posts("calendario")[0]!.body!.allowed_mentions as { roles: string[] }).roles).toContain("r-puerro");
     await w.route("miku", cmd("estreno", OWNER, [], [opt("titulo", "Triple Baka"), opt("enlace", "https://youtu.be/x")]));
     expect(JSON.stringify(discord.posts("anuncios")[0]!.body)).toContain("https://youtu.be/x");
+    // #anuncios es público: sin mención masiva.
+    expect(discord.posts("anuncios")[0]!.body!.allowed_mentions).toEqual({ parse: [], roles: [] });
     await expect(w.route("miku", cmd("estreno", OWNER, [], [opt("titulo", "X"), opt("enlace", "no-es-enlace")]))).rejects.toThrow(/http/);
     expect(splitLines("a | b")).toBe("• a\n• b");
   });

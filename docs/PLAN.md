@@ -62,7 +62,8 @@ Triple Baka sube a 25 USD para compensar el trabajo de los videos personalizados
 **Ningún plan de pago da exclusividades con los bots.**
 
 - Los bots son **omnipresentes**: están en todos los canales (gratis y de pago) y cumplen sus funciones en todos.
-- **Cuota diaria única por Papu: 7 mensajes** (GyroP la subió de 5 a 7 antes de abrir, 16 oct. 2026), compartida entre todos los bots (no 7 por personaje), igual para todos los niveles, siempre.
+- **Cuota diaria única por Papu: 12 mensajes** (5 en el plan, 7 al abrir el 16 oct. 2026; GyroP la subió a 12 el 17 oct. tras el primer día: ~3-4 mensajes por Papu y ~7 % del cupo de las APIs), compartida entre todos los bots (no 7 por personaje), igual para todos los niveles, siempre.
+  - **Única excepción (decisión de GyroP, 18 oct. 2026): 🍍♡Piña♡🍍** (`config/especiales.json`, por su id de Discord). Regalo personal de GyroP, no de un nivel de Ko-fi y exclusivo de ella (no se extiende a otros Papus): mensajes ilimitados, el rol "💙 Esposa de Kaito" (sin permisos propios; solo le abre su canal privado #💙・kaito-y-piña, que no ven los demás Papus; Teto se lo da sola; va sobre todos los niveles y, si elige un color de #tu-color, Teto le pone ese color al rol) y Kaito la reconoce como su esposa cuando ella le escribe. La moderación le aplica igual que a todos.
 - Un mensaje con varias menciones gasta **una unidad por cada @**. Si la cuota no alcanza, responden los primeros mencionados (en orden) y el resto da su frase de cuota agotada.
 - Sin prioridad en la cola por pagar.
 - GyroP asume el riesgo de licencias de los personajes (decisión tomada; no volver a plantearlo).
@@ -111,12 +112,22 @@ Decisión de GyroP: **Gakupo, Kaito, flower, IA, Haku y Gumi** están en el serv
 responden menciones libres con el LLM, gastan la misma cuota compartida (una unidad por @) y no tienen tareas, comandos,
 saludos ni despedidas. Son seis aplicaciones de Discord más, en el mismo programa y con el rol Vocaloids; cada una se
 conecta solo si su token está en `.env` (`DISCORD_TOKEN_GAKUPO`, etc.), así que faltar uno no impide arrancar.
-- Personalidad: `content/personajes/<id>.md`; frases fijas (cuota, cola, falla y privacidad): `content/frases/<id>.json`.
+- Personalidad: `content/personajes/<id>.md`; frases fijas (cuota, cola, falla, privacidad y charla en #general): `content/frases/<id>.json`.
 - Lore: Kaito y Gumi vienen del motor. Gakupo, IA, Haku y flower no están en el elenco del motor, así que sus datos
   salen de `content/lore-extra.json` (solo datos verificables; si GyroP los agrega al motor, manda el motor). No cambian
   el elenco de los videos ni las opciones de `/pedido`.
 - IA se llama igual que la sigla: las menciones a los bots se quitan antes de la capa 1 de privacidad, para que
   "@IA ¿viste el video?" no se tome como una pregunta sobre si GyroP usa IA.
+- **Charla en #general** (19 oct. 2026, decisión de GyroP): cada 20 min un Vocaloid conectado (los diez, rotando sin
+  repetir) escribe por su cuenta **con el LLM**, tras leer los últimos 12 mensajes de #general. O comenta la plática de
+  los Papus, o le pregunta algo a otro Vocaloid con @, y ese le contesta **una sola vez** (su respuesta nunca dispara
+  otra). Sin plática de Papus en las últimas 3 h, siempre pregunta a otro Vocaloid. Si el último mensaje del canal ya es
+  de un bot que habló solo (no contestándole a un Papu), o si un Papu escribió hace menos de 10 min (ya hay gente
+  hablando), ese turno se salta. No gasta la cuota de ningún Papu; pasa por
+  la misma cola que las menciones. Si el LLM falla, va una frase fija del grupo `charla_general`. Disparo manual:
+  `/charla` de Teto (solo GyroP; escribe aunque el último mensaje ya sea de un bot), con opciones `vocaloid` (quién
+  habla), `tema` (de qué habla) y `a` (a quién le pregunta con @).
+  Código: `src/services/charla.ts`, `buildSpontaneousRequest` en `src/llm/prompt.ts` y `charlaPort` en `src/discord/app.ts`.
 
 ## 5. LLM: cadena de APIs gratuitas
 
@@ -159,7 +170,7 @@ Grupos de **30 a 40 frases** por situación, elegidas al azar **sin repetir** (c
 | Teto | Bienvenida, bienvenida grupal (al reconectar), cumpleaños, cuota agotada, cola llena |
 | Miku | Votación abierta, último aviso, ganador, estreno de video, calendario, noticia, cuota agotada, cola llena |
 | Luka | Tip recibido, falta la fuente, tip usado en un video, cuota agotada, cola llena |
-| Neru | Advertencia, cada nivel de silencio, datos personales, estafa, mayúsculas, resumen al despertar, cuota agotada, cola llena |
+| Neru | Advertencia, cada nivel de silencio, invitación a otro servidor, perdón (/perdonar, en público), estafa, mayúsculas, resumen al despertar, cuota agotada, cola llena |
 
 Las frases de Miku y Luka llevan espacios para datos (`{video}`, `{tema}`, `{ganador}`, `{papu}`).
 
@@ -176,8 +187,9 @@ Reglas fijas, **nunca el LLM** (instantáneas, sin cuota, imposibles de engañar
 | Insultos dirigidos en segunda persona ("eres un…", "tú eres bien…") | Patrones: bloquear y avisar | También detecta insultos como respuesta a otro mensaje |
 | Groserías muy fuertes | Bloquear + 10 min de silencio | Suma strikes |
 | Odio (racista, homofóbico, etc.) | Bloquear + 1 h de silencio + aviso | Suma strikes |
-| Teléfonos, correos, invitaciones a otros servidores, estafas tipo "Nitro gratis" | Bloquear con explicación | Explica en público, suma strikes |
-| Spam de menciones (> 5) y @everyone | Límite nativo | — |
+| Invitaciones a otros servidores, estafas tipo "Nitro gratis" | Bloquear con explicación | Explica en público, suma strikes |
+| Teléfonos y correos | Se pueden compartir en el chat (decisión de GyroP, 18 oct. 2026) | Siguen bloqueados en lo que publica un bot: tips, ideas para votar y pedidos de video |
+| Spam de menciones (15 o más, Papus y Vocaloids juntos) y @everyone | Límite nativo | — |
 | Imágenes explícitas | Filtro nativo del servidor | — |
 | Flood (> 5 mensajes en 10 s) | Modo lento suave de respaldo en #general y #habla-con-los-vocaloids | Borra y suma strike |
 | Mismo mensaje 3 veces en 60 s | Filtro de spam nativo (parcial) | Borra y suma strike |
@@ -189,6 +201,29 @@ Reglas fijas, **nunca el LLM** (instantáneas, sin cuota, imposibles de engañar
 - Pasan las expresiones comunes y lo dicho sobre uno mismo: "ay qué pendejo soy", "no mames", "qué pedo".
 - Strike solo si el insulto va **dirigido a otra persona** (mención, respuesta, segunda persona).
 - Groserías muy fuertes y odio: siempre fuera.
+
+### Ajustes tras el primer día (17 oct. 2026)
+- **Insultos suaves** (`insultosSuaves`: feo, tonto, payaso…): solo cuentan en segunda persona ("eres fea"). Antes, "que feoo"
+  respondiendo a alguien sumaba strike y terminó en un silencio injusto.
+- **A los bots tampoco se les falta el respeto** (decisión de GyroP): un insulto cuenta si va marcado ("eres una basura")
+  o si el mensaje a un bot es casi solo el insulto ("CHUPALO", "@Teto idiota"); platicar con groserías no ("@Miku el examen
+  estuvo de la mierda"). Se agregaron "chúpalo" y variantes.
+- **#reportes-y-reclamos con tickets**: los Papus no escriben en el canal; `/reporte` (Neru) abre un hilo privado con el Papu y
+  GyroP, un aviso por ticket en #registro-bots, uno abierto por Papu y 3 por día. GyroP lo cierra con `/cerrar-ticket`.
+- **Aviso público**: Neru llama la atención en el mismo canal, con lo que se dijo (grosería tapada: "c\*\*\*\*\*\*") y
+  "strike n de 4" con la sanción y lo que sigue (decisión de GyroP: que todos aprendan del ejemplo). Datos personales,
+  invitaciones y estafas no se citan.
+- **Avisos a mano de GyroP** (18 oct. 2026): para lo que está "casi contra las normas", que las reglas fijas no ven.
+  Clic derecho en el mensaje → Apps → "Advertir (Neru)", o `/advertir @papu [motivo]`: Neru responde con una frase fija
+  (grupo `aviso`) en el mismo canal, **sin borrar ni strike**, y queda en #moderación. Nunca automático: lo decide GyroP.
+- **#general con lenguaje libre** (18 oct. 2026, decisión de GyroP): ahí pasan insultos (también a los bots) y groserías
+  muy fuertes, en Neru y en AutoMod (`canalesLibres` en `config/moderacion.json`; las reglas de AutoMod "insultos
+  dirigidos" y "muy fuertes" eximen el canal). Siguen fuera en todos lados: odio, `graves` (amenazas sexuales e incitación
+  al suicidio, regla de AutoMod propia), datos personales, estafas y spam. El acoso y el maltrato a Papus inocentes en
+  #general los modera GyroP a mano una vez al día (`/advertir`, `/strikes`).
+- **Bromas**: las absurdas del chat ("tocar", esposa, pensión) se permiten; los bots solo cortan lo sexual directo y el odio.
+- **Cuota**: el aviso de cuota agotada sale una vez al día por Papu (después, una 🌙); responder a un bot con solo "XD" o un
+  emoji, sin @, no gasta cuota.
 
 ### Strikes (solo Neru)
 | Strike | Consecuencia |

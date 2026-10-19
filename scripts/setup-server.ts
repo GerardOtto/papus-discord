@@ -4,7 +4,7 @@
 //   npm run servidor -- --apply  -> lo ejecuta (usa la app de Teto: necesita "Administrador" mientras corre)
 import { ChannelType, REST, Routes } from "discord.js";
 import { loadConfig, loadDotEnv } from "../src/config";
-import { nameKey, overwritesFor, reorderWithin, sameOverwrites, type CategorySpec, type ChannelSpec, type Overwrite, type RoleIds } from "../src/setup/layout";
+import { blockBelow, nameKey, overwritesFor, sameOverwrites, type CategorySpec, type ChannelSpec, type Overwrite, type RoleIds } from "../src/setup/layout";
 import { loadLayout } from "../src/setup/layout";
 
 loadDotEnv();
@@ -21,7 +21,9 @@ interface ApiChannel { id: string; name: string; type: number; parent_id: string
 const hex = (c: string) => parseInt(c.replace("#", ""), 16);
 const ADMIN = 1n << 3n;
 /** Kick, ban, admin, gestionar canales/servidor/mensajes/apodos/roles/webhooks/expresiones/eventos/hilos, mencionar a todos, moderar. */
-const DANGEROUS = [1, 2, 3, 4, 5, 13, 17, 27, 28, 29, 30, 33, 34, 40].reduce((a, b) => a | (1n << BigInt(b)), 0n);
+// 43 = crear expresiones (emojis y stickers) y 44 = crear eventos: Discord los da a todos por defecto; solo GyroP.
+const MENTION_EVERYONE = 1n << 17n;
+const DANGEROUS = [1, 2, 3, 4, 5, 13, 17, 27, 28, 29, 30, 33, 34, 40, 43, 44].reduce((a, b) => a | (1n << BigInt(b)), 0n);
 const ops: string[] = [];
 const log = (s: string) => (ops.push(s), console.log(`${APPLY ? "✔" : "•"} ${s}`));
 
@@ -40,10 +42,11 @@ if (!(tetoPerms & ADMIN)) {
 }
 
 // ── Roles ────────────────────────────────────────────────────────────────────────────────
-const byName = (n: string) => roles.find((r) => nameKey(r.name) === nameKey(n));
+// Sin roles de bots: el rol propio de cada bot se llama como el personaje ("Neru", "IA") y no debe confundirse con su color.
+const byName = (n: string) => roles.find((r) => !r.managed && nameKey(r.name) === nameKey(n));
 const wantRoles = [
   ...layout.niveles.map((n) => ({ rol: n.rol, color: n.color, separado: true })),
-  ...layout.rolesExtra.map((r) => ({ rol: r.rol, color: r.color, separado: r.separado })),
+  ...layout.rolesExtra.map((r) => ({ rol: r.rol, color: r.color, separado: r.separado, colorVariable: !!r.sobreNiveles })),
   ...(layout.coloresPapu?.colores ?? []).map((c) => ({ rol: c.rol, color: c.color, separado: false })),
 ];
 for (const w of wantRoles) {
@@ -52,21 +55,30 @@ for (const w of wantRoles) {
     log(`crear rol "${w.rol}" (${w.color}${w.separado ? ", separado en la lista" : ""})`);
     // Sin permisos propios: el acceso a los canales va por los permisos de cada canal.
     if (APPLY) await rest.post(Routes.guildRoles(G), { body: { name: w.rol, color: hex(w.color), hoist: w.separado, mentionable: false, permissions: "0" } });
-  } else if (r.name !== w.rol || r.color !== hex(w.color) || r.hoist !== w.separado) {
+  } else if (r.name !== w.rol || (r.color !== hex(w.color) && !("colorVariable" in w && w.colorVariable)) || r.hoist !== w.separado) {
     // Mismo rol (se reconoce sin emojis ni acentos): se renombra en vez de duplicar. Ko-fi asigna por id, no por nombre.
-    log(`ajustar rol "${r.name}"${r.name !== w.rol ? ` → "${w.rol}"` : ""}: color ${w.color}, ${w.separado ? "separado" : "no separado"} en la lista`);
-    if (APPLY) await rest.patch(Routes.guildRole(G, r.id), { body: { name: w.rol, color: hex(w.color), hoist: w.separado } });
+    // Un rol `sobreNiveles` conserva su color: Teto lo cambia al de #tu-color que elija su dueña.
+    const color = "colorVariable" in w && w.colorVariable ? r.color : hex(w.color);
+    log(`ajustar rol "${r.name}"${r.name !== w.rol ? ` → "${w.rol}"` : ""}: color #${color.toString(16).padStart(6, "0")}, ${w.separado ? "separado" : "no separado"} en la lista`);
+    if (APPLY) await rest.patch(Routes.guildRole(G, r.id), { body: { name: w.rol, color, hoist: w.separado } });
   }
 }
 if (APPLY) roles = await api<ApiRole[]>(() => rest.get(Routes.guildRoles(G)));
 
 // Ningun rol de Papus (ni @everyone) con permisos peligrosos: mencionar a @everyone, administrar, moderar…
 // (Discord los trae por defecto). Los roles de los bots no se tocan.
+// Excepcion (decision de GyroP): el rol Vocaloids si puede mencionar a @everyone; aparte de el, solo GyroP (dueño).
+const vocaloidsKey = nameKey(layout.rolesExtra.find((r) => r.bots)!.rol);
 for (const r of roles.filter((x) => !x.managed && (x.id === G || wantRoles.some((w) => nameKey(w.rol) === nameKey(x.name))))) {
   const p = BigInt(r.permissions);
-  if (p & DANGEROUS) {
-    log(`quitar permisos peligrosos a "${r.name}" (mencionar a @everyone, administrar o moderar)`);
-    if (APPLY) await rest.patch(Routes.guildRole(G, r.id), { body: { permissions: String(p & ~DANGEROUS) } });
+  const esVocaloids = nameKey(r.name) === vocaloidsKey;
+  const quitar = esVocaloids ? DANGEROUS & ~MENTION_EVERYONE : DANGEROUS;
+  const want = (p & ~quitar) | (esVocaloids ? MENTION_EVERYONE : 0n);
+  if (want !== p) {
+    log(esVocaloids
+      ? `rol "${r.name}": puede mencionar a @everyone (y sin otros permisos peligrosos)`
+      : `quitar permisos peligrosos a "${r.name}" (mencionar a @everyone, administrar, moderar o crear emojis, stickers y eventos)`);
+    if (APPLY) await rest.patch(Routes.guildRole(G, r.id), { body: { permissions: String(want) } });
   }
 }
 
@@ -112,15 +124,34 @@ if (top && (!voc || voc.position <= top.position)) {
   log(`subir "${botRole.rol}" por encima de "${top.name}" en la lista de roles`);
   if (APPLY && voc) await rest.patch(Routes.guildRoles(G), { body: [{ id: voc.id, position: top.position + 1 }] });
 }
+// Roles `sobreNiveles` (💙 Esposa de Kaito): justo encima del nivel más alto, para que su color mande sobre todos.
+if (APPLY) roles = await api<ApiRole[]>(() => rest.get(Routes.guildRoles(G)));
+for (const spec of layout.rolesExtra.filter((r) => r.sobreNiveles)) {
+  const top2 = byName(layout.niveles.at(-1)!.rol);
+  const own = byName(spec.rol);
+  if (top2 && (!own || own.position <= top2.position)) {
+    log(`subir "${spec.rol}" por encima de "${top2.name}" (su color manda sobre los niveles)`);
+    if (APPLY && own) {
+      await rest.patch(Routes.guildRoles(G), { body: [{ id: own.id, position: top2.position + 1 }] });
+      roles = await api<ApiRole[]>(() => rest.get(Routes.guildRoles(G)));
+    }
+  }
+}
 
 // Colores de #tu-color por encima de las insignias (Papu de honor, Fundador) y de Papu: el color que elige cada uno
 // se ve aunque tenga una insignia. Debajo de los niveles: quien paga sigue viéndose con el color de su nivel.
 {
   const colorRoles = (layout.coloresPapu?.colores ?? []).map((c) => byName(c.rol)).filter((r): r is ApiRole => !!r);
-  // Las insignias mantienen su orden actual entre ellas.
-  const badges = layout.rolesExtra.filter((r) => !r.bots && !r.musica).map((r) => byName(r.rol)).filter((r): r is ApiRole => !!r).sort((a, b) => b.position - a.position);
-  const group = [...colorRoles, ...badges];
-  const changes = reorderWithin(group, group.map((r) => r.id));
+  // Insignias: primero las que van separadas en la lista (Papu de honor), luego el resto (Fundador, Papu).
+  const badges = layout.rolesExtra
+    .filter((r) => !r.bots && !r.musica && !r.sobreNiveles)
+    .sort((a, b) => Number(b.separado) - Number(a.separado))
+    .map((r) => byName(r.rol))
+    .filter((r): r is ApiRole => !!r);
+  const anchor = byName(layout.niveles[0]!.rol);
+  const teto = await api<{ id: string }>(() => new REST().setToken(config.tokens.teto).get(Routes.user()));
+  const ceiling = roles.find((r) => r.managed && r.tags?.bot_id === teto.id)?.position ?? 0;
+  const changes = anchor ? blockBelow(roles, anchor.id, [...colorRoles, ...badges].map((r) => r.id), ceiling) : [];
   if (changes.length) {
     log(`ordenar roles: colores de #tu-color sobre ${badges.map((b) => `"${b.name}"`).join(", ")}`);
     if (APPLY) await rest.patch(Routes.guildRoles(G), { body: changes });

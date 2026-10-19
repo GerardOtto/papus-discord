@@ -35,7 +35,7 @@ if (process.argv.includes("--llm")) {
   const named = characters.filter((c) => new RegExp(`\\b${c.displayName}\\b`, "i").test(message));
   const targets = named.length ? named : characters.filter((c) => (CORE_BOT_IDS as readonly string[]).includes(c.id));
   for (const p of providers) {
-    const req = buildRequest({ characters: targets, papuName: "Papu de prueba", message, history: [], videos }, personas, {
+    const req = buildRequest({ characters: targets, papuName: "Papu de prueba", message, history: [], videos, culture: personas.culture() }, personas, {
       maxTokens: settings.maxTokens,
       temperature: settings.temperature,
     });

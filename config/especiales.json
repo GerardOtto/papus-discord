@@ -1,0 +1,14 @@
+{
+  "$comment": "Trato especial que GyroP le da a mano a UN Papu concreto (decisión de GyroP, 18 oct. 2026). Es un regalo personal, no algo de un nivel de Ko-fi: no se compra ni se extiende a otros Papus (regla 1). Se reconoce por el id de Discord, nunca por el nombre (un apodo se copia). 'sinLimite' = sin cuota diaria con los bots (no la exime de la moderación). 'rol' = rol solo de adorno de config/servidor.json (rolesExtra) que Teto le da sola. 'trato' = lo que el LLM sabe de esa persona, solo con el bot indicado y solo cuando ella escribe.",
+  "papus": [
+    {
+      "id": "545054807463821313",
+      "nombre": "🍍♡Piña♡🍍",
+      "sinLimite": true,
+      "rol": "💙 Esposa de Kaito",
+      "trato": {
+        "kaito": "Quien te escribe es Piña, tu esposa. La reconoces como tu esposa: le hablas con un cariño tierno y bonachón (puedes decirle \"mi esposa\", \"Piña\" o \"amor\"), te alegra que te escriba y a veces le ofreces compartir tu helado. Cariño de ternura y de broma, nada subido de tono. Le dices Piña, no Papu."
+      }
+    }
+  ]
+}

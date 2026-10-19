@@ -3,6 +3,8 @@
 // Las 4 chicas tienen tareas; Gakupo, Kaito, flower, IA, Haku y Gumi solo conversan (se conectan si tienen token).
 import {
   ActivityType,
+  ChannelType,
+  ThreadAutoArchiveDuration,
   AutoModerationActionType,
   AutoModerationRuleEventType,
   AutoModerationRuleTriggerType,
@@ -15,6 +17,7 @@ import {
   Routes,
   type AutoModerationActionOptions,
   type ChatInputCommandInteraction,
+  type MessageContextMenuCommandInteraction,
   type Collection,
   type Guild,
   type GuildMember,
@@ -30,16 +33,26 @@ import type { StrikeStore } from "../moderation/strikes";
 import type { Phrases } from "../phrases/catalog";
 import type { DeckStore } from "../phrases/deck";
 import type { CalendarService } from "../calendar/service";
+import { specialRoleColor, type Especiales } from "../services/especiales";
 import { founderWindowOpen, needsFounder, type FounderSettings } from "../services/founders";
+import { GENERAL_CHAT_MS, type ChannelMessage, type CharlaPort, type GeneralChat } from "../services/charla";
 import { nextPresenceBot, parseFarewell, startDecision, type FarewellRecord } from "../services/presence";
 import { shouldTease } from "../services/vitrina";
 import type { Quota } from "../quota/quota";
 import type { ModerationSettings } from "../moderation/rules";
-import { mentionedBots, type ChatPort, type ConversationService } from "../services/conversation";
+import { isTrivialReply, mentionedBots, type ChatPort, type ConversationService } from "../services/conversation";
 import type { AutoModHit, ModerationPort, ModerationService } from "../services/moderation";
-import { nextDayStart } from "../time";
+import { MAX_TICKETS_PER_DAY, TicketStore } from "../services/tickets";
+import { dayKey, nextDayStart } from "../time";
 import { CHANNELS, channelKey, chunk, findTextChannel } from "./channels";
-import { commandsFor } from "./commands";
+import { commandsFor, contextMenusFor, WARN_MENU } from "./commands";
+
+/**
+ * Menciones por defecto de todos los bots: solo usuarios, nunca @everyone, @here ni roles. El rol Vocaloids tiene el
+ * permiso de mencionar a todos (Discord lo exige para los avisos por nivel), asi que este candado y el `allowedMentions`
+ * de cada envio son lo que impide que un Papu logre que un bot repita "@everyone" (decision de GyroP, 18 oct. 2026).
+ */
+export const SAFE_MENTIONS = { parse: ["users"] as const, repliedUser: true };
 
 const INTENTS: Record<BotId, GatewayIntentBits[]> = {
   neru: [
@@ -97,8 +110,14 @@ export interface AppDeps {
   /** Se crean con los puertos de esta app (necesitan los clientes conectados). */
   makeConversation: (port: ChatPort) => ConversationService;
   makeModeration: (port: ModerationPort, exempt: () => ReadonlySet<string>) => ModerationService;
+  /** Charla espontanea en #general (cada 20 min, src/services/charla.ts). */
+  makeGeneralChat: (port: CharlaPort) => GeneralChat;
   /** Dueños (compartido con la cuota): aqui se agrega el dueño del servidor al conectar. */
   owners: Set<string>;
+  /** Trato especial de un Papu concreto (config/especiales.json): sin cuota, su rol de adorno y su trato con un bot. */
+  especiales?: Especiales;
+  /** Roles especiales cuyo color sigue al de #tu-color (`sobreNiveles`): nombre -> color propio; y la paleta. */
+  specialColors?: { base: Map<string, number>; palette: string[] };
   /** Insignia Fundador por tiempo limitado (null = ya no se entrega). */
   founders: FounderSettings | null;
   /** Rol que Teto da a cada Papu al entrar (null = ninguno). */
@@ -120,10 +139,13 @@ export class PapusApp {
   private heartbeat: ReturnType<typeof setInterval> | null = null;
   private calendarTimer: ReturnType<typeof setInterval> | null = null;
   private rolesTimer: ReturnType<typeof setInterval> | null = null;
+  private chatTimer: ReturnType<typeof setInterval> | null = null;
+  private generalChat!: GeneralChat;
 
   constructor(private readonly d: AppDeps) {
     this.ownerId = d.config.ownerId;
-    this.clients = Object.fromEntries(d.config.activeBots.map((id) => [id, new Client({ intents: INTENTS[id] })])) as Record<BotId, Client>;
+    this.tickets = new TicketStore(d.db);
+    this.clients = Object.fromEntries(d.config.activeBots.map((id) => [id, new Client({ intents: INTENTS[id], allowedMentions: { parse: [...SAFE_MENTIONS.parse], repliedUser: SAFE_MENTIONS.repliedUser } })])) as Record<BotId, Client>;
   }
 
   async start(): Promise<void> {
@@ -160,6 +182,10 @@ export class PapusApp {
     this.lastBeat = Date.now();
     this.heartbeat = setInterval(() => this.beat(), HEARTBEAT_MS);
     this.rolesTimer = setInterval(() => void this.sweepRoles().catch((e) => logError("repaso de roles", e)), ROLES_SWEEP_MS);
+    this.generalChat = this.d.makeGeneralChat(this.charlaPort());
+    this.chatTimer = setInterval(() => {
+      if (!this.stopping) void this.generalChat.tick().catch((e) => logError("charla en #general", e));
+    }, GENERAL_CHAT_MS);
     if (this.d.calendar) {
       void this.updateCalendar().catch((e) => logError("calendario", e));
       this.calendarTimer = setInterval(() => void this.updateCalendar().catch((e) => logError("calendario", e)), CALENDAR_EVERY_MS);
@@ -169,6 +195,7 @@ export class PapusApp {
 
   private stopping = false;
   private readonly tipNudges = new Map<string, number>();
+  private readonly tickets: TicketStore;
 
   async stop(): Promise<void> {
     if (this.stopping) return;
@@ -176,6 +203,7 @@ export class PapusApp {
     if (this.heartbeat) clearInterval(this.heartbeat);
     if (this.calendarTimer) clearInterval(this.calendarTimer);
     if (this.rolesTimer) clearInterval(this.rolesTimer);
+    if (this.chatTimer) clearInterval(this.chatTimer);
     await this.farewell().catch((e) => logError("despedida", e));
     this.touchLastSeen();
     await Promise.all(this.d.config.activeBots.map((id) => this.clients[id].destroy()));
@@ -259,6 +287,7 @@ export class PapusApp {
     });
     // Ko-fi da el rol del nivel; si es la primera semana, Teto agrega la insignia Fundador.
     this.clients.teto.on(Events.GuildMemberUpdate, (_old, member) => {
+      if (this.d.especiales?.get(member.id)) void this.syncSpecialColor(member).catch((e) => logError("color de rol especial", e));
       const f = this.d.founders;
       if (!f || member.user.bot || member.guild.id !== this.guild.id || !founderWindowOpen(f, Date.now())) return;
       if (needsFounder(f, member.roles.cache.map((r) => r.name))) void this.grantFounders([member.id]).catch((e) => logError("Fundador", e));
@@ -266,6 +295,8 @@ export class PapusApp {
     for (const id of this.d.config.activeBots) {
       this.clients[id].on(Events.InteractionCreate, (i) => {
         if (i.isChatInputCommand()) void this.onCommand(id, i).catch((e) => logError(`comando /${i.commandName}`, e));
+        else if (id === "neru" && i.isMessageContextMenuCommand() && i.commandName === WARN_MENU)
+          void this.warnFromMenu(i).catch((e) => logError("advertir (menú)", e));
       });
       this.clients[id].on(Events.Error, (e) => logError(`cliente ${id}`, e));
     }
@@ -279,6 +310,8 @@ export class PapusApp {
     const replied = m.reference?.messageId ? await m.fetchReference().catch(() => null) : null;
     const others = m.mentions.users.filter((u) => !u.bot && u.id !== m.author.id);
     const targetsSomeone = others.size > 0 || (!!replied && !replied.author.bot && replied.author.id !== m.author.id);
+    // A los Vocaloids tampoco se les falta el respeto (GyroP): mencionar o responder a uno de nuestros bots.
+    const targetsBot = m.mentions.users.some((u) => this.botByUserId.has(u.id)) || (!!replied && this.botByUserId.has(replied.author.id));
     const joined = m.member?.joinedTimestamp ?? Date.now();
     const violation = await this.moderation.handle({
       messageId: m.id,
@@ -286,16 +319,18 @@ export class PapusApp {
       authorId: m.author.id,
       text: m.content,
       targetsSomeone,
+      targetsBot,
       memberAgeHours: (Date.now() - joined) / 3_600_000,
+      freeLanguage: this.isFreeChannel(m),
     });
     if (violation?.remove) return;
 
+    // Habla de hacerse daño: frase fija de apoyo de Neru + aviso a GyroP, en vez de la respuesta del LLM.
+    if (await this.moderation.support({ messageId: m.id, channelId: m.channelId, authorId: m.author.id, text: m.content })) return;
+
     // GyroP publico en un canal de nivel: aviso en #vitrina (donde y para quien, nunca que).
+    // (Los reportes van por tickets, /reporte: un aviso por ticket, no por mensaje.)
     if (this.d.owners.has(m.author.id)) await this.teaseVitrina(m.channelId).catch((e) => logError("vitrina", e));
-    // Reporte nuevo: aviso a GyroP en #registro-bots (con enlace al mensaje).
-    else if (m.channel.isTextBased() && "name" in m.channel && channelKey(m.channel.name) === CHANNELS.reportes) {
-      await this.report(`📮 Reporte nuevo de <@${m.author.id}> en <#${m.channelId}>: ${m.url}`);
-    }
 
     // 2) Menciones a los bots (en orden; responder a un bot cuenta como mencionarlo).
     const bots = mentionedBots(m.content, this.botByUserId, replied?.author.bot ? replied.author.id : null);
@@ -303,6 +338,8 @@ export class PapusApp {
       await this.tipWithoutSource(m).catch((e) => logError("falta de fuente", e));
       return;
     }
+    // Responder a un bot con "XD" o un emoji, sin @, no es hablarle: no gasta cuota ni recibe respuesta.
+    if (mentionedBots(m.content, this.botByUserId).length === 0 && isTrivialReply(m.content)) return;
     await this.conversation.handle({
       messageId: m.id,
       channelId: m.channelId,
@@ -346,7 +383,9 @@ export class PapusApp {
   private speakerName(m: Message): string {
     if (this.d.owners.has(m.author.id)) return "GyroP";
     const name = m.member?.displayName ?? m.author.displayName;
-    return /gyro\s*p/i.test(name) ? `${name} (un Papu, no GyroP)` : name;
+    if (/gyro\s*p/i.test(name)) return `${name} (un Papu, no GyroP)`;
+    const imitated = this.d.especiales?.imitated(m.author.id, name);
+    return imitated ? `${name} (un Papu, no ${imitated})` : name;
   }
 
   private async onCommand(bot: BotId, i: ChatInputCommandInteraction): Promise<void> {
@@ -355,7 +394,9 @@ export class PapusApp {
       const hours = Math.ceil((nextDayStart(new Date(), this.d.config.quotaTimeZone) - Date.now()) / 3_600_000);
       const text = Number.isFinite(left)
         ? `Te quedan **${left} de ${this.d.quota.limit}** mensajes con los Vocaloids hoy (se comparten entre todos los Vocaloids; cada @ cuenta uno). Se recargan en ~${hours} h, a medianoche de Chile.`
-        : "No tienes límite de mensajes (eres GyroP).";
+        : this.d.owners.has(i.user.id)
+          ? "No tienes límite de mensajes (eres GyroP)."
+          : "No tienes límite de mensajes con los Vocaloids: es un regalo de GyroP. 💙";
       await i.reply({ content: text, flags: MessageFlags.Ephemeral });
       return;
     }
@@ -371,6 +412,36 @@ export class PapusApp {
       await this.report(`🔄 GyroP reinició la cuota de hoy para ${who} (${n} con mensajes usados).`);
       return;
     }
+    if (bot === "teto" && i.commandName === "charla") {
+      if (!this.d.owners.has(i.user.id)) {
+        await i.reply({ content: "¡Eso solo lo usa GyroP! 🥖", flags: MessageFlags.Ephemeral });
+        return;
+      }
+      const bot = (i.options.getString("vocaloid") as BotId | null) ?? undefined;
+      const target = (i.options.getString("a") as BotId | null) ?? undefined;
+      const offline = [bot, target].filter((b): b is BotId => !!b && !this.d.config.activeBots.includes(b));
+      if (offline.length || (bot && bot === target)) {
+        const msg = offline.length ? `${offline.map((b) => this.d.characters[b].displayName).join(" y ")} no está conectado.` : "Un Vocaloid no puede preguntarse a sí mismo.";
+        await i.reply({ content: msg, flags: MessageFlags.Ephemeral });
+        return;
+      }
+      await i.deferReply({ flags: MessageFlags.Ephemeral });
+      const outcome = await this.generalChat.tick({ force: true, bot, target, topic: i.options.getString("tema") ?? undefined });
+      const text: Record<typeof outcome, string> = {
+        commented: "¡Listo! Un Vocaloid comentó la plática en #general.",
+        asked: "¡Listo! Un Vocaloid le preguntó algo a otro en #general (y ya le contestó).",
+        fallback: "El LLM no respondió, así que fue una frase fija en #general.",
+        skipped: "No se pudo: ya hay una charla en curso, o no encuentro #general.",
+      };
+      await i.editReply(text[outcome]);
+      return;
+    }
+    if (bot === "neru" && i.commandName === "advertir") {
+      const target = i.options.getUser("papu", true);
+      return this.warn(i, target.id, target.bot, i.channelId, { motivo: i.options.getString("motivo") ?? undefined });
+    }
+    if (bot === "neru" && i.commandName === "reporte") return this.openTicket(i);
+    if (bot === "neru" && i.commandName === "cerrar-ticket") return this.closeTicket(i);
     if (bot === "neru" && (i.commandName === "strikes" || i.commandName === "perdonar")) {
       if (!this.d.owners.has(i.user.id)) {
         await i.reply({ content: "eso solo lo usa GyroP. 📱", flags: MessageFlags.Ephemeral });
@@ -381,9 +452,130 @@ export class PapusApp {
         await i.reply({ content: `${target} tiene ${this.d.strikes.active(target.id)} strikes activos (vencen a los 3 días).`, flags: MessageFlags.Ephemeral });
       } else {
         const n = this.d.strikes.clear(target.id);
-        await i.reply({ content: `listo. borré ${n} strikes de ${target}. 📱`, flags: MessageFlags.Ephemeral });
-        await this.modLog(`🧽 GyroP perdonó ${n} strikes de ${target}.`);
+        // Perdonar tambien levanta el silencio (timeout de Discord) que siga vigente, sea de Neru, de AutoMod o manual.
+        const member = await this.guild.members.fetch(target.id).catch(() => null);
+        const silenced = !!member?.isCommunicationDisabled();
+        let unsilenced = false;
+        if (silenced && member) {
+          if (member.moderatable) {
+            await member.timeout(null, "Perdonado por GyroP (/perdonar)");
+            unsilenced = true;
+          } else {
+            await this.modLog(`⚠️ No pude quitarle el silencio a ${target}: el rol de Neru debe estar más arriba que el suyo.`);
+          }
+        }
+        if (!n && !unsilenced) {
+          const content = silenced
+            ? `${target} no tiene strikes activos y no pude quitarle el silencio (revisa el rol de Neru). 📱`
+            : `${target} no tiene strikes activos ni silencio. no hay nada que perdonar. 📱`;
+          await i.reply({ content, flags: MessageFlags.Ephemeral, allowedMentions: { parse: [] } });
+          return;
+        }
+        // En publico, en el canal donde GyroP lo usa: que todos vean que el castigo se levanto (decision de GyroP, 18 oct. 2026).
+        await i.reply({ content: this.d.phrases.pick("neru", "perdon", { papu: `<@${target.id}>` }), allowedMentions: { users: [target.id] } });
+        const what = [n ? `${n} strikes` : "", unsilenced ? "el silencio" : ""].filter(Boolean).join(" y ");
+        await this.modLog(`🧽 GyroP perdonó ${what} de ${target}.`);
       }
+    }
+  }
+
+  // ───────────────────────── avisos sin castigo ─────────────────────────
+
+  private async warnFromMenu(i: MessageContextMenuCommandInteraction): Promise<void> {
+    const m = i.targetMessage;
+    await this.warn(i, m.author.id, m.author.bot, m.channelId, { messageId: m.id, excerpt: m.content });
+  }
+
+  /** Aviso de GyroP en boca de Neru: frase fija en el canal, sin borrar ni strike (ModerationService.warn). */
+  private async warn(
+    i: ChatInputCommandInteraction | MessageContextMenuCommandInteraction,
+    userId: string,
+    isBot: boolean,
+    channelId: string,
+    extra: { messageId?: string; excerpt?: string; motivo?: string },
+  ): Promise<void> {
+    if (!this.d.owners.has(i.user.id)) {
+      await i.reply({ content: "eso solo lo usa GyroP. 📱", flags: MessageFlags.Ephemeral });
+      return;
+    }
+    if (isBot || this.d.owners.has(userId)) {
+      await i.reply({ content: "…a ese no le puedo llamar la atención. 📱", flags: MessageFlags.Ephemeral });
+      return;
+    }
+    await i.deferReply({ flags: MessageFlags.Ephemeral });
+    await this.moderation.warn({ userId, channelId, ...extra });
+    await i.editReply("listo. avisé sin strike. quedó en #moderación. 📱");
+  }
+
+  // ───────────────────────── tickets (#reportes-y-reclamos) ─────────────────────────
+
+  /** /reporte: hilo privado con el Papu y GyroP, un solo aviso en #registro-bots. */
+  private async openTicket(i: ChatInputCommandInteraction): Promise<void> {
+    await i.deferReply({ flags: MessageFlags.Ephemeral });
+    const channel = findTextChannel(this.guild, CHANNELS.reportes);
+    if (!channel) {
+      await i.editReply("no encuentro #reportes-y-reclamos. avísale a gyrop por privado. 📱");
+      return;
+    }
+    const day = dayKey(new Date(), this.d.config.quotaTimeZone);
+    const live = new Map<string, boolean>();
+    const prev = this.tickets.openFor(i.user.id);
+    if (prev) {
+      const t = await this.clients.neru.channels.fetch(prev).catch(() => null);
+      live.set(prev, !!t?.isThread() && !t.archived);
+    }
+    const check = this.tickets.canOpen(i.user.id, day, (id) => live.get(id) ?? false);
+    if (!check.ok) {
+      await i.editReply(
+        check.reason === "abierto"
+          ? `ya tienes un ticket abierto: <#${check.threadId}>. escribe ahí. 📱`
+          : `ya abriste ${MAX_TICKETS_PER_DAY} tickets hoy. mañana. o escribe en el que ya tienes.`,
+      );
+      return;
+    }
+    const n = this.tickets.nextNumber();
+    const name = i.member && "displayName" in i.member ? i.member.displayName : i.user.username;
+    const neruChannel = await this.clients.neru.channels.fetch(channel.id);
+    if (!neruChannel || neruChannel.type !== ChannelType.GuildText) throw new Error("#reportes-y-reclamos no es un canal de texto");
+    const thread = await neruChannel.threads.create({
+      name: `🎫 ${String(n).padStart(3, "0")} · ${name}`.slice(0, 100),
+      type: ChannelType.PrivateThread,
+      invitable: false,
+      autoArchiveDuration: ThreadAutoArchiveDuration.OneWeek,
+      reason: `Ticket de ${i.user.username}`,
+    });
+    this.tickets.opened(i.user.id, thread.id, day);
+    const motivo = i.options.getString("motivo", true);
+    const people = [i.user.id, ...(this.ownerId ? [this.ownerId] : [])];
+    await thread.send({
+      content: [
+        `ticket #${n} de <@${i.user.id}>${this.ownerId ? ` para <@${this.ownerId}>` : ""}. solo ustedes dos lo ven. 📱`,
+        `> ${motivo.replace(/\n/g, "\n> ")}`,
+        "si tienes una captura, súbela aquí. gyrop responde cuando pueda.",
+      ].join("\n\n"),
+      allowedMentions: { users: people },
+    });
+    await this.report(`🎫 Ticket #${n} de <@${i.user.id}>: <#${thread.id}>`);
+    await i.editReply(`listo, tu ticket: <#${thread.id}>. no es que me importe… pero gyrop lo va a ver.`);
+  }
+
+  /** /cerrar-ticket: dentro del hilo del ticket, lo cierra con candado (solo GyroP). */
+  private async closeTicket(i: ChatInputCommandInteraction): Promise<void> {
+    if (!this.d.owners.has(i.user.id)) {
+      await i.reply({ content: "eso solo lo usa GyroP. 📱", flags: MessageFlags.Ephemeral });
+      return;
+    }
+    const ch = i.channel;
+    if (!ch?.isThread() || !this.tickets.ownerOf(ch.id)) {
+      await i.reply({ content: "úsalo dentro del hilo de un ticket. 📱", flags: MessageFlags.Ephemeral });
+      return;
+    }
+    const userId = this.tickets.close(ch.id);
+    await i.reply({ content: `ticket cerrado. gracias por avisar, <@${userId}>. si pasa otra cosa, /reporte de nuevo. 📱`, allowedMentions: { users: userId ? [userId] : [] } });
+    const thread = await this.clients.neru.channels.fetch(ch.id);
+    if (thread?.isThread()) {
+      await thread.setLocked(true).catch((e) => logError("cerrar ticket", e));
+      await thread.setArchived(true).catch((e) => logError("cerrar ticket", e));
     }
   }
 
@@ -424,6 +616,49 @@ export class PapusApp {
     };
   }
 
+  private charlaPort(): CharlaPort {
+    const generalId = () => {
+      const general = findTextChannel(this.guild, CHANNELS.general);
+      if (!general) throw new Error("no hay #general");
+      return general.id;
+    };
+    return {
+      recent: async (limit) => {
+        const general = findTextChannel(this.guild, CHANNELS.general);
+        if (!general) return null;
+        const msgs = [...(await general.messages.fetch({ limit })).values()].reverse();
+        // Solo del mas nuevo hace falta saber si un bot le contestaba a un Papu (para no hablar dos veces seguidas).
+        const newest = msgs.at(-1);
+        const ref = newest?.reference?.messageId && this.botByUserId.has(newest.author.id) ? await newest.fetchReference().catch(() => null) : null;
+        return msgs.map((x): ChannelMessage => {
+          const bot = this.botByUserId.get(x.author.id) ?? null;
+          return {
+            id: x.id,
+            author: bot ? this.d.characters[bot].displayName : this.speakerName(x),
+            bot,
+            repliesToHuman: x === newest && !!ref && !ref.author.bot,
+            text: x.cleanContent,
+            at: x.createdTimestamp,
+          };
+        });
+      },
+      post: async (bot, content, mention) => {
+        const ch = await this.sendable(bot, generalId());
+        const target = mention ? this.clients[mention]?.user?.id : undefined;
+        const msg = await ch.send({ content: target ? `<@${target}> ${content}` : content, allowedMentions: target ? { users: [target] } : { parse: [] } });
+        return msg.id;
+      },
+      reply: async (bot, replyTo, content) => {
+        const ch = await this.sendable(bot, generalId());
+        await ch.send({ content, reply: { messageReference: replyTo, failIfNotExists: false }, allowedMentions: { parse: [], repliedUser: false } });
+      },
+      typing: (bot) => {
+        const general = findTextChannel(this.guild, CHANNELS.general);
+        return general ? this.chatPort().typing(bot, general.id) : () => {};
+      },
+    };
+  }
+
   private moderationPort(): ModerationPort {
     return {
       deleteMessage: async (channelId, messageId) => {
@@ -438,9 +673,13 @@ export class PapusApp {
         }
         await member.timeout(minutes * 60_000, reason);
       },
-      say: async (channelId, content, pingUserId) => {
+      say: async (channelId, content, pingUserId, replyTo) => {
         const ch = await this.sendable("neru", channelId);
-        await ch.send({ content, allowedMentions: { users: pingUserId ? [pingUserId] : [] } });
+        await ch.send({
+          content,
+          allowedMentions: { users: pingUserId ? [pingUserId] : [], repliedUser: false },
+          ...(replyTo ? { reply: { messageReference: replyTo, failIfNotExists: false } } : {}),
+        });
       },
       log: async (e) => {
         const lines = [
@@ -475,16 +714,24 @@ export class PapusApp {
       const client = this.clients[id];
       const rest = new REST().setToken(this.d.config.tokens[id]);
       await rest
-        .put(Routes.applicationGuildCommands(client.application!.id, this.d.config.guildId), { body: commandsFor(id) })
+        .put(Routes.applicationGuildCommands(client.application!.id, this.d.config.guildId), { body: [...commandsFor(id), ...contextMenusFor(id)] })
         .catch((e) => logError(`registrar comandos de ${id}`, e));
     }
   }
 
+  /** Canal libre (`canalesLibres`), o un hilo dentro de uno. */
+  private isFreeChannel(m: Message): boolean {
+    const free = this.d.moderationSettings.canalesLibres ?? [];
+    const ch = m.channel.isThread() ? m.channel.parent : m.channel;
+    return !!ch && "name" in ch && free.includes(channelKey(ch.name ?? ""));
+  }
+
   private async syncAutoMod(): Promise<void> {
     const alert = findTextChannel(this.guild, CHANNELS.moderacion);
+    const free = (this.d.moderationSettings.canalesLibres ?? []).flatMap((n) => findTextChannel(this.guild, n)?.id ?? []);
     const existing = await this.guild.autoModerationRules.fetch();
     for (const spec of buildAutoModRules(this.d.moderationSettings)) {
-      const data = autoModPayload(spec, alert?.id ?? null);
+      const data = { ...autoModPayload(spec, alert?.id ?? null), exemptChannels: spec.exemptFreeChannels ? free : [] };
       const found = existing.find((r) => r.name === spec.name);
       try {
         if (found) await found.edit(data);
@@ -596,6 +843,28 @@ export class PapusApp {
       const missing = list.filter((mb) => !mb.user.bot && needsFounder(f, mb.roles.cache.map((r) => r.name))).map((mb) => mb.id);
       if (missing.length) await this.grantFounders(missing).catch((e) => logError("Fundador", e));
     }
+    for (const [id, rol] of this.d.especiales?.roles() ?? []) {
+      const mb = list.get(id);
+      if (mb && !mb.roles.cache.some((r) => channelKey(r.name) === channelKey(rol))) {
+        await this.grantRole(id, rol, "Rol especial que dio GyroP (config/especiales.json)").catch((e) => logError(`rol ${rol}`, e));
+      }
+      if (mb) await this.syncSpecialColor(await mb.fetch(true)).catch((e) => logError(`color de ${rol}`, e));
+    }
+  }
+
+  /** Rol especial sobre los niveles: toma el color de #tu-color que elija su dueña, o vuelve al suyo. */
+  private async syncSpecialColor(member: GuildMember): Promise<void> {
+    const rol = this.d.especiales?.get(member.id)?.rol;
+    const sc = this.d.specialColors;
+    const base = rol ? sc?.base.get(channelKey(rol)) : undefined;
+    if (!rol || !sc || base === undefined) return;
+    const guild = await this.clients.teto.guilds.fetch(this.guild.id);
+    const role = guild.roles.cache.find((r) => channelKey(r.name) === channelKey(rol));
+    if (!role || !member.roles.cache.has(role.id)) return;
+    const want = specialRoleColor(base, member.roles.cache.map((r) => ({ name: r.name, color: r.colors.primaryColor, position: r.position })), sc.palette);
+    if (role.colors.primaryColor === want) return;
+    await role.setColors({ primaryColor: want }, "Color de #tu-color de su dueña (config/especiales.json)");
+    this.d.log(`${rol}: color #${want.toString(16).padStart(6, "0")}`);
   }
 
   /** Da la insignia Fundador (con los permisos de Teto) y avisa en #registro-bots. */

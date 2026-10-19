@@ -16,6 +16,8 @@ export interface ChannelSpec {
   musica?: boolean;
   /** Canal de voz (sin tema ni modo lento); los bots de musica pueden entrar. */
   voz?: boolean;
+  /** Canal de tickets (#reportes-y-reclamos): los Papus no escriben en el canal, solo en su hilo privado (/reporte). */
+  tickets?: boolean;
 }
 
 export interface CategorySpec {
@@ -28,8 +30,12 @@ export interface CategorySpec {
 
 export interface ServerLayout {
   niveles: { rol: string; color: string }[];
-  /** `todos` = Teto se lo da a cada Papu al entrar; `hasta` = fecha limite de una insignia (Fundador). */
-  rolesExtra: { rol: string; color: string; separado: boolean; bots?: boolean; todos?: boolean; hasta?: string; musica?: string[] }[];
+  /**
+   * `todos` = Teto se lo da a cada Papu al entrar; `hasta` = fecha limite de una insignia (Fundador);
+   * `sobreNiveles` = rol de una sola persona (config/especiales.json) por encima de los niveles: su color manda, salvo
+   * que elija uno de #tu-color, y entonces Teto le pone ese color al rol (npm run servidor no se lo devuelve).
+   */
+  rolesExtra: { rol: string; color: string; separado: boolean; bots?: boolean; todos?: boolean; hasta?: string; musica?: string[]; sobreNiveles?: boolean }[];
   /** Colores que cada Papu elige en un canal (menu de Miku, worker). */
   coloresPapu?: { canal: string; colores: { rol: string; color: string }[] };
   seguridad: { verificacion: number; filtroContenido: number };
@@ -53,6 +59,7 @@ export const PERM = {
   USE_APPLICATION_COMMANDS: 1n << 31n,
   CREATE_PUBLIC_THREADS: 1n << 35n,
   CREATE_PRIVATE_THREADS: 1n << 36n,
+  MANAGE_THREADS: 1n << 34n,
   SEND_MESSAGES_IN_THREADS: 1n << 38n,
   SEND_POLLS: 1n << 49n,
   PIN_MESSAGES: 1n << 51n,
@@ -98,15 +105,18 @@ export interface ChannelOptions {
   ocultarDesde?: string;
   musica?: boolean;
   voz?: boolean;
+  tickets?: boolean;
 }
 
 /** Permisos de un canal segun quien lo lee y si los Papus escriben. */
 export function overwritesFor(leen: string, escriben: boolean, roles: RoleIds, opts: ChannelOptions = {}): Overwrite[] {
-  const { ocultarDesde, musica = false, voz = false } = opts;
+  const { ocultarDesde, musica = false, voz = false, tickets = false } = opts;
   const out: Overwrite[] = [];
   const everyone: Overwrite = { id: roles.everyone, allow: 0n, deny: 0n };
   out.push(everyone);
   if (!escriben) everyone.deny |= WRITE_BITS;
+  // Tickets: nadie escribe en el canal ni abre hilos; dentro de su hilo privado (lo crea Neru con /reporte) sí.
+  if (tickets) everyone.deny |= WRITE_BITS & ~PERM.SEND_MESSAGES_IN_THREADS;
   if (ocultarDesde) {
     const idx = roles.tiers.findIndex((t) => nameKey(t.name) === nameKey(ocultarDesde));
     if (idx < 0) throw new Error(`Nivel desconocido en config/servidor.json (ocultarDesde): ${ocultarDesde}`);
@@ -129,7 +139,7 @@ export function overwritesFor(leen: string, escriben: boolean, roles: RoleIds, o
       for (const t of roles.tiers.slice(idx)) out.push({ id: t.id, allow: READ_BITS, deny: 0n });
     }
   }
-  out.push({ id: roles.bots, allow: BOT_BITS, deny: 0n });
+  out.push({ id: roles.bots, allow: tickets ? BOT_BITS | PERM.CREATE_PRIVATE_THREADS | PERM.MANAGE_THREADS : BOT_BITS, deny: 0n });
   if (roles.music) {
     out.push(
       voz
@@ -163,12 +173,25 @@ export function nameKey(name: string): string {
 }
 
 /**
- * Reordena un grupo de roles dentro de los mismos puestos que ya ocupan (no mueve a nadie de afuera). `topDown` = ids
- * del más alto al más bajo. Devuelve solo los cambios. Discord muestra el color del rol más alto: así el color de
- * #tu-color queda sobre las insignias (Papu de honor, Fundador) y debajo de los niveles.
+ * Orden de roles con `block` (ids, de arriba abajo) justo debajo de `anchor`; el resto conserva su orden relativo.
+ * Solo se reordenan los roles por debajo de `ceiling` (el rol más alto del bot que mueve; los de arriba no se tocan).
+ * Devuelve solo los cambios. Discord muestra el color del rol más alto: así el color de #tu-color queda debajo de los
+ * niveles y sobre las insignias (Papu de honor, Fundador).
  */
-export function reorderWithin(current: { id: string; position: number }[], topDown: string[]): { id: string; position: number }[] {
-  const slots = current.map((r) => r.position).sort((a, b) => b - a);
-  const now = new Map(current.map((r) => [r.id, r.position]));
-  return topDown.map((id, i) => ({ id, position: slots[i]! })).filter((r) => now.get(r.id) !== r.position);
+export function blockBelow(
+  roles: { id: string; position: number }[],
+  anchor: string,
+  block: string[],
+  ceiling: number,
+): { id: string; position: number }[] {
+  const movable = roles.filter((r) => r.position > 0 && r.position < ceiling).sort((a, b) => b.position - a.position);
+  const inBlock = new Set(block);
+  const order: string[] = [];
+  for (const r of movable) {
+    if (inBlock.has(r.id)) continue;
+    order.push(r.id);
+    if (r.id === anchor) order.push(...block.filter((id) => movable.some((m) => m.id === id)));
+  }
+  const now = new Map(roles.map((r) => [r.id, r.position]));
+  return order.map((id, i) => ({ id, position: order.length - i })).filter((r) => now.get(r.id) !== r.position);
 }

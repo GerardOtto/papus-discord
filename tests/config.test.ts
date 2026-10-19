@@ -6,7 +6,7 @@ describe("loadConfig", () => {
   it("lee tokens, cuota y zona horaria con valores por defecto", () => {
     const c = loadConfig({ ...BASE_ENV }, "C:/repo");
     expect(c.tokens.neru).toBe("n");
-    expect(c.dailyQuota).toBe(7);
+    expect(c.dailyQuota).toBe(12);
     expect(c.quotaTimeZone).toBe("America/Santiago");
     expect(c.ownerId).toBeNull();
   });
