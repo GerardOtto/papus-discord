@@ -4,8 +4,8 @@
 // muestra las preguntas, los botones y el resultado.
 import { transaction, type Db } from "../db/database";
 import type { LevelChange, LevelService } from "../levels/service";
-import { dayKey } from "../time";
-import { answerXp, playOrder, shuffledOptions, textCorrect, timerFor, type Question, type TriviaSettings } from "./rules";
+import { dayKey, nextDayStart } from "../time";
+import { answerXp, dailyCap, playOrder, shuffledOptions, textCorrect, timerFor, type Question, type TriviaSettings } from "./rules";
 
 /** Como termino una partida. perfecta = acerto todas las preguntas sin fallar (el secreto). */
 export type EndReason = "error" | "tiempo" | "perfecta";
@@ -23,8 +23,20 @@ export interface Shown {
   deadline: number;
 }
 
+/** La partida dentro del dia: si da XP (las primeras `partidasConXp`) y cuanta XP le queda al tope del dia. */
+export interface RunInfo {
+  /** Numero de partida de hoy (1 = la primera). */
+  run: number;
+  withXp: boolean;
+  /** XP que aun puede ganar hoy en la trivia. */
+  capLeft: number;
+  /** Cuando se recargan las partidas con XP y el tope (medianoche, hora de Chile). */
+  resetsAt: number;
+}
+
 interface Session {
   userId: string;
+  info: RunInfo;
   channelId: string;
   order: string[];
   pos: number;
@@ -38,6 +50,8 @@ export interface RunSummary {
   channelId: string;
   streak: number;
   xp: number;
+  /** ¿Era una de las partidas del dia que dan XP? */
+  withXp: boolean;
   reason: EndReason;
   /** Mejor racha del Papu contando esta. */
   best: number;
@@ -47,7 +61,7 @@ export interface RunSummary {
 
 export type AnswerResult =
   /** Acerto: `next` es la siguiente pregunta (o null si era la ultima: partida perfecta, ver `end`). */
-  | { kind: "acierto"; question: Question; xp: number; streak: number; change: LevelChange | null; next: Shown | null; end: RunSummary | null }
+  | { kind: "acierto"; question: Question; xp: number; info: RunInfo; streak: number; change: LevelChange | null; next: Shown | null; end: RunSummary | null }
   /** Fallo o se acabo el tiempo: la partida termino. */
   | { kind: "fallo" | "tiempo"; question: Question; picked: string | null; end: RunSummary }
   /** Boton o respuesta de una pregunta que ya paso (o de una partida que ya no existe). */
@@ -96,16 +110,34 @@ export class TriviaService {
     return this.sessions.get(userId)?.shown ?? null;
   }
 
+  /** Partidas que el Papu empezo hoy (ya terminadas). */
+  runsToday(userId: string, t = this.now()): number {
+    return (this.d.db.prepare("SELECT COUNT(*) AS n FROM trivia_partidas WHERE user_id = ? AND day = ?").get(userId, this.day(t)) as { n: number }).n;
+  }
+
+  /** XP que la trivia le dio hoy. */
+  xpToday(userId: string, t = this.now()): number {
+    const r = this.d.db.prepare("SELECT trivia AS n FROM xp_dia WHERE user_id = ? AND day = ?").get(userId, this.day(t)) as { n: number } | undefined;
+    return r?.n ?? 0;
+  }
+
+  private capLeft(userId: string, t = this.now()): number {
+    return Math.max(0, dailyCap(this.d.settings, this.d.levels.settings, this.d.levels.store.get(userId).xp, this.d.levels.multiplier(new Date(t))) - this.xpToday(userId, t));
+  }
+
   /** Empieza una partida. Si ya tiene una, devuelve esa (`busy`). */
-  start(userId: string, channelId: string): { shown: Shown; busy: boolean } {
+  start(userId: string, channelId: string): { shown: Shown; busy: boolean; info: RunInfo } {
     const current = this.sessions.get(userId);
-    if (current) return { shown: current.shown, busy: true };
+    if (current) return { shown: current.shown, busy: true, info: current.info };
+    const t = this.now();
+    const run = this.runsToday(userId, t) + 1;
+    const info: RunInfo = { run, withXp: run <= this.d.settings.limites.partidasConXp, capLeft: this.capLeft(userId, t), resetsAt: nextDayStart(new Date(t), this.d.timeZone) };
     const seen = new Set((this.d.db.prepare("SELECT pregunta FROM trivia_vistas WHERE user_id = ?").all(userId) as { pregunta: string }[]).map((r) => r.pregunta));
     const order = playOrder(this.d.questions, seen, this.rnd);
-    const s: Session = { userId, channelId, order, pos: 0, streak: 0, xp: 0, shown: null as unknown as Shown };
+    const s: Session = { userId, info, channelId, order, pos: 0, streak: 0, xp: 0, shown: null as unknown as Shown };
     s.shown = this.show(s);
     this.sessions.set(userId, s);
-    return { shown: s.shown, busy: false };
+    return { shown: s.shown, busy: false, info };
   }
 
   private show(s: Session): Shown {
@@ -148,12 +180,13 @@ export class TriviaService {
     if (this.now() > s.shown.deadline) return { kind: "tiempo", question, picked, end: this.finish(s, "tiempo") };
     if (!ok) return { kind: "fallo", question, picked, end: this.finish(s, "error") };
     s.streak++;
-    const { xp, change } = this.award(s.userId, s.streak);
+    const { xp, change } = s.info.withXp ? this.award(s.userId, s.streak) : (this.count(s.userId), { xp: 0, change: null });
     s.xp += xp;
+    s.info = { ...s.info, capLeft: s.info.withXp ? this.capLeft(s.userId) : s.info.capLeft };
     s.pos++;
-    if (s.pos >= s.order.length) return { kind: "acierto", question, xp, streak: s.streak, change, next: null, end: this.finish(s, "perfecta") };
+    if (s.pos >= s.order.length) return { kind: "acierto", question, xp, info: s.info, streak: s.streak, change, next: null, end: this.finish(s, "perfecta") };
     s.shown = this.show(s);
-    return { kind: "acierto", question, xp, streak: s.streak, change, next: s.shown, end: null };
+    return { kind: "acierto", question, xp, info: s.info, streak: s.streak, change, next: s.shown, end: null };
   }
 
   // ───────────────────────── XP ─────────────────────────
@@ -176,16 +209,24 @@ export class TriviaService {
     return r?.n ?? 0;
   }
 
+  /** Un acierto sin XP (partida fuera de las del dia): solo se cuenta. */
+  private count(userId: string): void {
+    this.d.db
+      .prepare("INSERT INTO xp_dia (user_id, day, trivia_aciertos) VALUES (?, ?, 1) ON CONFLICT(user_id, day) DO UPDATE SET trivia_aciertos = trivia_aciertos + 1")
+      .run(userId, this.day());
+  }
+
+  /** XP del acierto, recortada a lo que le queda del tope del dia (0 si ya llego). */
   private award(userId: string, streak: number): { xp: number; change: LevelChange | null } {
     const t = this.now();
     return transaction(this.d.db, () => {
-      const xp = answerXp(this.d.settings, this.d.levels.settings, {
+      const full = answerXp(this.d.settings, this.d.levels.settings, {
         xp: this.d.levels.store.get(userId).xp,
         dailyAvg: this.dailyAvg(userId, t),
         streak,
-        correctToday: this.correctToday(userId, t),
         multiplier: this.d.levels.multiplier(new Date(t)),
       });
+      const xp = Math.min(full, this.capLeft(userId, t));
       const change = this.d.levels.bonus(userId, xp, t);
       this.d.db
         .prepare("INSERT INTO xp_dia (user_id, day, trivia, trivia_aciertos) VALUES (?, ?, ?, 1) ON CONFLICT(user_id, day) DO UPDATE SET trivia = trivia + excluded.trivia, trivia_aciertos = trivia_aciertos + 1")
@@ -210,7 +251,7 @@ export class TriviaService {
     this.sessions.delete(s.userId);
     const before = this.best(s.userId);
     this.d.db.prepare("INSERT INTO trivia_partidas (user_id, day, racha, xp, fin, at) VALUES (?, ?, ?, ?, ?, ?)").run(s.userId, this.day(), s.streak, s.xp, reason, this.now());
-    return { userId: s.userId, channelId: s.channelId, streak: s.streak, xp: s.xp, reason, best: Math.max(before, s.streak), record: s.streak > before && s.streak > 0 };
+    return { userId: s.userId, channelId: s.channelId, streak: s.streak, xp: s.xp, withXp: s.info.withXp, reason, best: Math.max(before, s.streak), record: s.streak > before && s.streak > 0 };
   }
 
   /** Mejores rachas del servidor (para el resultado publico). */

@@ -199,8 +199,14 @@ y `src/discord/trivia.ts`.
 - **Tiempo límite** por pregunta (opciones 20 s, texto 45 s, audio 30 s, imagen 20 s): si se acaba, cuenta como error.
 - **XP al instante** en cada acierto (no al final): lo mayor entre el 2 % de lo que pide su nivel y el 2,5 % de su XP
   promedio por día activo de los últimos 7 días (sin la XP de la trivia: así sigue cómo viene creciendo cada Papu),
-  mínimo 10 y tope 6 % de su nivel; cada acierto seguido suma +5 % (hasta el doble); desde el acierto 40 del día vale
-  la mitad y desde el 80 un cuarto; se multiplica por el evento de XP. Excepción a la regla 1 como las bodas y la ruleta.
+  mínimo 10 y tope 4 % de su nivel; cada acierto seguido suma +5 % (hasta el doble); se multiplica por el evento de XP.
+  Excepción a la regla 1 como las bodas y la ruleta.
+- **Límites del día** (decisión de GyroP tras la prueba del 26 oct. 2026, idea de wiwi): en ~3,7 h, 13 Papus jugaron
+  615 partidas y ganaron 85.264 XP; los cinco que más ganaron sacaron entre 8.500 y 16.300 XP cada uno (5 a 10 niveles en una tarde, 4-5 veces un día
+  normal), porque cada acierto quedaba en el tope de 6 % y no había límite de partidas. Desde entonces: **solo las
+  primeras 10 partidas del día dan XP** (después se sigue jugando por la racha, sin XP) y la trivia da como máximo
+  **medio nivel por día** (50 % de lo que pide su nivel, mínimo 100 XP); todo se recarga a medianoche de Chile. La XP
+  ya ganada en la prueba se quedó (decisión de GyroP).
 - **La racha termina con el primer error o tiempo agotado**: el Papu ve la respuesta y el dato, y Teto publica el
   resultado en el canal donde jugaba (frases fijas `trivia_racha` / `trivia_cero`, con su mejor racha).
 - **Repertorio**: más de 700 preguntas (590 escritas, 84 de audio y 45 siluetas). Cada partida pasa primero por las que

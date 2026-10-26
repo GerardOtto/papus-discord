@@ -14,7 +14,8 @@ export interface TriviaSettings {
   segundos: Record<TimerKind, number>;
   xp: { porcentajeNivel: number; porcentajeDia: number; dias: number; minimo: number; topeNivel: number };
   racha: { bono: number; tope: number };
-  diario: { desde: number; factor: number }[];
+  /** Por dia: partidas que dan XP y tope de XP de la trivia (fraccion de su nivel, con minimo). */
+  limites: { partidasConXp: number; topeDiaNivel: number; topeDiaMinimo: number };
   siluetas: ImageMode[];
   secreto: { rol: string; color: string; mensaje: string };
 }
@@ -192,20 +193,26 @@ export function playOrder(questions: readonly Question[], seen: ReadonlySet<stri
  * - base: lo mayor entre `porcentajeNivel` de lo que pide su nivel actual y `porcentajeDia` de su XP promedio por dia
  *   activo reciente (sin la de la trivia), entre `minimo` y `topeNivel` de su nivel.
  * - racha: `streak` = numero de este acierto en la racha (1 = el primero); cada uno anterior suma `bono`, hasta `tope`.
- * - dia: `correctToday` = aciertos de hoy ANTES de este; desde cada tramo de `diario`, vale `factor`.
  * - por el multiplicador del evento de XP.
+ * El tope del dia (`dailyCap`) lo aplica el servicio.
  */
 export function answerXp(
   s: TriviaSettings,
   ls: LevelSettings,
-  p: { xp: number; dailyAvg: number; streak: number; correctToday: number; multiplier: number },
+  p: { xp: number; dailyAvg: number; streak: number; multiplier: number },
 ): number {
   const need = progress(ls, p.xp).needed;
   const byLevel = s.xp.porcentajeNivel * need;
   const byDay = s.xp.porcentajeDia * Math.max(0, p.dailyAvg);
   const base = Math.max(s.xp.minimo, Math.min(s.xp.topeNivel * need, Math.max(byLevel, byDay)));
   const streak = 1 + s.racha.bono * Math.min(Math.max(0, p.streak - 1), s.racha.tope);
-  let day = 1;
-  for (const t of s.diario) if (p.correctToday >= t.desde) day = t.factor;
-  return Math.max(1, Math.round(base * streak * day * Math.max(1, p.multiplier)));
+  return Math.max(1, Math.round(base * streak * Math.max(1, p.multiplier)));
+}
+
+/**
+ * XP maxima que da la trivia en un dia (decision de GyroP tras la prueba del 26 oct. 2026): `topeDiaNivel` de lo que
+ * pide su nivel actual, al menos `topeDiaMinimo`. El evento de XP la multiplica tambien.
+ */
+export function dailyCap(s: TriviaSettings, ls: LevelSettings, xp: number, multiplier = 1): number {
+  return Math.round(Math.max(s.limites.topeDiaMinimo, s.limites.topeDiaNivel * progress(ls, xp).needed) * Math.max(1, multiplier));
 }

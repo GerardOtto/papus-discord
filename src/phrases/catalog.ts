@@ -16,7 +16,7 @@ const WEDDING_GROUPS = ["boda_adivinanza", "boda_acierto", "boda_desierta", "bod
 
 /** Grupos obligatorios por bot (PLAN §6 + los que usa el codigo). */
 const BASE_GROUPS: Record<BotId, string[]> = {
-  teto: ["bienvenida", "bienvenida_grupal", "cumpleanos", "ya_volvi", "vitrina_nuevo", "sube_rango", "papu_de_honor", "nivel_maximo", "prestigio", "ranking", "ruleta_premio", "ruleta_mision", "trivia_racha", "trivia_cero", "cuota_agotada", "cola_llena", "sin_api", ...PRIVATE_GROUPS, ...PRESENCE_GROUPS],
+  teto: ["bienvenida", "bienvenida_grupal", "cumpleanos", "ya_volvi", "vitrina_nuevo", "sube_rango", "papu_de_honor", "nivel_maximo", "prestigio", "ranking", "ruleta_premio", "ruleta_mision", "trivia_racha", "trivia_racha_libre", "trivia_cero", "cuota_agotada", "cola_llena", "sin_api", ...PRIVATE_GROUPS, ...PRESENCE_GROUPS],
   miku: [
     "votacion_abierta",
     "vitrina_votacion",
@@ -81,6 +81,7 @@ export const REQUIRED_FIELDS: Record<string, string[]> = {
   "teto.ruleta_premio": ["papu", "premio"],
   "teto.ruleta_mision": ["papu", "mision"],
   "teto.trivia_racha": ["papu", "racha", "xp"],
+  "teto.trivia_racha_libre": ["papu", "racha"],
   "teto.trivia_cero": ["papu"],
   "miku.votacion_abierta": ["tema"],
   "miku.vitrina_votacion": ["tema"],

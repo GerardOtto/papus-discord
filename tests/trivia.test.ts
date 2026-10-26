@@ -5,7 +5,7 @@ import { describe, expect, it } from "vitest";
 import { loadLevelSettings, progress } from "../src/levels/rules";
 import { LevelService } from "../src/levels/service";
 import { renderFigure } from "../src/trivia/images";
-import { answerXp, loadAudioClips, loadQuestions, loadTriviaSettings, playOrder, shuffledOptions, textCorrect, timerFor, type Question } from "../src/trivia/rules";
+import { answerXp, dailyCap, loadAudioClips, loadQuestions, loadTriviaSettings, playOrder, shuffledOptions, textCorrect, timerFor, type Question } from "../src/trivia/rules";
 import { TriviaService } from "../src/trivia/service";
 import { memDb, seededRng } from "./helpers";
 
@@ -92,7 +92,7 @@ describe("reglas", () => {
   });
 
   it("la XP crece con el nivel, con lo que crece el Papu y con la racha", () => {
-    const base = { xp: 0, dailyAvg: 0, streak: 1, correctToday: 0, multiplier: 1 };
+    const base = { xp: 0, dailyAvg: 0, streak: 1, multiplier: 1 };
     expect(answerXp(S, LS, base)).toBe(S.xp.minimo);
     const xp30 = 25_000;
     const need = progress(LS, xp30).needed;
@@ -106,11 +106,11 @@ describe("reglas", () => {
     expect(answerXp(S, LS, { ...base, xp: xp30, multiplier: 2 })).toBe(Math.round(S.xp.porcentajeNivel * need * 2));
   });
 
-  it("muchos aciertos en el dia valen menos", () => {
-    const p = { xp: 25_000, dailyAvg: 0, streak: 1, multiplier: 1 };
-    const full = answerXp(S, LS, { ...p, correctToday: 0 });
-    expect(answerXp(S, LS, { ...p, correctToday: S.diario[0]!.desde })).toBe(Math.round((full * S.diario[0]!.factor)));
-    expect(answerXp(S, LS, { ...p, correctToday: S.diario[1]!.desde })).toBe(Math.round(S.xp.porcentajeNivel * progress(LS, 25_000).needed * S.diario[1]!.factor));
+  it("el tope del dia es una fraccion del nivel, con minimo y multiplicador", () => {
+    expect(dailyCap(S, LS, 0)).toBe(S.limites.topeDiaMinimo);
+    const need = progress(LS, 25_000).needed;
+    expect(dailyCap(S, LS, 25_000)).toBe(Math.round(S.limites.topeDiaNivel * need));
+    expect(dailyCap(S, LS, 25_000, 2)).toBe(Math.round(S.limites.topeDiaNivel * need * 2));
   });
 });
 
@@ -197,5 +197,41 @@ describe("partidas", () => {
     at(NOON);
     expect(t.dailyAvg("p")).toBe(1000);
     expect(t.correctToday("p")).toBe(0);
+  });
+
+  it("solo las primeras partidas del dia dan XP; despues se juega por la racha", () => {
+    const { t, levels, later } = setup([q("a"), q("b"), q("c"), q("d"), q("e")]);
+    const N = S.limites.partidasConXp;
+    for (let n = 1; n <= N; n++) {
+      const { info, shown } = t.start("p", "c");
+      expect(info).toMatchObject({ run: n, withXp: true });
+      t.answerOption("p", shown.nonce, (shown.correct + 1) % 4);
+    }
+    const before = levels.store.get("p").xp;
+    const { info } = t.start("p", "c");
+    expect(info.withXp).toBe(false);
+    const r = right(t, "p");
+    expect(r.kind === "acierto" && r.xp).toBe(0);
+    expect(levels.store.get("p").xp).toBe(before);
+    expect(t.correctToday("p")).toBe(1);
+    // Al dia siguiente vuelven las partidas con XP.
+    const s = t.active("p")!;
+    t.answerOption("p", s.nonce, (s.correct + 1) % 4);
+    later(86_400_000);
+    expect(t.start("p", "c").info).toMatchObject({ run: 1, withXp: true });
+  });
+
+  it("la XP de la trivia no pasa del tope del dia", () => {
+    const qs = Array.from({ length: 60 }, (_, k) => q(`q${k}`));
+    const { t, levels } = setup(qs);
+    t.start("p", "c");
+    let total = 0;
+    for (let k = 0; k < 59; k++) {
+      const r = right(t, "p");
+      if (r.kind === "acierto") total += r.xp;
+    }
+    expect(total).toBe(dailyCap(S, LS, 0));
+    expect(levels.store.get("p").xp).toBe(total);
+    expect(t.active("p")!.number).toBe(60);
   });
 });

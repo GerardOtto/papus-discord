@@ -21,7 +21,7 @@ import type { BotId } from "../config";
 import { logError, type LogFn } from "../log";
 import type { Phrases } from "../phrases/catalog";
 import { renderFigure } from "../trivia/images";
-import type { AnswerResult, RunSummary, Shown, TriviaService } from "../trivia/service";
+import type { AnswerResult, RunInfo, RunSummary, Shown, TriviaService } from "../trivia/service";
 import { channelKey } from "./channels";
 import type { LevelsDiscord } from "./levels";
 
@@ -76,7 +76,16 @@ export class TriviaDiscord {
 
   // ───────────────────────── pantalla ─────────────────────────
 
-  private async question(s: Shown, header: string[] = []): Promise<Payload> {
+  /** Linea de los limites del dia: partidas con XP y tope (decision de GyroP tras la prueba, idea de wiwi). */
+  private limits(info: RunInfo): string {
+    const max = this.t.settings.limites.partidasConXp;
+    const back = `<t:${Math.ceil(info.resetsAt / 1000)}:R>`;
+    if (!info.withXp) return `-# 🎮 Ya jugaste tus ${max} partidas con XP de hoy: esta va por la racha y la diversión. La XP vuelve ${back}.`;
+    if (info.capLeft <= 0) return `-# ⭐ Llegaste al tope de XP de la trivia de hoy: sigue por la racha. La XP vuelve ${back}.`;
+    return `-# ⭐ Partida ${info.run} de ${max} con XP hoy · puedes ganar hasta ${fmt(info.capLeft)} XP más en la trivia hoy.`;
+  }
+
+  private async question(s: Shown, info: RunInfo, header: string[] = []): Promise<Payload> {
     const q = s.question;
     const files: AttachmentBuilder[] = [];
     if (q.image) files.push(new AttachmentBuilder(await renderFigure(q.image.bot, q.image.mode), { name: "trivia.png" }));
@@ -89,6 +98,7 @@ export class TriviaDiscord {
       `**${q.text}**`,
       q.kind === "texto" ? "-# Toca el botón y escribe tu respuesta." : "",
       `⏳ Tiempo: <t:${Math.ceil(s.deadline / 1000)}:R>`,
+      this.limits(info),
     ]
       .filter((l, k, a) => l !== "" || (k > 0 && a[k - 1] !== ""))
       .join("\n");
@@ -107,14 +117,14 @@ export class TriviaDiscord {
     const q = res.question;
     const lines: string[] = [];
     if (res.kind === "acierto") {
-      lines.push(`✅ ¡Correcto! **+${fmt(res.xp)} XP**`, "", `🌟 **¡Contestaste las ${this.t.total} preguntas sin fallar!** Mira el canal… 👀`);
+      lines.push(`✅ ¡Correcto!${res.xp > 0 ? ` **+${fmt(res.xp)} XP**` : ""}`, "", `🌟 **¡Contestaste las ${this.t.total} preguntas sin fallar!** Mira el canal… 👀`);
     } else {
       lines.push(res.kind === "tiempo" ? `⌛ **¡Se acabó el tiempo!** Era **${q.answer}**.` : `❌ **Incorrecto.** Era **${q.answer}**.`);
       if (q.fact) lines.push(`-# ${q.fact}`);
     }
     lines.push(
       "",
-      `🏁 Racha final: **${end.streak}** · **+${fmt(end.xp)} XP** en total${end.record ? " · 🏆 ¡tu mejor racha!" : ` · tu mejor racha: ${end.best}`}`,
+      `🏁 Racha final: **${end.streak}**${end.xp > 0 ? ` · **+${fmt(end.xp)} XP** en total` : ""}${end.record ? " · 🏆 ¡tu mejor racha!" : ` · tu mejor racha: ${end.best}`}`,
       "-# Teto publicó tu resultado en el canal.",
     );
     const again = new ButtonBuilder().setCustomId(AGAIN_ID).setLabel("Jugar otra vez").setEmoji("🔁").setStyle(ButtonStyle.Success);
@@ -122,7 +132,7 @@ export class TriviaDiscord {
   }
 
   private correctHeader(res: Extract<AnswerResult, { kind: "acierto" }>): string[] {
-    return [`✅ ¡Correcto! **+${fmt(res.xp)} XP**${res.question.fact ? ` · ${res.question.fact}` : ""}`, ""];
+    return [`✅ ¡Correcto!${res.xp > 0 ? ` **+${fmt(res.xp)} XP**` : ""}${res.question.fact ? ` · ${res.question.fact}` : ""}`, ""];
   }
 
   // ───────────────────────── temporizador ─────────────────────────
@@ -152,12 +162,12 @@ export class TriviaDiscord {
   // ───────────────────────── comandos y botones ─────────────────────────
 
   async trivia(i: ChatInputCommandInteraction): Promise<void> {
-    const { shown, busy } = this.t.start(i.user.id, i.channelId);
+    const { shown, busy, info } = this.t.start(i.user.id, i.channelId);
     if (busy) {
       return void (await i.reply({ content: `Ya tienes una trivia en curso (pregunta ${shown.number}). Contéstala o espera a que se acabe su tiempo. ⏳`, flags: MessageFlags.Ephemeral }));
     }
     await i.deferReply({ flags: MessageFlags.Ephemeral });
-    await i.editReply(await this.question(shown));
+    await i.editReply(await this.question(shown, info));
     this.arm(i.user.id, i, shown);
   }
 
@@ -166,10 +176,10 @@ export class TriviaDiscord {
     const [kind, action, nonce, k] = i.customId.split(":");
     if (kind !== "trivia") return false;
     if (i.customId === AGAIN_ID) {
-      const { shown, busy } = this.t.start(i.user.id, i.channelId);
+      const { shown, busy, info } = this.t.start(i.user.id, i.channelId);
       if (busy) await i.reply({ content: "Ya tienes una trivia en curso. ⏳", flags: MessageFlags.Ephemeral });
       else {
-        await i.update(await this.question(shown));
+        await i.update(await this.question(shown, info));
         this.arm(i.user.id, i, shown);
       }
       return true;
@@ -212,7 +222,7 @@ export class TriviaDiscord {
     const userId = i.user.id;
     const update = (p: Payload) => (i.isButton() ? i.update(p) : i.isFromMessage() ? i.update(p) : i.reply({ ...p, flags: MessageFlags.Ephemeral }));
     if (res.kind === "acierto" && res.next) {
-      const payload = await this.question(res.next, this.correctHeader(res));
+      const payload = await this.question(res.next, res.info, this.correctHeader(res));
       await update(payload);
       this.arm(userId, i, res.next);
     } else {
@@ -232,9 +242,11 @@ export class TriviaDiscord {
     if (!ch) return void this.d.log(`🧠 Trivia: Teto no puede escribir en el canal ${end.channelId} (racha de ${end.streak})`);
     const papu = `<@${end.userId}>`;
     const text =
-      end.streak > 0
-        ? this.d.phrases.pick("teto", "trivia_racha", { papu, racha: end.streak, xp: fmt(end.xp) })
-        : this.d.phrases.pick("teto", "trivia_cero", { papu });
+      end.streak === 0
+        ? this.d.phrases.pick("teto", "trivia_cero", { papu })
+        : end.xp > 0
+          ? this.d.phrases.pick("teto", "trivia_racha", { papu, racha: end.streak, xp: fmt(end.xp) })
+          : this.d.phrases.pick("teto", "trivia_racha_libre", { papu, racha: end.streak });
     const extra = end.record && end.streak >= 3 ? `\n🏆 ¡Nueva mejor racha de ${papu}!` : "";
     await ch.send({ content: `${text}${extra}\n-# 🧠 /trivia · ${end.reason === "tiempo" ? "se le acabó el tiempo" : "falló una"} · mejor racha: ${end.best}`, allowedMentions: { users: [end.userId] } });
     this.d.log(`🧠 Trivia: racha de ${end.streak} (+${end.xp} XP, ${end.reason}) de ${end.userId}`);
