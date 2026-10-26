@@ -21,6 +21,9 @@ export interface StrikeInput {
 }
 
 export class StrikeStore {
+  /** Aviso a quien le interese cada strike nuevo (los niveles quitan la XP del dia). */
+  onAdd: ((userId: string, now: number) => void) | null = null;
+
   constructor(
     private readonly db: Db,
     private readonly ttlDays = 3,
@@ -41,6 +44,7 @@ export class StrikeStore {
         now + this.ttlDays * 86_400_000,
       );
     const active = this.active(input.userId, now);
+    this.onAdd?.(input.userId, now);
     return { active, penalty: penaltyFor(active) };
   }
 

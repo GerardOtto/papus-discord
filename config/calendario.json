@@ -7,6 +7,7 @@
   "fijos": {
     "$comment": "Videos fijados a mano: \"AAAA-MM-DD\": \"título\" (o {\"titulo\", \"hora\", \"zona\"} si sale a otra hora). Mandan sobre lo automático (votación, finales); el video que tenía ese día vuelve a la fila. Para soltar un día, se borra su línea.",
     "2026-10-19": "¿Quién es KAITO? Sus canciones, sus shipeos y su origen",
-    "2026-10-21": { "titulo": "Carrusel de Bad End Night", "hora": "18:00", "zona": "America/Santiago" }
+    "2026-10-21": { "titulo": "Carrusel de Bad End Night", "hora": "18:00", "zona": "America/Santiago" },
+    "2026-10-23": { "titulo": "Objetos Vocaloid parte 2: la zanahoria de Gumi, la berenjena de Gakupo y el sake de Meiko y Haku", "hora": "11:00", "zona": "America/Santiago" }
   }
 }

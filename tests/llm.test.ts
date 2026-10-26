@@ -50,6 +50,14 @@ describe("LLMChain", () => {
     expect(chain.available().map((p) => p.name)).toEqual(["groq", "gemini", "openrouter"]);
   });
 
+  it("anota cada API que falla con su motivo y lo que tardó (caso real del 21 oct. 2026: 77 s sin saber por qué)", async () => {
+    const logs: string[] = [];
+    const chain = new LLMChain([broken("groq"), ok("gemini")], null, Date.now, null, (m) => logs.push(m));
+    expect((await chain.chat(REQ)).provider).toBe("gemini");
+    expect(logs).toHaveLength(1);
+    expect(logs[0]).toMatch(/^✘ LLM groq falló en \d+\.\d s: 500$/);
+  });
+
   it("si todas fallan lanza AllProvidersFailedError (frase fija del personaje)", async () => {
     const chain = new LLMChain([limited("groq"), broken("gemini")]);
     await expect(chain.chat(REQ)).rejects.toBeInstanceOf(AllProvidersFailedError);

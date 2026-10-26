@@ -1,0 +1,1150 @@
+{
+  "$comment": "Adivinanzas de las bodas (config/bodas.json, PLAN §3.2). Las revisa el código, nunca el LLM: vale si el mensaje del Papu en el hilo contiene una de las 'respuestas' (sin importar mayúsculas, acentos, signos ni artículos) con hasta 4 palabras de más ('creo que es la luna'); una lista larga de intentos no vale. La primera respuesta es la que se revela. Salen al azar sin repetir hasta agotar las de cada chica. Lo de cada personaje sale de su ficha (regla 6). Para agregar más, basta con escribirlas aquí.",
+  "teto": [
+    {
+      "adivinanza": "Larga y dorada, crujiente por fuera y suavecita por dentro; vengo de Francia y Teto no me deja nunca. ¿Qué soy?",
+      "respuestas": [
+        "baguette",
+        "baguettes",
+        "pan francés",
+        "pan",
+        "barra de pan",
+        "bolillo"
+      ]
+    },
+    {
+      "adivinanza": "Giro y giro sin parar, hago hoyos en la pared, y dicen que mis coletas se parecen a mí. ¿Qué soy?",
+      "respuestas": [
+        "taladro",
+        "taladros"
+      ]
+    },
+    {
+      "adivinanza": "Nací como broma de inocentes, el día 1 de un mes que empieza con A. ¿Qué mes es?",
+      "respuestas": [
+        "abril"
+      ]
+    },
+    {
+      "adivinanza": "Mientras más le quitas, más grande se hace. ¿Qué es?",
+      "respuestas": [
+        "agujero",
+        "hoyo",
+        "pozo",
+        "bache"
+      ]
+    },
+    {
+      "adivinanza": "Tengo dientes y no muerdo, peino sin tener manos. ¿Qué soy?",
+      "respuestas": [
+        "peine",
+        "cepillo"
+      ]
+    },
+    {
+      "adivinanza": "Sube llena y baja vacía; si no se da prisa, la sopa se enfría. ¿Qué es?",
+      "respuestas": [
+        "cuchara"
+      ]
+    },
+    {
+      "adivinanza": "Vuela sin alas, silba sin boca, empuja sin manos y nadie lo toca. ¿Qué es?",
+      "respuestas": [
+        "viento",
+        "aire"
+      ]
+    },
+    {
+      "adivinanza": "Cuanto más seca, más moja. ¿Qué es?",
+      "respuestas": [
+        "toalla"
+      ]
+    },
+    {
+      "adivinanza": "Blanco por dentro, verde por fuera; si quieres que te lo diga, espera. ¿Qué fruta es?",
+      "respuestas": [
+        "pera"
+      ]
+    },
+    {
+      "adivinanza": "Tiene agujas y no cose, camina sin pies, y si lo miras sabes cuánto falta para que GyroP suba video. ¿Qué es?",
+      "respuestas": [
+        "reloj"
+      ]
+    }
+  ],
+  "miku": [
+    {
+      "adivinanza": "Verde, larga y con olor a cebolla, pero no soy cebolla: Miku me agita cuando canta Ievan Polkka. ¿Qué verdura soy?",
+      "respuestas": [
+        "puerro",
+        "puerros",
+        "negi"
+      ]
+    },
+    {
+      "adivinanza": "Tengo teclas blancas y negras, cuerdas escondidas, y sueno bonito si me tocas. ¿Qué soy?",
+      "respuestas": [
+        "piano"
+      ]
+    },
+    {
+      "adivinanza": "Tiene cuerdas y un arco, pero no lanza flechas; se toca apoyado bajo el mentón. ¿Qué es?",
+      "respuestas": [
+        "violín",
+        "violin"
+      ]
+    },
+    {
+      "adivinanza": "Me escuchas pero no me ves, y si me hablas te contesto con tus mismas palabras. ¿Qué soy?",
+      "respuestas": [
+        "eco"
+      ]
+    },
+    {
+      "adivinanza": "Tengo un ojo y no veo, coso sin ser costurera. ¿Qué soy?",
+      "respuestas": [
+        "aguja"
+      ]
+    },
+    {
+      "adivinanza": "Siete colores tengo y salgo después de la lluvia. ¿Qué soy?",
+      "respuestas": [
+        "arcoíris",
+        "arco iris",
+        "arcoiris"
+      ]
+    },
+    {
+      "adivinanza": "Brillo en el cielo de noche, me pintan en los escenarios y en japonés me dicen 'hoshi'. ¿Qué soy?",
+      "respuestas": [
+        "estrella",
+        "estrellas"
+      ]
+    },
+    {
+      "adivinanza": "Tengo cuello y no tengo cabeza, tengo mangas y no tengo brazos. ¿Qué soy?",
+      "respuestas": [
+        "camisa",
+        "playera",
+        "blusa",
+        "camiseta"
+      ]
+    },
+    {
+      "adivinanza": "En un concierto todos la agitan; es una barrita que se enciende de colores. ¿Qué es?",
+      "respuestas": [
+        "barra de luz",
+        "glowstick",
+        "lightstick",
+        "barrita de luz",
+        "varita de luz"
+      ]
+    },
+    {
+      "adivinanza": "Me pones en tus orejas y solo tú escuchas la música. ¿Qué soy?",
+      "respuestas": [
+        "audífonos",
+        "audifonos",
+        "auriculares",
+        "cascos"
+      ]
+    }
+  ],
+  "luka": [
+    {
+      "adivinanza": "Nado en el mar, soy grande y plateado, y también vivo en latas que Luka ordena por fecha. ¿Qué soy?",
+      "respuestas": [
+        "atún",
+        "atun"
+      ]
+    },
+    {
+      "adivinanza": "Tengo hojas y no soy árbol, tengo lomo y no soy animal. ¿Qué soy?",
+      "respuestas": [
+        "libro",
+        "libros",
+        "cuaderno"
+      ]
+    },
+    {
+      "adivinanza": "Cuanto más grande, menos se ve. ¿Qué es?",
+      "respuestas": [
+        "oscuridad",
+        "obscuridad"
+      ]
+    },
+    {
+      "adivinanza": "Si me nombras, desaparezco. ¿Qué soy?",
+      "respuestas": [
+        "silencio"
+      ]
+    },
+    {
+      "adivinanza": "Tengo teclas y no soy piano, tengo una tecla de espacio y no tengo cuartos. ¿Qué soy?",
+      "respuestas": [
+        "teclado"
+      ]
+    },
+    {
+      "adivinanza": "Cae de pie y corre acostada. ¿Qué es?",
+      "respuestas": [
+        "lluvia"
+      ]
+    },
+    {
+      "adivinanza": "Viene una vez en un minuto, dos veces en un momento y nunca en cien años. ¿Qué es?",
+      "respuestas": [
+        "letra m",
+        "la m",
+        "m"
+      ]
+    },
+    {
+      "adivinanza": "Tengo muchos dientes y nunca me los cepillo; subo y bajo para cerrar tu chamarra. ¿Qué soy?",
+      "respuestas": [
+        "cierre",
+        "zipper",
+        "cremallera",
+        "ziper"
+      ]
+    },
+    {
+      "adivinanza": "Es tuyo, pero los demás lo usan mucho más que tú. ¿Qué es?",
+      "respuestas": [
+        "nombre",
+        "tu nombre"
+      ]
+    },
+    {
+      "adivinanza": "Tengo cuatro patas y no camino, tengo respaldo y no soy amigo. ¿Qué soy?",
+      "respuestas": [
+        "silla",
+        "sillón",
+        "sillon"
+      ]
+    }
+  ],
+  "neru": [
+    {
+      "adivinanza": "me cargas todo el día y aun así te pido carga. ¿qué soy?",
+      "respuestas": [
+        "celular",
+        "teléfono",
+        "telefono",
+        "móvil",
+        "movil",
+        "cel",
+        "smartphone"
+      ]
+    },
+    {
+      "adivinanza": "vuelo sin alas y lloro sin ojos. ¿qué soy?",
+      "respuestas": [
+        "nube",
+        "nubes"
+      ]
+    },
+    {
+      "adivinanza": "escribo sin manos, me sacan punta y cada vez soy más chiquito. ¿qué soy?",
+      "respuestas": [
+        "lápiz",
+        "lapiz"
+      ]
+    },
+    {
+      "adivinanza": "me tiran cuando me quieren usar y me suben cuando ya no. ¿qué soy?",
+      "respuestas": [
+        "ancla"
+      ]
+    },
+    {
+      "adivinanza": "estoy llena de hoyos y aun así guardo agua. ¿qué soy?",
+      "respuestas": [
+        "esponja"
+      ]
+    },
+    {
+      "adivinanza": "todos lo pasan, nadie lo ve, y nunca regresa. ¿qué es?",
+      "respuestas": [
+        "tiempo"
+      ]
+    },
+    {
+      "adivinanza": "si lo tienes, quieres compartirlo; si lo compartes, ya no lo tienes. ¿qué es?",
+      "respuestas": [
+        "secreto",
+        "un secreto"
+      ]
+    },
+    {
+      "adivinanza": "tiene cabecera y pies, pero no tiene cuerpo. y yo vivo en ella. ¿qué es?",
+      "respuestas": [
+        "cama"
+      ]
+    },
+    {
+      "adivinanza": "siempre está por llegar pero nunca llega. ¿qué es?",
+      "respuestas": [
+        "mañana",
+        "manana",
+        "el mañana"
+      ]
+    },
+    {
+      "adivinanza": "recorre todo el país y nunca se mueve. ¿qué es?",
+      "respuestas": [
+        "camino",
+        "carretera",
+        "calle"
+      ]
+    }
+  ],
+  "flower": [
+    {
+      "adivinanza": "Seis cuerdas tengo y no soy tendedero; si me rasgueas, suena el rock. ¿Qué soy?",
+      "respuestas": [
+        "guitarra",
+        "guitarra eléctrica",
+        "guitarra electrica"
+      ]
+    },
+    {
+      "adivinanza": "Me golpean con palos y no me quejo: marco el ritmo de toda la banda. ¿Qué soy?",
+      "respuestas": [
+        "batería",
+        "bateria",
+        "tambor",
+        "tambores"
+      ]
+    },
+    {
+      "adivinanza": "Me enchufan a la guitarra y la hago sonar enorme. ¿Qué soy?",
+      "respuestas": [
+        "amplificador",
+        "ampli",
+        "amp",
+        "bocina"
+      ]
+    },
+    {
+      "adivinanza": "Pequeñita y triangular, con ella se toca la guitarra y siempre se pierde. ¿Qué es?",
+      "respuestas": [
+        "púa",
+        "pua",
+        "plumilla",
+        "uñeta"
+      ]
+    },
+    {
+      "adivinanza": "Sube y baja, pero nunca se mueve. ¿Qué es?",
+      "respuestas": [
+        "escalera",
+        "escaleras"
+      ]
+    },
+    {
+      "adivinanza": "Me prenden en los cumpleaños y me apagan de un soplido. ¿Qué soy?",
+      "respuestas": [
+        "vela",
+        "velas",
+        "velita"
+      ]
+    },
+    {
+      "adivinanza": "Te sigo a todos lados cuando hay luz y desaparezco en la oscuridad. ¿Qué soy?",
+      "respuestas": [
+        "sombra"
+      ]
+    },
+    {
+      "adivinanza": "Tengo dientes y no muerdo; si me metes en la cerradura, abro la puerta. ¿Qué soy?",
+      "respuestas": [
+        "llave"
+      ]
+    },
+    {
+      "adivinanza": "Cuanto más lo llenas, más ligero se vuelve y más alto sube. ¿Qué es?",
+      "respuestas": [
+        "globo"
+      ]
+    },
+    {
+      "adivinanza": "Hablo sin boca y canto sin garganta: me pones un disco o una canción y sueno fuerte. ¿Qué soy?",
+      "respuestas": [
+        "bocina",
+        "parlante",
+        "altavoz",
+        "bafle"
+      ]
+    }
+  ],
+  "ia": [
+    {
+      "adivinanza": "De día no me ves, de noche te acompaño, y cada semana cambio de forma. ¿Qué soy?",
+      "respuestas": [
+        "luna"
+      ]
+    },
+    {
+      "adivinanza": "Soy estrella pero no estoy en el cielo: vivo en el mar y tengo cinco brazos. ¿Qué soy?",
+      "respuestas": [
+        "estrella de mar"
+      ]
+    },
+    {
+      "adivinanza": "Cruzo el cielo con una cola de luz y, cuando me ves, pides un deseo. ¿Qué soy?",
+      "respuestas": [
+        "estrella fugaz",
+        "cometa",
+        "meteoro",
+        "meteorito"
+      ]
+    },
+    {
+      "adivinanza": "Blanca y fría, caigo del cielo en invierno y nunca hay dos copos iguales. ¿Qué soy?",
+      "respuestas": [
+        "nieve"
+      ]
+    },
+    {
+      "adivinanza": "Soy de cristal y te muestro tu cara… aunque a veces da un poquito de vergüenza mirarme. ¿Qué soy?",
+      "respuestas": [
+        "espejo"
+      ]
+    },
+    {
+      "adivinanza": "Llego cuando duermes y me voy cuando despiertas; casi siempre me olvidas. ¿Qué soy?",
+      "respuestas": [
+        "sueño",
+        "sueno",
+        "sueños"
+      ]
+    },
+    {
+      "adivinanza": "Vuelo sin alas, subo con el viento y un hilo me sostiene. ¿Qué soy?",
+      "respuestas": [
+        "papalote",
+        "cometa",
+        "barrilete",
+        "volantín",
+        "volantin"
+      ]
+    },
+    {
+      "adivinanza": "Soy roja, giro alrededor del Sol y me llamo como el dios de la guerra. ¿Qué planeta soy?",
+      "respuestas": [
+        "marte"
+      ]
+    },
+    {
+      "adivinanza": "Tengo muchas espinas y no coso; soy verde y aguanto sin agua en el desierto. ¿Qué soy?",
+      "respuestas": [
+        "cactus",
+        "nopal",
+        "cacto"
+      ]
+    },
+    {
+      "adivinanza": "Son estrellas que se juntan para formar dibujos en el cielo. ¿Cómo se llaman?",
+      "respuestas": [
+        "constelación",
+        "constelacion",
+        "constelaciones"
+      ]
+    }
+  ],
+  "haku": [
+    {
+      "adivinanza": "Perdón… es fácil, creo: me abren cuando llueve y me cierran cuando sale el sol. ¿Qué soy?",
+      "respuestas": [
+        "paraguas",
+        "sombrilla"
+      ]
+    },
+    {
+      "adivinanza": "Me usas para lavarte y con cada uso me hago más pequeño. ¿Qué soy?",
+      "respuestas": [
+        "jabón",
+        "jabon"
+      ]
+    },
+    {
+      "adivinanza": "Tengo hojas y no soy libro; en otoño se me caen. ¿Qué soy?",
+      "respuestas": [
+        "árbol",
+        "arbol"
+      ]
+    },
+    {
+      "adivinanza": "Soy agua, pero si me da frío me hago piedra. ¿Qué soy?",
+      "respuestas": [
+        "hielo"
+      ]
+    },
+    {
+      "adivinanza": "Grises como mi pelo, me junto en el cielo cuando va a llover. ¿Qué somos?",
+      "respuestas": [
+        "nubes",
+        "nube"
+      ]
+    },
+    {
+      "adivinanza": "Tengo ojos y no veo, y crezco bajo tierra. ¿Qué soy?",
+      "respuestas": [
+        "papa",
+        "patata",
+        "papas"
+      ]
+    },
+    {
+      "adivinanza": "Salgo cuando estás triste y me secas con un pañuelo. ¿Qué soy?",
+      "respuestas": [
+        "lágrima",
+        "lagrima",
+        "lágrimas",
+        "lagrimas"
+      ]
+    },
+    {
+      "adivinanza": "Roja como mis ojos, dulce y con semillitas por fuera. ¿Qué fruta soy?",
+      "respuestas": [
+        "fresa",
+        "fresas",
+        "frutilla"
+      ]
+    },
+    {
+      "adivinanza": "Tengo boca y no como, tengo cama y no duermo, y siempre voy corriendo. ¿Qué soy?",
+      "respuestas": [
+        "río",
+        "rio"
+      ]
+    },
+    {
+      "adivinanza": "Todos lo tienen, crece sin regarlo y a veces se lo cortan. ¿Qué es?",
+      "respuestas": [
+        "pelo",
+        "cabello",
+        "uñas"
+      ]
+    }
+  ],
+  "gumi": [
+    {
+      "adivinanza": "¡Naranja y larga, crezco bajo tierra y los conejos me aman! ¿Qué soy?",
+      "respuestas": [
+        "zanahoria",
+        "zanahorias"
+      ]
+    },
+    {
+      "adivinanza": "¡Una muñeca dentro de otra muñeca, dentro de otra muñeca… y le canté una canción con Miku! ¿Qué soy?",
+      "respuestas": [
+        "matryoshka",
+        "matrioska",
+        "matrioshka",
+        "mamushka",
+        "matriuska"
+      ]
+    },
+    {
+      "adivinanza": "¡Salto y salto sin tener pies, y si me dejas caer, vuelvo a subir! ¿Qué soy?",
+      "respuestas": [
+        "pelota",
+        "balón",
+        "balon"
+      ]
+    },
+    {
+      "adivinanza": "Tengo aspas y no vuelo, doy vueltas y te refresco. ¿Qué soy?",
+      "respuestas": [
+        "ventilador",
+        "abanico"
+      ]
+    },
+    {
+      "adivinanza": "Dos ruedas, dos pedales y mucha energía. ¿Qué soy?",
+      "respuestas": [
+        "bicicleta",
+        "bici"
+      ]
+    },
+    {
+      "adivinanza": "¡Me masticas y me masticas, pero nunca me tragas! ¿Qué soy?",
+      "respuestas": [
+        "chicle"
+      ]
+    },
+    {
+      "adivinanza": "Roja por fuera, blanca por dentro, y Blancanieves me mordió. ¿Qué soy?",
+      "respuestas": [
+        "manzana"
+      ]
+    },
+    {
+      "adivinanza": "Apagan las luces, hay palomitas y una pantalla gigante. ¿Dónde estamos?",
+      "respuestas": [
+        "cine"
+      ]
+    },
+    {
+      "adivinanza": "¡Verde como mi pelo, la pisas en el parque y la riegan todos los días! ¿Qué es?",
+      "respuestas": [
+        "pasto",
+        "césped",
+        "cesped",
+        "zacate",
+        "grama"
+      ]
+    },
+    {
+      "adivinanza": "Corro por los cables sin pies y llego a todas las casas. ¿Qué soy?",
+      "respuestas": [
+        "electricidad",
+        "luz",
+        "corriente"
+      ]
+    }
+  ],
+  "rin": [
+    {
+      "adivinanza": "¡Redonda y naranja, de mí sale el jugo del desayuno! ¿Qué soy?",
+      "respuestas": [
+        "naranja",
+        "naranjas"
+      ]
+    },
+    {
+      "adivinanza": "¡Soy enorme y lenta, aplano todo a mi paso, y Rin me usa como solución a TODO! ¿Qué soy?",
+      "respuestas": [
+        "apisonadora",
+        "aplanadora",
+        "road roller",
+        "rodillo"
+      ]
+    },
+    {
+      "adivinanza": "Tengo dos hojas y no soy árbol; me abro y me cierro para dejarte pasar. ¿Qué soy?",
+      "respuestas": [
+        "puerta"
+      ]
+    },
+    {
+      "adivinanza": "Pequeño y amarillo, salgo del huevo y digo pío. ¿Qué soy?",
+      "respuestas": [
+        "pollito",
+        "pollo",
+        "pollitos"
+      ]
+    },
+    {
+      "adivinanza": "Me lanzas al aire y caigo en cara o en cruz. ¿Qué soy?",
+      "respuestas": [
+        "moneda"
+      ]
+    },
+    {
+      "adivinanza": "Soy un cubito con puntos del uno al seis y me lanzas para jugar. ¿Qué soy?",
+      "respuestas": [
+        "dado",
+        "dados"
+      ]
+    },
+    {
+      "adivinanza": "Me ponen en la mesa de cumpleaños con velitas encima. ¡Y yo me como la mitad! ¿Qué soy?",
+      "respuestas": [
+        "pastel",
+        "torta",
+        "tarta"
+      ]
+    },
+    {
+      "adivinanza": "Si me aprietas, suena ¡ring!, y te aviso que alguien llegó. ¿Qué soy?",
+      "respuestas": [
+        "timbre"
+      ]
+    },
+    {
+      "adivinanza": "Tengo pantalla y teclas; con ella haces la tarea… o juegas toda la noche. ¿Qué soy?",
+      "respuestas": [
+        "computadora",
+        "compu",
+        "laptop",
+        "computador",
+        "pc"
+      ]
+    },
+    {
+      "adivinanza": "Son dos, siempre juntos, y si pierdes uno, el otro ya no sirve para caminar. ¿Qué son?",
+      "respuestas": [
+        "zapatos",
+        "tenis",
+        "calcetines",
+        "zapatillas"
+      ]
+    }
+  ],
+  "meiko": [
+    {
+      "adivinanza": "Tengo tres ojos de colores y con ellos mando en el tráfico. ¿Qué soy?",
+      "respuestas": [
+        "semáforo",
+        "semaforo"
+      ]
+    },
+    {
+      "adivinanza": "Me hablan de cerquita y se te escucha hasta el fondo del estadio. ¿Qué soy?",
+      "respuestas": [
+        "micrófono",
+        "microfono",
+        "micro"
+      ]
+    },
+    {
+      "adivinanza": "Llega una vez al año, trae velas y pastel. ¿Qué es?",
+      "respuestas": [
+        "cumpleaños",
+        "cumpleanos",
+        "cumple"
+      ]
+    },
+    {
+      "adivinanza": "Sesenta y cuatro casillas, un rey, una reina y mucha paciencia. ¿Qué juego es?",
+      "respuestas": [
+        "ajedrez"
+      ]
+    },
+    {
+      "adivinanza": "Tengo un hueso grande adentro y conmigo se hace el guacamole. ¿Qué soy?",
+      "respuestas": [
+        "aguacate",
+        "palta"
+      ]
+    },
+    {
+      "adivinanza": "Pico sin ser pájaro y le doy sabor a los tacos. ¿Qué soy?",
+      "respuestas": [
+        "chile",
+        "salsa",
+        "ají",
+        "aji"
+      ]
+    },
+    {
+      "adivinanza": "Luces, escenario, gritos y canciones en vivo: ahí me siento en casa. ¿Qué es?",
+      "respuestas": [
+        "concierto",
+        "escenario"
+      ]
+    },
+    {
+      "adivinanza": "No es cama ni es león, y desaparece en cualquier rincón. ¿Qué es?",
+      "respuestas": [
+        "camaleón",
+        "camaleon"
+      ]
+    },
+    {
+      "adivinanza": "Oro parece, plata no es; ábreme la cáscara y verás lo que es. ¿Qué soy?",
+      "respuestas": [
+        "plátano",
+        "platano",
+        "banana",
+        "banano"
+      ]
+    },
+    {
+      "adivinanza": "Me llenas de agua, me pones flores y adorno la mesa. ¿Qué soy?",
+      "respuestas": [
+        "florero",
+        "jarrón",
+        "jarron",
+        "maceta"
+      ]
+    }
+  ],
+  "adachirei": [
+    {
+      "adivinanza": "Procesando… Uno y cero, cero y uno: es el idioma de las máquinas. ¿Cómo se llama?",
+      "respuestas": [
+        "binario",
+        "código binario",
+        "codigo binario",
+        "sistema binario"
+      ]
+    },
+    {
+      "adivinanza": "Corro por los cables y, si me tocas, te doy un toque. ¿Qué soy?",
+      "respuestas": [
+        "electricidad",
+        "corriente",
+        "corriente eléctrica"
+      ]
+    },
+    {
+      "adivinanza": "Tengo cola y no soy animal; me mueves sobre la mesa y haces clic. ¿Qué soy?",
+      "respuestas": [
+        "ratón",
+        "raton",
+        "mouse"
+      ]
+    },
+    {
+      "adivinanza": "Soy de metal, pienso y obedezco… y en las películas a veces me rebelo. ¿Qué soy?",
+      "respuestas": [
+        "robot",
+        "androide"
+      ]
+    },
+    {
+      "adivinanza": "Sin mí no hay internet en tu casa; tengo antenitas y lucecitas que parpadean. ¿Qué soy?",
+      "respuestas": [
+        "módem",
+        "modem",
+        "router",
+        "wifi",
+        "ruter"
+      ]
+    },
+    {
+      "adivinanza": "Funciono con pilas, me apuntas a la tele y cambio el canal. ¿Qué soy?",
+      "respuestas": [
+        "control remoto",
+        "control",
+        "remoto"
+      ]
+    },
+    {
+      "adivinanza": "Guardo tus fotos, me conectas por USB y me pierdo muy fácil. ¿Qué soy?",
+      "respuestas": [
+        "memoria usb",
+        "memoria",
+        "usb",
+        "pendrive",
+        "pen drive"
+      ]
+    },
+    {
+      "adivinanza": "Dato: sale cada mañana, es una estrella y da calor. ¿Qué es?",
+      "respuestas": [
+        "sol"
+      ]
+    },
+    {
+      "adivinanza": "Tengo alas y no soy pájaro; tengo motores y llevo gente por el cielo. ¿Qué soy?",
+      "respuestas": [
+        "avión",
+        "avion"
+      ]
+    },
+    {
+      "adivinanza": "Me conectas a la pared y le doy energía a tus aparatos. ¿Qué soy?",
+      "respuestas": [
+        "enchufe",
+        "contacto",
+        "cargador",
+        "tomacorriente"
+      ]
+    }
+  ],
+  "ruko": [
+    {
+      "adivinanza": "Uno rojo y uno azul: así son mis ojos. ¿Cómo se llama tener los ojos de distinto color?",
+      "respuestas": [
+        "heterocromía",
+        "heterocromia"
+      ]
+    },
+    {
+      "adivinanza": "Me acerco sin hacer ruido y todo lo cubro cuando se va el sol. ¿Qué soy?",
+      "respuestas": [
+        "noche"
+      ]
+    },
+    {
+      "adivinanza": "Me ves en el espejo y en el agua, y aun así no soy tú. ¿Qué soy?",
+      "respuestas": [
+        "reflejo"
+      ]
+    },
+    {
+      "adivinanza": "Se ata al cuello con un nudo, y la mía es azul. ¿Qué es?",
+      "respuestas": [
+        "corbata"
+      ]
+    },
+    {
+      "adivinanza": "Largo, para el frío, y el mío es azul marino. ¿Qué es?",
+      "respuestas": [
+        "abrigo",
+        "gabardina",
+        "chamarra",
+        "saco"
+      ]
+    },
+    {
+      "adivinanza": "Siempre está delante de ti y nunca lo alcanzas. ¿Qué es?",
+      "respuestas": [
+        "futuro",
+        "horizonte"
+      ]
+    },
+    {
+      "adivinanza": "Lo puedes atrapar, pero no lo puedes lanzar. ¿Qué es?",
+      "respuestas": [
+        "resfriado",
+        "gripe",
+        "gripa",
+        "catarro",
+        "resfrío"
+      ]
+    },
+    {
+      "adivinanza": "Muerde sin dientes, llega en invierno y te pone la nariz roja. ¿Qué es?",
+      "respuestas": [
+        "frío",
+        "frio"
+      ]
+    },
+    {
+      "adivinanza": "Cuanto más se acerca, menos ves. Como yo. ¿Qué es?",
+      "respuestas": [
+        "niebla",
+        "neblina",
+        "bruma"
+      ]
+    },
+    {
+      "adivinanza": "Se llevan en las manos, de tela, y los míos son blancos. ¿Qué son?",
+      "respuestas": [
+        "guantes",
+        "guante"
+      ]
+    }
+  ],
+  "gakupo": [
+    {
+      "adivinanza": "Por mi honor: soy morada y brillante, y los fans me ponen en la mano de Gakupo aunque no sea oficial. ¿Qué soy?",
+      "respuestas": [
+        "berenjena",
+        "berenjenas"
+      ]
+    },
+    {
+      "adivinanza": "Tengo filo y duermo en una vaina; un samurái jamás sale sin mí. ¿Qué soy?",
+      "respuestas": [
+        "katana",
+        "espada",
+        "sable"
+      ]
+    },
+    {
+      "adivinanza": "Llevo armadura, sigo un código de honor y en Japón sirvo a mi señor. ¿Quién soy?",
+      "respuestas": [
+        "samurái",
+        "samurai",
+        "samurais"
+      ]
+    },
+    {
+      "adivinanza": "Me doblan de papel en Japón; si haces mil como yo, se cumple tu deseo. ¿Qué soy?",
+      "respuestas": [
+        "grulla",
+        "grulla de papel",
+        "grullas",
+        "origami"
+      ]
+    },
+    {
+      "adivinanza": "Tengo dientes y no muerdo; sin mí, la coleta de Gakupo sería un desastre. ¿Qué soy?",
+      "respuestas": [
+        "peine",
+        "cepillo"
+      ]
+    },
+    {
+      "adivinanza": "Si dices mi nombre, me rompes. ¿Qué soy?",
+      "respuestas": [
+        "silencio"
+      ]
+    },
+    {
+      "adivinanza": "Tengo un ojo y no veo; con hilo voy y vengo. ¿Qué soy?",
+      "respuestas": [
+        "aguja"
+      ]
+    },
+    {
+      "adivinanza": "Llevo mi casa a cuestas y voy despacio, como quien no tiene prisa en un duelo. ¿Qué soy?",
+      "respuestas": [
+        "caracol",
+        "tortuga"
+      ]
+    },
+    {
+      "adivinanza": "Te sigo a todas partes, imito cada paso, y en la oscuridad desaparezco. ¿Qué soy?",
+      "respuestas": [
+        "sombra",
+        "tu sombra"
+      ]
+    },
+    {
+      "adivinanza": "Vuelo sin alas y lloro sin ojos; cuando me pongo gris, mejor saca el paraguas. ¿Qué soy?",
+      "respuestas": [
+        "nube",
+        "nubes"
+      ]
+    }
+  ],
+  "kaito": [
+    {
+      "adivinanza": "Frío y dulce, en cono o en copa; si te tardas, me derrito. Kaito siempre me busca. ¿Qué soy?",
+      "respuestas": [
+        "helado",
+        "helados",
+        "nieve",
+        "paleta"
+      ]
+    },
+    {
+      "adivinanza": "Me enrollo en tu cuello cuando hace frío, y Kaito me usa hasta en pleno verano. ¿Qué soy?",
+      "respuestas": [
+        "bufanda"
+      ]
+    },
+    {
+      "adivinanza": "Guardo el frío para que el helado no se derrita. ¿Qué soy?",
+      "respuestas": [
+        "refrigerador",
+        "refri",
+        "congelador",
+        "nevera",
+        "heladera"
+      ]
+    },
+    {
+      "adivinanza": "Blanca caigo del cielo y conmigo haces un muñeco en el patio. ¿Qué soy?",
+      "respuestas": [
+        "nieve",
+        "copo de nieve"
+      ]
+    },
+    {
+      "adivinanza": "Tengo agujas y no coso, tengo números y no soy libro. ¿Qué soy?",
+      "respuestas": [
+        "reloj"
+      ]
+    },
+    {
+      "adivinanza": "Me cortas en la cocina y te hago llorar aunque no te diga nada. ¿Qué soy?",
+      "respuestas": [
+        "cebolla"
+      ]
+    },
+    {
+      "adivinanza": "Conmigo comes la sopa, y también el helado si no tienes cono. ¿Qué soy?",
+      "respuestas": [
+        "cuchara"
+      ]
+    },
+    {
+      "adivinanza": "Soy crujiente y en forma de punta; el helado se sienta encima de mí. ¿Qué soy?",
+      "respuestas": [
+        "cono",
+        "barquillo",
+        "galleta"
+      ]
+    },
+    {
+      "adivinanza": "Tengo teclas blancas y negras, y acompaño las canciones tranquilas. ¿Qué soy?",
+      "respuestas": [
+        "piano",
+        "teclado"
+      ]
+    },
+    {
+      "adivinanza": "Sin mí no hay sopa ni té; no tengo sabor y me tomas cuando tienes sed. ¿Qué soy?",
+      "respuestas": [
+        "agua"
+      ]
+    }
+  ],
+  "len": [
+    {
+      "adivinanza": "Amarillo por fuera, blanco por dentro; me pelan antes de comerme y Len no vive sin mí. ¿Qué soy?",
+      "respuestas": [
+        "plátano",
+        "platano",
+        "banana",
+        "banano",
+        "plátanos"
+      ]
+    },
+    {
+      "adivinanza": "Si te miras en mí, te devuelvo tu reflejo (aunque Rin diga que el reflejo es Len). ¿Qué soy?",
+      "respuestas": [
+        "espejo"
+      ]
+    },
+    {
+      "adivinanza": "Somos dos, nacimos el mismo día y nos parecemos un montón. ¿Qué somos?",
+      "respuestas": [
+        "gemelos",
+        "mellizos",
+        "gemelo"
+      ]
+    },
+    {
+      "adivinanza": "Tengo cuerdas y no soy marioneta; sueno cuando me rasgueas. ¿Qué soy?",
+      "respuestas": [
+        "guitarra"
+      ]
+    },
+    {
+      "adivinanza": "Tengo dos ruedas y una cadena; si pedaleas, avanzo. ¿Qué soy?",
+      "respuestas": [
+        "bicicleta",
+        "bici"
+      ]
+    },
+    {
+      "adivinanza": "Salto de rama en rama y mi comida favorita es la misma que la de Len. ¿Quién soy?",
+      "respuestas": [
+        "mono",
+        "chango",
+        "mico",
+        "simio"
+      ]
+    },
+    {
+      "adivinanza": "Subo y bajo, pero nunca me muevo de mi lugar. ¿Qué soy?",
+      "respuestas": [
+        "escalera",
+        "escaleras"
+      ]
+    },
+    {
+      "adivinanza": "Te los pones en las orejas para escuchar música sin molestar a nadie. ¿Qué son?",
+      "respuestas": [
+        "audífonos",
+        "audifonos",
+        "auriculares",
+        "cascos"
+      ]
+    },
+    {
+      "adivinanza": "Cuanto más seca, más mojada estoy. ¿Qué soy?",
+      "respuestas": [
+        "toalla"
+      ]
+    },
+    {
+      "adivinanza": "Soy chiquita y me pones en el pastel; me soplas y pides un deseo. ¿Qué soy?",
+      "respuestas": [
+        "vela",
+        "velas"
+      ]
+    }
+  ]
+}

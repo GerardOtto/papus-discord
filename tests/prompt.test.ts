@@ -2,7 +2,7 @@ import path from "node:path";
 import { describe, expect, it } from "vitest";
 import { BOT_IDS } from "../src/config";
 import { EngineReader } from "../src/engine/reader";
-import { buildRequest, mentionsTopic, parseReplies, PersonaLibrary, relevantFacts, sanitizeReply } from "../src/llm/prompt";
+import { buildRequest, buildSpontaneousRequest, emojisOf, mentionsTopic, parseReplies, PersonaLibrary, relevantFacts, sanitizeReply } from "../src/llm/prompt";
 import { FIXTURE_ENGINE } from "./helpers";
 
 const engine = new EngineReader(FIXTURE_ENGINE);
@@ -11,6 +11,20 @@ const teto = engine.character("teto");
 const miku = engine.character("miku");
 
 describe("buildRequest", () => {
+  it("en el historial los GIF son solo [GIF]: las palabras del enlace no se cuelan como tema", () => {
+    const history = [
+      { author: "Cau", text: "https://klipy.com/gifs/tesla-and-einstein-luma-ai" },
+      { author: "Lolo", text: "mira https://tenor.com/view/kaguya-gif-123 y https://cdn.discordapp.com/attachments/1/2/teto_shield.gif ja" },
+      { author: "Beto", text: "mi playlist https://open.spotify.com/playlist/abc" },
+    ];
+    const user = buildRequest({ characters: [teto], papuName: "Ana", message: "No, explica", history }, personas, { maxTokens: 300 }).messages[1]!.content;
+    expect(user).toContain("Cau: [GIF]");
+    expect(user).toContain("Lolo: mira [GIF] y [GIF] ja");
+    expect(user).not.toMatch(/luma|kaguya|teto_shield/);
+    // Los demás enlaces se quedan (una playlist sí es contexto).
+    expect(user).toContain("open.spotify.com/playlist/abc");
+  });
+
   it("incluye reglas comunes, ficha con datos del motor, historial y mensaje", () => {
     const req = buildRequest(
       { characters: [teto], papuName: "Ana", message: "¿te gusta el pan?", history: [{ author: "Beto", text: "hola" }] },
@@ -104,6 +118,15 @@ describe("parseReplies", () => {
     expect(parseReplies("{roto", [teto])).toEqual({});
   });
 
+  it("rescata un JSON cortado por el modelo hasta la última frase completa (caso real del 21 oct. 2026)", () => {
+    const cut = '```json {"teto": "¡Ay, papu, con el pan no se juega! Por cincuenta baguettes enteritas te firmo el trato y';
+    expect(parseReplies(cut, [teto])).toEqual({ teto: "¡Ay, papu, con el pan no se juega!" });
+    expect(parseReplies('{"teto": "listo, papu", "miku": "y yo te \\"canto\\" una', [teto, miku])).toEqual({
+      teto: "listo, papu",
+      miku: 'y yo te "canto" una…',
+    });
+  });
+
   it("sanitizeReply quita el prefijo, neutraliza @everyone y recorta", () => {
     expect(sanitizeReply("**Neru**: hola @everyone", "Neru")).toBe("hola @​everyone");
     expect(sanitizeReply("a. ".repeat(400), "Teto").length).toBeLessThanOrEqual(601);
@@ -176,5 +199,27 @@ describe("temas pegajosos", () => {
     }
     expect(mentionsTopic("¿te gustan las baguettes?", "el pan y las baguettes")).toBe(true);
     expect(mentionsTopic("me compré una pantalla", "el pan y las baguettes")).toBe(false);
+  });
+});
+
+describe("emojis del servidor", () => {
+  const names = ["teto_hola", "miku_baila", "baile_miku_mmd_giro", "kiwi_gumi", "rei_nerd", "gato_pulgar", "puerro", "papu_papu"];
+
+  it("cada personaje ve los suyos y los que no son de nadie", () => {
+    expect(emojisOf("miku", names)).toEqual(["miku_baila", "baile_miku_mmd_giro", "gato_pulgar", "puerro", "papu_papu"]);
+    expect(emojisOf("teto", names)).toEqual(["teto_hola", "gato_pulgar", "puerro", "papu_papu"]);
+    expect(emojisOf("gumi", names)).toContain("kiwi_gumi");
+    expect(emojisOf("adachirei", names)).toContain("rei_nerd");
+  });
+
+  it("se piden en la conversacion y en la charla de #general, solo los de quien escribe", () => {
+    const system = buildRequest({ characters: [miku], papuName: "Ana", message: "hola", history: [], serverEmojis: names }, personas).messages[0]!.content;
+    expect(system).toContain("# Emojis del servidor");
+    expect(system).toContain(":miku_baila:");
+    expect(system).not.toContain(":teto_hola:");
+    const charla = buildSpontaneousRequest({ speaker: teto, target: null, history: [], serverEmojis: names }, personas).messages[0]!.content;
+    expect(charla).toContain(":teto_hola:");
+    expect(charla).not.toContain(":miku_baila:");
+    expect(buildRequest({ characters: [miku], papuName: "Ana", message: "hola", history: [] }, personas).messages[0]!.content).not.toContain("# Emojis del servidor");
   });
 });

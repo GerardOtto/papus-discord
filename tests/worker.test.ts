@@ -22,6 +22,8 @@ const ROLES = [
   { id: "r-honor", name: "🏅 Papu de honor" },
   { id: "r-gumi", name: "🎨 Gumi" },
   { id: "r-kaito", name: "🎨 Kaito" },
+  { id: "r-mx", name: "🇲🇽 México" },
+  { id: "r-cl", name: "🇨🇱 Chile" },
   // Roles propios de los bots Gumi y Kaito: se llaman como el color y vienen después en la lista.
   { id: "bot-gumi", name: "Gumi", managed: true },
   { id: "bot-kaito", name: "Kaito", managed: true },
@@ -100,7 +102,7 @@ function setup(
     rounds,
     honor,
   });
-  return { w, discord, advance: (ms: number) => (t += ms) };
+  return { w, db, discord, advance: (ms: number) => (t += ms) };
 }
 
 const opt = (name: string, value: string | number | boolean, type = 3): Option => ({ name, type, value });
@@ -429,17 +431,31 @@ describe("worker: color del nombre (menú de Miku)", () => {
     expect(discord.calls.some((c) => c.path.includes("/roles/bot-"))).toBe(false);
   });
 
-  it("sin color quita el color; con nivel avisa que se ve el del nivel", async () => {
+  it("sin color quita el color; con nivel también se ve el elegido (sin aviso)", async () => {
     const { w, discord } = setup();
     expect(content(await w.route("miku", menu("ana", ["r-gumi"], "ninguno")))).toContain("color de siempre");
     expect(discord.calls.some((c) => c.method === "DELETE" && c.path.endsWith("/roles/r-gumi"))).toBe(true);
-    expect(content(await w.route("miku", menu("ana", ["r-puerro"], "kaito")))).toContain("color de tu nivel");
+    expect(content(await w.route("miku", menu("ana", ["r-puerro"], "kaito")))).not.toContain("nivel");
+  });
+
+  it("el menú de países deja un solo país, sin tocar el color", async () => {
+    const { w, discord } = setup();
+    const pais = (roles: string[], value: string): Interaction => ({ ...menu("ana", roles, value), data: { custom_id: "papu_pais", values: [value] } });
+    const h = w.handle("miku", pais(["r-cl", "r-gumi"], "mexico"));
+    expect(h.response).toEqual({ type: 5, data: { flags: 64 } });
+    await h.work!();
+    expect(JSON.stringify(discord.edits[0])).toContain("**🇲🇽 México**");
+    expect(discord.calls.some((c) => c.method === "DELETE" && c.path.endsWith("/roles/r-cl"))).toBe(true);
+    expect(discord.calls.some((c) => c.method === "PUT" && c.path.endsWith("/roles/r-mx"))).toBe(true);
+    expect(discord.calls.some((c) => c.path.endsWith("/roles/r-gumi"))).toBe(false);
+    expect(content(await w.route("miku", pais(["r-mx"], "ninguno")))).toContain("quité el país");
+    expect(discord.calls.some((c) => c.method === "DELETE" && c.path.endsWith("/roles/r-mx"))).toBe(true);
   });
 });
 
 describe("worker: calendario y anuncios (Miku)", () => {
   it("calendario con una línea por fecha, estreno con enlace", async () => {
-    const { w, discord } = setup();
+    const { w, db, discord } = setup();
     await w.route("miku", cmd("calendario", OWNER, [], [opt("texto", "Lun 20: Teto | Jue 23: Miku")]));
     expect(JSON.stringify(discord.posts("calendario")[0]!.body)).toContain("• Lun 20: Teto\\n• Jue 23: Miku");
     expect((discord.posts("calendario")[0]!.body!.allowed_mentions as { roles: string[] }).roles).toContain("r-puerro");
@@ -447,6 +463,8 @@ describe("worker: calendario y anuncios (Miku)", () => {
     expect(JSON.stringify(discord.posts("anuncios")[0]!.body)).toContain("https://youtu.be/x");
     // #anuncios es público: sin mención masiva.
     expect(discord.posts("anuncios")[0]!.body!.allowed_mentions).toEqual({ parse: [], roles: [] });
+    // Queda registrado para la hora feliz de XP que abre el bot del PC.
+    expect(db.prepare("SELECT titulo, at FROM estrenos").all()).toEqual([{ titulo: "Triple Baka", at: T0 }]);
     await expect(w.route("miku", cmd("estreno", OWNER, [], [opt("titulo", "X"), opt("enlace", "no-es-enlace")]))).rejects.toThrow(/http/);
     expect(splitLines("a | b")).toBe("• a\n• b");
   });

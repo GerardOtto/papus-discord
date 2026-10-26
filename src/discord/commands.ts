@@ -10,13 +10,14 @@ import {
 } from "discord.js";
 import type { BotId } from "../config";
 import { OCCASIONS, PRODUCTS, type OccasionId } from "../orders/queue";
+import { WEDDING_BOTS } from "../phrases/catalog";
 
 export interface CastMember {
   id: string;
   name: string;
 }
 
-/** Los diez Vocaloids del servidor, para elegir quien habla en /charla. */
+/** Los quince Vocaloids del servidor, para elegir quien habla en /charla (Discord admite hasta 25 opciones). */
 const VOCALOID_CHOICES = (
   [
     ["teto", "Teto"],
@@ -29,15 +30,28 @@ const VOCALOID_CHOICES = (
     ["ia", "IA"],
     ["haku", "Haku"],
     ["gumi", "Gumi"],
+    ["rin", "Rin"],
+    ["len", "Len"],
+    ["meiko", "Meiko"],
+    ["adachirei", "Adachi Rei"],
+    ["ruko", "Ruko"],
   ] satisfies [BotId, string][]
 ).map(([value, name]) => ({ name, value }));
+
+/** Las chicas de las bodas, para /boda. */
+const BRIDE_CHOICES = VOCALOID_CHOICES.filter((c) => WEDDING_BOTS.includes(c.value as BotId));
 
 const occasionChoices = (withTemaLibre: boolean) =>
   (Object.entries(OCCASIONS) as [OccasionId, string][])
     .filter(([id]) => withTemaLibre || id !== "tema_libre")
     .map(([value, name]) => ({ name, value }));
 
-export function commandsFor(bot: BotId, cast: CastMember[] = []): RESTPostAPIChatInputApplicationCommandsJSONBody[] {
+/** `cardColors`: colores que se pueden elegir para la tarjeta de nivel (/tarjeta), nombre -> "#RRGGBB". */
+export function commandsFor(
+  bot: BotId,
+  cast: CastMember[] = [],
+  cardColors: { name: string; value: string }[] = [],
+): RESTPostAPIChatInputApplicationCommandsJSONBody[] {
   const castChoices = cast.slice(0, 25).map((c) => ({ name: c.name, value: c.id }));
   switch (bot) {
     case "teto":
@@ -59,6 +73,67 @@ export function commandsFor(bot: BotId, cast: CastMember[] = []): RESTPostAPICha
           .addStringOption((o) => o.setName("vocaloid").setDescription("Quién habla (si lo dejas vacío, le toca al siguiente)").addChoices(...VOCALOID_CHOICES))
           .addStringOption((o) => o.setName("tema").setDescription("De qué habla (si lo dejas vacío, elige solo)").setMaxLength(300))
           .addStringOption((o) => o.setName("a").setDescription("A qué Vocaloid le pregunta con @ (le contesta una vez)").addChoices(...VOCALOID_CHOICES))
+          .toJSON(),
+        new SlashCommandBuilder()
+          .setName("nivel")
+          .setDescription("Tu tarjeta de nivel (o la de otro Papu); desde aquí pones tu nivel en el apodo")
+          .addUserOption((o) => o.setName("papu").setDescription("Ver la tarjeta de otro Papu"))
+          .addBooleanOption((o) => o.setName("mostrar").setDescription("Publicarla en el canal para que todos la vean"))
+          .toJSON(),
+        new SlashCommandBuilder()
+          .setName("boda")
+          .setDescription("Una Vocaloid deja ya su adivinanza de boda en #general (no gasta las del día; solo GyroP)")
+          .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
+          .addStringOption((o) => o.setName("vocaloid").setDescription("Quién la deja (si lo dejas vacío, le toca a la siguiente)").addChoices(...BRIDE_CHOICES))
+          .toJSON(),
+        new SlashCommandBuilder()
+          .setName("divorcio")
+          .setDescription("Te divorcias de tu Vocaloid: conservas la XP y la cuota, pero pierdes el rol")
+          .toJSON(),
+        new SlashCommandBuilder().setName("ranking").setDescription("Ranking de Papus por nivel, con tu puesto (solo lo ves tú)").toJSON(),
+        new SlashCommandBuilder().setName("ruleta").setDescription("Tus misiones del día y la ruleta de premios (hasta 3 tiradas al día)").toJSON(),
+        new SlashCommandBuilder().setName("trivia").setDescription("Trivia Vocaloid: acierta seguido, gana XP por cada respuesta y presume tu racha").toJSON(),
+        new SlashCommandBuilder()
+          .setName("publicar-ranking")
+          .setDescription("Teto publica el ranking de Papus en este canal para todos (solo GyroP)")
+          .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
+          .toJSON(),
+        new SlashCommandBuilder()
+          .setName("tarjeta")
+          .setDescription("Personaliza tu tarjeta de nivel: frase, color y fondo")
+          .addStringOption((o) => o.setName("frase").setDescription("Tu frase (máx. 60 letras; escribe - para quitarla)").setMaxLength(60))
+          .addStringOption((o) => o.setName("color").setDescription("Color de la barra y del fondo").addChoices(...cardColors.slice(0, 25)))
+          .addStringOption((o) =>
+            o
+              .setName("fondo")
+              .setDescription("Fondo con un Vocaloid, sin imagen o tu imagen aprobada")
+              .addChoices(...[...VOCALOID_CHOICES, { name: "Sin imagen (degradado)", value: "ninguno" }, { name: "Mi imagen (si GyroP la aprobó)", value: "propia" }].slice(0, 25)),
+          )
+          .addAttachmentOption((o) => o.setName("imagen").setDescription("Sube tu propia imagen de fondo (GyroP la revisa antes)"))
+          .addStringOption((o) =>
+            o
+              .setName("ajuste")
+              .setDescription("Cómo se acomoda tu imagen (si se corta, prueba «completa»)")
+              .addChoices(
+                { name: "Recortar al centro", value: "centro" },
+                { name: "Recortar mostrando lo de arriba", value: "arriba" },
+                { name: "Recortar mostrando lo de abajo", value: "abajo" },
+                { name: "Completa (sin cortar)", value: "completa" },
+              ),
+          )
+          .toJSON(),
+        new SlashCommandBuilder()
+          .setName("evento")
+          .setDescription("Evento de XP multiplicada; Miku lo anuncia en #general (solo GyroP)")
+          .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
+          .addNumberOption((o) =>
+            o
+              .setName("multiplicador")
+              .setDescription("Cuánto vale la XP (0 = terminar el evento)")
+              .setRequired(true)
+              .addChoices({ name: "×1,5", value: 1.5 }, { name: "×2", value: 2 }, { name: "×3", value: 3 }, { name: "Terminar el evento", value: 0 }),
+          )
+          .addIntegerOption((o) => o.setName("horas").setDescription("Cuántas horas dura (por defecto 24)").setMinValue(1).setMaxValue(168))
           .toJSON(),
       ];
     case "miku":
@@ -252,7 +327,7 @@ export function commandsFor(bot: BotId, cast: CastMember[] = []): RESTPostAPICha
       return [
         new SlashCommandBuilder()
           .setName("strikes")
-          .setDescription("Strikes activos de un Papu (solo GyroP)")
+          .setDescription("Strikes activos de un Papu (GyroP y Mods)")
           .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
           .addUserOption((o) => o.setName("papu").setDescription("Papu").setRequired(true))
           .toJSON(),
@@ -264,10 +339,17 @@ export function commandsFor(bot: BotId, cast: CastMember[] = []): RESTPostAPICha
           .toJSON(),
         new SlashCommandBuilder()
           .setName("advertir")
-          .setDescription("Neru le llama la atención a un Papu, sin borrar ni sumar strike (solo GyroP)")
+          .setDescription("Neru le llama la atención a un Papu, sin borrar ni sumar strike (GyroP y Mods)")
           .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
           .addUserOption((o) => o.setName("papu").setDescription("Papu").setRequired(true))
           .addStringOption((o) => o.setName("motivo").setDescription("Qué cuidar (sale citado bajo la frase de Neru)").setMaxLength(300))
+          .toJSON(),
+        new SlashCommandBuilder()
+          .setName("strike")
+          .setDescription("Neru le pone un strike a un Papu, con la misma escalera de silencios (GyroP y Mods)")
+          .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
+          .addUserOption((o) => o.setName("papu").setDescription("Papu").setRequired(true))
+          .addStringOption((o) => o.setName("motivo").setDescription("Por qué (sale citado bajo la frase de Neru)").setMaxLength(300))
           .toJSON(),
         new SlashCommandBuilder()
           .setName("reporte")
@@ -287,15 +369,19 @@ export function commandsFor(bot: BotId, cast: CastMember[] = []): RESTPostAPICha
 
 /** Nombre del clic derecho sobre un mensaje → Apps → "Advertir (Neru)". */
 export const WARN_MENU = "Advertir (Neru)";
+/** Clic derecho sobre un mensaje → Apps → "Strike (Neru)": strike a mano, sin borrar el mensaje. */
+export const STRIKE_MENU = "Strike (Neru)";
+/** Clic derecho → Apps → "Strike y borrar (Neru)": el mismo strike, y Neru borra el mensaje (decision de GyroP, 22 oct. 2026). */
+export const STRIKE_DELETE_MENU = "Strike y borrar (Neru)";
 
 /** Comandos de clic derecho (menu de Apps). */
 export function contextMenusFor(bot: BotId): RESTPostAPIContextMenuApplicationCommandsJSONBody[] {
   if (bot !== "neru") return [];
-  return [
+  return [WARN_MENU, STRIKE_MENU, STRIKE_DELETE_MENU].map((name) =>
     new ContextMenuCommandBuilder()
-      .setName(WARN_MENU)
+      .setName(name)
       .setType(ApplicationCommandType.Message)
       .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
       .toJSON(),
-  ];
+  );
 }

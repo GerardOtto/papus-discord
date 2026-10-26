@@ -4,7 +4,7 @@ import { loadPhraseFile, Phrases, REQUIRED_FIELDS, REQUIRED_GROUPS } from "../sr
 import { DeckStore } from "../src/phrases/deck";
 import { memDb, seededRng } from "./helpers";
 
-const KNOWN_FIELDS = new Set(["papu", "papus", "tema", "ganador", "video", "fecha", "texto", "n", "motivo", "canal", "nivel", "niveles", "votaciones"]);
+const KNOWN_FIELDS = new Set(["papu", "papus", "tema", "ganador", "video", "fecha", "texto", "n", "motivo", "canal", "nivel", "niveles", "votaciones", "rango", "premio", "mision", "racha", "xp"]);
 
 describe.each(BOT_IDS)("frases de %s", (bot) => {
   const groups = loadPhraseFile(bot);

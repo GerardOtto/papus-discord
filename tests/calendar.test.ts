@@ -90,6 +90,18 @@ describe("calendario: lo que muestra", () => {
     expect(again!.slots[0]!.title).toBe("Objetos Vocaloid parte 2");
   });
 
+  it("estrenos de /estreno: solo los del último día", async () => {
+    const now = Date.parse("2026-10-22T18:00:00-03:00");
+    const seen: unknown[][] = [];
+    const query = async <T>(_sql: string, ...params: unknown[]): Promise<T[]> => {
+      seen.push(params);
+      return [{ titulo: "Triple Baka", at: now - 60_000 }] as T[];
+    };
+    const s = new CalendarService({ db: memDb(), query, finales: () => FINALES, rounds, honor, settings, now: () => now });
+    expect(await s.launched()).toEqual([{ title: "Triple Baka", at: now - 60_000 }]);
+    expect(seen[0]).toEqual([now - 86_400_000]);
+  });
+
   it("un fijado con hora propia sale a esa hora (ej.: 18:00 de Chile)", async () => {
     const now = "2026-10-18T12:00:00-03:00";
     const query = async <T>(): Promise<T[]> => [];

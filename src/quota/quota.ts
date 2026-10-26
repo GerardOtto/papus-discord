@@ -1,5 +1,5 @@
-// Cuota diaria unica por Papu, compartida entre todos los bots e igual para todos los niveles (regla 1).
-// Una unidad por cada @ a un bot. Se reserva al recibir la mencion y se devuelve si el Papu
+// Cuota diaria por Papu, compartida entre todos los bots. Depende solo del nivel por participacion (src/levels/):
+// nada de pago la cambia (regla 1). Una unidad por cada @ a un bot. Se reserva al recibir la mencion y se devuelve si el Papu
 // no recibe respuesta del LLM (espera maxima superada o todas las APIs caidas).
 import { transaction, type Db } from "../db/database";
 import { dayKey } from "../time";
@@ -14,14 +14,17 @@ export interface Reservation {
 export class Quota {
   constructor(
     private readonly db: Db,
-    private readonly dailyLimit: number,
+    /** Limite diario: fijo, o por Papu segun su nivel (LevelService.limitFor). */
+    private readonly dailyLimit: number | ((userId: string, now: Date) => number),
     private readonly timeZone: string,
     /** Usuarios sin limite (GyroP y el Papu especial que el elija en config/especiales.json). Pagar NO da exencion. */
     private readonly unlimited: Pick<ReadonlySet<string>, "has"> = new Set(),
   ) {}
 
-  get limit(): number {
-    return this.dailyLimit;
+  /** Limite diario de un Papu (Infinity si no tiene limite). */
+  limitFor(userId: string, now = new Date()): number {
+    if (this.unlimited.has(userId)) return Number.POSITIVE_INFINITY;
+    return typeof this.dailyLimit === "number" ? this.dailyLimit : this.dailyLimit(userId, now);
   }
 
   used(userId: string, now = new Date()): number {
@@ -31,9 +34,25 @@ export class Quota {
     return row?.used ?? 0;
   }
 
+  /** Mensajes extra de hoy ganados en la ruleta (src/ruleta/): se suman al limite solo ese dia. */
+  extra(userId: string, now = new Date()): number {
+    const row = this.db
+      .prepare("SELECT extra FROM quota_usage WHERE user_id = ? AND day = ?")
+      .get(userId, dayKey(now, this.timeZone)) as { extra: number } | undefined;
+    return row?.extra ?? 0;
+  }
+
+  /** Premio de la ruleta: `units` mensajes mas solo por hoy. */
+  addExtra(userId: string, units: number, now = new Date()): void {
+    if (units <= 0) return;
+    this.db
+      .prepare("INSERT INTO quota_usage (user_id, day, used, extra) VALUES (?, ?, 0, ?) ON CONFLICT(user_id, day) DO UPDATE SET extra = extra + excluded.extra")
+      .run(userId, dayKey(now, this.timeZone), units);
+  }
+
   remaining(userId: string, now = new Date()): number {
     if (this.unlimited.has(userId)) return Number.POSITIVE_INFINITY;
-    return Math.max(0, this.dailyLimit - this.used(userId, now));
+    return Math.max(0, this.limitFor(userId, now) + this.extra(userId, now) - this.used(userId, now));
   }
 
   /** Reserva hasta `units` unidades; devuelve cuantas se concedieron (los primeros @ del mensaje). */
@@ -65,14 +84,14 @@ export class Quota {
   }
 
   /**
-   * Reinicio manual de GyroP (/reiniciar-cuota): borra el uso de HOY de un Papu o de todos.
-   * Devuelve a cuantos Papus se les devolvieron mensajes.
+   * Reinicio de la cuota (/reiniciar-cuota de GyroP, boda, "cuota llena" de la ruleta): devuelve lo gastado HOY por un
+   * Papu o por todos; los mensajes extra de la ruleta se conservan. Devuelve a cuantos Papus se les devolvieron mensajes.
    */
   reset(userId: string | null = null, now = new Date()): number {
     const day = dayKey(now, this.timeZone);
     const res = userId
-      ? this.db.prepare("DELETE FROM quota_usage WHERE day = ? AND user_id = ? AND used > 0").run(day, userId)
-      : this.db.prepare("DELETE FROM quota_usage WHERE day = ? AND used > 0").run(day);
+      ? this.db.prepare("UPDATE quota_usage SET used = 0 WHERE day = ? AND user_id = ? AND used > 0").run(day, userId)
+      : this.db.prepare("UPDATE quota_usage SET used = 0 WHERE day = ? AND used > 0").run(day);
     return Number(res.changes);
   }
 

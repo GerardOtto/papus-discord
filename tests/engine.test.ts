@@ -26,6 +26,15 @@ describe("EngineReader (fixture)", () => {
     expect(r.cast().map((c) => c.id)).not.toContain("ia");
   });
 
+  it("Ruko (fuera de characters.json del motor) toma nombre y color de lore-extra.json, sin imágenes", () => {
+    const ruko = r.character("ruko");
+    expect(ruko.displayName).toBe("Ruko");
+    expect(ruko.color).toBeGreaterThan(0);
+    expect(ruko.lore.join(" ")).toMatch(/UTAU/);
+    expect(r.reactionImage(ruko, "feliz")).toBeNull();
+    expect(r.cast().map((c) => c.id)).not.toContain("ruko");
+  });
+
   it("devuelve la imagen de una emocion solo si el archivo existe", () => {
     const neru = r.character("neru");
     expect(r.reactionImage(neru, "enojado")).toBe(path.join(FIXTURE_ENGINE, "assets/characters/neru/enojado.png"));

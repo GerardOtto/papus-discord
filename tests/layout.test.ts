@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { BOT_BITS, loadLayout, nameKey, blockBelow, overwritesFor, PERM, WRITE_BITS, type Overwrite } from "../src/setup/layout";
+import { BOT_IDS } from "../src/config";
+import { BOT_BITS, CHAT_BOT_BITS, loadLayout, nameKey, botColorRoles, blockAtBottom, blockAtTop, blockBelow, overwritesFor, PERM, WRITE_BITS, type Overwrite } from "../src/setup/layout";
 import { loadEspeciales } from "../src/services/especiales";
 
 const roles = {
@@ -71,6 +72,21 @@ describe("overwritesFor", () => {
     expect(can(o, "M", PERM.CONNECT | PERM.SPEAK)).toBe(true);
   });
 
+  it("Vocaloids de conversación (rol Coro): ven y escriben en todos los canales, sin encuestas ni fijar (regla 2)", () => {
+    const r = { ...roles, chatBots: "C" };
+    for (const leen of ["todos", "Puerro", "Triple Baka", "staff"]) {
+      for (const escriben of [true, false]) {
+        const o = overwritesFor(leen, escriben, r);
+        expect(can(o, "C", PERM.VIEW_CHANNEL | PERM.SEND_MESSAGES | PERM.READ_MESSAGE_HISTORY), `${leen} ${escriben}`).toBe(true);
+        expect(get(o, "C")!.allow & (PERM.SEND_POLLS | PERM.PIN_MESSAGES)).toBe(0n);
+      }
+    }
+    const privado = overwritesFor("rol:💙 Esposa de Kaito", true, { ...r, extra: { [nameKey("💙 Esposa de Kaito")]: "K" } });
+    expect(get(privado, "C")!.allow).toBe(CHAT_BOT_BITS);
+    // Sin rol Coro (servidor antiguo): no se agrega nada.
+    expect(get(overwritesFor("todos", true, roles), "C")).toBeUndefined();
+  });
+
   it("nivel desconocido: error claro", () => {
     expect(() => overwritesFor("Sushi", true, roles)).toThrow(/Sushi/);
   });
@@ -114,6 +130,82 @@ describe("blockBelow", () => {
     const fixed = roles.map((r) => ({ id: r.id, position: after.get(r.id)! }));
     expect(blockBelow(fixed, "puerro", block, 8)).toEqual([]);
   });
+
+  it("sube los colores arriba de todo, justo debajo del bot, y no se mueve si ya están", () => {
+    const roles = [
+      { id: "teto", position: 6 },
+      { id: "tb", position: 5 },
+      { id: "kaito", position: 4 },
+      { id: "puerro", position: 3 },
+      { id: "rin", position: 2 },
+      { id: "papu", position: 1 },
+      { id: "everyone", position: 0 },
+    ];
+    const changes = blockAtTop(roles, ["rin", "kaito"], 6);
+    const after = new Map(roles.map((r) => [r.id, r.position]));
+    for (const c of changes) after.set(c.id, c.position);
+    const order = [...after.entries()].sort((a, b) => b[1] - a[1]).map(([id]) => id);
+    expect(order).toEqual(["teto", "rin", "kaito", "tb", "puerro", "papu", "everyone"]);
+    expect(blockAtTop(roles.map((r) => ({ id: r.id, position: after.get(r.id)! })), ["rin", "kaito"], 6)).toEqual([]);
+  });
+
+  it("con roles recién creados todos en la posición 1, nunca pide una posición a la altura del bot", () => {
+    // Así quedó el servidor el 19 oct. 2026 tras crear los 24 países: Discord rechazaba el orden (Missing Permissions).
+    const roles = [
+      { id: "teto", position: 4 },
+      { id: "puerro", position: 3 },
+      { id: "rin", position: 2 },
+      { id: "papu", position: 1 },
+      { id: "mx", position: 1 },
+      { id: "cl", position: 1 },
+      { id: "everyone", position: 0 },
+    ];
+    for (const changes of [blockAtTop(roles, ["rin"], 4), blockAtBottom(roles, ["mx", "cl"], 4), blockBelow(roles, "puerro", ["papu"], 4)]) {
+      for (const c of changes) expect(c.position).toBeLessThan(4);
+      for (const c of changes) expect(c.position).toBeGreaterThan(0);
+    }
+    expect(blockAtTop(roles, ["rin"], 4)).toEqual([{ id: "rin", position: 3 }, { id: "puerro", position: 2 }]);
+  });
+
+  it("deja a Coro como el último rol separado: debajo de Música y de los países, justo sobre @everyone", () => {
+    const roles = [
+      { id: "teto", position: 8 },
+      { id: "vocaloids", position: 7 },
+      { id: "puerro", position: 6 },
+      { id: "coro", position: 5 },
+      { id: "honor", position: 4 },
+      { id: "musica", position: 3 },
+      { id: "mx", position: 2 },
+      { id: "cl", position: 1 },
+      { id: "everyone", position: 0 },
+    ];
+    const changes = blockAtBottom(roles, ["mx", "cl", "coro"], 8);
+    const after = new Map(roles.map((r) => [r.id, r.position]));
+    for (const c of changes) after.set(c.id, c.position);
+    const order = [...after.entries()].sort((a, b) => b[1] - a[1]).map(([id]) => id);
+    expect(order).toEqual(["teto", "vocaloids", "puerro", "honor", "musica", "mx", "cl", "coro", "everyone"]);
+    const hoisted = new Set(["vocaloids", "puerro", "honor", "musica", "coro"]);
+    expect(order.filter((id) => hoisted.has(id)).at(-1)).toBe("coro");
+  });
+
+  it("deja los países al fondo, justo sobre @everyone, sin tocar lo que está sobre el bot", () => {
+    const roles = [
+      { id: "teto", position: 7 },
+      { id: "puerro", position: 6 },
+      { id: "cl", position: 5 },
+      { id: "papu", position: 4 },
+      { id: "mx", position: 3 },
+      { id: "musica", position: 2 },
+      { id: "kaito", position: 1 },
+      { id: "everyone", position: 0 },
+    ];
+    const changes = blockAtBottom(roles, ["mx", "cl"], 7);
+    const after = new Map(roles.map((r) => [r.id, r.position]));
+    for (const c of changes) after.set(c.id, c.position);
+    const order = [...after.entries()].sort((a, b) => b[1] - a[1]).map(([id]) => id);
+    expect(order).toEqual(["teto", "puerro", "papu", "musica", "kaito", "mx", "cl", "everyone"]);
+    expect(blockAtBottom(roles.map((r) => ({ id: r.id, position: after.get(r.id)! })), ["mx", "cl"], 7)).toEqual([]);
+  });
 });
 
 describe("config/servidor.json", () => {
@@ -141,9 +233,44 @@ describe("config/servidor.json", () => {
     expect(new Set(names).size).toBe(names.length);
     for (const n of ["bienvenida", "general", "moderacion", "registro-bots", "votaciones", "tips-y-curiosidades", "boveda", "cola-de-pedidos"]) expect(names).toContain(n);
   });
+  it("rol Vocaloids solo para las 4 chicas y rol Coro (separado, sin color) para los de conversación", () => {
+    const vocaloids = layout.rolesExtra.filter((r) => r.bots);
+    const coro = layout.rolesExtra.filter((r) => r.botsCharla);
+    expect(vocaloids.map((r) => r.rol)).toEqual(["Vocaloids"]);
+    expect(coro).toHaveLength(1);
+    expect(coro[0]!.separado).toBe(true);
+    expect(coro[0]!.color).toBe("#000000");
+    expect(coro[0]!.bots).toBeUndefined();
+  });
+
+  it("las categorías hechas a mano van después de una categoría pública que existe", () => {
+    const cat = layout.categorias.find((c) => nameKey(c.nombre) === nameKey(layout.categoriasManualesDespuesDe ?? ""));
+    expect(cat, layout.categoriasManualesDespuesDe).toBeDefined();
+    expect(cat!.leen).toBe("todos");
+  });
+
   it("la bóveda y la cola solo para Triple Baka; staff oculto", () => {
     const cat = (n: string) => layout.categorias.find((c) => c.canales.some((x) => nameKey(x.nombre) === n))!;
     expect(cat("boveda").leen).toBe("Triple Baka");
     expect(cat("moderacion").leen).toBe("staff");
+  });
+});
+
+describe("colores de los Vocaloids (coloresBots)", () => {
+  const layout = loadLayout();
+  const { byBot, botOnly } = botColorRoles(layout);
+  const palette = new Set((layout.coloresPapu?.colores ?? []).map((c) => nameKey(c.rol)));
+
+  it("cada bot tiene su color, y es de la paleta o uno solo suyo con color", () => {
+    for (const id of BOT_IDS) expect(byBot.has(id), id).toBe(true);
+    for (const [bot, rol] of byBot) {
+      expect(BOT_IDS as readonly string[], bot).toContain(bot);
+      expect(palette.has(nameKey(rol)) || botOnly.some((b) => nameKey(b.rol) === nameKey(rol)), rol).toBe(true);
+    }
+    for (const b of botOnly) expect(b.color).toMatch(/^#[0-9A-F]{6}$/i);
+  });
+
+  it("los colores solo de bots no aparecen en el menu de #tu-color", () => {
+    for (const b of botOnly) expect(palette.has(nameKey(b.rol)), b.rol).toBe(false);
   });
 });

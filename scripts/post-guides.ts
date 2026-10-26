@@ -12,7 +12,7 @@ import { CORE_BOT_IDS, loadConfig, loadDotEnv, type CoreBotId } from "../src/con
 import { kvGet, kvSet, openDb } from "../src/db/database";
 import { channelKey } from "../src/discord/channels";
 import { EngineReader } from "../src/engine/reader";
-import { colorMenu } from "../src/setup/color-menu";
+import { colorMenu, countryMenu } from "../src/setup/color-menu";
 import { loadLayout } from "../src/setup/layout";
 
 interface Guide {
@@ -22,8 +22,8 @@ interface Guide {
   titulo: string;
   texto: string;
   pie?: string;
-  /** Menu adjunto: "colores" = paleta de #tu-color (config/servidor.json -> coloresPapu). */
-  menu?: "colores";
+  /** Menus adjuntos: "colores" = paleta de #tu-color (config/servidor.json -> coloresPapu); "paises" = paisesPapu. */
+  menu?: ("colores" | "paises")[];
 }
 
 loadDotEnv();
@@ -80,7 +80,8 @@ for (const [key, g] of guides) {
     console.log(`• #${ch.name}: ${editable ? "editar" : "publicar y fijar"} el mensaje de ${g.bot} (${(embed.description as string).length} caracteres)`);
     continue;
   }
-  const components = g.menu === "colores" ? [colorMenu(loadLayout().coloresPapu?.colores ?? [])] : [];
+  const layout = loadLayout();
+  const components = (g.menu ?? []).map((m) => (m === "colores" ? colorMenu(layout.coloresPapu?.colores ?? []) : countryMenu(layout.paisesPapu?.paises ?? [])));
   const body = { embeds: [embed], components, attachments: files.map((f, i) => ({ id: i, filename: f.name })), allowed_mentions: { parse: [] } };
   let messageId: string;
   if (editable) {

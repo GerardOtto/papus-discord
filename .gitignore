@@ -6,3 +6,5 @@ data/
 *.sqlite-journal
 *.log
 .wrangler/
+# Fragmentos de canciones de la trivia (npm run trivia:audio; copyright, como la musica del motor). nube subir los copia.
+assets/trivia/audio/

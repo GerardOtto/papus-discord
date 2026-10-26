@@ -1,10 +1,10 @@
-// Aplica config/servidor.json al servidor: roles de los niveles, rol Vocaloids para los bots, categorias, canales,
+// Aplica config/servidor.json al servidor: roles de los niveles, roles Vocaloids y Coro para los bots, categorias, canales,
 // permisos, temas, modo lento, orden y seguridad. Nunca borra nada (lo que no esta en la config queda intacto).
 //   npm run servidor             -> solo muestra lo que haria
 //   npm run servidor -- --apply  -> lo ejecuta (usa la app de Teto: necesita "Administrador" mientras corre)
 import { ChannelType, REST, Routes } from "discord.js";
-import { loadConfig, loadDotEnv } from "../src/config";
-import { blockBelow, nameKey, overwritesFor, sameOverwrites, type CategorySpec, type ChannelSpec, type Overwrite, type RoleIds } from "../src/setup/layout";
+import { isCoreBot, loadConfig, loadDotEnv } from "../src/config";
+import { blockAtBottom, blockAtTop, blockBelow, botColorRoles, nameKey, overwritesFor, sameOverwrites, type CategorySpec, type ChannelSpec, type Overwrite, type RoleIds } from "../src/setup/layout";
 import { loadLayout } from "../src/setup/layout";
 
 loadDotEnv();
@@ -48,6 +48,10 @@ const wantRoles = [
   ...layout.niveles.map((n) => ({ rol: n.rol, color: n.color, separado: true })),
   ...layout.rolesExtra.map((r) => ({ rol: r.rol, color: r.color, separado: r.separado, colorVariable: !!r.sobreNiveles })),
   ...(layout.coloresPapu?.colores ?? []).map((c) => ({ rol: c.rol, color: c.color, separado: false })),
+  // Colores solo de bots (las 4 chicas y Ruko): como los de #tu-color, pero fuera del menu.
+  ...botColorRoles(layout).botOnly.map((c) => ({ rol: c.rol, color: c.color, separado: false })),
+  // Paises: solo la bandera y el nombre en el perfil (sin color).
+  ...(layout.paisesPapu?.paises ?? []).map((p) => ({ rol: p, color: "#000000", separado: false })),
 ];
 for (const w of wantRoles) {
   const r = byName(w.rol);
@@ -87,6 +91,10 @@ const roleIds: RoleIds = {
   everyone: G,
   tiers: layout.niveles.map((n) => ({ name: n.rol, id: placeholder(n.rol) })),
   bots: placeholder("Vocaloids"),
+  chatBots: (() => {
+    const c = layout.rolesExtra.find((r) => r.botsCharla);
+    return c ? placeholder(c.rol) : undefined;
+  })(),
   music: (() => {
     const m = layout.rolesExtra.find((r) => r.musica);
     return m ? placeholder(m.rol) : undefined;
@@ -106,16 +114,36 @@ for (const botId of musicSpec?.musica ?? []) {
   }
 }
 
-// Rol Vocaloids a todos los bots con token (las 4 chicas y los de conversacion), y por encima de los niveles (para que salgan juntos arriba en la lista).
+// Rol Vocaloids a las 4 chicas, por encima de los niveles (salen juntas arriba en la lista), y rol Coro a los Vocaloids
+// de conversacion con token (salen al final). Los de conversacion pierden el rol Vocaloids si lo tenian (antes del
+// 20 oct. 2026 todos los bots lo llevaban; ademas puede mencionar a @everyone).
 const botRole = layout.rolesExtra.find((r) => r.bots)!;
+const chatRole = layout.rolesExtra.find((r) => r.botsCharla);
 for (const id of config.activeBots) {
   const r2 = new REST().setToken(config.tokens[id]!);
   const u = await api<{ id: string }>(() => r2.get(Routes.user()));
-  const m = await api<{ roles: string[] }>(() => rest.get(Routes.guildMember(G, u.id)));
+  const m = await api<{ roles: string[] } | null>(() => rest.get(Routes.guildMember(G, u.id)).catch(() => null));
+  if (!m) {
+    log(`⚠️  ${id} tiene token pero no está en el servidor: invitarlo (README) y volver a correr npm run servidor`);
+    continue;
+  }
   const vid = byName(botRole.rol)?.id;
-  if (!vid || !m.roles.includes(vid)) {
-    log(`dar el rol "${botRole.rol}" a ${id}`);
-    if (APPLY && vid) await rest.put(Routes.guildMemberRole(G, u.id, vid));
+  const own = isCoreBot(id) || !chatRole ? botRole : chatRole;
+  const oid = byName(own.rol)?.id;
+  if (!oid || !m.roles.includes(oid)) {
+    log(`dar el rol "${own.rol}" a ${id}`);
+    if (APPLY && oid) await rest.put(Routes.guildMemberRole(G, u.id, oid));
+  }
+  if (own !== botRole && vid && m.roles.includes(vid)) {
+    log(`quitar el rol "${botRole.rol}" a ${id} (va en "${own.rol}")`);
+    if (APPLY) await rest.delete(Routes.guildMemberRole(G, u.id, vid));
+  }
+  // Su color (coloresBots): el rol de #tu-color que le corresponde o uno solo suyo.
+  const colorName = botColorRoles(layout).byBot.get(id);
+  const cid = colorName ? byName(colorName)?.id : undefined;
+  if (colorName && (!cid || !m.roles.includes(cid))) {
+    log(`dar el color "${colorName}" a ${id}`);
+    if (APPLY && cid) await rest.put(Routes.guildMemberRole(G, u.id, cid));
   }
 }
 const top = byName(layout.niveles.at(-1)!.rol);
@@ -137,36 +165,113 @@ for (const spec of layout.rolesExtra.filter((r) => r.sobreNiveles)) {
     }
   }
 }
-
-// Colores de #tu-color por encima de las insignias (Papu de honor, Fundador) y de Papu: el color que elige cada uno
-// se ve aunque tenga una insignia. Debajo de los niveles: quien paga sigue viéndose con el color de su nivel.
+// 🛡️ Mod justo debajo de Vocaloids: su grupo sale sobre los niveles (y sobre 💙 Esposa de Kaito). Neru queda arriba.
+// (Un PATCH suelto con la posicion a veces no lo mueve; blockBelow manda el orden completo.)
+const modSpec = layout.rolesExtra.find((r) => r.mod);
 {
-  const colorRoles = (layout.coloresPapu?.colores ?? []).map((c) => byName(c.rol)).filter((r): r is ApiRole => !!r);
-  // Insignias: primero las que van separadas en la lista (Papu de honor), luego el resto (Fundador, Papu).
-  const badges = layout.rolesExtra
-    .filter((r) => !r.bots && !r.musica && !r.sobreNiveles)
-    .sort((a, b) => Number(b.separado) - Number(a.separado))
-    .map((r) => byName(r.rol))
-    .filter((r): r is ApiRole => !!r);
-  const anchor = byName(layout.niveles[0]!.rol);
-  const teto = await api<{ id: string }>(() => new REST().setToken(config.tokens.teto).get(Routes.user()));
-  const ceiling = roles.find((r) => r.managed && r.tags?.bot_id === teto.id)?.position ?? 0;
-  const changes = anchor ? blockBelow(roles, anchor.id, [...colorRoles, ...badges].map((r) => r.id), ceiling) : [];
-  if (changes.length) {
-    log(`ordenar roles: colores de #tu-color sobre ${badges.map((b) => `"${b.name}"`).join(", ")}`);
-    if (APPLY) await rest.patch(Routes.guildRoles(G), { body: changes });
+  const mod = modSpec ? byName(modSpec.rol) : undefined;
+  const voc2 = byName(botRole.rol);
+  if (modSpec && voc2 && (!mod || mod.position !== voc2.position - 1)) {
+    log(`poner "${modSpec.rol}" justo debajo de "${voc2.name}" (su grupo sale sobre los niveles)`);
+    const tetoUserId = tetoUser.id;
+    const tetoTop = roles.find((r) => r.managed && r.tags?.bot_id === tetoUserId)?.position ?? 0;
+    if (APPLY && mod) {
+      await rest.patch(Routes.guildRoles(G), { body: blockBelow(roles, voc2.id, [mod.id], tetoTop) });
+      roles = await api<ApiRole[]>(() => rest.get(Routes.guildRoles(G)));
+    }
   }
 }
 
-// Teto (Papu y Fundador) y Miku (colores, desde el worker) dan roles: necesitan "Gestionar roles" en su rol de bot,
-// aunque Teto deje de ser Administrador.
+// Orden de los roles de los Papus (solo los que están debajo de Teto, que es quien los mueve):
+//   1. colores de #tu-color arriba de todo (decisión de GyroP, 19 oct. 2026): el color que elige cada uno se ve sobre
+//      el de su nivel y sus insignias. No son separados, así que la lista de miembros sigue agrupada por nivel.
+//   2. insignias (Papu de honor, Fundador, Papu) juntas debajo del nivel más bajo.
+//   3. países al fondo, debajo de Papu: no cambian el color ni el grupo de nadie.
+{
+  const ids = (names: string[]) => names.map((n) => byName(n)).filter((r): r is ApiRole => !!r).map((r) => r.id);
+  const botRolePos = async (id: "teto" | "miku" | "neru") => {
+    const u = await api<{ id: string }>(() => new REST().setToken(config.tokens[id]).get(Routes.user()));
+    return roles.find((r) => r.managed && r.tags?.bot_id === u.id)?.position ?? 0;
+  };
+  const tetoPos = await botRolePos("teto");
+  // Miku da los colores y países desde el worker: deben quedar debajo de su rol de bot, o Discord no la deja asignarlos.
+  const mikuPos = await botRolePos("miku");
+  // Y debajo de Neru: si quedaran encima, ella no podria silenciar a quien tenga un color (caso real del 21 oct. 2026).
+  const neruPos = await botRolePos("neru");
+  const ceiling = Math.min(tetoPos, mikuPos || tetoPos, neruPos || tetoPos);
+  const refresh = async (changed: boolean) => {
+    if (APPLY && changed) roles = await api<ApiRole[]>(() => rest.get(Routes.guildRoles(G)));
+  };
+
+  const top = blockAtTop(roles, ids([...(layout.coloresPapu?.colores ?? []).map((c) => c.rol), ...botColorRoles(layout).botOnly.map((c) => c.rol)]), ceiling);
+  if (top.length) {
+    log(`ordenar roles: colores de #tu-color arriba de todos (su color se ve sobre el de los niveles)`);
+    if (APPLY) await rest.patch(Routes.guildRoles(G), { body: top });
+  }
+  await refresh(top.length > 0);
+
+  // Insignias: primero las que van separadas en la lista (Papu de honor), luego el resto (Fundador, Papu).
+  const badges = layout.rolesExtra
+    .filter((r) => !r.bots && !r.botsCharla && !r.musica && !r.sobreNiveles && !r.mod)
+    .sort((a, b) => Number(b.separado) - Number(a.separado))
+    .map((r) => r.rol);
+  const anchor = byName(layout.niveles[0]!.rol);
+  const below = anchor ? blockBelow(roles, anchor.id, ids(badges), tetoPos) : [];
+  if (below.length) {
+    log(`ordenar roles: ${badges.map((b) => `"${b}"`).join(", ")} debajo de "${anchor!.name}"`);
+    if (APPLY) await rest.patch(Routes.guildRoles(G), { body: below });
+  }
+  await refresh(below.length > 0);
+
+  // Coro (sin color) al fondo de todo, debajo de los países: así es el último rol separado y el grupo de los Vocaloids
+  // de conversación sale al final de la lista de miembros, justo encima de "En línea" (decisión de GyroP, 20 oct. 2026).
+  const bottom = blockAtBottom(roles, ids([...(layout.paisesPapu?.paises ?? []), ...(chatRole ? [chatRole.rol] : [])]), tetoPos);
+  if (bottom.length) {
+    log(`ordenar roles: países al fondo de la lista (debajo de "Papu")${chatRole ? ` y "${chatRole.rol}" el último (su grupo sale al final)` : ""}`);
+    if (APPLY) await rest.patch(Routes.guildRoles(G), { body: bottom });
+  }
+  await refresh(bottom.length > 0);
+
+  // Neru, la que modera, con su rol de bot sobre TODOS los roles de los Papus (colores de #tu-color, Mod, niveles…):
+  // Discord solo deja silenciar a quien tiene el rol más alto por debajo del suyo (caso real del 21 oct. 2026: estaba
+  // debajo de los 🎨 colores y sus strikes no silenciaban a nadie). Teto la deja justo debajo de su propio rol, lo más
+  // alto que puede mover; si GyroP la sube a mano por encima de Teto, aquí no se la baja.
+  // Desde el 22 oct. 2026 (decisión de GyroP) Neru va en el rol más alto del servidor, solo bajo GyroP: ningún bot puede
+  // subir un rol sobre el suyo, así que el último paso (sobre Teto y los demás bots) lo hace GyroP a mano.
+  const neruUser = await api<{ id: string }>(() => new REST().setToken(config.tokens.neru).get(Routes.user()));
+  const neruRole = roles.find((r) => r.managed && r.tags?.bot_id === neruUser.id);
+  const highestPapuRole = Math.max(0, ...roles.filter((r) => !r.managed).map((r) => r.position));
+  if (neruRole && neruRole.position <= highestPapuRole) {
+    log(`subir el rol de Neru sobre todos los roles de los Papus (justo debajo de Teto), para que sus silencios funcionen`);
+    if (APPLY) await rest.patch(Routes.guildRoles(G), { body: [{ id: neruRole.id, position: tetoPos - 1 }] });
+  }
+  const aboveNeru = roles.filter((r) => neruRole && r.id !== neruRole.id && r.position > neruRole.position).map((r) => r.name);
+  if (neruRole && aboveNeru.length)
+    console.log(`⚠️  Neru debe ser el rol más alto (solo bajo GyroP). Arrastra "${neruRole.name}" arriba de todo en Ajustes del servidor → Roles (hoy tiene encima: ${aboveNeru.join(", ")}).`);
+}
+
+// Teto (Papu, Fundador y honor) y Miku (colores, desde el worker) dan roles: necesitan "Gestionar roles" en su rol de
+// bot, aunque Teto deje de ser Administrador. Teto ademas pone el nivel en el apodo de quien lo active: "Gestionar apodos".
+// Neru es Administradora (decisión de GyroP, 22 oct. 2026): borra y silencia en todos los canales e hilos, también los
+// privados y cerrados, sin depender de los permisos de cada canal. Expulsar y banear sigue siendo solo de GyroP (el
+// código de Neru no lo hace nunca, regla 3).
 const MANAGE_ROLES = 1n << 28n;
-for (const id of ["teto", "miku"] as const) {
+const MANAGE_NICKNAMES = 1n << 27n;
+for (const [id, need, what] of [
+  ["teto", MANAGE_ROLES | MANAGE_NICKNAMES, "Gestionar roles\" y \"Gestionar apodos"],
+  ["miku", MANAGE_ROLES, "Gestionar roles"],
+  ["neru", ADMIN, "Administrador"],
+] as const) {
   const u = await api<{ id: string }>(() => new REST().setToken(config.tokens[id]).get(Routes.user()));
   const own = roles.find((r) => r.managed && r.tags?.bot_id === u.id);
-  if (own && !(BigInt(own.permissions) & MANAGE_ROLES)) {
-    log(`dar "Gestionar roles" al rol de ${id} (para asignar roles a los Papus)`);
-    if (APPLY) await rest.patch(Routes.guildRole(G, own.id), { body: { permissions: String(BigInt(own.permissions) | MANAGE_ROLES) } });
+  if (own && (BigInt(own.permissions) & need) !== need) {
+    log(`dar "${what}" al rol de ${id} (${id === "neru" ? "borrar y silenciar en todos los canales e hilos" : `roles de los Papus${id === "teto" ? " y nivel en el apodo" : ""}`})`);
+    // Un bot no puede cambiar su propio rol (Discord responde 50013): entonces lo hace GyroP a mano.
+    if (APPLY) {
+      await rest.patch(Routes.guildRole(G, own.id), { body: { permissions: String(BigInt(own.permissions) | need) } }).catch(() =>
+        console.log(`⚠️  No pude darle "${what}" al rol "${own.name}": actívalo a mano en Ajustes del servidor → Roles → ${own.name}.`),
+      );
+    }
   }
 }
 
@@ -237,21 +342,31 @@ for (const cat of layout.categorias as CategorySpec[]) {
   }
 }
 
-// ── Orden: categorias del archivo (las que no estan en el, despues de Comunidad); canales en el orden del archivo ──
+// ── Orden: categorias del archivo (las que no estan en el, despues de categoriasManualesDespuesDe); canales en el orden del archivo ──
 if (APPLY) {
   channels = await api<ApiChannel[]>(() => rest.get(Routes.guildChannels(G)));
   const cats = channels.filter((c) => c.type === ChannelType.GuildCategory);
   const managedCats = (layout.categorias as CategorySpec[]).map((s) => cats.find((c) => nameKey(c.name) === nameKey(s.nombre))!).filter(Boolean);
   const others = cats.filter((c) => !managedCats.includes(c)).sort((a, b) => a.position - b.position);
-  const order = [...managedCats.slice(0, 2), ...others, ...managedCats.slice(2)];
+  const split = managedCats.findIndex((c) => nameKey(c.name) === nameKey(layout.categoriasManualesDespuesDe ?? "")) + 1 || 2;
+  const order = [...managedCats.slice(0, split), ...others, ...managedCats.slice(split)];
   const positions: { id: string; position: number }[] = order.map((c, i) => ({ id: c.id, position: i }));
   for (const s of layout.categorias as CategorySpec[]) {
     const cat = managedCats.find((c) => nameKey(c.name) === nameKey(s.nombre));
     if (!cat) continue;
     const kids = channels.filter((c) => c.parent_id === cat.id && c.type !== ChannelType.GuildCategory);
     const listed = s.canales.map((ch) => kids.find((k) => nameKey(k.name) === nameKey(ch.nombre))).filter((k): k is ApiChannel => !!k);
-    const rest2 = kids.filter((k) => !listed.includes(k)).sort((a, b) => a.position - b.position);
-    [...listed, ...rest2].forEach((k, i) => positions.push({ id: k.id, position: i }));
+    // Los canales que GyroP agrega a mano (no estan en el archivo) se quedan junto al canal que tienen antes hoy
+    // (p. ej. #mascotas despues de #charla-vocaloid), no al final de la categoria.
+    const current = [...kids].sort((a, b) => a.position - b.position);
+    const after = new Map<string | null, ApiChannel[]>();
+    let prev: string | null = null;
+    for (const k of current) {
+      if (listed.includes(k)) prev = k.id;
+      else after.set(prev, [...(after.get(prev) ?? []), k]);
+    }
+    const ordered = [...(after.get(null) ?? []), ...listed.flatMap((k) => [k, ...(after.get(k.id) ?? [])])];
+    ordered.forEach((k, i) => positions.push({ id: k.id, position: i }));
   }
   await rest.patch(Routes.guildChannels(G), { body: positions });
   console.log("✔ orden de categorías y canales");

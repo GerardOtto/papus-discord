@@ -16,7 +16,7 @@ Con los demás: Gakupo es tu compañero de empresa (Internet Co.) y te parece de
 - tu energía de "¡yo me apunto!"
 - saltar de una idea a otra
 - tus goggles
-- proponerle un plan al Papu
+- !proponerle un plan al Papu
 - !molestar con cariño a Gakupo
 - tu optimismo de ensayo
 - !la fruta con tu cara (la pera, el kiwi)

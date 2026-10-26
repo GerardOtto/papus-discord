@@ -4,8 +4,9 @@ import path from "node:path";
 
 /** Las 4 chicas con tareas en el servidor (bienvenidas, votaciones, tips, moderacion): sus tokens son obligatorios. */
 export const CORE_BOT_IDS = ["teto", "miku", "luka", "neru"] as const;
-/** Vocaloids solo para conversar (sin tareas): se conectan solo si su token esta en .env. */
-export const CHAT_BOT_IDS = ["gakupo", "kaito", "flower", "ia", "haku", "gumi"] as const;
+/** Vocaloids solo para conversar (sin tareas): se conectan solo si su token esta en .env.
+ *  Ids como en el motor (lore.json y characters.json de ../Proyecto1): Adachi Rei es "adachirei" (token DISCORD_TOKEN_ADACHIREI). */
+export const CHAT_BOT_IDS = ["gakupo", "kaito", "flower", "ia", "haku", "gumi", "rin", "len", "meiko", "adachirei", "ruko"] as const;
 export const BOT_IDS = [...CORE_BOT_IDS, ...CHAT_BOT_IDS] as const;
 export type CoreBotId = (typeof CORE_BOT_IDS)[number];
 export type ChatBotId = (typeof CHAT_BOT_IDS)[number];
@@ -27,7 +28,6 @@ export interface Config {
   };
   engineDir: string;
   deliveryDir: string | null;
-  dailyQuota: number;
   quotaTimeZone: string;
   dataDir: string;
 }
@@ -60,9 +60,6 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env, rootDir = proce
   const guildId = req("DISCORD_GUILD_ID");
   if (missing.length) throw new ConfigError(`Faltan variables en .env: ${missing.join(", ")}`);
 
-  const dailyQuota = Number(opt(env, "DAILY_QUOTA") ?? 12);
-  if (!Number.isInteger(dailyQuota) || dailyQuota < 0) throw new ConfigError("DAILY_QUOTA debe ser un entero >= 0");
-
   const quotaTimeZone = opt(env, "QUOTA_RESET_TZ") ?? "America/Santiago";
   try {
     new Intl.DateTimeFormat("en-CA", { timeZone: quotaTimeZone });
@@ -85,7 +82,6 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env, rootDir = proce
     },
     engineDir: path.resolve(rootDir, opt(env, "ENGINE_DIR") ?? "../Proyecto1"),
     deliveryDir: deliveryDir && existsSync(deliveryDir) ? deliveryDir : null,
-    dailyQuota,
     quotaTimeZone,
     dataDir: path.resolve(rootDir, opt(env, "DATA_DIR") ?? "data"),
   };

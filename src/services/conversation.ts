@@ -32,6 +32,8 @@ export interface ChatPort {
   /** Muestra "escribiendo…" mientras dure la espera; devuelve la funcion para detenerlo. */
   typing(bot: BotId, channelId: string): () => void;
   react(bot: BotId, channelId: string, messageId: string, emoji: string): Promise<void>;
+  /** Nombres de los emojis del servidor (para que el LLM los use). */
+  emojis?(): string[];
 }
 
 export interface ConversationDeps {
@@ -75,7 +77,7 @@ export class ConversationService {
     // Sin las menciones a los bots: "@IA ¿viste el video?" le habla a IA (la Vocaloid), no pregunta si GyroP usa IA.
     const topic = this.d.privacy?.classify(withoutBotMentions(m.text, Object.values(this.d.characters).map((c) => c.displayName)));
     if (topic) {
-      for (const bot of m.bots) await port.reply(bot, m.channelId, m.messageId, phrases.pick(bot, topic, { papu }), m.authorId);
+      for (const bot of m.bots) await this.send(bot, m, phrases.pick(bot, topic, { papu }));
       return "private";
     }
 
@@ -99,9 +101,7 @@ export class ConversationService {
       if (this.warnedNoQuota.size > 5000) this.warnedNoQuota.clear();
       this.warnedNoQuota.add(warnKey);
     }
-    for (const bot of denied) {
-      await port.reply(bot, m.channelId, m.messageId, phrases.pick(bot, "cuota_agotada", { papu }), m.authorId);
-    }
+    for (const bot of denied) await this.send(bot, m, phrases.pick(bot, "cuota_agotada", { papu }));
     if (granted.length === 0) return "no_quota";
 
     const stopTyping = granted.map((b) => port.typing(b, m.channelId));
@@ -109,7 +109,7 @@ export class ConversationService {
     const result = await queue.enqueue(m.authorId, async (signal) => {
       const history = await m.history();
       const req = buildRequest(
-        { characters, papuName: m.authorName, fromOwner: m.fromOwner, notes: this.d.notesFor?.(m.authorId, granted), message: m.text, history, videos: this.d.videos?.(m.text) ?? [], culture: this.d.culture, today: this.d.today?.() },
+        { characters, papuName: m.authorName, fromOwner: m.fromOwner, notes: this.d.notesFor?.(m.authorId, granted), message: m.text, history, videos: this.d.videos?.(m.text) ?? [], culture: this.d.culture, today: this.d.today?.(), serverEmojis: port.emojis?.() },
         this.d.personas,
         this.d.llm,
       );
@@ -140,13 +140,13 @@ export class ConversationService {
     }
     if (result.status === "timeout") {
       quota.refund(reservation);
-      await port.reply(granted[0]!, m.channelId, m.messageId, phrases.pick(granted[0]!, "cola_llena", { papu }), m.authorId);
+      await this.send(granted[0]!, m, phrases.pick(granted[0]!, "cola_llena", { papu }));
       return "timeout";
     }
     if (result.status === "error") {
       quota.refund(reservation);
       this.d.log?.(`LLM sin respuesta: ${(result.error as Error)?.message ?? result.error}`);
-      await port.reply(granted[0]!, m.channelId, m.messageId, phrases.pick(granted[0]!, "sin_api", { papu }), m.authorId);
+      await this.send(granted[0]!, m, phrases.pick(granted[0]!, "sin_api", { papu }));
       return "failed";
     }
 
@@ -159,12 +159,12 @@ export class ConversationService {
       if (this.d.privacy?.leaks(text, m.text)) {
         // La respuesta menciona herramientas o el proceso: se descarta y va la frase fija (sin cobro).
         this.d.log?.(`Respuesta de ${bot} descartada por privacidad`);
-        await port.reply(bot, m.channelId, m.messageId, phrases.pick(bot, "secreto_estudio", { papu }), m.authorId);
+        await this.send(bot, m, phrases.pick(bot, "secreto_estudio", { papu }));
         replaced++;
         continue;
       }
-      await port.reply(bot, m.channelId, m.messageId, text, m.authorId);
-      answered++;
+      // Si Discord no deja publicar a uno, los demas siguen y su unidad se devuelve (cuenta como sin respuesta).
+      if (await this.send(bot, m, text)) answered++;
     }
     if (replaced > 0) quota.refund(reservation, replaced);
     if (answered === 0 && replaced > 0) return "private";
@@ -174,12 +174,23 @@ export class ConversationService {
       quota.refund(reservation, missing);
       if (answered === 0) {
         this.d.log?.(`Sin respuesta para ${granted.join(", ")} (${result.value.provider}, ${result.value.text.length} car.): ${result.value.text.slice(0, 120).replace(/\s+/g, " ")}`);
-        await port.reply(granted[0]!, m.channelId, m.messageId, phrases.pick(granted[0]!, "sin_api", { papu }), m.authorId);
+        await this.send(granted[0]!, m, phrases.pick(granted[0]!, "sin_api", { papu }));
         return "failed";
       }
       return "partial";
     }
     return "answered";
+  }
+
+  /** Publica la respuesta de un bot; si Discord falla, lo anota y sigue (un envio caido no frena a los demas @). */
+  private async send(bot: BotId, m: IncomingMention, content: string): Promise<boolean> {
+    try {
+      await this.d.port.reply(bot, m.channelId, m.messageId, content, m.authorId);
+      return true;
+    } catch (e) {
+      this.d.log?.(`✘ ${bot} no pudo publicar su respuesta: ${(e as Error)?.message ?? e}`);
+      return false;
+    }
   }
 }
 
@@ -213,7 +224,9 @@ export function mentionedBots(content: string, botByUserId: ReadonlyMap<string, 
     const bot = botByUserId.get(id!);
     if (bot && !out.includes(bot)) out.push(bot);
   }
+  // Responder a un bot cuenta como mencionarlo solo si no hay @ a otro: "@Miku qué piensas de esto?" respondiendo a
+  // Teto es para Miku (caso real del 22 oct. 2026: contestaban las dos).
   const replied = repliedToUserId ? botByUserId.get(repliedToUserId) : undefined;
-  if (replied && !out.includes(replied)) out.push(replied);
+  if (replied && out.length === 0) out.push(replied);
   return out;
 }

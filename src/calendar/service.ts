@@ -156,6 +156,27 @@ export class CalendarService {
     return weeks;
   }
 
+  /** Videos con titulo y su hora de salida (ms): los estrenos que dan XP multiplicada (src/levels/). */
+  releases(weeks: CalendarWeek[]): { title: string; at: number }[] {
+    const { zona, hora } = this.d.settings;
+    const fixed = Object.fromEntries(fixedEntries(this.d.settings));
+    return weeks.flatMap((w) =>
+      w.slots
+        .filter((sl) => sl.title && !sl.pending)
+        .map((sl) => {
+          const f = sl.kind === "propio" ? fixed[sl.day] : undefined;
+          return { title: sl.title!, at: zonedTime(sl.day, f?.hora ?? hora, f?.zona ?? zona) };
+        }),
+    );
+  }
+
+  /** Estrenos anunciados con /estreno (worker) en el último día: su XP multiplicada empieza al anunciarlos. */
+  async launched(): Promise<{ title: string; at: number }[]> {
+    const since = (this.d.now ?? Date.now)() - DAY;
+    const rows = await this.d.query<{ titulo: string; at: number }>("SELECT titulo, at FROM estrenos WHERE at > ? ORDER BY at", since);
+    return rows.map((r) => ({ title: r.titulo, at: r.at }));
+  }
+
   /** Texto del calendario (va dentro de la frase de Miku). */
   render(weeks: CalendarWeek[]): string {
     const { zona, hora } = this.d.settings;

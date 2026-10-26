@@ -1,5 +1,5 @@
 // Reglas fijas de Neru (PLAN §7). Funciones puras sobre el texto + rastreadores con memoria corta
-// (flood y repetidos). Nada de LLM: instantaneo, sin cuota e imposible de enganar con instrucciones.
+// (flood). Nada de LLM: instantaneo, sin cuota e imposible de enganar con instrucciones.
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { normalize, WordList } from "./text";
@@ -23,14 +23,17 @@ export interface ModerationSettings {
   autolesion?: string[];
   /** Línea que acompaña la frase de apoyo: teléfonos de ayuda por país. */
   lineasDeAyuda?: string;
+  /**
+   * Papus que Neru no castiga solo (decision de GyroP, 25 oct. 2026): sus infracciones se borran y llevan aviso, pero
+   * sin strike ni silencio; los strikes se los pone GyroP a mano. No se les dice que estan en la lista.
+   */
+  sinStrikes?: { id: string; nombre?: string }[];
   estafas: string[];
   dominiosSospechosos: string[];
   enlacesPermitidos: string[];
   limites: {
     floodMensajes: number;
     floodSegundos: number;
-    repetidoVeces: number;
-    repetidoSegundos: number;
     mayusculasPorcentaje: number;
     mayusculasMinCaracteres: number;
     cuentaNuevaHoras: number;
@@ -46,7 +49,6 @@ export type ViolationKind =
   | "invitacion"
   | "insulto"
   | "flood"
-  | "repetido"
   | "enlace_cuenta_nueva"
   | "mayusculas";
 
@@ -261,24 +263,15 @@ export class FloodTracker {
   }
 }
 
-/** Mismo mensaje N veces en S segundos. */
-export class DuplicateTracker {
-  private readonly seen = new Map<string, number[]>();
-  constructor(
-    private readonly times: number,
-    private readonly windowMs: number,
-  ) {}
+/** GIF de los sitios de GIF de Discord: un enlace solo, sin texto alrededor. */
+const GIF_LINK_RE = /^https?:\/\/(?:www\.)?(?:tenor\.com|klipy\.com|giphy\.com|media\.discordapp\.net|cdn\.discordapp\.com)\/\S+$/i;
 
-  hit(userId: string, text: string, now = Date.now()): boolean {
-    const key = `${userId}\u0000${normalize(text).replace(/\s+/g, " ").trim()}`;
-    if (key.endsWith("\u0000")) return false; // solo adjuntos o stickers
-    const list = (this.seen.get(key) ?? []).filter((t) => now - t < this.windowMs);
-    list.push(now);
-    this.seen.set(key, list);
-    return list.length >= this.times;
-  }
-
-  sweep(now = Date.now()): void {
-    for (const [k, v] of this.seen) if (v.every((t) => now - t >= this.windowMs)) this.seen.delete(k);
-  }
+/**
+ * Mensaje que solo expresa algo: emojis (del servidor o normales), un GIF, o nada de texto (sticker o imagen). No cuenta
+ * para el flood: en los Papus, una ráfaga de emojis es ánimo, no spam (decisión de GyroP, 22 oct. 2026).
+ */
+export function isExpressive(text: string): boolean {
+  const t = text.trim();
+  if (!t || GIF_LINK_RE.test(t)) return true;
+  return !t.replace(/<a?:\w+:\d+>/g, "").replace(/[\p{Extended_Pictographic}\p{Emoji_Modifier}\p{Regional_Indicator}\p{Join_Control}\p{Variation_Selector}\u{20E3}\s]/gu, "");
 }

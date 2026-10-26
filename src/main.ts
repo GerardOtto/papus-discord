@@ -2,7 +2,7 @@
 import { existsSync, rmSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { STATE_FOLDERS, VideoCatalog } from "./catalog/videos";
-import { BOT_IDS, CHAT_BOT_IDS, loadConfig, loadDotEnv, type BotId } from "./config";
+import { BOT_IDS, CHAT_BOT_IDS, CORE_BOT_IDS, loadConfig, loadDotEnv, type BotId } from "./config";
 import { openDb } from "./db/database";
 import { PapusApp } from "./discord/app";
 import { EngineReader } from "./engine/reader";
@@ -13,11 +13,14 @@ import { RequestQueue } from "./llm/queue";
 import { GpuMonitor, nvidiaSmiSampler, SmartRouter } from "./llm/router";
 import { LLMUsage } from "./llm/usage";
 import { log, logError } from "./log";
+import { dayKey } from "./time";
 import { loadModerationSettings, RuleSet } from "./moderation/rules";
 import { StrikeStore } from "./moderation/strikes";
 import { Phrases } from "./phrases/catalog";
 import { DeckStore } from "./phrases/deck";
 import { Quota } from "./quota/quota";
+import { LevelService } from "./levels/service";
+import { loadLevelSettings } from "./levels/rules";
 import { loadLayout } from "./setup/layout";
 import { GeneralChat } from "./services/charla";
 import { ConversationService } from "./services/conversation";
@@ -28,6 +31,12 @@ import { founderSettings } from "./services/founders";
 import { vitrinaChannels } from "./services/vitrina";
 import { ModerationService } from "./services/moderation";
 import { loadPrivacySettings, PrivacyGuard } from "./services/privacy";
+import { loadRiddles, loadWeddingSettings } from "./bodas/rules";
+import { loadRouletteSettings } from "./ruleta/rules";
+import { RouletteService } from "./ruleta/service";
+import { WeddingService } from "./bodas/service";
+import { loadQuestions, loadTriviaSettings } from "./trivia/rules";
+import { TriviaService } from "./trivia/service";
 
 const QUEUE_CONCURRENCY = 4;
 const MAX_WAIT_MS = 2 * 60_000;
@@ -62,8 +71,18 @@ async function main(): Promise<void> {
   // dueño del servidor al conectar, y como el Set es compartido, la cuota y Neru lo ven al instante.
   const owners = new Set<string>(config.ownerId ? [config.ownerId] : []);
   // Trato especial de un Papu concreto (config/especiales.json): regalo de GyroP, no de un nivel de Ko-fi.
-  const especiales = new Especiales(loadEspeciales());
-  const quota = new Quota(db, config.dailyQuota, config.quotaTimeZone, { has: (id) => owners.has(id) || especiales.unlimited(id) });
+  const especiales = new Especiales(loadEspeciales(), Date.now, config.quotaTimeZone);
+  // Niveles por participacion: fijan la cuota de cada Papu (regla 1: nada de pago la cambia). GyroP no sube de nivel.
+  const levels = new LevelService({ db, settings: loadLevelSettings(), timeZone: config.quotaTimeZone, unranked: (id) => owners.has(id) });
+  const quota = new Quota(db, (id, now) => levels.limitFor(id, now), config.quotaTimeZone, { has: (id) => owners.has(id) || especiales.unlimited(id) });
+  // Bodas con las Vocaloids (config/bodas.json, PLAN §3.2): adivinanzas fijas, revisadas por el codigo.
+  const weddings = new WeddingService({ db, settings: loadWeddingSettings(), riddles: loadRiddles(), decks });
+  // Ruleta de los Papus (config/ruleta.json, PLAN §3.3): tiradas por misiones del dia; premios de XP y cuota extra.
+  const roulette = new RouletteService({ db, settings: loadRouletteSettings(), levels, quota, timeZone: config.quotaTimeZone });
+  // Trivia de los Papus (config/trivia.json, PLAN §3.4): preguntas fijas revisadas por el codigo; XP por acierto.
+  const triviaSettings = loadTriviaSettings();
+  const trivia = new TriviaService({ db, settings: triviaSettings, questions: loadQuestions(triviaSettings), levels, timeZone: config.quotaTimeZone });
+  log(`Trivia: ${trivia.total} preguntas`);
   const queue = new RequestQueue({ concurrency: QUEUE_CONCURRENCY, maxWaitMs: MAX_WAIT_MS });
 
   let app: PapusApp | null = null;
@@ -75,7 +94,7 @@ async function main(): Promise<void> {
   const gpu = new GpuMonitor(nvidiaSmiSampler());
   gpu.start();
   const router = new SmartRouter({ local: "local", localMaxInFlight: 1, gpu, remaining: (p) => usage.remainingFraction(p), prefer: llmSettings.preferencia });
-  const chain = new LLMChain(providers, usage, Date.now, router);
+  const chain = new LLMChain(providers, usage, Date.now, router, log);
 
   // Estado para el icono de la bandeja (data/estado.json, sin claves): consumo de cada API hoy (dia de Chile).
   const writeStatus = () => {
@@ -95,7 +114,9 @@ async function main(): Promise<void> {
   const privacy = new PrivacyGuard(loadPrivacySettings());
 
   const today = () =>
-    new Intl.DateTimeFormat("es-CL", { timeZone: config.quotaTimeZone, weekday: "long", day: "numeric", month: "long", year: "numeric" }).format(new Date());
+    new Intl.DateTimeFormat("es-CL", { timeZone: config.quotaTimeZone, weekday: "long", day: "numeric", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).format(new Date());
+  const until = (t: number) =>
+    new Intl.DateTimeFormat("es-CL", { timeZone: config.quotaTimeZone, weekday: "long", day: "numeric", month: "long", hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).format(new Date(t));
   const llmOpts = { maxTokens: llmSettings.maxTokens, temperature: llmSettings.temperature };
 
   const layout = loadLayout();
@@ -103,6 +124,12 @@ async function main(): Promise<void> {
     config,
     db,
     quota,
+    levels,
+    // Colores de la tarjeta de nivel: los de las 4 chicas y la paleta de #tu-color (solo adorno, regla 1).
+    cardColors: [
+      ...CORE_BOT_IDS.map((id) => ({ name: characters[id].displayName, value: `#${characters[id].color.toString(16).padStart(6, "0")}` })),
+      ...(layout.coloresPapu?.colores ?? []).map((c) => ({ name: c.rol.replace(/^\S+\s+/, ""), value: c.color })),
+    ],
     strikes,
     phrases,
     decks,
@@ -116,7 +143,11 @@ async function main(): Promise<void> {
     },
     founders: founderSettings(layout),
     everyoneRole: layout.rolesExtra.find((r) => r.todos)?.rol ?? null,
+    modRole: layout.rolesExtra.find((r) => r.mod)?.rol ?? null,
     vitrina: vitrinaChannels(layout),
+    weddings,
+    roulette,
+    trivia,
     calendar: buildCalendar({ db, env: process.env, deliveryDir: config.deliveryDir, engineDir: config.engineDir }),
     log,
     makeConversation: (port) =>
@@ -132,7 +163,15 @@ async function main(): Promise<void> {
         videos: (text) => videos.relevantTo(text),
         culture: personas.culture(),
         privacy,
-        notesFor: (id, bots) => especiales.notesFor(id, bots),
+        // Lo que saben los bots: el trato especial de GyroP y las bodas vigentes (con quien y hasta cuando).
+        notesFor: (id, bots) => {
+          const a = especiales.notesFor(id, bots);
+          const b = weddings.notesFor(id, bots, until);
+          return Object.fromEntries(bots.flatMap((bot) => {
+            const n = [a[bot], b[bot]].filter(Boolean).join(" ");
+            return n ? [[bot, n]] : [];
+          }));
+        },
         log,
         today,
       }),
@@ -185,6 +224,7 @@ async function main(): Promise<void> {
   setInterval(() => {
     quota.prune();
     strikes.prune();
+    levels.store.prune(dayKey(new Date(Date.now() - 60 * 86_400_000), config.quotaTimeZone));
   }, 24 * 3_600_000);
 }
 

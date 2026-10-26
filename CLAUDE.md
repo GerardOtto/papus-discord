@@ -3,22 +3,28 @@
 ## Objetivo
 Servidor de Discord de la comunidad ("Papus") del canal Vocaloid de GyroP: membresías de Ko-fi por niveles y cuatro
 bots con personalidad (**Teto, Miku, Luka y Neru**) que conversan con LLM gratuitos, cumplen tareas del servidor y moderan,
-más seis que solo conversan (**Gakupo, Kaito, flower, IA, Haku y Gumi**; opcionales por token, PLAN §4).
+más once que solo conversan (**Gakupo, Kaito, flower, IA, Haku, Gumi, Rin, Len, Meiko, Adachi Rei y Ruko**; opcionales por
+token, rol 🎤 Coro, PLAN §4).
 **Plan completo y decisiones: `docs/PLAN.md`** (leer antes de cualquier cambio). Estado (16 oct. 2026): **abre al público
 el 17 oct. 2026, sin prueba cerrada**; prueba de carga cuando esté lo mínimo (gratis + Puerro, Atún, Baguette). Hecho:
 conversación con cuota y cola, LLM local (Ollama) + APIs con reparto, moderación de Neru + AutoMod, bienvenidas, servidor
 estructurado (`config/servidor.json`), guías fijadas, emojis de nivel, arranque con Windows (tarea "Papus Discord").
 Miku y Luka responden sus comandos 24/7 desde Cloudflare (`worker/`: pedidos, votaciones, calendario, estrenos, noticias,
-tips). Pendiente: `/cumple` de Teto, aviso automático de compras de Ko-fi, exportar votaciones y pedidos al motor.
+tips). Bodas con las Vocaloids por adivinanzas (PLAN §3.2). Ruleta diaria por misiones (PLAN §3.3). Trivia con rachas, `/trivia` (PLAN §3.4). Niveles por participación (1-99 y prestigios, PLAN §3.1;
+cálculo inicial con `npm run niveles`). Pendiente: `/cumple` de Teto, aviso automático de compras de Ko-fi, exportar votaciones y pedidos al motor.
 Uso y archivos editables: `README.md`.
 
 Repo hermano: el motor de videos en `../Proyecto1` (fuente del lore, calendario y fuentes de noticias).
 **Rutas de los datos del motor: `config/engine-paths.json`** (solo lectura; el bot nunca escribe en el motor).
 
 ## Reglas (no negociables)
-1. **Ningún plan de pago da exclusividades con los bots**: cuota diaria única por Papu (12 desde el 17 oct. 2026; 7 al lanzar), compartida entre
-   todos los bots, igual para todos los niveles; una unidad por cada @ en un mensaje; sin prioridad en la cola por pagar. Única excepción,
+1. **Ningún plan de pago da exclusividades con los bots**: cuota diaria por Papu, compartida entre todos los bots, que depende **solo de su
+   nivel por participación** (PLAN §3.1, `config/niveles.json`: 3 en el nivel 1 hasta 18, 20 con prestigio; desde el 20 oct. 2026, antes 12
+   para todos); nada de pago (Ko-fi) da XP ni cuota; una unidad por cada @ en un mensaje; sin prioridad en la cola por pagar. Única excepción,
    regalo de GyroP y no de un nivel: 🍍♡Piña♡🍍 (`config/especiales.json`, PLAN §cuota); no se extiende a otros Papus.
+   Excepción por juego: ganar una boda con una Vocaloid reinicia la cuota del día (PLAN §3.2; se gana adivinando, no pagando),
+   y la ruleta puede dar mensajes extra del día (PLAN §3.3; se gana con misiones de participación). La trivia da XP por
+   acierto (PLAN §3.4; se gana jugando).
 2. Los bots son omnipresentes (todos los canales) y no se responden solos entre ellos. Única excepción: la charla de
    #general (PLAN §4), donde un Vocaloid le pregunta a otro con @ y este contesta una sola vez.
 3. La moderación es por reglas fijas + AutoMod de Discord, **nunca el LLM**. Neru no expulsa ni banea (solo GyroP).
@@ -35,7 +41,8 @@ Repo hermano: el motor de videos en `../Proyecto1` (fuente del lore, calendario 
 
 ## Decisiones ya tomadas (no volver a plantearlas)
 - GyroP asume el riesgo de licencias de los personajes y revisa por su cuenta los términos de las APIs (menores, datos).
-- Hosting de la prueba: el PC de GyroP (arranque con Windows). Bots desconectados cuando el PC está apagado; AutoMod cubre lo grave.
+- Hosting: desde el 23 oct. 2026, Google Cloud e2-micro gratuita (`nube\nube.cmd`, `nube/LEEME.md`); el PC solo sincroniza datos
+  del motor. Nunca los bots en el PC y en la nube a la vez. Volver al PC: `nube\nube.cmd volver`.
 - Repo aparte del motor.
 
 ## Sobre el usuario

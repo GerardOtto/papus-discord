@@ -1,6 +1,8 @@
 """Genera los avatares cuadrados (1024x1024) y los banners (1360x480) de los bots desde los avatares del motor
 (solo lectura) y su paleta de characters.json. Salida: assets/bots/<id>_avatar.png y <id>_banner.png.
-Uso: python scripts/make_avatars.py   (ENGINE_DIR por defecto ../Proyecto1)
+Personajes que no estan en characters.json del motor (Ruko): paleta en content/lore-extra.json -> display.
+Tambien las figuras del podio de /ranking (<id>_figura.png).
+Uso: python scripts/make_avatars.py [ids] [--figuras]   (ENGINE_DIR por defecto ../Proyecto1; --figuras: solo las figuras)
 Para cambiar la cara de un bot, editar SPEC (archivo y recorte relativo al contenido visible de la imagen)."""
 import json
 import os
@@ -12,21 +14,29 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 ENGINE = os.path.abspath(os.path.join(ROOT, os.environ.get("ENGINE_DIR", "../Proyecto1")))
 OUT = os.path.join(ROOT, "assets", "bots")
 
-# avatar: imagen y recorte cuadrado (cx, cy, lado) en fracciones del contenido visible; banner: pose de cuerpo entero.
+# avatar: imagen y recorte cuadrado (cx, cy, lado) en fracciones del contenido visible; banner: pose de cuerpo entero;
+# figura (podio del /ranking): pose sin cortes en los bordes y fraccion de arriba que se conserva (el podio tapa las piernas).
 SPEC = {
-    "teto": {"avatar": ("feliz_5.png", 0.50, 0.42, 0.95), "banner": "emocionado.png"},
-    "miku": {"avatar": ("feliz_11.png", 0.50, 0.42, 0.95), "banner": "emocionado_6.png"},
-    "luka": {"avatar": ("feliz_21.png", 0.50, 0.40, 0.95), "banner": "emocionado_5.png"},
-    "neru": {"avatar": ("neutral_2.png", 0.50, 0.42, 0.95), "banner": "r3d_emocionado_5.png"},
-    "gakupo": {"avatar": ("nerd_2.png", 0.50, 0.42, 0.95), "banner": "maduro_feliz.png"},
-    "kaito": {"avatar": ("feliz.png", 0.50, 0.40, 0.95), "banner": "emocionado.png"},
-    "flower": {"avatar": ("feliz.png", 0.50, 0.40, 0.95), "banner": "presumido.png"},
-    "ia": {"avatar": ("feliz.png", 0.50, 0.40, 0.95), "banner": "saludando.png"},
-    "haku": {"avatar": ("feliz.png", 0.50, 0.40, 0.95), "banner": "saludando.png"},
-    "gumi": {"avatar": ("feliz.png", 0.50, 0.40, 0.95), "banner": "emocionado.png"},
+    "teto": {"avatar": ("feliz_5.png", 0.50, 0.42, 0.95), "banner": "emocionado.png", "figura": ("emocionado.png", 0.85)},
+    "miku": {"avatar": ("feliz_11.png", 0.50, 0.42, 0.95), "banner": "emocionado_6.png", "figura": ("emocionado_6.png", 0.75)},
+    "luka": {"avatar": ("feliz_21.png", 0.50, 0.40, 0.95), "banner": "emocionado_5.png", "figura": ("emocionado_5.png", 0.9)},
+    "neru": {"avatar": ("neutral_2.png", 0.50, 0.42, 0.95), "banner": "r3d_emocionado_5.png", "figura": ("feliz.png", 1.0)},
+    "gakupo": {"avatar": ("nerd_2.png", 0.50, 0.42, 0.95), "banner": "maduro_feliz.png", "figura": ("maduro_feliz.png", 0.75)},
+    "kaito": {"avatar": ("feliz.png", 0.50, 0.40, 0.95), "banner": "emocionado.png", "figura": ("feliz.png", 1.0)},
+    "flower": {"avatar": ("feliz.png", 0.50, 0.40, 0.95), "banner": "presumido.png", "figura": ("presumido_2.png", 1.0)},
+    "ia": {"avatar": ("feliz.png", 0.50, 0.40, 0.95), "banner": "saludando.png", "figura": ("feliz_2.png", 1.0)},
+    "haku": {"avatar": ("feliz.png", 0.50, 0.40, 0.95), "banner": "saludando.png", "figura": ("emocionado_3.png", 0.62)},
+    "gumi": {"avatar": ("feliz.png", 0.50, 0.40, 0.95), "banner": "emocionado.png", "figura": ("emocionado.png", 0.85)},
+    "rin": {"avatar": ("feliz.png", 0.50, 0.40, 0.95), "banner": "emocionado.png", "figura": ("emocionado_3.png", 0.8)},
+    "len": {"avatar": ("feliz.png", 0.50, 0.40, 0.95), "banner": "presumido.png", "figura": ("emocionado_2.png", 0.62)},
+    "meiko": {"avatar": ("feliz.png", 0.50, 0.40, 0.95), "banner": "saludando.png", "figura": ("emocionado.png", 0.72)},
+    "adachirei": {"avatar": ("feliz.png", 0.50, 0.40, 0.95), "banner": "emocionado.png", "figura": ("saludando.png", 1.0)},
+    # ruko: imagenes en el motor (assets/characters/ruko, 20 oct. 2026); avatar = su cara de la imagen principal (GyroP).
+    "ruko": {"avatar": ("feliz.png", 0.49, 0.125, 0.40), "banner": "emocionado.png", "figura": ("feliz.png", 0.5)},
 }
 AVATAR = 1024
 BANNER = (1360, 480)
+FIGURA = 640  # alto maximo
 
 
 def hex_rgb(h):
@@ -75,9 +85,13 @@ def with_glow(img, color, radius=18):
     return out
 
 
+def source(cid, name):
+    return os.path.join(ENGINE, "assets/characters", cid, name)
+
+
 def make_avatar(cid, palette):
     name, cx, cy, side = SPEC[cid]["avatar"]
-    img = visible(Image.open(os.path.join(ENGINE, "assets/characters", cid, name)).convert("RGBA"))
+    img = visible(Image.open(source(cid, name)).convert("RGBA"))
     w, h = img.size
     s = int(min(w, h) * side)
     left = max(0, min(w - s, int(cx * w - s / 2)))
@@ -101,7 +115,7 @@ def make_banner(cid, palette):
             if (i // 40 + j // 40) % 2 == 0:
                 d.ellipse((i, j, i + 5, j + 5), fill=light + (50,))
     bg.alpha_composite(dots)
-    pose = visible(Image.open(os.path.join(ENGINE, "assets/characters", cid, SPEC[cid]["banner"])).convert("RGBA"))
+    pose = visible(Image.open(source(cid, SPEC[cid]["banner"])).convert("RGBA"))
     # De la cintura para arriba: la pose mide ~1,8 veces el alto del banner y se corta abajo.
     scale = (h * 1.8) / pose.height
     pose = pose.resize((int(pose.width * scale), int(pose.height * scale)), Image.LANCZOS)
@@ -112,13 +126,52 @@ def make_banner(cid, palette):
     bg.convert("RGB").save(os.path.join(OUT, f"{cid}_banner.png"), optimize=True)
 
 
+def fade_cut_edges(img, band=28):
+    """Si la pose viene cortada arriba o a los lados en el motor, el borde se desvanece en vez de quedar recto."""
+    alpha = img.getchannel("A")
+    w, h = img.size
+    solid = alpha.point(lambda v: 255 if v > 128 else 0)
+    edges = {"top": (0, 0, w, 2), "left": (0, 0, 2, h), "right": (w - 2, 0, w, h)}
+    px = alpha.load()
+    for side, box in edges.items():
+        if solid.crop(box).histogram()[255] == 0:
+            continue
+        for k in range(band):
+            f = k / band
+            if side == "top":
+                for x in range(w):
+                    px[x, k] = int(px[x, k] * f)
+            else:
+                x = k if side == "left" else w - 1 - k
+                for y in range(h):
+                    px[x, y] = int(px[x, y] * f)
+    img.putalpha(alpha)
+    return img
+
+
+def make_figure(cid):
+    """Figura recortada (PNG con transparencia) para el podio de /ranking: assets/bots/<id>_figura.png."""
+    name, keep = SPEC[cid]["figura"]
+    img = fade_cut_edges(visible(Image.open(source(cid, name)).convert("RGBA")))
+    img = img.crop((0, 0, img.width, int(img.height * keep)))
+    img = img.crop(img.getbbox())
+    if img.height > FIGURA:
+        img = img.resize((int(img.width * FIGURA / img.height), FIGURA), Image.LANCZOS)
+    img.save(os.path.join(OUT, f"{cid}_figura.png"), optimize=True)
+
+
 def main():
     chars = json.load(open(os.path.join(ENGINE, "config/characters.json"), encoding="utf-8"))["characters"]
+    extra = json.load(open(os.path.join(ROOT, "content/lore-extra.json"), encoding="utf-8")).get("display", {})
+    chars = {**extra, **chars}
     os.makedirs(OUT, exist_ok=True)
-    for cid in sys.argv[1:] or SPEC:
-        palette = palette_of(chars[cid])
-        make_avatar(cid, palette)
-        make_banner(cid, palette)
+    only_figures = "--figuras" in sys.argv
+    for cid in [a for a in sys.argv[1:] if not a.startswith("--")] or SPEC:
+        if not only_figures:
+            palette = palette_of(chars[cid])
+            make_avatar(cid, palette)
+            make_banner(cid, palette)
+        make_figure(cid)
         print(f"ok {cid}")
 
 

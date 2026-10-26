@@ -1,0 +1,21 @@
+{
+  "$comment": "Ruleta de los Papus (decisión de GyroP, 24 oct. 2026; docs/PLAN.md §3.3). Hasta 3 tiradas al día, una por misión cumplida; se cobran el mismo día (hora de QUOTA_RESET_TZ, como la cuota) y al día siguiente vuelven a cero. /ruleta (Teto) muestra las misiones y el botón para girar; el resultado sale público como GIF animado. Los premios son XP y cuota extra del día: excepción a la regla 1, como las bodas (se gana participando, no pagando). Cambiar algo aquí no requiere tocar código.",
+  "$misiones": "voz = minutos con XP de voz del día (como en los niveles: con otros Papus, sin ensordecer, fuera del AFK); mensajes = mensajes que dieron XP (con la espera y sin repetidos de los niveles); subirNivel = subir al menos un nivel ese día (una tirada como máximo).",
+  "misiones": { "vozMinutos": 120, "mensajes": 200, "subirNivel": true },
+  "$strike": "Con un strike de Neru ese día, la ruleta queda bloqueada hasta el día siguiente (las tiradas sin cobrar se pierden).",
+  "bloqueoPorStrike": true,
+  "$avisos": "Al cumplir una misión, Teto avisa en el canal donde pasó (el del mensaje; el chat del canal de voz para la de voz) o, si no puede, en 'canalAvisos'. null = sin avisos.",
+  "canalAvisos": "comandos-de-bots",
+  "$premios": "Las casillas de la ruleta, en orden (se dibujan en el sentido del reloj desde arriba). peso = probabilidad relativa. xp: 'porcentaje' de la XP que pide su nivel actual (mínimo 'xpMinima'), multiplicada por el evento de XP vigente. cuota: 'valor' mensajes extra con los Vocaloids solo por hoy. cuota_llena: devuelve todos los mensajes que gastó hoy (si no había gastado ninguno, 1 extra). 'icono' y 'etiqueta' = lo que se ve en la casilla (corto); 'nombre' = cómo se anuncia; 'color' = el de una Vocaloid.",
+  "xpMinima": 15,
+  "premios": [
+    { "tipo": "xp", "porcentaje": 0.1, "peso": 24, "icono": "⭐", "etiqueta": "XP", "nombre": "un poco de XP", "color": "#39c5bb" },
+    { "tipo": "cuota", "valor": 1, "peso": 20, "icono": "💌", "etiqueta": "+1", "nombre": "1 mensaje extra con los Vocaloids", "color": "#d64f6b" },
+    { "tipo": "xp", "porcentaje": 0.25, "peso": 16, "icono": "⭐⭐", "etiqueta": "XP", "nombre": "un buen montón de XP", "color": "#e07bb5" },
+    { "tipo": "cuota", "valor": 2, "peso": 12, "icono": "💌", "etiqueta": "+2", "nombre": "2 mensajes extra con los Vocaloids", "color": "#e8b923" },
+    { "tipo": "xp", "porcentaje": 0.5, "peso": 10, "icono": "⭐⭐⭐", "etiqueta": "XP", "nombre": "medio nivel de XP", "color": "#8c5cff" },
+    { "tipo": "cuota", "valor": 3, "peso": 8, "icono": "💌", "etiqueta": "+3", "nombre": "3 mensajes extra con los Vocaloids", "color": "#3ddc84" },
+    { "tipo": "xp", "porcentaje": 1, "peso": 4, "icono": "🆙", "etiqueta": "NIVEL", "nombre": "¡UN NIVEL COMPLETO!", "color": "#ff9f1c" },
+    { "tipo": "cuota_llena", "peso": 6, "icono": "💌", "etiqueta": "LLENA", "nombre": "¡la cuota del día llena otra vez!", "color": "#36c5f0" }
+  ]
+}

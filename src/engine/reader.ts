@@ -1,6 +1,7 @@
 // Lector de los datos del motor de videos (../Proyecto1). SOLO LECTURA: este modulo no tiene
 // ninguna funcion que escriba; las rutas salen de config/engine-paths.json. Los Vocaloids que el motor no tiene en
-// su elenco (Gakupo, IA, Haku, flower) toman sus datos de content/lore-extra.json; si el motor los agrega, manda el motor.
+// su elenco (Gakupo, IA, Haku, flower, Ruko) toman sus datos de content/lore-extra.json; si el motor los agrega, manda
+// el motor. Ruko tampoco esta en characters.json del motor: su nombre visible y color salen de lore-extra.json -> display.
 import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 import type { BotId } from "../config";
@@ -47,11 +48,19 @@ export class EngineReader {
     this.paths = JSON.parse(readFileSync(pathsFile, "utf8")) as EnginePaths;
   }
 
+  private extra(): { characters?: Record<string, string[]>; display?: Record<string, { displayName: string; subtitleColor: string }> } {
+    return existsSync(this.extraLoreFile) ? JSON.parse(readFileSync(this.extraLoreFile, "utf8")) : {};
+  }
+
   /** Datos de los Vocaloids fuera del elenco del motor (content/lore-extra.json -> characters.<id>). */
   private extraLore(id: string): string[] | undefined {
-    if (!existsSync(this.extraLoreFile)) return undefined;
-    const extra = JSON.parse(readFileSync(this.extraLoreFile, "utf8")) as { characters?: Record<string, string[]> };
-    return extra.characters?.[id];
+    return this.extra().characters?.[id];
+  }
+
+  /** Nombre visible y color de un Vocaloid que no esta en characters.json del motor (lore-extra.json -> display.<id>). */
+  private extraDisplay(id: string): { displayName: string; subtitleColor: string; avatarDir: string; reactions: Record<string, string> } | undefined {
+    const d = this.extra().display?.[id];
+    return d && { ...d, avatarDir: `assets/characters/${id}`, reactions: {} };
   }
 
   /** Ruta absoluta de un dato del motor; `vars` reemplaza {id}, {episodeId}, etc. */
@@ -100,7 +109,7 @@ export class EngineReader {
     type Chars = { characters: Record<string, { displayName: string; subtitleColor: string; avatarDir: string; reactions: Record<string, string> }> };
     const lore = this.readJson<Lore>("lore");
     const chars = this.readJson<Chars>("characters");
-    const c = chars.characters[id];
+    const c = chars.characters[id] ?? this.extraDisplay(id);
     const facts = lore.characters[id] ?? this.extraLore(id);
     if (!c || !facts) throw new EngineDataError(`El motor no tiene datos del personaje ${id}`);
     const pick = (list: { characters: string[]; facts: string[] }[]) =>

@@ -15,7 +15,7 @@ import { renderBoard } from "../../src/orders/board";
 import { OCCASIONS, OrderError, OrderQueue, PRODUCTS, STATE_LABEL, type OccasionId, type Order, type OrderState, type ProductId } from "../../src/orders/queue";
 import type { Sql } from "../../src/orders/sql";
 import { advanceDeck, fill, type DeckState } from "../../src/phrases/deck-core";
-import { COLOR_MENU_ID, colorKey, NO_COLOR } from "../../src/setup/color-menu";
+import { COLOR_MENU_ID, colorKey, COUNTRY_MENU_ID, NO_COLOR, NO_COUNTRY } from "../../src/setup/color-menu";
 import {
   ideaText,
   nextRoundAt,
@@ -147,8 +147,8 @@ export class PapusWorker {
   /** Respuesta inmediata a Discord (en menos de 3 s) y el trabajo que se hace despues. */
   handle(bot: BotKey, i: Interaction): { response: Record<string, unknown>; work?: () => Promise<void> } {
     if (i.type === 1) return { response: { type: 1 } };
-    const isColorMenu = i.type === 3 && i.data?.custom_id === COLOR_MENU_ID;
-    if ((i.type !== 2 && !isColorMenu) || !i.data) return { response: { type: 4, data: { content: "No sé qué hacer con eso 🙈", flags: EPHEMERAL } } };
+    const isMenu = i.type === 3 && (i.data?.custom_id === COLOR_MENU_ID || i.data?.custom_id === COUNTRY_MENU_ID);
+    if ((i.type !== 2 && !isMenu) || !i.data) return { response: { type: 4, data: { content: "No sé qué hacer con eso 🙈", flags: EPHEMERAL } } };
     return {
       // Respuesta diferida y privada: el resultado se escribe despues, cuando termina el trabajo.
       response: { type: 5, data: { flags: EPHEMERAL } },
@@ -184,6 +184,7 @@ export class PapusWorker {
     const name = i.data!.name ?? "";
     const user = i.member?.user.id ?? i.user?.id ?? "";
     if (i.type === 3 && i.data!.custom_id === COLOR_MENU_ID) return this.pickColor(user, i.member?.roles ?? [], i.data!.values?.[0] ?? NO_COLOR);
+    if (i.type === 3 && i.data!.custom_id === COUNTRY_MENU_ID) return this.pickCountry(user, i.member?.roles ?? [], i.data!.values?.[0] ?? NO_COUNTRY);
     const o = new Options(i.data!.options ?? []);
     if (bot === "miku") {
       if (name === "pedido") return this.pedido(user, i.member?.roles ?? [], o);
@@ -577,8 +578,12 @@ export class PapusWorker {
   private async estreno(o: Options): Promise<Reply> {
     const enlace = o.str("enlace", true);
     if (!/^https?:\/\/\S+$/.test(enlace)) throw new UserError("El enlace tiene que empezar con http:// o https://");
-    const content = `${await this.pick("miku", "estreno", { video: o.str("titulo", true) })}\n${enlace}`;
-    return this.postContent("miku", "anuncios", content);
+    const titulo = o.str("titulo", true);
+    const content = `${await this.pick("miku", "estreno", { video: titulo })}\n${enlace}`;
+    const reply = await this.postContent("miku", "anuncios", content);
+    // Hora feliz de XP (config/niveles.json -> estrenos): la abre el bot del PC al leer esta fila.
+    await this.d.sql.run("INSERT INTO estrenos (titulo, at) VALUES (?, ?)", titulo, this.now());
+    return { content: `${reply.content} La XP multiplicada empieza en cuanto el bot del PC lo lea (menos de un minuto si está encendido).` };
   }
 
   /** Publica una frase del grupo en un canal (calendario, noticias). */
@@ -729,26 +734,35 @@ export class PapusWorker {
 
   // ───────────────────────── color del nombre (menu de Miku en #tu-color) ─────────────────────────
 
-  /** Deja al Papu con un solo color de la paleta (o ninguno). Quien tiene nivel sigue viendose con el de su nivel. */
+  /** Deja al Papu con un solo color de la paleta (o ninguno). Los colores van sobre todos los roles: se ve aunque tenga nivel. */
   private async pickColor(user: string, memberRoles: string[], value: string): Promise<Reply> {
-    const palette = PALETTE.map((c) => ({ ...c, key: colorKey(c.rol) }));
-    const choice = palette.find((c) => c.key === value) ?? null;
-    if (!choice && value !== NO_COLOR) throw new UserError("Ese color ya no está en la paleta 🙈");
+    const choice = await this.pickOne(user, memberRoles, PALETTE.map((c) => c.rol), value, NO_COLOR, "color");
+    if (!choice) return { content: "Listo: tu nombre vuelve al color de siempre ♡" };
+    return { content: `¡Listo! Ahora eres color **${choice.replace(/^🎨\s*/, "")}** ✨` };
+  }
+
+  /** Deja al Papu con un solo pais (o ninguno): el rol solo pone la bandera y el nombre en su perfil. */
+  private async pickCountry(user: string, memberRoles: string[], value: string): Promise<Reply> {
+    const choice = await this.pickOne(user, memberRoles, COUNTRIES, value, NO_COUNTRY, "país");
+    return { content: choice ? `¡Listo! Ahora tu perfil dice **${choice}** ✨` : "Listo: quité el país de tu perfil ♡" };
+  }
+
+  /** Le da al Papu un solo rol de `options` (o ninguno, con `none`) y le quita los demas. Devuelve el elegido. */
+  private async pickOne(user: string, memberRoles: string[], options: string[], value: string, none: string, what: string): Promise<string | null> {
+    const keyed = options.map((rol) => ({ rol, key: colorKey(rol) }));
+    const choice = keyed.find((c) => c.key === value) ?? null;
+    if (!choice && value !== none) throw new UserError(`Ese ${what} ya no está en el menú 🙈`);
     const roles = await this.d.discord.call<{ id: string; name: string; managed?: boolean }[]>("miku", "GET", `/guilds/${this.d.guildId}/roles`);
     // Sin los roles propios de los bots: el de Gumi, Kaito o Haku se llama igual que su color y no se puede asignar.
     const idOf = new Map(roles.filter((r) => !r.managed).map((r) => [colorKey(r.name), r.id]));
     const target = choice ? idOf.get(choice.key) : undefined;
-    if (choice && !target) throw new UserError("Ese color todavía no existe en el servidor. Avísale a GyroP 🙈");
-    for (const c of palette) {
+    if (choice && !target) throw new UserError(`Ese ${what} todavía no existe en el servidor. Avísale a GyroP 🙈`);
+    for (const c of keyed) {
       const id = idOf.get(c.key);
       if (id && id !== target && memberRoles.includes(id)) await this.d.discord.call("miku", "DELETE", `/guilds/${this.d.guildId}/members/${user}/roles/${id}`);
     }
     if (target && !memberRoles.includes(target)) await this.d.discord.call("miku", "PUT", `/guilds/${this.d.guildId}/members/${user}/roles/${target}`);
-    if (!choice) return { content: "Listo: tu nombre vuelve al color de siempre ♡" };
-    const tier = await this.hasTier(memberRoles, TIERS[0]!);
-    return {
-      content: `¡Listo! Ahora eres color **${choice.rol.replace(/^🎨\s*/, "")}** ✨${tier ? "\n(Como tienes un nivel de Ko-fi, en la lista se sigue viendo el color de tu nivel.)" : ""}`,
-    };
+    return choice?.rol ?? null;
   }
 
   /** Aviso en #vitrina (lo que pasa en los canales de los niveles, sin regalar el contenido). */
@@ -944,6 +958,7 @@ export interface PollData {
 }
 
 const PALETTE = (layout as { coloresPapu?: { colores: { rol: string; color: string }[] } }).coloresPapu?.colores ?? [];
+const COUNTRIES = (layout as { paisesPapu?: { paises: string[] } }).paisesPapu?.paises ?? [];
 
 const CANDIDATE_LABEL: Record<string, string> = { en_votacion: "🗳️ en votación", sigue: "🔁 sigue (2.º lugar)", espera: "⏳ en espera", ganador: "🏆 ganó" };
 

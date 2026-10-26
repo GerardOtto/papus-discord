@@ -25,6 +25,8 @@ export class LLMChain {
     private readonly now: () => number = Date.now,
     /** Reparto local/APIs; sin router, se usa el orden de config/llm.json. */
     private readonly router: Pick<SmartRouter, "order" | "begin" | "end"> | null = null,
+    /** Cada fallo con su motivo y lo que tardo (bots.log), para diagnosticar las esperas largas. */
+    private readonly log: ((msg: string) => void) | null = null,
   ) {
     if (providers.length === 0) throw new Error("La cadena de LLM no tiene proveedores");
   }
@@ -45,6 +47,7 @@ export class LLMChain {
     for (const p of candidates) {
       if (signal?.aborted) break;
       this.router?.begin(p.name);
+      const started = this.now();
       try {
         const res = await p.chat(req, signal);
         if (accept && !accept(res)) {
@@ -59,6 +62,7 @@ export class LLMChain {
         errors.push(err);
         this.usage?.record(p.name, false);
         this.cooldownUntil.set(p.name, this.now() + (err.retryAfterMs ?? FAILURE_COOLDOWN_MS));
+        if (!signal?.aborted) this.log?.(`✘ LLM ${p.name} falló en ${((this.now() - started) / 1000).toFixed(1)} s: ${err.message}`);
       } finally {
         this.router?.end(p.name);
       }

@@ -1,0 +1,22 @@
+{
+  "$comment": "Trivia de los Papus (sugerencia de Wicho el Bicho, decisiones de GyroP, 26 oct. 2026; docs/PLAN.md §3.4). /trivia (Teto): preguntas una tras otra que solo ve quien juega; cada acierto da XP al instante y la racha sigue hasta el primer error o el primer tiempo agotado. Entonces Teto publica el resultado en el canal donde se jugaba. Las preguntas son fijas (content/trivia.json, content/trivia-audio.json y las siluetas de assets/bots) y las revisa el código, nunca el LLM (regla 4). La XP es excepción a la regla 1, como las bodas y la ruleta: se gana jugando, no pagando. Cambiar algo aquí no requiere tocar código.",
+  "$segundos": "Tiempo para responder cada pregunta según su tipo (si se acaba, cuenta como error). texto incluye abrir el cuadro y escribir.",
+  "segundos": { "opciones": 20, "texto": 45, "audio": 30, "imagen": 20 },
+  "$xp": "XP por acierto, según el nivel y lo que el Papu ha crecido en los últimos días: lo mayor entre 'porcentajeNivel' de la XP que pide su nivel actual y 'porcentajeDia' de su XP promedio por día activo en los últimos 'dias' días (sin contar la de la trivia), con un mínimo 'minimo' y un tope 'topeNivel' (fracción de su nivel). Se multiplica por el evento de XP vigente.",
+  "xp": { "porcentajeNivel": 0.02, "porcentajeDia": 0.025, "dias": 7, "minimo": 10, "topeNivel": 0.06 },
+  "$racha": "Cada acierto seguido vale más: +'bono' por cada acierto anterior de la racha, hasta 'tope' aciertos (con 0,05 y 20: el acierto 21 y los siguientes valen el doble).",
+  "racha": { "bono": 0.05, "tope": 20 },
+  "$diario": "Para que la trivia no reemplace a la charla: los aciertos del día (de todas las partidas, hora de Chile) desde 'desde' valen 'factor' de lo normal (el último tramo que corresponda).",
+  "diario": [
+    { "desde": 40, "factor": 0.5 },
+    { "desde": 80, "factor": 0.25 }
+  ],
+  "$siluetas": "Preguntas con la figura de cada Vocaloid (assets/bots/<id>_figura.png): silueta negra, pixelada y un acercamiento. Las opciones son nombres de otros Vocaloids.",
+  "siluetas": ["silueta", "pixel", "zoom"],
+  "$secreto": "Si un Papu acierta TODAS las preguntas de la trivia en una sola racha: Teto lo anuncia con este mensaje, le da este rol de adorno (solo adorno: no da cuota ni nada de pago, regla 1) y todos los Vocaloids conectados reaccionan. Es un secreto: nadie sabe que existe hasta que alguien lo logra.",
+  "secreto": {
+    "rol": "🧠 Enciclopedia Vocaloid",
+    "color": "#39c5bb",
+    "mensaje": "🌟🎤 **¡ALTO TODO EL SERVIDOR!** 🎤🌟\n\n{papu} acaba de contestar **las {n} preguntas de la trivia** sin fallar ni una. Ni Luka con sus latas ordenadas por fecha lo había logrado. 🐟\n\nPor eso existe esto, escondido desde el primer día: el rol **{rol}**. Solo lo tiene quien se sabe TODO del Vocaloid. 📚✨\n\nMiku llora de emoción, Neru dejó el celular (¡el celular!), Kaito soltó su helado y yo… ¡yo me comí tres baguettes de los nervios! ¡Teto-teetoo! 🥖🥖🥖"
+  }
+}

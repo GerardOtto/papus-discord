@@ -134,6 +134,20 @@ describe("ConversationService", () => {
     expect(quota.remaining("papu")).toBe(4);
   });
 
+  it("si Discord no deja publicar a un bot, los demás responden igual y su unidad se devuelve", async () => {
+    // Caso real del 21 oct. 2026: 8 @ en un mensaje; si el envío de Miku hubiera fallado, los otros 7 no respondían
+    // y las 8 unidades quedaban cobradas.
+    const { svc, port, quota } = setup(llm('{"miku": "hola", "neru": "…hola", "kaito": "buenas"}'));
+    const reply = port.reply.bind(port);
+    port.reply = async (bot, c, r, content) => {
+      if (bot === "miku") throw new Error("Discord no respondió");
+      await reply(bot, c, r, content);
+    };
+    expect(await svc.handle(mention(["miku", "neru", "kaito"]))).toBe("partial");
+    expect(port.sent.map((x) => x.bot)).toEqual(["neru", "kaito"]);
+    expect(quota.remaining("papu")).toBe(3);
+  });
+
   it("una peticion pendiente por Papu: la segunda solo recibe ⏳ y no se cobra", async () => {
     let release!: (v: string) => void;
     const { svc, port, quota } = setup(llm(() => new Promise<string>((r) => (release = r))));
@@ -165,6 +179,10 @@ describe("mentionedBots", () => {
     expect(mentionedBots("jaja", ids, "33")).toEqual(["neru"]);
     expect(mentionedBots("<@33> oye", ids, "33")).toEqual(["neru"]);
   });
+
+  it("respondiendo a un bot con @ a otro, contesta solo el del @", () => {
+    expect(mentionedBots("<@22> que piensas de esto?", ids, "11")).toEqual(["miku"]);
+  });
 });
 
 class FakeMod implements ModerationPort {
@@ -192,12 +210,12 @@ class FakeMod implements ModerationPort {
   }
 }
 
-function modSetup(start = 0) {
+function modSetup(start = 0, sinStrikes: string[] = []) {
   const db = memDb();
   const port = new FakeMod();
   let t = start;
   const svc = new ModerationService(
-    new RuleSet(loadModerationSettings()),
+    new RuleSet({ ...loadModerationSettings(), sinStrikes: sinStrikes.map((id) => ({ id })) }),
     new StrikeStore(db),
     new Phrases(new DeckStore(db, seededRng(2))),
     port,
@@ -240,6 +258,25 @@ describe("ModerationService", () => {
     ]);
   });
 
+  it("lista sinStrikes: borra y avisa, pero sin strike ni silencio; el strike de un Mod queda en aviso y el de GyroP vale", async () => {
+    const { svc, port } = modSetup(0, ["papu"]);
+    for (let i = 0; i < 3; i++) await svc.handle(msg("eres un pendejo"));
+    expect(port.deleted).toHaveLength(3);
+    expect(port.timeouts).toEqual([]);
+    expect(port.said).toHaveLength(3);
+    expect(port.said.join("\n")).not.toContain("strike");
+    expect(port.logs.map((l) => l.action)).toEqual(Array(3).fill("borrado · sin strike (lista de GyroP)"));
+
+    await svc.handleAutoModHit({ userId: "papu", channelId: "c", ruleName: "Neru · insultos dirigidos", content: "eres puto" });
+    expect(port.logs.at(-1)).toEqual({ kind: "automod", action: "bloqueado por AutoMod · sin strike (lista de GyroP)", activeStrikes: 0 });
+    expect(await svc.applyOfflineHits([{ userId: "papu", channelId: "c", ruleName: "Neru · odio", content: "x" }])).toBeNull();
+
+    expect(await svc.strike({ userId: "papu", channelId: "c", por: "Mod <@mod1>" })).toBeNull();
+    expect(port.logs.at(-1)?.kind).toBe("aviso");
+    expect(await svc.strike({ userId: "papu", channelId: "c", motivo: "ya basta" })).toBe(1);
+    expect(port.timeouts).toEqual([]);
+  });
+
   it("aviso de GyroP: frase de Neru respondiendo al mensaje, sin borrar ni strike, y queda en el registro", async () => {
     const { svc, port } = modSetup();
     await svc.warn({ userId: "papu", channelId: "c", messageId: "m1", excerpt: "qué menso", motivo: "ojo con\nel tono" });
@@ -252,6 +289,58 @@ describe("ModerationService", () => {
     // No suma: el siguiente insulto sigue siendo el strike 1.
     await svc.handle(msg("eres un pendejo"));
     expect(port.said[1]).toContain("**strike 1 de 4**");
+  });
+
+  it("strike de GyroP: misma escalera que los automáticos, con el motivo citado y sin borrar", async () => {
+    const { svc, port, advance } = modSetup();
+    expect(await svc.strike({ userId: "papu", channelId: "c", messageId: "m1", excerpt: "algo feo", motivo: "broma\nracista" })).toBe(1);
+    expect(port.said[0]).toContain("<@papu>");
+    expect(port.said[0]).toContain("> broma racista");
+    expect(port.said[0]).toContain("**strike 1 de 4** · advertencia.");
+    expect(port.replies[0]).toBe("m1");
+    expect(port.deleted).toEqual([]);
+    advance(60_000);
+    // El siguiente, a mano o automático, sigue la escalera: 10 min de silencio.
+    await svc.handle(msg("eres un pendejo"));
+    expect(port.timeouts.map((x) => x.minutes)).toEqual([10]);
+    expect(port.logs[0]).toEqual({ kind: "strike de GyroP", action: "sin borrar · advertencia", activeStrikes: 1 });
+  });
+
+  it("strike y borrar (clic derecho): borra el mensaje y avisa sin responderle; si Discord no deja, el registro lo dice", async () => {
+    const { svc, port } = modSetup();
+    expect(await svc.strike({ userId: "papu", channelId: "c", messageId: "m1", excerpt: "algo feo", por: "Mod <@mod1>", borrar: true })).toBe(1);
+    expect(port.deleted).toEqual(["m1"]);
+    expect(port.replies[0]).toBeUndefined();
+    expect(port.said[0]).toContain("**strike 1 de 4**");
+    expect(port.logs[0]).toEqual({ kind: "strike de Mod <@mod1>", action: "borrado · advertencia", activeStrikes: 1 });
+
+    port.deleteMessage = async () => {
+      throw new Error("Missing Permissions");
+    };
+    expect(await svc.strike({ userId: "papu", channelId: "c", messageId: "m2", borrar: true })).toBe(2);
+    expect(port.replies[1]).toBe("m2");
+    expect(port.timeouts.map((x) => x.minutes)).toEqual([10]);
+    expect(port.logs[1]!.action).toBe("no se pudo borrar · silencio 10 min");
+  });
+
+  it("si el aviso público no sale (hilo cerrado), el strike y el silencio igual quedan en #moderación", async () => {
+    const { svc, port } = modSetup();
+    port.say = async () => {
+      throw new Error("Thread is locked");
+    };
+    await svc.strike({ userId: "papu", channelId: "hilo", messageId: "m1" });
+    expect(await svc.strike({ userId: "papu", channelId: "hilo", messageId: "m2" })).toBe(2);
+    expect(port.timeouts.map((x) => x.minutes)).toEqual([10]);
+    expect(port.logs.map((l) => l.action)).toEqual(["sin borrar · advertencia", "sin borrar · silencio 10 min"]);
+  });
+
+  it("strike y aviso de un Mod: misma escalera que los de GyroP y el registro dice qué Mod fue", async () => {
+    const { svc, port } = modSetup();
+    await svc.warn({ userId: "papu", channelId: "c", por: "Mod <@mod1>" });
+    expect(await svc.strike({ userId: "papu", channelId: "c", motivo: "spam", por: "Mod <@mod1>" })).toBe(1);
+    expect(await svc.strike({ userId: "papu", channelId: "c", por: "Mod <@mod1>" })).toBe(2);
+    expect(port.timeouts.map((x) => x.minutes)).toEqual([10]);
+    expect(port.logs.map((l) => l.kind)).toEqual(["aviso", "strike de Mod <@mod1>", "strike de Mod <@mod1>"]);
   });
 
   it("llama la atención en público: cita lo que dijo (tapado) y en qué strike va", async () => {
@@ -335,6 +424,39 @@ describe("ModerationService", () => {
     expect(results.slice(0, 5)).toEqual([null, null, null, null, null]);
     expect(results[5]?.kind).toBe("flood");
     expect(port.deleted).toHaveLength(1);
+  });
+
+  it("sin flood durante una adivinanza de boda (noFlood), pero el resto de las reglas sigue", async () => {
+    const { svc, port, advance } = modSetup();
+    for (let i = 0; i < 10; i++) {
+      expect(await svc.handle(msg(`¿es la luna ${i}?`, { noFlood: true }))).toBeNull();
+      advance(300);
+    }
+    expect(port.deleted).toHaveLength(0);
+    expect((await svc.handle(msg("eres un pendejo", { noFlood: true, targetsSomeone: true })))?.kind).toBe("insulto");
+  });
+
+  it("repetir el mismo mensaje y mandar ráfagas de emojis no es infracción", async () => {
+    const { svc, port, advance } = modSetup();
+    const results = [];
+    for (let i = 0; i < 4; i++) {
+      results.push(await svc.handle(msg("Texto de relleno para subir nivel")));
+      advance(3000);
+    }
+    for (let i = 0; i < 8; i++) {
+      results.push(await svc.handle(msg(i % 2 ? "<:gato_lengua:1561227705167380490>" : "🔥🔥🔥")));
+      advance(300);
+    }
+    expect(results.every((r) => r === null)).toBe(true);
+    expect(port.deleted).toHaveLength(0);
+  });
+
+  it("el filtro de spam de AutoMod bloquea sin strike ni frase (queda en el registro)", async () => {
+    const { svc, port } = modSetup();
+    await svc.handleAutoModHit({ userId: "a", channelId: "c", ruleName: "Neru · spam", content: "copia y pega" });
+    expect(port.said).toHaveLength(0);
+    expect(port.logs[0]).toMatchObject({ kind: "automod", action: "bloqueado por AutoMod · sin strike", activeStrikes: 0 });
+    expect(await svc.applyOfflineHits([{ userId: "a", channelId: "c", ruleName: "Neru · spam", content: "x" }])).toBeNull();
   });
 
   it("bloqueos de AutoMod sin conexión: strikes y resumen de Neru con el número", async () => {

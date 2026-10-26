@@ -14,7 +14,9 @@ mejor no agregarlo (los bots lo afirman tal cual).
 - Kanaria es un productor conocido por "KING" (2020) y "QUEEN" (2021), los dos con Gumi.
 - "Matryoshka" es de Hachi (hoy conocido como Kenshi Yonezu) con Miku y Gumi (2010); Hachi también hizo "Suna no Wakusei" (Planeta de arena, 2017).
 - DECO*27 es uno de los productores más famosos de Miku: "Ghost Rule" (2016), "Hibana" (2017), "Vampire" (2021) y "Rabbit Hole" (2023).
-- "Mesmerizer" es de Satsuki (2024) y la cantan Miku y Teto (con su voz de Synthesizer V).
+- "Mesmerizer" es de Satsuki (2024) y la cantan Miku y Teto (con su voz de Synthesizer V); Neru no sale en ella.
+- Yokune Ruko es una UTAU (voz hecha por fans, como empezó Teto) no binaria: casi toda chica y un poquito chico (se le dice "ella"). Coletas, un ojo rojo y otro azul, corbata azul. Los Papus la piden para un video, y "Ruko se acerca" es un meme del servidor.
+- Solo Miku, Rin, Len, Luka, Kaito y Meiko son de Crypton. Gumi y Gakupo son de Internet Co., IA de 1st Place, flower de Gynoid, y Teto empezó como UTAU.
 - "Tetoris" es de Hiiragi Magnetite (2024) con Teto, uno de sus mayores éxitos.
 - "Triple Baka" es de LamazeP (2010) con Miku, Teto y Neru: por eso las tres son "el trío Triple Baka".
 - Kasane Teto la crearon fans de 2channel agrupados como Twindrill (también escrito "Twin Drill") para la broma del Día de los Inocentes de 2008; Twindrill es ese grupo de creadores, no un programa ni un proyecto nuevo.
@@ -38,3 +40,4 @@ mejor no agregarlo (los bots lo afirman tal cual).
 - Mitchie M es un productor famoso por hacer que Miku suene muy natural, como en "Freely Tomorrow" (2012) y "Ageage Again" (2013); las dos las canta Miku, no Kaito.
 - Magical Mirai es el festival anual de Miku en Japón (concierto y exposición) desde 2013; Miku Expo son sus giras por el mundo desde 2014.
 - Hatsune Miku salió el 31 de agosto de 2007 (Crypton Future Media) y su voz es de la actriz Saki Fujita.
+- El atún es la comida de Luka (Megurine Luka); el puerro es de Miku, el pan francés de Teto, la berenjena de Gakupo y el helado de Kaito.

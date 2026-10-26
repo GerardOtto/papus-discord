@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { colorKey, colorMenu, NO_COLOR } from "../src/setup/color-menu";
+import { colorKey, colorMenu, countryMenu, NO_COLOR, NO_COUNTRY, splitCountry } from "../src/setup/color-menu";
 import { loadLayout } from "../src/setup/layout";
 import { shouldTease, VITRINA_COOLDOWN_MS, vitrinaChannels } from "../src/services/vitrina";
 
@@ -46,5 +46,29 @@ describe("paleta de colores", () => {
     expect(options[0]).toMatchObject({ label: "Rin y Len", value: "rinylen" });
     expect(options.at(-1)!.value).toBe(NO_COLOR);
     expect(colorKey("🎨 Adachi Rei")).toBe("adachirei");
+  });
+});
+
+describe("países de #tu-color", () => {
+  const layout = loadLayout();
+  const paises = layout.paisesPapu!.paises;
+
+  it("en #tu-color, con bandera y nombre completo, sin repetir ni chocar con otros roles", () => {
+    expect(layout.paisesPapu!.canal).toBe(layout.coloresPapu!.canal);
+    expect(paises[0]).toBe("🇲🇽 México");
+    for (const p of paises) expect(splitCountry(p).name.length, p).toBeGreaterThan(3);
+    const others = [...layout.niveles, ...layout.rolesExtra, ...layout.coloresPapu!.colores].map((r) => colorKey(r.rol));
+    const keys = paises.map(colorKey);
+    expect(new Set(keys).size).toBe(paises.length);
+    for (const k of keys) expect(others).not.toContain(k);
+  });
+
+  it("menú de Discord con la bandera como emoji y 'sin país'", () => {
+    const menu = countryMenu(paises) as { components: { custom_id: string; options: { label: string; value: string; emoji?: { name: string } }[] }[] };
+    const options = menu.components[0]!.options;
+    expect(menu.components[0]!.custom_id).not.toBe((colorMenu([]) as { components: { custom_id: string }[] }).components[0]!.custom_id);
+    expect(options).toHaveLength(paises.length + 1);
+    expect(options[0]).toEqual({ label: "México", value: "mexico", emoji: { name: "🇲🇽" } });
+    expect(options.at(-1)!.value).toBe(NO_COUNTRY);
   });
 });

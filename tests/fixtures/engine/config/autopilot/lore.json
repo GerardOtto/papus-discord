@@ -6,7 +6,11 @@
     "luka": ["Es bilingüe."],
     "neru": ["Siempre con el celular."],
     "kaito": ["Le gusta el helado."],
-    "gumi": ["Usa goggles."]
+    "gumi": ["Usa goggles."],
+    "rin": ["Naranjas y una apisonadora."],
+    "len": ["Plátanos."],
+    "meiko": ["Primera Vocaloid japonesa."],
+    "adachirei": ["Es una androide."]
   },
   "shared": [{ "id": "triple_baka", "characters": ["miku", "teto", "neru"], "facts": ["Triple Baka."] }],
   "community": [{ "id": "teto_pear", "characters": ["teto"], "facts": ["Teto pera."] }]

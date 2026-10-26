@@ -62,6 +62,76 @@ const MIGRATIONS: string[] = [
    );
    CREATE INDEX pedidos_estado ON pedidos (estado, creado_at);
    CREATE INDEX pedidos_papu ON pedidos (papu_id, origen, creado_at);`,
+  // 3: niveles por participacion (src/levels/). xp = la del prestigio actual; xp_dia sirve para quitar la de un dia
+  // con strike. La tarjeta (frase, color, fondo) la elige cada Papu con /tarjeta.
+  `CREATE TABLE niveles (
+     user_id    TEXT PRIMARY KEY,
+     xp         INTEGER NOT NULL DEFAULT 0,
+     prestigio  INTEGER NOT NULL DEFAULT 0,
+     veterano   INTEGER NOT NULL DEFAULT 0,
+     apodo      INTEGER NOT NULL DEFAULT 0,
+     apodo_base TEXT,
+     frase      TEXT,
+     color      TEXT,
+     fondo      TEXT
+   );
+   CREATE TABLE xp_dia (
+     user_id TEXT NOT NULL,
+     day     TEXT NOT NULL,
+     xp      INTEGER NOT NULL DEFAULT 0,
+     PRIMARY KEY (user_id, day)
+   );`,
+  // 4: bodas con las Vocaloids (src/bodas/). Una fila por boda; rol_quitado = Teto ya borro el rol al vencer.
+  `CREATE TABLE bodas (
+     id          INTEGER PRIMARY KEY AUTOINCREMENT,
+     bot         TEXT NOT NULL,
+     user_id     TEXT NOT NULL,
+     nombre      TEXT NOT NULL,
+     inicio      INTEGER NOT NULL,
+     fin         INTEGER NOT NULL,
+     xp          INTEGER NOT NULL DEFAULT 0,
+     rol_quitado INTEGER NOT NULL DEFAULT 0
+   );
+   CREATE INDEX bodas_fin ON bodas (fin);
+   CREATE INDEX bodas_papu ON bodas (user_id, bot, inicio);`,
+  // 5: divorcio (src/bodas/): cuando el Papu deja a la Vocaloid antes de las 24 h (fin pasa a ese momento).
+  `ALTER TABLE bodas ADD COLUMN divorcio INTEGER;`,
+  // 6: minutos con XP de voz del dia (tope diario, config/niveles.json voz.maximoMinutosDia).
+  `ALTER TABLE xp_dia ADD COLUMN voz_min INTEGER NOT NULL DEFAULT 0;`,
+  // 7: ruleta (src/ruleta/). Misiones del dia en xp_dia (mensajes con XP, si subio de nivel, si tuvo strike), mensajes
+  // extra de la cuota ganados en la ruleta (solo ese dia) y una fila por tirada.
+  `ALTER TABLE xp_dia ADD COLUMN mensajes INTEGER NOT NULL DEFAULT 0;
+   ALTER TABLE xp_dia ADD COLUMN subio INTEGER NOT NULL DEFAULT 0;
+   ALTER TABLE xp_dia ADD COLUMN castigo INTEGER NOT NULL DEFAULT 0;
+   ALTER TABLE quota_usage ADD COLUMN extra INTEGER NOT NULL DEFAULT 0;
+   CREATE TABLE ruleta (
+     id      INTEGER PRIMARY KEY AUTOINCREMENT,
+     user_id TEXT NOT NULL,
+     day     TEXT NOT NULL,
+     premio  INTEGER NOT NULL,
+     detalle TEXT NOT NULL,
+     at      INTEGER NOT NULL
+   );
+   CREATE INDEX ruleta_papu ON ruleta (user_id, day);`,
+  // 8: trivia (src/trivia/). XP y aciertos de la trivia por dia (la XP de la trivia no cuenta para medir cuanto crece
+  // un Papu), preguntas que ya vio cada Papu (primero salen las nuevas) y una fila por partida (racha y XP).
+  `ALTER TABLE xp_dia ADD COLUMN trivia INTEGER NOT NULL DEFAULT 0;
+   ALTER TABLE xp_dia ADD COLUMN trivia_aciertos INTEGER NOT NULL DEFAULT 0;
+   CREATE TABLE trivia_vistas (
+     user_id  TEXT NOT NULL,
+     pregunta TEXT NOT NULL,
+     PRIMARY KEY (user_id, pregunta)
+   );
+   CREATE TABLE trivia_partidas (
+     id      INTEGER PRIMARY KEY AUTOINCREMENT,
+     user_id TEXT NOT NULL,
+     day     TEXT NOT NULL,
+     racha   INTEGER NOT NULL,
+     xp      INTEGER NOT NULL,
+     fin     TEXT NOT NULL,
+     at      INTEGER NOT NULL
+   );
+   CREATE INDEX trivia_partidas_papu ON trivia_partidas (user_id);`,
 ];
 
 export type Db = DatabaseSync;
@@ -87,6 +157,8 @@ export function openDb(file: string): Db {
 }
 
 export function transaction<T>(db: Db, fn: () => T): T {
+  // Dentro de otra transaccion (la tirada de la ruleta suma XP con el store de niveles): va en la de afuera.
+  if (db.isTransaction) return fn();
   db.exec("BEGIN IMMEDIATE");
   try {
     const out = fn();

@@ -34,12 +34,33 @@ export interface ServerLayout {
    * `todos` = Teto se lo da a cada Papu al entrar; `hasta` = fecha limite de una insignia (Fundador);
    * `sobreNiveles` = rol de una sola persona (config/especiales.json) por encima de los niveles: su color manda, salvo
    * que elija uno de #tu-color, y entonces Teto le pone ese color al rol (npm run servidor no se lo devuelve).
+   * `bots` = rol de las 4 chicas con tareas (Vocaloids); `botsCharla` = rol de los Vocaloids que solo conversan (Coro),
+   * el último rol separado de la lista de miembros.
+   * `mod` = Papus elegidos por GyroP que pueden dar strikes y avisos con Neru (/strike, /advertir, /strikes y el clic
+   * derecho), sin permisos propios de Discord: el silencio lo aplica siempre Neru.
    */
-  rolesExtra: { rol: string; color: string; separado: boolean; bots?: boolean; todos?: boolean; hasta?: string; musica?: string[]; sobreNiveles?: boolean }[];
+  rolesExtra: {
+    rol: string;
+    color: string;
+    separado: boolean;
+    bots?: boolean;
+    botsCharla?: boolean;
+    todos?: boolean;
+    hasta?: string;
+    musica?: string[];
+    sobreNiveles?: boolean;
+    mod?: boolean;
+  }[];
+  /** Color del nombre de cada bot: un rol de la paleta (texto) o uno solo suyo, fuera del menu ({rol, color}). */
+  coloresBots?: Record<string, string | { rol: string; color: string }>;
   /** Colores que cada Papu elige en un canal (menu de Miku, worker). */
   coloresPapu?: { canal: string; colores: { rol: string; color: string }[] };
+  /** Paises que cada Papu elige en el mismo canal (rol "🇲🇽 México": sin color ni permisos, al fondo de la lista de roles). */
+  paisesPapu?: { canal: string; paises: string[] };
   seguridad: { verificacion: number; filtroContenido: number };
   categorias: CategorySpec[];
+  /** Las categorias hechas a mano (no estan en el archivo, p. ej. "Canales de voz") van justo despues de esta. */
+  categoriasManualesDespuesDe?: string;
 }
 
 const REPO_ROOT = path.resolve(import.meta.dirname, "../..");
@@ -71,7 +92,7 @@ export const PERM = {
 export const WRITE_BITS =
   PERM.SEND_MESSAGES | PERM.CREATE_PUBLIC_THREADS | PERM.CREATE_PRIVATE_THREADS | PERM.SEND_MESSAGES_IN_THREADS | PERM.SEND_POLLS;
 const READ_BITS = PERM.VIEW_CHANNEL | PERM.READ_MESSAGE_HISTORY;
-/** Todos los bots (rol Vocaloids) ven y escriben en todos los canales (regla 2), con encuestas para Miku y fijar sus mensajes de guia. */
+/** Las 4 chicas (rol Vocaloids) ven y escriben en todos los canales (regla 2), con encuestas para Miku y fijar sus mensajes de guia. */
 export const BOT_BITS =
   READ_BITS |
   PERM.SEND_MESSAGES |
@@ -82,6 +103,9 @@ export const BOT_BITS =
   PERM.SEND_POLLS |
   PERM.USE_APPLICATION_COMMANDS |
   PERM.PIN_MESSAGES;
+/** Los Vocaloids de conversacion (rol Coro) tambien ven y escriben en todos los canales (regla 2), sin encuestas, fijar ni comandos. */
+export const CHAT_BOT_BITS =
+  READ_BITS | PERM.SEND_MESSAGES | PERM.SEND_MESSAGES_IN_THREADS | PERM.EMBED_LINKS | PERM.ATTACH_FILES | PERM.ADD_REACTIONS;
 
 export interface Overwrite {
   /** Id del rol (o del servidor, para @everyone). */
@@ -94,7 +118,10 @@ export interface RoleIds {
   everyone: string;
   /** Niveles en orden de menor a mayor. */
   tiers: { name: string; id: string }[];
+  /** Rol Vocaloids (las 4 chicas con tareas). */
   bots: string;
+  /** Rol de los Vocaloids que solo conversan (Coro). */
+  chatBots?: string;
   /** Rol de los bots de musica externos: no ven los canales de texto (solo voz). */
   music?: string;
   /** Roles especiales para "rol:<nombre>" (clave nameKey -> id). */
@@ -140,6 +167,7 @@ export function overwritesFor(leen: string, escriben: boolean, roles: RoleIds, o
     }
   }
   out.push({ id: roles.bots, allow: tickets ? BOT_BITS | PERM.CREATE_PRIVATE_THREADS | PERM.MANAGE_THREADS : BOT_BITS, deny: 0n });
+  if (roles.chatBots) out.push({ id: roles.chatBots, allow: CHAT_BOT_BITS, deny: 0n });
   if (roles.music) {
     out.push(
       voz
@@ -175,8 +203,7 @@ export function nameKey(name: string): string {
 /**
  * Orden de roles con `block` (ids, de arriba abajo) justo debajo de `anchor`; el resto conserva su orden relativo.
  * Solo se reordenan los roles por debajo de `ceiling` (el rol más alto del bot que mueve; los de arriba no se tocan).
- * Devuelve solo los cambios. Discord muestra el color del rol más alto: así el color de #tu-color queda debajo de los
- * niveles y sobre las insignias (Papu de honor, Fundador).
+ * Devuelve solo los cambios. Así las insignias (Papu de honor, Fundador, Papu) quedan juntas debajo de los niveles.
  */
 export function blockBelow(
   roles: { id: string; position: number }[],
@@ -192,6 +219,52 @@ export function blockBelow(
     order.push(r.id);
     if (r.id === anchor) order.push(...block.filter((id) => movable.some((m) => m.id === id)));
   }
+  return positionsFor(roles, order, ceiling);
+}
+
+/** Orden de roles con `block` (ids, de arriba abajo) al fondo de la lista, justo sobre @everyone (los paises). */
+export function blockAtBottom(roles: { id: string; position: number }[], block: string[], ceiling: number): { id: string; position: number }[] {
+  return blockAt(roles, block, ceiling, "bottom");
+}
+
+/**
+ * Orden de roles con `block` (ids, de arriba abajo) arriba de todos los que se pueden mover, justo debajo de `ceiling`.
+ * Discord muestra el color del rol más alto: así el color de #tu-color se ve sobre niveles e insignias.
+ */
+/** Rol de color de cada bot (`coloresBots`) y los roles que son solo de bots (no estan en la paleta de #tu-color). */
+export function botColorRoles(layout: ServerLayout): { byBot: Map<string, string>; botOnly: { rol: string; color: string }[] } {
+  const byBot = new Map<string, string>();
+  const botOnly = new Map<string, { rol: string; color: string }>();
+  for (const [bot, v] of Object.entries(layout.coloresBots ?? {})) {
+    if (bot.startsWith("$")) continue;
+    if (typeof v === "string") byBot.set(bot, v);
+    else {
+      byBot.set(bot, v.rol);
+      botOnly.set(nameKey(v.rol), v);
+    }
+  }
+  return { byBot, botOnly: [...botOnly.values()] };
+}
+
+export function blockAtTop(roles: { id: string; position: number }[], block: string[], ceiling: number): { id: string; position: number }[] {
+  return blockAt(roles, block, ceiling, "top");
+}
+
+function blockAt(roles: { id: string; position: number }[], block: string[], ceiling: number, where: "top" | "bottom"): { id: string; position: number }[] {
+  const movable = roles.filter((r) => r.position > 0 && r.position < ceiling).sort((a, b) => b.position - a.position);
+  const inBlock = new Set(block);
+  const rest = movable.filter((r) => !inBlock.has(r.id)).map((r) => r.id);
+  const own = block.filter((id) => movable.some((m) => m.id === id));
+  const order = where === "top" ? [...own, ...rest] : [...rest, ...own];
+  return positionsFor(roles, order, ceiling);
+}
+
+/**
+ * Posiciones (de arriba abajo) para `order`, desde justo debajo de `ceiling`: Discord no deja poner un rol a la altura
+ * del bot o más arriba. Discord a veces deja varios roles en la misma posición (los recién creados quedan todos en 1);
+ * si no caben, los últimos comparten la 1. Devuelve solo los cambios.
+ */
+function positionsFor(roles: { id: string; position: number }[], order: string[], ceiling: number): { id: string; position: number }[] {
   const now = new Map(roles.map((r) => [r.id, r.position]));
-  return order.map((id, i) => ({ id, position: order.length - i })).filter((r) => now.get(r.id) !== r.position);
+  return order.map((id, i) => ({ id, position: Math.max(1, ceiling - 1 - i) })).filter((r) => now.get(r.id) !== r.position);
 }

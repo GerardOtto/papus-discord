@@ -10,10 +10,13 @@ const PRIVATE_GROUPS = ["pregunta_ia", "secreto_estudio"];
 const PRESENCE_GROUPS = ["saludo_conexion", "despedida", "charla_general"];
 /** Los Vocaloids de conversacion: frases de la conversacion, de privacidad y de la charla en #general (src/services/charla.ts). */
 const CHAT_GROUPS = ["cuota_agotada", "cola_llena", "sin_api", "charla_general", ...PRIVATE_GROUPS];
+/** Los Vocaloids de las bodas (config/bodas.json, src/discord/bodas.ts; los chicos desde el 25 oct. 2026): anuncio de la adivinanza, aceptacion, "nadie acerto" y divorcio. */
+export const WEDDING_BOTS: readonly BotId[] = ["teto", "miku", "luka", "neru", "gakupo", "kaito", "flower", "ia", "haku", "gumi", "rin", "len", "meiko", "adachirei", "ruko"];
+const WEDDING_GROUPS = ["boda_adivinanza", "boda_acierto", "boda_desierta", "boda_divorcio"];
 
 /** Grupos obligatorios por bot (PLAN §6 + los que usa el codigo). */
-export const REQUIRED_GROUPS: Record<BotId, string[]> = {
-  teto: ["bienvenida", "bienvenida_grupal", "cumpleanos", "ya_volvi", "vitrina_nuevo", "cuota_agotada", "cola_llena", "sin_api", ...PRIVATE_GROUPS, ...PRESENCE_GROUPS],
+const BASE_GROUPS: Record<BotId, string[]> = {
+  teto: ["bienvenida", "bienvenida_grupal", "cumpleanos", "ya_volvi", "vitrina_nuevo", "sube_rango", "papu_de_honor", "nivel_maximo", "prestigio", "ranking", "ruleta_premio", "ruleta_mision", "trivia_racha", "trivia_cero", "cuota_agotada", "cola_llena", "sin_api", ...PRIVATE_GROUPS, ...PRESENCE_GROUPS],
   miku: [
     "votacion_abierta",
     "vitrina_votacion",
@@ -26,6 +29,7 @@ export const REQUIRED_GROUPS: Record<BotId, string[]> = {
     "pedido_en_produccion",
     "pedido_entregado",
     "pedido_rechazado",
+    "evento_xp",
     "cuota_agotada",
     "cola_llena",
     "sin_api",
@@ -57,13 +61,27 @@ export const REQUIRED_GROUPS: Record<BotId, string[]> = {
   ia: CHAT_GROUPS,
   haku: CHAT_GROUPS,
   gumi: CHAT_GROUPS,
+  rin: CHAT_GROUPS,
+  len: CHAT_GROUPS,
+  meiko: CHAT_GROUPS,
+  adachirei: CHAT_GROUPS,
+  ruko: CHAT_GROUPS,
 };
 
 /** Campos que debe llevar cada frase de un grupo (PLAN §6: espacios para datos). */
+export const REQUIRED_GROUPS = Object.fromEntries(
+  Object.entries(BASE_GROUPS).map(([bot, groups]) => [bot, WEDDING_BOTS.includes(bot as BotId) ? [...groups, ...WEDDING_GROUPS] : groups]),
+) as Record<BotId, string[]>;
+
 export const REQUIRED_FIELDS: Record<string, string[]> = {
+  ...Object.fromEntries(WEDDING_BOTS.flatMap((b) => [[`${b}.boda_adivinanza`, ["texto"]], [`${b}.boda_acierto`, ["papu"]], [`${b}.boda_divorcio`, ["papu"]]])),
   "teto.bienvenida": ["papu"],
   "teto.bienvenida_grupal": ["papus"],
   "teto.cumpleanos": ["papu"],
+  "teto.ruleta_premio": ["papu", "premio"],
+  "teto.ruleta_mision": ["papu", "mision"],
+  "teto.trivia_racha": ["papu", "racha", "xp"],
+  "teto.trivia_cero": ["papu"],
   "miku.votacion_abierta": ["tema"],
   "miku.vitrina_votacion": ["tema"],
   "teto.vitrina_nuevo": ["canal", "nivel"],
@@ -82,6 +100,11 @@ export const REQUIRED_FIELDS: Record<string, string[]> = {
   "neru.silencio_1440": ["papu"],
   "neru.resumen_despertar": ["n"],
   "neru.apoyo": ["papu"],
+  "teto.sube_rango": ["papu", "nivel", "rango"],
+  "teto.papu_de_honor": ["papu"],
+  "teto.nivel_maximo": ["papu"],
+  "teto.prestigio": ["papu", "n"],
+  "miku.evento_xp": ["n", "fecha"],
 };
 
 export type PhraseGroups = Record<string, string[]>;

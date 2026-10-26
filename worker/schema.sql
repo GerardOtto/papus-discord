@@ -90,6 +90,13 @@ CREATE TABLE IF NOT EXISTS listos (
   creado_at INTEGER NOT NULL
 );
 
+-- Estrenos anunciados con /estreno: el bot del PC los lee y abre la XP multiplicada desde "at" (config/niveles.json).
+CREATE TABLE IF NOT EXISTS estrenos (
+  id     INTEGER PRIMARY KEY AUTOINCREMENT,
+  titulo TEXT NOT NULL,
+  at     INTEGER NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS rondas_honor (
   id          INTEGER PRIMARY KEY AUTOINCREMENT,
   votacion_id INTEGER NOT NULL,

@@ -1,6 +1,7 @@
 // Sube los emojis del servidor y ajusta quién puede usarlos:
 //   - pago (Puerro y superiores, beneficio de Ko-fi): assets/bots/emojis (scripts/make_emojis.py) y
-//     assets/emojis/pago;
+//     assets/emojis/pago. Tambien los roles de los bots (Vocaloids y Coro): sin un rol permitido, Discord muestra el
+//     emoji de un bot como texto (":teto_drama:"). Ningun Papu tiene esos roles, asi que el beneficio no cambia;
 //   - gratis (todos los Papus): assets/emojis/gratis.
 // Los de assets/emojis salen de scripts/make_emoji_samples.py, y solo se sube lo que lista assets/emojis/packs.json
 // (así un archivo sobrante de una versión anterior nunca se cuela). Los GIF quedan como emojis animados.
@@ -21,6 +22,10 @@ const ROOT = path.resolve(import.meta.dirname, "..");
 const roles = (await rest.get(Routes.guildRoles(G))) as { id: string; name: string }[];
 const tierIds = loadLayout().niveles.map((n) => roles.find((r) => nameKey(r.name) === nameKey(n.rol))?.id).filter((x): x is string => !!x);
 if (tierIds.length !== 5) throw new Error("No encuentro los 5 roles de los niveles");
+const botSpecs = loadLayout().rolesExtra.filter((r) => r.bots || r.botsCharla);
+const botIds = botSpecs.map((s) => roles.find((r) => nameKey(r.name) === nameKey(s.rol))?.id).filter((x): x is string => !!x);
+if (botIds.length !== botSpecs.length) throw new Error("No encuentro los roles de los bots (npm run servidor -- --apply)");
+const paidIds = [...tierIds, ...botIds];
 
 interface Item {
   file: string;
@@ -30,8 +35,8 @@ interface Item {
 const manifest = JSON.parse(readFileSync(path.join(ROOT, "assets/emojis/packs.json"), "utf8")) as { gratis: string[]; pago: string[] };
 const item = (dir: string, file: string, r: string[]): Item => ({ file: path.join(ROOT, dir, file), name: file.replace(/\.(png|gif)$/, ""), roles: r });
 const items: Item[] = [
-  ...readdirSync(path.join(ROOT, "assets/bots/emojis")).filter((f) => f.endsWith(".png")).sort().map((f) => item("assets/bots/emojis", f, tierIds)),
-  ...manifest.pago.map((f) => item("assets/emojis/pago", f, tierIds)),
+  ...readdirSync(path.join(ROOT, "assets/bots/emojis")).filter((f) => f.endsWith(".png")).sort().map((f) => item("assets/bots/emojis", f, paidIds)),
+  ...manifest.pago.map((f) => item("assets/emojis/pago", f, paidIds)),
   ...manifest.gratis.map((f) => item("assets/emojis/gratis", f, [])),
 ];
 const dupes = items.map((i) => i.name).filter((n, i, all) => all.indexOf(n) !== i);

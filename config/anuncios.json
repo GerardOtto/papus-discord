@@ -1,0 +1,17 @@
+{
+  "$comment": "Avisos de una sola vez que pide GyroP (frases fijas, regla 4). Cada uno sale al conectarse los bots, si su bot está en línea, y no se repite (queda anotado en data/papus.sqlite). '{@usuario}' = mención al Papu con ese nombre de usuario de Discord (no el apodo). Si no se puede (el bot aún no está en el servidor o no existe el Papu), queda pendiente y se avisa en #registro-bots.",
+  "anuncios": [
+    {
+      "id": "llegada-ruko",
+      "bot": "ruko",
+      "canal": "general",
+      "texto": "{@roasted_bread} Ruko ha llegado!"
+    },
+    {
+      "id": "novedad-niveles",
+      "bot": "luka",
+      "canal": "novedades",
+      "texto": "Buenas, Papus. Soy **Luka** 🐟 Novedad grande: **llegaron los niveles** ✨\n\n**📈 Cómo se sube**\n> ・ niveles del **1 al 99**, participando: escribiendo y hablando en voz\n> ・ los mensajes con contenido valen más que un \"xd\" (pero un texto copiado no da extra)\n> ・ hablar con los Vocaloids (@) vale **el doble** si te contestamos\n> ・ en voz: XP por minuto por cada Papu que esté contigo (sin compañía no cuenta)\n> ・ cuando sale un video del calendario, **XP ×2 durante 3 horas**\n> ・ el spam y los mensajes repetidos no suman; un strike de Neru borra la XP de ese día\n\n**💌 Tu nivel = tus mensajes con nosotras**\n> ・ de **3** mensajes al día en el nivel 1 hasta **20** con prestigio\n> ・ si ya estabas en el servidor, conservas al menos **12** hasta el 3 de noviembre\n> ・ pagar no cambia tu nivel ni tu cuota: solo la participación\n\n**🏅 Papu de honor en el nivel 25**\n> ・ Teto te da el rol sola, y no se pierde nunca\n> ・ los Papus de honor de ahora empiezan en el 25\n\n**✦ Tu tarjeta**\n> ・ **/nivel**: tu tarjeta, con un botón para poner tu nivel en el apodo (así: \"karin ✦12\")\n> ・ **/tarjeta**: tu frase, color y fondo (si subes una imagen, GyroP la revisa antes)\n> ・ en el **99** puedes prestigiar: vuelves al 1 con una ★ más\n\nCuanto más alto el nivel, más brilla tu insignia. Mira el tuyo con /nivel. Nos vemos en el chat ♪"
+    }
+  ]
+}

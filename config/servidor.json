@@ -28,7 +28,21 @@
       "color": "#39C5BB",
       "separado": true,
       "bots": true,
-      "$comment": "Agrupa a todos los bots (las 4 chicas y los Vocaloids de conversación) en la lista de miembros (PLAN §4)."
+      "$comment": "Solo las 4 chicas con tareas (Teto, Miku, Luka y Neru): su grupo sale arriba en la lista de miembros. Puede mencionar a @everyone (avisos por nivel). Los Vocaloids de conversación van en 🎤 Coro (PLAN §4)."
+    },
+    {
+      "rol": "🎤 Coro",
+      "color": "#000000",
+      "separado": true,
+      "botsCharla": true,
+      "$comment": "Los Vocaloids que solo conversan (Gakupo, Kaito, flower, IA, Haku, Gumi, Rin, Len, Meiko, Adachi Rei y Ruko; decisión de GyroP, 20 oct. 2026). Sin color ni permisos propios (ven y escriben en todos los canales por los permisos de cada canal, regla 2). npm run servidor lo deja como el ÚLTIMO rol separado, para que su grupo salga al final de la lista de miembros, justo encima de En línea."
+    },
+    {
+      "rol": "🛡️ Mod",
+      "color": "#E5484D",
+      "separado": true,
+      "mod": true,
+      "$comment": "Papus elegidos por GyroP (lo da a mano) que pueden dar strikes y avisos con Neru: /strike, /advertir, /strikes y el clic derecho 'Strike (Neru)' / 'Advertir (Neru)' (decisión de GyroP, 21 oct. 2026). /perdonar sigue siendo solo de GyroP. Sin permisos propios de Discord: el silencio lo aplica siempre Neru y todo queda en #moderación con el nombre del Mod. Un Mod no puede sancionar a otro Mod ni a GyroP. npm run servidor lo deja justo debajo de Vocaloids (su grupo sale sobre los niveles) y siempre debajo de Neru. Para que vean los comandos: Ajustes del servidor → Integraciones → Neru → permitir el rol en /strike, /advertir, /strikes y los dos del clic derecho."
     },
     {
       "rol": "⭐ Fundador",
@@ -42,6 +56,12 @@
       "color": "#C9D1DC",
       "separado": true,
       "$comment": "Lo da GyroP a mano a los Papus más fieles y activos (16 oct. 2026). Por ahora solo reconocimiento: sin permisos ni canales extra. Plateado: distinto de los niveles, de Fundador y de la paleta de #tu-color. Separado en la lista de miembros (quien además tiene un nivel aparece en el grupo de su nivel)."
+    },
+    {
+      "rol": "Proyectado del server",
+      "color": "#8E5BD8",
+      "separado": false,
+      "$comment": "Puramente estético: sin permisos ni canales extra (regla 1). Lo da GyroP a mano; el primero fue wildslifer12e (19 oct. 2026). Morado de V flower, el que pidió (mismo que 🎨 flower de #tu-color)."
     },
     {
       "rol": "💙 Esposa de Kaito",
@@ -71,9 +91,42 @@
       "$comment": "Bots de música externos (Jockie Music y sus 3 copias, Chip): sin permisos peligrosos, agrupados en la lista y SIN acceso a los canales de texto del servidor: solo funcionan en los canales de voz (y en su chat). Si invitas otro, agrega aquí su id y corre npm run servidor -- --apply."
     }
   ],
+  "coloresBots": {
+    "$comment": "Color del nombre de cada Vocaloid (decisión de GyroP, 20 oct. 2026). Texto = el rol de #tu-color que le corresponde (lo comparte con los Papus que lo elijan). {rol, color} = rol de color solo para ese bot, fuera del menú de #tu-color: las 4 chicas (sus colores son los de sus niveles de Ko-fi, reservados para los Papus) y Ruko (no está en la paleta). `npm run servidor` crea los que falten, los pone con los colores de #tu-color (sobre el rol Vocaloids, para que su color se vea) y se los da a cada bot.",
+    "teto": {
+      "rol": "🎨 Teto",
+      "color": "#E91E63"
+    },
+    "miku": {
+      "rol": "🎨 Miku",
+      "color": "#39C5BB"
+    },
+    "luka": {
+      "rol": "🎨 Luka",
+      "color": "#E285B2"
+    },
+    "neru": {
+      "rol": "🎨 Neru",
+      "color": "#E8D44D"
+    },
+    "gakupo": "🎨 Gakupo",
+    "kaito": "🎨 Kaito",
+    "flower": "🎨 flower",
+    "ia": "🎨 IA",
+    "haku": "🎨 Haku",
+    "gumi": "🎨 Gumi",
+    "rin": "🎨 Rin y Len",
+    "len": "🎨 Rin y Len",
+    "meiko": "🎨 Meiko",
+    "adachirei": "🎨 Adachi Rei",
+    "ruko": {
+      "rol": "🎨 Ruko",
+      "color": "#4A6AA8"
+    }
+  },
   "coloresPapu": {
     "canal": "tu-color",
-    "$comment": "Colores que cada Papu elige en #tu-color (menú de Miku, lo atiende el worker 24/7). Todas las Vocaloids del motor (Proyecto1/config/characters.json) menos las reservadas a los niveles de Ko-fi: Teto, Miku, Luka y Neru (y sus versiones) y el morado Triple Baka (decisión de GyroP, 17 oct. 2026). Rin y Len comparten color; KAFU va un poco más claro para no confundirse con Kaito. Ordenados por familia de color. Máximo 24 (menú de Discord). Quedan debajo de los niveles (quien paga sigue viéndose con el color de su nivel) y encima de las insignias Papu de honor y Fundador (el color elegido se ve aunque tenga una insignia; decisión de GyroP, 17 oct. 2026). Lo ordena `npm run servidor`. Nunca se borran roles: si se quita un color de aquí, su rol queda en el servidor.",
+    "$comment": "Colores que cada Papu elige en #tu-color (menú de Miku, lo atiende el worker 24/7). Todas las Vocaloids del motor (Proyecto1/config/characters.json) menos las reservadas a los niveles de Ko-fi: Teto, Miku, Luka y Neru (y sus versiones) y el morado Triple Baka (decisión de GyroP, 17 oct. 2026). Rin y Len comparten color; KAFU va un poco más claro para no confundirse con Kaito. Ordenados por familia de color. Máximo 24 (menú de Discord). Quedan encima de todos los roles de los Papus (niveles, insignias y Papu): el color elegido es el que se ve siempre, aunque tenga un nivel (decisión de GyroP, 19 oct. 2026; antes iban debajo de los niveles). Solo dan el color: sin permisos y sin separar en la lista, que sigue agrupada por nivel. Van debajo del rol de bot de Miku (si no, no podría asignarlos). Lo ordena `npm run servidor`. Nunca se borran roles: si se quita un color de aquí, su rol queda en el servidor.",
     "colores": [
       {
         "rol": "🎨 Rin y Len",
@@ -149,6 +202,36 @@
       }
     ]
   },
+  "paisesPapu": {
+    "canal": "tu-color",
+    "$comment": "Países que cada Papu elige en #tu-color (segundo menú de Miku, en el mismo mensaje que los colores; lo atiende el worker 24/7). Uno a la vez. El rol solo pone la bandera y el nombre en el perfil: sin color, sin permisos, no separado en la lista y al fondo de la lista de roles, debajo de Papu (decisión de GyroP, 19 oct. 2026). Lo ordena `npm run servidor`. Formato: bandera, espacio, nombre completo. Máximo 24 (menú de Discord). Nunca se borran roles: si se quita un país de aquí, su rol queda en el servidor.",
+    "paises": [
+      "🇲🇽 México",
+      "🇨🇱 Chile",
+      "🇦🇷 Argentina",
+      "🇨🇴 Colombia",
+      "🇵🇪 Perú",
+      "🇻🇪 Venezuela",
+      "🇪🇨 Ecuador",
+      "🇬🇹 Guatemala",
+      "🇧🇴 Bolivia",
+      "🇺🇾 Uruguay",
+      "🇵🇾 Paraguay",
+      "🇨🇺 Cuba",
+      "🇩🇴 República Dominicana",
+      "🇭🇳 Honduras",
+      "🇸🇻 El Salvador",
+      "🇳🇮 Nicaragua",
+      "🇨🇷 Costa Rica",
+      "🇵🇦 Panamá",
+      "🇵🇷 Puerto Rico",
+      "🇪🇸 España",
+      "🇺🇸 Estados Unidos",
+      "🇧🇷 Brasil",
+      "🇯🇵 Japón",
+      "🌎 Otro país"
+    ]
+  },
   "seguridad": {
     "verificacion": 1,
     "filtroContenido": 2,
@@ -181,6 +264,17 @@
           "tema": "Novedades del canal de GyroP y estrenos de videos."
         },
         {
+          "nombre": "✨・novedades",
+          "escriben": false,
+          "tema": "Cambios del servidor y de los bots (por ejemplo, la cuota diaria). Siempre iguales para todos, paguen o no."
+        }
+      ]
+    },
+    {
+      "nombre": "💎 Niveles y perfil",
+      "leen": "todos",
+      "canales": [
+        {
           "nombre": "💎・niveles-ko-fi",
           "escriben": false,
           "tema": "Los 5 niveles: 🥬 Puerro · 🐟 Atún · 🥖 Baguette · 📱 Celular · 💥 Triple Baka → ko-fi.com/tetociencia/tiers"
@@ -193,12 +287,7 @@
         {
           "nombre": "🎨・tu-color",
           "escriben": false,
-          "tema": "Elige el color de tu nombre con el menú de Miku (paleta de las Vocaloids)."
-        },
-        {
-          "nombre": "✨・novedades",
-          "escriben": false,
-          "tema": "Cambios del servidor y de los bots (por ejemplo, la cuota diaria). Siempre iguales para todos."
+          "tema": "Elige el color de tu nombre (paleta de las Vocaloids) y la bandera de tu país con los menús de Miku."
         },
         {
           "nombre": "🏆・salón-de-la-fama",
@@ -208,8 +297,9 @@
       ]
     },
     {
-      "nombre": "💬 Comunidad",
+      "nombre": "💬 Charla",
       "antes": [
+        "Comunidad",
         "Canales de texto"
       ],
       "leen": "todos",
@@ -217,7 +307,7 @@
         {
           "nombre": "💬・general",
           "escriben": true,
-          "lento": 2,
+          "lento": 3,
           "tema": "Charla general de los Papus."
         },
         {
@@ -225,6 +315,18 @@
           "escriben": true,
           "tema": "Canciones, productores, personajes y todo lo Vocaloid."
         },
+        {
+          "nombre": "💌・habla-con-los-vocaloids",
+          "escriben": true,
+          "lento": 3,
+          "tema": "Menciona a @Teto, @Miku, @Luka, @Neru, @Gakupo, @Kaito, @flower, @IA, @Haku, @Gumi, @Rin, @Len, @Meiko, @Adachi Rei o @Ruko para platicar: mensajes al día según tu nivel (/nivel), compartidos entre todos (/cuota)."
+        }
+      ]
+    },
+    {
+      "nombre": "🎨 Arte y música",
+      "leen": "todos",
+      "canales": [
         {
           "nombre": "🎧・recomendaciones",
           "escriben": true,
@@ -250,13 +352,13 @@
           "nombre": "😹・memes",
           "escriben": true,
           "tema": "Memes Vocaloid y del canal."
-        },
-        {
-          "nombre": "💌・habla-con-los-vocaloids",
-          "escriben": true,
-          "lento": 3,
-          "tema": "Menciona a @Teto, @Miku, @Luka, @Neru, @Gakupo, @Kaito, @flower, @IA, @Haku o @Gumi para platicar: 12 mensajes al día, compartidos entre todos (/cuota)."
-        },
+        }
+      ]
+    },
+    {
+      "nombre": "🎉 Eventos e ideas",
+      "leen": "todos",
+      "canales": [
         {
           "nombre": "🎉・eventos",
           "antes": [
@@ -274,17 +376,23 @@
           "tema": "Ideas para el servidor y el canal, y lo que opinas de todo."
         },
         {
-          "nombre": "🤖・comandos-de-bots",
-          "escriben": true,
-          "musica": true,
-          "lento": 2,
-          "tema": "Aquí se usan los comandos: /cuota de Teto, /tip de Luka, /pedido de Miku y los bots de música (/play). Entra a un canal de voz y pide tu canción."
-        },
-        {
           "nombre": "🐞・reportes-y-reclamos",
           "escriben": true,
           "tickets": true,
           "tema": "Usa /reporte: Neru te abre un ticket privado (solo lo ven tú y GyroP). Bugs, tu rol de Ko-fi, reclamos y todo lo que no funcione."
+        }
+      ]
+    },
+    {
+      "nombre": "🤖 Bots",
+      "leen": "todos",
+      "canales": [
+        {
+          "nombre": "🤖・comandos-de-bots",
+          "escriben": true,
+          "musica": true,
+          "lento": 2,
+          "tema": "Aquí se usan los comandos: /cuota, /nivel y /tarjeta de Teto, /tip de Luka, /pedido de Miku y los bots de música (/play). Entra a un canal de voz y pide tu canción."
         }
       ]
     },
@@ -491,5 +599,6 @@
         }
       ]
     }
-  ]
+  ],
+  "categoriasManualesDespuesDe": "🤖 Bots"
 }

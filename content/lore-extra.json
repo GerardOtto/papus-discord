@@ -1,5 +1,5 @@
 {
-  "$comment": "Datos de los Vocaloids que conversan en Discord pero NO están en el elenco del motor (lore.json de ../Proyecto1 solo tiene a Teto, Miku, Luka, Rin, Len, Kaito, Meiko, Gumi, Adachi Rei y Neru). Son los únicos datos que el bot puede afirmar de ellos (regla 6). Si GyroP los agrega al motor, el motor manda y este archivo se ignora para ese personaje. No cambia el elenco de los videos ni las opciones de /pedido. Borrador para revisión de GyroP: solo datos conocidos y verificables.",
+  "$comment": "Datos de los Vocaloids que conversan en Discord pero NO están en el elenco del motor (lore.json de ../Proyecto1 solo tiene a Teto, Miku, Luka, Rin, Len, Kaito, Meiko, Gumi, Adachi Rei y Neru). Son los únicos datos que el bot puede afirmar de ellos (regla 6). Ruko tampoco está en characters.json del motor (sus imágenes sí, en assets/characters/ruko): su nombre visible y el color de sus mensajes salen de 'display'. Si GyroP los agrega al motor, el motor manda y este archivo se ignora para ese personaje. No cambia el elenco de los videos ni las opciones de /pedido. Borrador para revisión de GyroP: solo datos conocidos y verificables.",
   "characters": {
     "gakupo": [
       "Kamui Gakupo (Gackpoid) salió el 31 de julio de 2008, de Internet Co.; su voz es del cantante japonés Gackt.",
@@ -23,6 +23,19 @@
     "flower": [
       "Su nombre oficial es v flower (con minúscula); salió en 2014, de Gynoid.",
       "Tiene una voz andrógina y potente, muy usada en canciones de rock y ritmos rápidos."
+    ],
+    "ruko": [
+      "Yokune Ruko es una UTAU (voz hecha por fans, como empezó Teto).",
+      "Es no binaria: se siente casi toda chica (como un 90 %) y un poquito chico (un 10 %). Se le dice 'ella' (dato de GyroP, 20 oct. 2026).",
+      "Tiene heterocromía: un ojo rojo y el otro azul. Lleva coletas (en unos diseños con el pelo negro y un mechón azul, en otros gris), corbata azul y un abrigo largo azul marino con guantes blancos.",
+      "Los Papus la piden para un video, y 'Ruko se acerca' es un meme del servidor."
     ]
+  },
+  "display": {
+    "ruko": {
+      "displayName": "Ruko",
+      "subtitleColor": "#4A6AA8",
+      "palette": ["#121A2E", "#4A6AA8", "#B9CBEA"]
+    }
   }
 }

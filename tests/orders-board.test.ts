@@ -1,6 +1,6 @@
 import path from "node:path";
 import { describe, expect, it } from "vitest";
-import { commandsFor, contextMenusFor, WARN_MENU } from "../src/discord/commands";
+import { commandsFor, contextMenusFor, STRIKE_DELETE_MENU, STRIKE_MENU, WARN_MENU } from "../src/discord/commands";
 import { EngineReader } from "../src/engine/reader";
 import { renderBoard } from "../src/orders/board";
 import { OrderQueue } from "../src/orders/queue";
@@ -54,12 +54,18 @@ describe("elenco y comandos", () => {
 });
 
 describe("comandos de Neru", () => {
-  it("/advertir y el clic derecho \"Advertir (Neru)\" quedan solo para administradores", () => {
-    const advertir = commandsFor("neru").find((c) => c.name === "advertir")!;
-    expect(advertir.default_member_permissions).toBe("8");
-    expect((advertir.options as { name: string; required?: boolean }[]).map((o) => [o.name, !!o.required])).toEqual([["papu", true], ["motivo", false]]);
+  it("/advertir, /strike y sus clics derechos (\"Advertir (Neru)\", \"Strike (Neru)\") quedan solo para administradores", () => {
+    for (const name of ["advertir", "strike"]) {
+      const cmd = commandsFor("neru").find((c) => c.name === name)!;
+      expect(cmd.default_member_permissions).toBe("8");
+      expect((cmd.options as { name: string; required?: boolean }[]).map((o) => [o.name, !!o.required])).toEqual([["papu", true], ["motivo", false]]);
+    }
     const menus = contextMenusFor("neru");
-    expect(menus.map((m) => [m.name, m.type, m.default_member_permissions])).toEqual([[WARN_MENU, 3, "8"]]);
+    expect(menus.map((m) => [m.name, m.type, m.default_member_permissions])).toEqual([
+      [WARN_MENU, 3, "8"],
+      [STRIKE_MENU, 3, "8"],
+      [STRIKE_DELETE_MENU, 3, "8"],
+    ]);
     expect(contextMenusFor("teto")).toEqual([]);
   });
 });

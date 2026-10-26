@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
   capsRatio,
-  DuplicateTracker,
   findPhone,
   FloodTracker,
+  isExpressive,
   loadModerationSettings,
   RuleSet,
   type MessageContext,
@@ -182,7 +182,7 @@ describe("RuleSet: mayúsculas y teléfonos", () => {
   });
 });
 
-describe("Flood y repetidos", () => {
+describe("Flood", () => {
   it("más de 5 mensajes en 10 s es flood", () => {
     const f = new FloodTracker(5, 10_000);
     const res = [0, 1000, 2000, 3000, 4000, 5000].map((t) => f.hit("a", t));
@@ -190,14 +190,14 @@ describe("Flood y repetidos", () => {
     expect(f.hit("a", 20_000)).toBe(false);
   });
 
-  it("el mismo mensaje 3 veces en 60 s", () => {
-    const d = new DuplicateTracker(3, 60_000);
-    expect(d.hit("a", "HOLA", 0)).toBe(false);
-    expect(d.hit("a", "hola ", 1000)).toBe(false);
-    expect(d.hit("b", "hola", 1500)).toBe(false);
-    expect(d.hit("a", "hola", 2000)).toBe(true);
-    expect(d.hit("a", "", 2000)).toBe(false);
-  });
+  it.each(["😭🙏🙏🙏", "<:nugget:1561227740215246898> <:nugget:1561227740215246898>", "👍🏽 ❤️ 🇲🇽", "", "https://klipy.com/gifs/huh-cat-8", "https://tenor.com/view/cat-gun-gif-1615"])(
+    "'%s' es solo expresión (no cuenta para el flood)",
+    (t) => expect(isExpressive(t)).toBe(true),
+  );
+
+  it.each(["XDDD", "jaja 😭", "123", "mira https://klipy.com/gifs/huh-cat-8", "https://example.com/x"])("'%s' es texto", (t) =>
+    expect(isExpressive(t)).toBe(false),
+  );
 });
 
 describe("Strikes", () => {

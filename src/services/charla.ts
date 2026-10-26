@@ -47,6 +47,8 @@ export interface CharlaPort {
   reply(bot: BotId, replyTo: string, content: string): Promise<void>;
   /** Muestra "escribiendo…" en #general; devuelve la funcion para detenerlo. */
   typing(bot: BotId): () => void;
+  /** Nombres de los emojis del servidor (para que el LLM los use). */
+  emojis?(): string[];
 }
 
 export interface CharlaDeps {
@@ -135,7 +137,7 @@ export class GeneralChat {
     else if (!topic && others.length > 0 && (!fresh || decks.next("charla.modo", 2) === 1)) target = others[decks.next(`charla.a.${bot}`, others.length)]!;
     const history: HistoryLine[] = recent.filter((m) => m.text.trim()).map((m) => ({ author: m.author, text: m.text }));
     const speaker = characters[bot];
-    const shared = { culture: this.d.culture, today: this.d.today?.() };
+    const shared = { culture: this.d.culture, today: this.d.today?.(), serverEmojis: port.emojis?.() };
 
     const stop = port.typing(bot);
     let opener = await this.call(
