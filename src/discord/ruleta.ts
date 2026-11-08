@@ -65,7 +65,7 @@ export class RuletaDiscord {
   private panel(st: RouletteStatus): { content: string; components: ActionRowBuilder<ButtonBuilder>[] } {
     const lines = st.missions.map((m) => `${m.done ? "✅" : "⬜"} ${ICON[m.id]} **${m.nombre}** · ${m.avance}`);
     const head = st.blocked
-      ? "🚫 Tuviste un strike de Neru hoy: la ruleta vuelve mañana."
+      ? "🚫 Neru te dio un machetazo: sin ruleta por ahora."
       : st.left > 0
         ? `Tienes **${st.left} ${st.left === 1 ? "tirada" : "tiradas"}** para hoy. ¡Gira!`
         : st.used >= st.missions.length
@@ -77,7 +77,7 @@ export class RuletaDiscord {
       "",
       ...lines,
       "",
-      `-# Una tirada por misión, hasta ${st.missions.length} al día; se reinician a medianoche (hora de Chile). Premios: XP y mensajes extra con los Vocaloids por hoy. El resultado sale público.`,
+      `-# Una tirada por misión, hasta ${st.missions.length} al día; se reinician a medianoche (hora de Chile). Premios: XP, mensajes extra con los Vocaloids por hoy (con tu cuota llena, se vuelven XP) y sobres. El resultado sale público.`,
     ].join("\n");
     const button = new ButtonBuilder()
       .setCustomId(SPIN_ID)
@@ -121,19 +121,22 @@ export class RuletaDiscord {
 
   /** "**+312 XP**", "**2 mensajes extra** con los Vocaloids hoy"… (para la frase y el registro). */
   private prizeText(res: SpinResult): string {
-    if (res.prize.tipo === "xp") return `**+${fmt(res.xp)} XP**${res.levelAfter > res.levelBefore ? ` (¡subió al nivel ${res.levelAfter}!)` : ""}`;
-    if (res.prize.tipo === "cuota") return `**${res.messages} ${res.messages === 1 ? "mensaje extra" : "mensajes extra"}** con los Vocaloids hoy`;
-    return `**la cuota del día llena otra vez** (+${res.messages} ${res.messages === 1 ? "mensaje" : "mensajes"})`;
+    const up = res.levelAfter > res.levelBefore ? ` (¡subió al nivel ${res.levelAfter}!)` : "";
+    if (res.prize.tipo === "xp") return `**+${fmt(res.xp)} XP**${up}`;
+    if (res.prize.tipo === "sobre") return `**${res.sobres === 1 ? "un sobre común gratis" : `${res.sobres} sobres comunes gratis`}** para abrir en la tienda (/tienda → Sobres)`;
+    // Con la cuota llena, los mensajes que no caben se vuelven XP (decision de GyroP, 31 oct. 2026).
+    const sobra = res.overflow ? `**+${fmt(res.xp)} XP** (su cuota ya estaba llena: ${res.overflow === 1 ? "el mensaje se volvió XP" : `${res.overflow} mensajes se volvieron XP`})${up}` : "";
+    const msgs = res.messages ? `**${res.messages} ${res.messages === 1 ? "mensaje extra" : "mensajes extra"}** con los Vocaloids hoy` : "";
+    if (res.prize.tipo === "cuota") return [msgs, sobra].filter(Boolean).join(" y ");
+    return res.messages ? `**la cuota del día llena otra vez** (+${res.messages} ${res.messages === 1 ? "mensaje" : "mensajes"})` : sobra;
   }
 
   private gifText(res: SpinResult): { title: string; subtitle: string } {
-    if (res.prize.tipo === "xp") {
-      return {
-        title: `¡+${fmt(res.xp)} XP!`,
-        subtitle: res.levelAfter > res.levelBefore ? `Nivel ${res.levelBefore} → ${res.levelAfter} 🆙` : `Nivel ${res.levelAfter} · ¡a seguir!`,
-      };
-    }
-    if (res.prize.tipo === "cuota") return { title: `¡+${res.messages} ${res.messages === 1 ? "mensaje" : "mensajes"}!`, subtitle: "con los Vocaloids, solo hoy" };
+    const nivel = res.levelAfter > res.levelBefore ? `Nivel ${res.levelBefore} → ${res.levelAfter} 🆙` : `Nivel ${res.levelAfter} · ¡a seguir!`;
+    if (res.prize.tipo === "xp") return { title: `¡+${fmt(res.xp)} XP!`, subtitle: nivel };
+    if (res.prize.tipo === "sobre") return { title: res.sobres === 1 ? "¡Un sobre común!" : `¡${res.sobres} sobres comunes!`, subtitle: "gratis, en la tienda de Shaula-coins" };
+    if (!res.messages) return { title: `¡+${fmt(res.xp)} XP!`, subtitle: "tu cuota ya estaba llena" };
+    if (res.prize.tipo === "cuota") return { title: `¡+${res.messages} ${res.messages === 1 ? "mensaje" : "mensajes"}!`, subtitle: res.overflow ? `y +${fmt(res.xp)} XP de lo que no cabía` : "con los Vocaloids, solo hoy" };
     return { title: "¡Cuota llena!", subtitle: `+${res.messages} ${res.messages === 1 ? "mensaje" : "mensajes"} con los Vocaloids` };
   }
 

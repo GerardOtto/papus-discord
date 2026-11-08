@@ -11,7 +11,7 @@ import { Phrases } from "../src/phrases/catalog";
 import { DeckStore } from "../src/phrases/deck";
 import { Quota } from "../src/quota/quota";
 import { ConversationService, isTrivialReply, mentionedBots, type ChatPort, type IncomingMention } from "../src/services/conversation";
-import { ModerationService, strikeLine, type ModerationPort } from "../src/services/moderation";
+import { machetazoLine, ModerationService, type ModerationPort } from "../src/services/moderation";
 import { FIXTURE_ENGINE, memDb, seededRng } from "./helpers";
 import neruPhrases from "../content/frases/neru.json";
 
@@ -210,19 +210,13 @@ class FakeMod implements ModerationPort {
   }
 }
 
-function modSetup(start = 0, sinStrikes: string[] = []) {
+function modSetup(start = 0) {
   const db = memDb();
   const port = new FakeMod();
   let t = start;
-  const svc = new ModerationService(
-    new RuleSet({ ...loadModerationSettings(), sinStrikes: sinStrikes.map((id) => ({ id })) }),
-    new StrikeStore(db),
-    new Phrases(new DeckStore(db, seededRng(2))),
-    port,
-    () => new Set(["gyrop"]),
-    () => t,
-  );
-  return { svc, port, advance: (ms: number) => (t += ms) };
+  const strikes = new StrikeStore(db);
+  const svc = new ModerationService(new RuleSet(loadModerationSettings()), strikes, new Phrases(new DeckStore(db, seededRng(2))), port, () => new Set(["gyrop"]), () => t);
+  return { svc, port, strikes, advance: (ms: number) => (t += ms) };
 }
 const msg = (text: string, extra: Partial<Parameters<ModerationService["handle"]>[0]> = {}) => ({
   messageId: `m${Math.random()}`,
@@ -241,120 +235,113 @@ describe("ModerationService", () => {
     expect(port.said).toEqual([]);
   });
 
-  it("escalera de strikes: advertencia, 10 min, 1 h, 24 h + aviso a GyroP", async () => {
-    const { svc, port, advance } = modSetup();
+  it("escalera de machetazos: 10 min, 1 h y sin XP, 24 h + aviso a GyroP; siempre se borra el mensaje", async () => {
+    const { svc, port, strikes, advance } = modSetup();
     for (let i = 0; i < 4; i++) {
       await svc.handle(msg("eres un pendejo"));
       advance(60_000);
     }
     expect(port.deleted).toHaveLength(4);
-    expect(port.timeouts.map((x) => x.minutes)).toEqual([10, 60, 1440]);
-    expect(port.owner).toHaveLength(1);
+    expect(port.timeouts.map((x) => x.minutes)).toEqual([10, 60, 1440, 1440]);
+    expect(port.owner).toHaveLength(2);
     expect(port.logs.map((l) => l.action)).toEqual([
-      "borrado · advertencia",
-      "borrado · silencio 10 min",
-      "borrado · silencio 60 min",
-      "borrado · silencio 1440 min",
+      "borrado · machetazo 1 · silencio 10 min · sin la XP de hoy",
+      "borrado · machetazo 2 · silencio 60 min · sin la XP de hoy · sin ganar XP",
+      "borrado · machetazo 3 · silencio 1440 min · sin la XP de hoy · sin ganar XP",
+      "borrado · machetazo 4 · silencio 1440 min · sin la XP de hoy · sin ganar XP",
     ]);
+    expect(strikes.xpBlocked("papu", 5 * 60_000)).toBe(true);
   });
 
-  it("lista sinStrikes: borra y avisa, pero sin strike ni silencio; el strike de un Mod queda en aviso y el de GyroP vale", async () => {
-    const { svc, port } = modSetup(0, ["papu"]);
-    for (let i = 0; i < 3; i++) await svc.handle(msg("eres un pendejo"));
-    expect(port.deleted).toHaveLength(3);
-    expect(port.timeouts).toEqual([]);
-    expect(port.said).toHaveLength(3);
-    expect(port.said.join("\n")).not.toContain("strike");
-    expect(port.logs.map((l) => l.action)).toEqual(Array(3).fill("borrado · sin strike (lista de GyroP)"));
-
-    await svc.handleAutoModHit({ userId: "papu", channelId: "c", ruleName: "Neru · insultos dirigidos", content: "eres puto" });
-    expect(port.logs.at(-1)).toEqual({ kind: "automod", action: "bloqueado por AutoMod · sin strike (lista de GyroP)", activeStrikes: 0 });
-    expect(await svc.applyOfflineHits([{ userId: "papu", channelId: "c", ruleName: "Neru · odio", content: "x" }])).toBeNull();
-
-    expect(await svc.strike({ userId: "papu", channelId: "c", por: "Mod <@mod1>" })).toBeNull();
-    expect(port.logs.at(-1)?.kind).toBe("aviso");
-    expect(await svc.strike({ userId: "papu", channelId: "c", motivo: "ya basta" })).toBe(1);
-    expect(port.timeouts).toEqual([]);
-  });
-
-  it("aviso de GyroP: frase de Neru respondiendo al mensaje, sin borrar ni strike, y queda en el registro", async () => {
+  it("advertencia de GyroP: frase de Neru respondiendo al mensaje, sin borrar ni silencio, y queda en el registro", async () => {
     const { svc, port } = modSetup();
-    await svc.warn({ userId: "papu", channelId: "c", messageId: "m1", excerpt: "qué menso", motivo: "ojo con\nel tono" });
+    expect(await svc.warn({ userId: "papu", channelId: "c", messageId: "m1", excerpt: "qué menso", motivo: "ojo con\nel tono" })).toEqual({ warnings: 1, machetazo: null });
     expect(port.said[0]).toContain("<@papu>");
     expect(port.said[0]).toContain("> ojo con el tono");
+    expect(port.said[0]).toContain("**advertencia 1 de 3** · a la tercera, machetazo.");
     expect(port.replies[0]).toBe("m1");
     expect(port.deleted).toEqual([]);
     expect(port.timeouts).toEqual([]);
-    expect(port.logs).toEqual([{ kind: "aviso", action: "sin borrar · sin strike", activeStrikes: 0 }]);
-    // No suma: el siguiente insulto sigue siendo el strike 1.
-    await svc.handle(msg("eres un pendejo"));
-    expect(port.said[1]).toContain("**strike 1 de 4**");
+    expect(port.logs).toEqual([{ kind: "advertencia de GyroP", action: "sin borrar · advertencia 1 de 3", activeStrikes: 0 }]);
   });
 
-  it("strike de GyroP: misma escalera que los automáticos, con el motivo citado y sin borrar", async () => {
+  it("tres advertencias en 3 días = 1 machetazo (borra el mensaje de la tercera); las vencidas no cuentan", async () => {
+    const { svc, port, strikes, advance } = modSetup();
+    await svc.warn({ userId: "papu", channelId: "c", messageId: "m1" });
+    advance(3 * 86_400_000 + 1); // la primera vence
+    await svc.warn({ userId: "papu", channelId: "c", messageId: "m2", por: "Mod <@mod1>" });
+    expect((await svc.warn({ userId: "papu", channelId: "c", messageId: "m3" })).machetazo).toBeNull();
+    const r = await svc.warn({ userId: "papu", channelId: "c", messageId: "m4", motivo: "ya basta" });
+    expect(r.machetazo).toMatchObject({ active: 1, penalty: { minutes: 10, blockXp: false } });
+    expect(port.deleted).toEqual(["m4"]);
+    expect(port.timeouts.map((x) => x.minutes)).toEqual([10]);
+    expect(port.said.at(-1)).toContain("3 advertencias = 1 machetazo");
+    expect(port.said.at(-1)).toContain("🔪 **machetazo 1 de 3**");
+    expect(port.replies.at(-1)).toBeUndefined();
+    expect(port.logs.at(-1)!.action).toBe("borrado · 3 advertencias · machetazo 1 · silencio 10 min · sin la XP de hoy");
+    // Las tres se gastaron: la siguiente vuelve a ser la 1 de 3.
+    expect(strikes.warnings("papu", 3 * 86_400_000 + 2)).toBe(0);
+    expect((await svc.warn({ userId: "papu", channelId: "c" })).warnings).toBe(1);
+  });
+
+  it("machetazo de GyroP: misma escalera que los automáticos, con el motivo citado, y borra el mensaje", async () => {
     const { svc, port, advance } = modSetup();
     expect(await svc.strike({ userId: "papu", channelId: "c", messageId: "m1", excerpt: "algo feo", motivo: "broma\nracista" })).toBe(1);
     expect(port.said[0]).toContain("<@papu>");
     expect(port.said[0]).toContain("> broma racista");
-    expect(port.said[0]).toContain("**strike 1 de 4** · advertencia.");
-    expect(port.replies[0]).toBe("m1");
-    expect(port.deleted).toEqual([]);
-    advance(60_000);
-    // El siguiente, a mano o automático, sigue la escalera: 10 min de silencio.
-    await svc.handle(msg("eres un pendejo"));
-    expect(port.timeouts.map((x) => x.minutes)).toEqual([10]);
-    expect(port.logs[0]).toEqual({ kind: "strike de GyroP", action: "sin borrar · advertencia", activeStrikes: 1 });
-  });
-
-  it("strike y borrar (clic derecho): borra el mensaje y avisa sin responderle; si Discord no deja, el registro lo dice", async () => {
-    const { svc, port } = modSetup();
-    expect(await svc.strike({ userId: "papu", channelId: "c", messageId: "m1", excerpt: "algo feo", por: "Mod <@mod1>", borrar: true })).toBe(1);
+    expect(port.said[0]).toContain("🔪 **machetazo 1 de 3** · 10 min de silencio, sin la XP de hoy.");
     expect(port.deleted).toEqual(["m1"]);
     expect(port.replies[0]).toBeUndefined();
-    expect(port.said[0]).toContain("**strike 1 de 4**");
-    expect(port.logs[0]).toEqual({ kind: "strike de Mod <@mod1>", action: "borrado · advertencia", activeStrikes: 1 });
+    expect(port.logs[0]).toEqual({ kind: "machetazo de GyroP", action: "borrado · machetazo 1 · silencio 10 min · sin la XP de hoy", activeStrikes: 1 });
+    advance(60_000);
+    // El siguiente, a mano o automático, sigue la escalera: una hora.
+    await svc.handle(msg("eres un pendejo"));
+    expect(port.timeouts.map((x) => x.minutes)).toEqual([10, 60]);
+  });
 
+  it("si Discord no deja borrar, el aviso responde al mensaje y el registro lo dice", async () => {
+    const { svc, port } = modSetup();
     port.deleteMessage = async () => {
       throw new Error("Missing Permissions");
     };
-    expect(await svc.strike({ userId: "papu", channelId: "c", messageId: "m2", borrar: true })).toBe(2);
-    expect(port.replies[1]).toBe("m2");
-    expect(port.timeouts.map((x) => x.minutes)).toEqual([10]);
-    expect(port.logs[1]!.action).toBe("no se pudo borrar · silencio 10 min");
+    expect(await svc.strike({ userId: "papu", channelId: "c", messageId: "m2", por: "Mod <@mod1>" })).toBe(1);
+    expect(port.replies[0]).toBe("m2");
+    expect(port.logs[0]).toMatchObject({ kind: "machetazo de Mod <@mod1>", action: "no se pudo borrar · machetazo 1 · silencio 10 min · sin la XP de hoy" });
   });
 
-  it("si el aviso público no sale (hilo cerrado), el strike y el silencio igual quedan en #moderación", async () => {
+  it("si el aviso público no sale (hilo cerrado), el machetazo y el silencio igual quedan en #moderación", async () => {
     const { svc, port } = modSetup();
     port.say = async () => {
       throw new Error("Thread is locked");
     };
-    await svc.strike({ userId: "papu", channelId: "hilo", messageId: "m1" });
-    expect(await svc.strike({ userId: "papu", channelId: "hilo", messageId: "m2" })).toBe(2);
-    expect(port.timeouts.map((x) => x.minutes)).toEqual([10]);
-    expect(port.logs.map((l) => l.action)).toEqual(["sin borrar · advertencia", "sin borrar · silencio 10 min"]);
+    await svc.strike({ userId: "papu", channelId: "hilo" });
+    expect(await svc.strike({ userId: "papu", channelId: "hilo" })).toBe(2);
+    expect(port.timeouts.map((x) => x.minutes)).toEqual([10, 60]);
+    expect(port.logs.map((l) => l.action)).toEqual([
+      "sin mensaje · machetazo 1 · silencio 10 min · sin la XP de hoy",
+      "sin mensaje · machetazo 2 · silencio 60 min · sin la XP de hoy · sin ganar XP",
+    ]);
   });
 
-  it("strike y aviso de un Mod: misma escalera que los de GyroP y el registro dice qué Mod fue", async () => {
+  it("machetazo y advertencia de un Mod: misma escalera que los de GyroP y el registro dice qué Mod fue", async () => {
     const { svc, port } = modSetup();
     await svc.warn({ userId: "papu", channelId: "c", por: "Mod <@mod1>" });
     expect(await svc.strike({ userId: "papu", channelId: "c", motivo: "spam", por: "Mod <@mod1>" })).toBe(1);
-    expect(await svc.strike({ userId: "papu", channelId: "c", por: "Mod <@mod1>" })).toBe(2);
-    expect(port.timeouts.map((x) => x.minutes)).toEqual([10]);
-    expect(port.logs.map((l) => l.kind)).toEqual(["aviso", "strike de Mod <@mod1>", "strike de Mod <@mod1>"]);
+    expect(port.logs.map((l) => l.kind)).toEqual(["advertencia de Mod <@mod1>", "machetazo de Mod <@mod1>"]);
   });
 
-  it("llama la atención en público: cita lo que dijo (tapado) y en qué strike va", async () => {
+  it("llama la atención en público: cita lo que dijo (tapado) y en qué machetazo va", async () => {
     const { svc, port, advance } = modSetup();
     await svc.handle(msg("CHUPALO", { targetsBot: true }));
     expect(port.said[0]).toContain("> C\\*\\*\\*\\*\\*\\*");
     expect(port.said[0]).not.toMatch(/chupalo/i);
-    expect(port.said[0]).toContain("**strike 1 de 4** · advertencia. al siguiente, 10 min de silencio.");
+    expect(port.said[0]).toContain("🔪 **machetazo 1 de 3** · 10 min de silencio, sin la XP de hoy. al siguiente, una hora y sin ganar XP.");
     advance(60_000);
     await svc.handle(msg("eres un pendejo"));
-    expect(port.said[1]).toContain("**strike 2 de 4** · 10 min de silencio.");
+    expect(port.said[1]).toContain("🔪 **machetazo 2 de 3** · una hora de silencio, sin la XP de hoy y sin ganar XP.");
   });
 
-  it("autolesión: frase fija de apoyo con las líneas de ayuda, aviso a GyroP y sin strike (una vez cada 6 h)", async () => {
+  it("autolesión: frase fija de apoyo con las líneas de ayuda, aviso a GyroP y sin machetazo (una vez cada 6 h)", async () => {
     const { svc, port, advance } = modSetup();
     const m = msg("@Neru palabras de motivación para no terminar con todo?", { messageId: "m1" });
     expect(await svc.handle(m)).toBeNull();
@@ -377,12 +364,14 @@ describe("ModerationService", () => {
     const { svc, port } = modSetup();
     await svc.handle(msg("únanse discord.gg/abc123"));
     expect(port.said[0]).not.toContain("abc123");
-    expect(port.said[0]).toContain("strike 1 de 4");
+    expect(port.said[0]).toContain("machetazo 1 de 3");
   });
 
-  it("strikeLine sigue la escalera real (Neru no expulsa: al 4.º decide GyroP)", () => {
-    expect(strikeLine(3, { kind: "silencio", minutes: 60, notifyOwner: false })).toContain("al 4.º, un día sin escribir y gyrop decide si te quedas");
-    expect(strikeLine(6, { kind: "silencio", minutes: 1440, notifyOwner: true })).toContain("**strike 4 de 4** · un día de silencio. gyrop ya está avisado");
+  it("machetazoLine sigue la escalera real (Neru no expulsa: al 3.º revisa GyroP)", () => {
+    expect(machetazoLine(2, { minutes: 60, blockXp: true, notifyOwner: false })).toContain("al 3.º, un día sin escribir y gyrop revisa tu caso");
+    expect(machetazoLine(6, { minutes: 1440, blockXp: true, notifyOwner: true })).toContain(
+      "**machetazo 3 de 3** · un día de silencio, sin la XP de hoy y sin ganar XP. gyrop ya está avisado",
+    );
   });
 
   it("GyroP esta exento", async () => {
@@ -400,7 +389,7 @@ describe("ModerationService", () => {
     expect(fromGroup(port.said[0], "invitacion")).toBe(true);
   });
 
-  it("mayúsculas: solo aviso, sin borrar ni strike, y no más de uno cada 10 min", async () => {
+  it("mayúsculas: solo aviso, sin borrar ni machetazo, y no más de uno cada 10 min", async () => {
     const { svc, port, advance } = modSetup();
     const shout = (s: string) => `${s} `.repeat(8); // mensajes largos (la regla aplica desde 100 caracteres)
     await svc.handle(msg("MIKU ES LA MEJOR")); // grito corto: pasa sin aviso
@@ -414,7 +403,7 @@ describe("ModerationService", () => {
     expect(port.said).toHaveLength(2);
   });
 
-  it("flood: el sexto mensaje en 10 s se borra con strike", async () => {
+  it("flood: el sexto mensaje en 10 s se borra con machetazo", async () => {
     const { svc, port, advance } = modSetup();
     const results = [];
     for (let i = 0; i < 6; i++) {
@@ -451,15 +440,15 @@ describe("ModerationService", () => {
     expect(port.deleted).toHaveLength(0);
   });
 
-  it("el filtro de spam de AutoMod bloquea sin strike ni frase (queda en el registro)", async () => {
+  it("el filtro de spam de AutoMod bloquea sin machetazo ni frase (queda en el registro)", async () => {
     const { svc, port } = modSetup();
     await svc.handleAutoModHit({ userId: "a", channelId: "c", ruleName: "Neru · spam", content: "copia y pega" });
     expect(port.said).toHaveLength(0);
-    expect(port.logs[0]).toMatchObject({ kind: "automod", action: "bloqueado por AutoMod · sin strike", activeStrikes: 0 });
+    expect(port.logs[0]).toMatchObject({ kind: "automod", action: "bloqueado por AutoMod · sin machetazo", activeStrikes: 0 });
     expect(await svc.applyOfflineHits([{ userId: "a", channelId: "c", ruleName: "Neru · spam", content: "x" }])).toBeNull();
   });
 
-  it("bloqueos de AutoMod sin conexión: strikes y resumen de Neru con el número", async () => {
+  it("bloqueos de AutoMod sin conexión: machetazos y resumen de Neru con el número", async () => {
     const { svc } = modSetup();
     const summary = await svc.applyOfflineHits([
       { userId: "a", channelId: "c", ruleName: "Neru · odio", content: "x" },

@@ -1,7 +1,12 @@
 // Tarjeta de nivel (/nivel): imagen PNG con el avatar, la insignia del rango, la barra de XP y lo que cada Papu
 // personaliza con /tarjeta (frase, color y fondo). La insignia es mas llamativa cuanto mas alto el rango:
-// gris, color, degradados, plata, oro, destellos, tornasol y arcoiris (PLAN §niveles).
-import { createCanvas, loadImage, type CanvasGradient, type SKRSContext2D } from "@napi-rs/canvas";
+// gris, color, degradados, plata, oro, destellos, tornasol y arcoiris (PLAN §niveles). Los objetos de las
+// Shaula-coins (PLAN §3.6) se dibujan encima; si alguno se mueve, la tarjeta sale como GIF.
+import { createCanvas, loadImage, type CanvasGradient, type Image, type SKRSContext2D } from "@napi-rs/canvas";
+import * as gifencModule from "gifenc";
+
+// gifenc es CommonJS: Node lo entrega entero en `default`; vitest usa su version ESM, con las funciones sueltas.
+const { applyPalette, GIFEncoder, quantize } = "quantize" in gifencModule && typeof gifencModule.quantize === "function" ? gifencModule : gifencModule.default;
 
 export const CARD_W = 1000;
 export const CARD_H = 340;
@@ -27,12 +32,45 @@ export interface CardData {
   multiplier: number;
 }
 
+/**
+ * Objetos equipados (Shaula-coins, src/coins/): cada uno ya resuelto a su dibujo. t = fase de la animacion (0 a 1).
+ * `fondo` puede ser una imagen (render) o un dibujo; el resto son dibujos. Sin objeto, se ve la tarjeta de siempre.
+ */
+export interface CardEquip {
+  fondo?: Image | ((ctx: SKRSContext2D, t: number) => void);
+  borde?: (ctx: SKRSContext2D, t: number) => void;
+  aro?: (ctx: SKRSContext2D, t: number) => void;
+  barra?: (ctx: SKRSContext2D, t: number, x: number, y: number, w: number, h: number) => void;
+  nombre?: {
+    paint: (ctx: SKRSContext2D, t: number, x: number, w: number) => void;
+    back?: (ctx: SKRSContext2D, text: string, x: number, y: number, size: number, t: number) => void;
+  };
+  /** Hasta 3, junto al nombre: un emoji o una imagen. */
+  insignias?: (string | Image)[];
+  /** Reemplaza la frase. color "rainbow" = arcoiris que se mueve. */
+  titulo?: { texto: string; color: string };
+  /** Algo se mueve: la tarjeta sale como GIF. */
+  animado?: boolean;
+}
+
+export const CARD_FRAMES = 24;
+const CARD_DELAY_MS = 60;
+
 // Primero las de Windows (PC de GyroP); despues sus equivalentes libres del servidor Linux (fonts-noto-*, que instala
 // nube/servidor/preparar.sh): sin ellas el servidor no dibuja ningun texto.
 export const FONT =
   '"Segoe UI", "Noto Sans", "Segoe UI Emoji", "Noto Color Emoji", "Segoe UI Symbol", "Noto Sans Symbols", "Yu Gothic", "Noto Sans CJK JP", Arial, "DejaVu Sans", sans-serif';
 export const RAINBOW = ["#ff3b5c", "#ff9f1c", "#ffe14d", "#3ddc84", "#36c5f0", "#8c5cff"];
 const fmt = (n: number) => new Intl.NumberFormat("es-CL").format(Math.round(n));
+
+/** Arcoiris que se desplaza en horizontal: t de 0 a 1 da una vuelta sin saltos. */
+export function rainbowAt(ctx: SKRSContext2D, x: number, w: number, t: number, colors: readonly string[] = RAINBOW): CanvasGradient {
+  const s = t * w;
+  const g = ctx.createLinearGradient(x - w + s, 0, x + w + s, 0);
+  const stops = [...colors, ...colors, colors[0]!];
+  stops.forEach((c, i) => g.addColorStop(i / (stops.length - 1), c));
+  return g;
+}
 
 export function gradient(ctx: SKRSContext2D, x: number, y: number, w: number, stops: string[]): CanvasGradient {
   const g = ctx.createLinearGradient(x, y, x + w, y);
@@ -92,17 +130,9 @@ export function fitText(ctx: SKRSContext2D, text: string, maxWidth: number): str
   return `${chars.join("").trimEnd()}…`;
 }
 
-async function drawCover(ctx: SKRSContext2D, buf: Buffer): Promise<boolean> {
-  try {
-    const img = await loadImage(buf);
-    const scale = Math.max(CARD_W / img.width, CARD_H / img.height);
-    const w = img.width * scale;
-    const h = img.height * scale;
-    ctx.drawImage(img, (CARD_W - w) / 2, (CARD_H - h) / 2, w, h);
-    return true;
-  } catch {
-    return false;
-  }
+function coverImage(ctx: SKRSContext2D, img: Image): void {
+  const scale = Math.max(CARD_W / img.width, CARD_H / img.height);
+  ctx.drawImage(img, (CARD_W - img.width * scale) / 2, (CARD_H - img.height * scale) / 2, img.width * scale, img.height * scale);
 }
 
 /** Insignia "★2 Nv 57" con el estilo de su rango. Devuelve el ancho dibujado. */
@@ -147,15 +177,65 @@ function drawBadge(ctx: SKRSContext2D, x: number, y: number, d: CardData): numbe
   return w;
 }
 
-export async function renderCard(d: CardData): Promise<Buffer> {
+export async function renderCard(d: CardData, equip: CardEquip = {}): Promise<Buffer> {
+  const canvas = createCanvas(CARD_W, CARD_H);
+  drawFrame(canvas.getContext("2d"), d, await loadCardImages(d), equip, 0);
+  return canvas.toBuffer("image/png");
+}
+
+/** Tarjeta con objetos: GIF si alguno se mueve (24 cuadros, se repite), si no PNG. */
+export async function renderCardAny(d: CardData, equip: CardEquip = {}): Promise<{ data: Buffer; gif: boolean }> {
+  if (!equip.animado) return { data: await renderCard(d, equip), gif: false };
+  const images = await loadCardImages(d);
   const canvas = createCanvas(CARD_W, CARD_H);
   const ctx = canvas.getContext("2d");
+  const frames: Uint8ClampedArray[] = [];
+  for (let i = 0; i < CARD_FRAMES; i++) {
+    ctx.save();
+    // El GIF no tiene transparencia parcial: las esquinas redondeadas van sobre el gris oscuro de Discord.
+    ctx.fillStyle = "#2b2d31";
+    ctx.fillRect(0, 0, CARD_W, CARD_H);
+    drawFrame(ctx, d, images, equip, i / CARD_FRAMES);
+    ctx.restore();
+    frames.push(ctx.getImageData(0, 0, CARD_W, CARD_H).data);
+  }
+  // Paleta comun: un pixel de cada 8 de cuatro cuadros repartidos.
+  const sample: number[] = [];
+  for (let f = 0; f < CARD_FRAMES; f += CARD_FRAMES / 4) {
+    const px = frames[f]!;
+    for (let p = 0; p < px.length; p += 32) sample.push(px[p]!, px[p + 1]!, px[p + 2]!, px[p + 3]!);
+  }
+  const palette = quantize(new Uint8ClampedArray(sample), 256);
+  const gif = GIFEncoder();
+  frames.forEach((px, i) =>
+    gif.writeFrame(applyPalette(px, palette), CARD_W, CARD_H, { palette: i === 0 ? palette : undefined, delay: CARD_DELAY_MS, repeat: i === 0 ? 0 : undefined }),
+  );
+  gif.finish();
+  return { data: Buffer.from(gif.bytes()), gif: true };
+}
 
-  // Fondo: imagen (banner de un Vocaloid o la aprobada por GyroP) o degradado del color elegido; velo para leer.
+interface CardImages {
+  avatar: Image | null;
+  background: Image | null;
+}
+
+async function loadCardImages(d: CardData): Promise<CardImages> {
+  const load = async (b: Buffer | null) => (b ? await loadImage(b).catch(() => null) : null);
+  return { avatar: await load(d.avatar), background: await load(d.background) };
+}
+
+/** Un cuadro de la tarjeta (t = fase de la animacion de los objetos). */
+function drawFrame(ctx: SKRSContext2D, d: CardData, img: CardImages, e: CardEquip, t: number): void {
+  ctx.save();
+  // Fondo: el objeto equipado, la imagen (banner de un Vocaloid o la aprobada por GyroP) o el degradado del color
+  // elegido; velo para leer.
   roundRect(ctx, 0, 0, CARD_W, CARD_H, 28);
   ctx.clip();
-  const hasImage = d.background ? await drawCover(ctx, d.background) : false;
-  if (!hasImage) {
+  if (e.fondo) {
+    if (typeof e.fondo === "function") e.fondo(ctx, t);
+    else coverImage(ctx, e.fondo);
+  } else if (img.background) coverImage(ctx, img.background);
+  else {
     ctx.fillStyle = gradient(ctx, 0, 0, CARD_W, [d.accent, "#16131f"]);
     ctx.fillRect(0, 0, CARD_W, CARD_H);
   }
@@ -167,18 +247,21 @@ export async function renderCard(d: CardData): Promise<Buffer> {
   ctx.fillRect(0, 0, CARD_W, CARD_H);
   if (d.tier >= 8) sparkles(ctx, 0, 0, CARD_W, CARD_H, 40, d.tier >= 10 ? "#ffe14d" : "#ffffff");
 
-  // Avatar con aro del rango.
+  // Avatar con aro del rango (o el aro equipado).
   const ax = 40, ay = 60, as = 210;
-  const ring = tierFill(ctx, Math.max(d.tier, 1), ax, ay, as);
   ctx.save();
-  if (ring.glow) {
-    ctx.shadowColor = ring.glow;
-    ctx.shadowBlur = 24;
+  if (e.aro) e.aro(ctx, t);
+  else {
+    const ring = tierFill(ctx, Math.max(d.tier, 1), ax, ay, as);
+    if (ring.glow) {
+      ctx.shadowColor = ring.glow;
+      ctx.shadowBlur = 24;
+    }
+    ctx.beginPath();
+    ctx.arc(ax + as / 2, ay + as / 2, as / 2 + 7, 0, Math.PI * 2);
+    ctx.fillStyle = d.tier === 0 ? d.accent : ring.fill;
+    ctx.fill();
   }
-  ctx.beginPath();
-  ctx.arc(ax + as / 2, ay + as / 2, as / 2 + 7, 0, Math.PI * 2);
-  ctx.fillStyle = d.tier === 0 ? d.accent : ring.fill;
-  ctx.fill();
   ctx.restore();
   ctx.save();
   ctx.beginPath();
@@ -186,21 +269,40 @@ export async function renderCard(d: CardData): Promise<Buffer> {
   ctx.clip();
   ctx.fillStyle = "#2b2838";
   ctx.fillRect(ax, ay, as, as);
-  if (d.avatar) {
-    try {
-      ctx.drawImage(await loadImage(d.avatar), ax, ay, as, as);
-    } catch {
-      /* sin avatar: circulo liso */
-    }
-  }
+  if (img.avatar) ctx.drawImage(img.avatar, ax, ay, as, as);
   ctx.restore();
 
   const x = 290;
   const right = CARD_W - 40;
+  const insignias = (e.insignias ?? []).slice(0, 3);
   ctx.textBaseline = "alphabetic";
-  ctx.fillStyle = "#ffffff";
   ctx.font = `bold 46px ${FONT}`;
-  ctx.fillText(fitText(ctx, d.name, right - x), x, 98);
+  const name = fitText(ctx, d.name, right - x - (insignias.length ? 18 + insignias.length * 58 : 0));
+  ctx.save();
+  if (e.nombre) {
+    e.nombre.back?.(ctx, name, x, 98, 46, t);
+    e.nombre.paint(ctx, t, x, ctx.measureText(name).width);
+  } else ctx.fillStyle = "#ffffff";
+  ctx.fillText(name, x, 98);
+  ctx.restore();
+
+  // Insignias: hasta 3, a la derecha del nombre (centradas por el dibujo real del emoji).
+  insignias.forEach((ins, i) => {
+    const bx = right - 50 - i * 58, by = 52;
+    roundRect(ctx, bx, by, 50, 50, 14);
+    ctx.fillStyle = "rgba(255,255,255,0.16)";
+    ctx.fill();
+    ctx.strokeStyle = "rgba(255,255,255,0.5)";
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    if (typeof ins === "string") {
+      ctx.font = `30px ${FONT}`;
+      ctx.fillStyle = "#ffffff";
+      ctx.textBaseline = "alphabetic";
+      const m = ctx.measureText(ins);
+      ctx.fillText(ins, bx + 25 - (m.actualBoundingBoxRight - m.actualBoundingBoxLeft) / 2, by + 25 + (m.actualBoundingBoxAscent - m.actualBoundingBoxDescent) / 2);
+    } else ctx.drawImage(ins, bx + 5, by + 5, 40, 40);
+  });
 
   const bw = drawBadge(ctx, x, 120, d);
   ctx.textBaseline = "middle";
@@ -208,24 +310,39 @@ export async function renderCard(d: CardData): Promise<Buffer> {
   ctx.fillStyle = "#ffffff";
   ctx.fillText(fitText(ctx, `${d.rankName} · #${d.position} del servidor`, right - x - bw - 18), x + bw + 18, 145);
 
-  if (d.frase) {
-    ctx.textBaseline = "alphabetic";
+  // Titulo equipado (reemplaza la frase) o la frase de /tarjeta.
+  ctx.textBaseline = "alphabetic";
+  if (e.titulo) {
+    ctx.font = `italic bold 24px ${FONT}`;
+    const text = fitText(ctx, `« ${e.titulo.texto} »`, right - x);
+    ctx.fillStyle = e.titulo.color === "rainbow" ? rainbowAt(ctx, x, ctx.measureText(text).width, t) : e.titulo.color;
+    ctx.fillText(text, x, 204);
+  } else if (d.frase) {
     ctx.font = `italic 24px ${FONT}`;
     ctx.fillStyle = "rgba(255,255,255,0.88)";
     ctx.fillText(fitText(ctx, `“${d.frase}”`, right - x), x, 204);
   }
 
-  // Barra de XP.
+  // Barra de XP (la equipada se dibuja dentro de la parte llena).
   const by = 254, bh = 28, bwid = right - x;
   roundRect(ctx, x, by, bwid, bh, bh / 2);
   ctx.fillStyle = "rgba(255,255,255,0.18)";
   ctx.fill();
   const frac = d.level >= d.max ? 1 : Math.max(0, Math.min(1, d.into / d.needed));
   if (frac > 0) {
-    const bar = tierFill(ctx, Math.max(d.tier, 1), x, by, bwid);
-    roundRect(ctx, x, by, Math.max(bh, bwid * frac), bh, bh / 2);
-    ctx.fillStyle = d.tier <= 1 ? d.accent : d.tier >= 10 ? gradient(ctx, x, by, bwid, RAINBOW) : bar.fill;
-    ctx.fill();
+    const fw = Math.max(bh, bwid * frac);
+    if (e.barra) {
+      ctx.save();
+      roundRect(ctx, x, by, fw, bh, bh / 2);
+      ctx.clip();
+      e.barra(ctx, t, x, by, fw, bh);
+      ctx.restore();
+    } else {
+      const bar = tierFill(ctx, Math.max(d.tier, 1), x, by, bwid);
+      roundRect(ctx, x, by, fw, bh, bh / 2);
+      ctx.fillStyle = d.tier <= 1 ? d.accent : d.tier >= 10 ? gradient(ctx, x, by, bwid, RAINBOW) : bar.fill;
+      ctx.fill();
+    }
   }
   ctx.font = `600 20px ${FONT}`;
   ctx.fillStyle = "#ffffff";
@@ -241,7 +358,13 @@ export async function renderCard(d: CardData): Promise<Buffer> {
     ctx.fillStyle = "rgba(255,255,255,0.8)";
     ctx.fillText(foot, x, by + bh + 28);
   }
-  return canvas.toBuffer("image/png");
+  ctx.restore();
+  // Borde equipado, encima de todo.
+  if (e.borde) {
+    ctx.save();
+    e.borde(ctx, t);
+    ctx.restore();
+  }
 }
 
 /**

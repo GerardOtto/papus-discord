@@ -31,6 +31,8 @@
     { "desde": 90, "mensajes": 18 }
   ],
   "cuotaPrestigio": 20,
+  "$cuotaSobrante": "Mensajes ganados (ruleta, sorteo) con la cuota del día llena: no se pierden, se cambian por XP (decisión de GyroP, 31 oct. 2026). Cada uno vale 'porcentajeNivel' de lo que pide su nivel actual (mínimo 'minimo'). Con 0,05: un Papu activo gana ~2 mensajes al día en la ruleta, o sea ~10 % de un nivel si ya los tenía llenos (lo mismo que la casilla chica de XP).",
+  "cuotaSobrante": { "porcentajeNivel": 0.05, "minimo": 15 },
   "$transicion": "Quienes ya estaban en el servidor al calcular los niveles (npm run niveles -- --apply) conservan al menos 'mensajes' hasta 'hasta' (decisión de GyroP: 2 semanas).",
   "transicion": { "mensajes": 12, "hasta": "2026-11-04T00:00:00-03:00" },
   "$rangos": "Título de la tarjeta por nivel (decisión de GyroP, 22 oct. 2026: más variados y que cambien cada 3 o 4 niveles, para animar a seguir subiendo). Al entrar a uno nuevo, Teto lo anuncia. 'estilo' = insignia de la tarjeta y del ranking, cada vez más llamativa: 0 gris, 1 color, 2 degradado, 3 plata, 4 oro, 5 y 6 tornasol, 7 holograma, 8 y 9 arcoíris, 10 Salón de la fama.",

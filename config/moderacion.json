@@ -1,5 +1,5 @@
 {
-  "$comment": "Reglas fijas de moderacion (regla 3: nunca el LLM). Tolerancia MEDIA: pasan las groserias comunes y lo dicho sobre uno mismo; strike solo si el insulto va DIRIGIDO a otra persona o a un bot (decisión de GyroP, 17 oct. 2026: a los Vocaloids tampoco se les falta el respeto). 'insultosSuaves' (feo, tonto, payaso…) solo cuentan con marca de segunda persona (\"eres fea\"): \"qué feo\" respondiendo a alguien es una opinión, no un insulto. A un bot, un insulto cuenta si va marcado o si el mensaje es casi solo el insulto (\"CHUPALO\", \"@Teto idiota\"); \"@Miku el examen estuvo de la mierda\" no. 'muyFuertes' y 'odio' siempre fuera. Las palabras se comparan normalizadas (minusculas, sin acentos, sin letras repetidas, sin leet: p3nd3jo = pendejo). Las listas las revisa GyroP; agregar o quitar aqui no requiere tocar codigo (el bot sincroniza AutoMod al arrancar). 'canalesLibres' (decisión de GyroP, 18 oct. 2026: solo #general): ahí pasan insultos, también a los bots, y 'muyFuertes'; siguen fuera 'odio', 'graves' (amenazas sexuales e incitación al suicidio), datos personales, estafas y spam. El maltrato a otros Papus en #general lo modera GyroP a mano (/advertir, /strikes).",
+  "$comment": "Reglas fijas de moderacion (regla 3: nunca el LLM). Tolerancia MEDIA: pasan las groserias comunes y lo dicho sobre uno mismo; machetazo solo si el insulto va DIRIGIDO a otra persona o a un bot (decisión de GyroP, 17 oct. 2026: a los Vocaloids tampoco se les falta el respeto). 'insultosSuaves' (feo, tonto, payaso…) solo cuentan con marca de segunda persona (\"eres fea\"): \"qué feo\" respondiendo a alguien es una opinión, no un insulto. A un bot, un insulto cuenta si va marcado o si el mensaje es casi solo el insulto (\"CHUPALO\", \"@Teto idiota\"); \"@Miku el examen estuvo de la mierda\" no. 'muyFuertes' y 'odio' siempre fuera. Las palabras se comparan normalizadas (minusculas, sin acentos, sin letras repetidas, sin leet: p3nd3jo = pendejo). Las listas las revisa GyroP; agregar o quitar aqui no requiere tocar codigo (el bot sincroniza AutoMod al arrancar). 'canalesLibres' (decisión de GyroP, 18 oct. 2026: solo #general): ahí pasan insultos, también a los bots, y 'muyFuertes'; siguen fuera 'odio', 'graves' (amenazas sexuales e incitación al suicidio), datos personales, estafas y spam. El maltrato a otros Papus en #general lo modera GyroP a mano (/advertir, /machetazo). Escalera de machetazos: src/moderation/strikes.ts (PLAN §7). 'strikeDias': lo que duran machetazos y advertencias.",
   "insultos": [
     "pendejo",
     "pendeja",
@@ -205,19 +205,6 @@
   ],
   "canalesLibres": [
     "general"
-  ],
-  "$sinStrikes": "Lista blanca de GyroP (25 oct. 2026): los 10 Papus más activos de #general del 20 al 25 oct. Neru igual borra lo que rompe las reglas y les deja su aviso, pero sin strike ni silencio (tampoco por AutoMod, que igual bloquea). El strike de un Mod queda como aviso; solo GyroP se los pone a mano (/strike). No se les avisa que están en la lista. Se reconoce por el id de Discord; 'nombre' es solo para leerlo.",
-  "sinStrikes": [
-    { "id": "1307946749645553721", "nombre": "ManiC" },
-    { "id": "545054807463821313", "nombre": "🍍♡Piña♡🍍" },
-    { "id": "1533850566084526153", "nombre": "Skibidi Sigma pro" },
-    { "id": "1249192248881451153", "nombre": "Yamato" },
-    { "id": "1454706049063063617", "nombre": "FranRCN" },
-    { "id": "312684937918545924", "nombre": "yerar" },
-    { "id": "972182598312935445", "nombre": "Wicho el Bicho" },
-    { "id": "1556419039864299652", "nombre": "raptorpau152" },
-    { "id": "1038683087653052426", "nombre": "wildslifer12e" },
-    { "id": "594515878326829066", "nombre": "Gonzuxt" }
   ],
   "estafas": [
     "nitro gratis",

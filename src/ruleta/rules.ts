@@ -4,13 +4,13 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 import { progress, type LevelSettings } from "../levels/rules";
 
-export type PrizeKind = "xp" | "cuota" | "cuota_llena";
+export type PrizeKind = "xp" | "cuota" | "cuota_llena" | "sobre";
 
 export interface Prize {
   tipo: PrizeKind;
   /** xp: fraccion de la XP que pide el nivel actual. */
   porcentaje?: number;
-  /** cuota: mensajes extra del dia. */
+  /** cuota: mensajes extra del dia. sobre: sobres comunes gratis de la tienda (1 si falta). */
   valor?: number;
   peso: number;
   /** Emoji de la casilla ("⭐⭐"). */
@@ -84,8 +84,8 @@ export function spinsLeft(s: RouletteSettings, d: DayStats, used: number): numbe
   return Math.max(0, missions(s, d).filter((x) => x.done).length - used);
 }
 
-/** Premio al azar segun los pesos. Devuelve el indice de la casilla. */
-export function pickPrize(s: RouletteSettings, rnd: () => number = Math.random): number {
+/** Premio al azar segun los pesos (tambien los del sorteo). Devuelve el indice de la casilla. */
+export function pickPrize(s: { premios: readonly { peso: number }[] }, rnd: () => number = Math.random): number {
   const total = s.premios.reduce((a, p) => a + p.peso, 0);
   let r = rnd() * total;
   for (let i = 0; i < s.premios.length; i++) {
@@ -96,7 +96,7 @@ export function pickPrize(s: RouletteSettings, rnd: () => number = Math.random):
 }
 
 /** XP de un premio de XP: porcentaje de lo que pide su nivel actual (con minimo), por el multiplicador del evento. */
-export function prizeXp(s: RouletteSettings, ls: LevelSettings, prize: Prize, xp: number, multiplier: number): number {
+export function prizeXp(s: { xpMinima: number }, ls: LevelSettings, prize: { porcentaje?: number }, xp: number, multiplier: number): number {
   const { needed } = progress(ls, xp);
   return Math.round(Math.max(s.xpMinima, (prize.porcentaje ?? 0) * needed) * multiplier);
 }

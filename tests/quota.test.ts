@@ -90,6 +90,40 @@ describe("Quota", () => {
   });
 });
 
+describe("cuota ganada y /donar (GyroP, 31 oct. 2026)", () => {
+  it("lo ganado solo cabe hasta llenar la cuota; lo demás sobra (se vuelve XP)", () => {
+    const q = new Quota(memDb(), 5, TZ);
+    expect(q.grant("a", 2, NOON)).toEqual({ added: 0, overflow: 2 });
+    q.reserve("a", 3, NOON);
+    expect(q.room("a", NOON)).toBe(3);
+    expect(q.grant("a", 4, NOON)).toEqual({ added: 3, overflow: 1 });
+    expect(q.remaining("a", NOON)).toBe(5);
+    expect(new Quota(memDb(), 5, TZ, { has: () => true }).grant("x", 2, NOON)).toEqual({ added: 0, overflow: 2 });
+  });
+
+  it("donar quita al que dona y llega al otro solo hasta llenar su cuota", () => {
+    const q = new Quota(memDb(), 5, TZ);
+    q.reserve("b", 4, NOON);
+    expect(q.donate("a", "b", 6, NOON)).toEqual({ ok: false, motivo: "no_alcanza" });
+    expect(q.donate("a", "b", 5, NOON)).toEqual({ ok: false, motivo: "llena" });
+    expect(q.donate("a", "b", 3, NOON)).toEqual({ ok: true, units: 3 });
+    expect(q.remaining("a", NOON)).toBe(2);
+    expect(q.remaining("b", NOON)).toBe(4);
+    expect(q.donated("a", NOON)).toBe(3);
+    // Lo donado no vuelve con un reinicio (boda, /reiniciar-cuota): solo lo gastado con los Vocaloids.
+    q.reserve("a", 1, NOON);
+    q.reset("a", NOON);
+    expect(q.remaining("a", NOON)).toBe(2);
+    expect(q.used("a", NOON)).toBe(3);
+  });
+
+  it("quien no tiene límite no dona, y a quien no tiene límite no se le dona", () => {
+    const q = new Quota(memDb(), 5, TZ, { has: (id) => id === "pina" });
+    expect(q.donate("pina", "a", 1, NOON)).toEqual({ ok: false, motivo: "sin_limite" });
+    expect(q.donate("a", "pina", 1, NOON)).toEqual({ ok: false, motivo: "llena" });
+  });
+});
+
 describe("time", () => {
   it("dayKey usa la zona horaria", () => {
     expect(dayKey(new Date("2026-10-16T02:00:00Z"), TZ)).toBe("2026-10-15");

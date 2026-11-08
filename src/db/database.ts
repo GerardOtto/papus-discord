@@ -132,6 +132,149 @@ const MIGRATIONS: string[] = [
      at      INTEGER NOT NULL
    );
    CREATE INDEX trivia_partidas_papu ON trivia_partidas (user_id);`,
+  // 9: sorteo (src/sorteo/). Una fila por premio entregado (ganador final, premio, giros y descartados).
+  `CREATE TABLE sorteos (
+     id      INTEGER PRIMARY KEY AUTOINCREMENT,
+     user_id TEXT NOT NULL,
+     detalle TEXT NOT NULL,
+     at      INTEGER NOT NULL
+   );`,
+  // 10: Shaula-coins (src/coins/, PLAN §3.6). Monedero (dos bolsillos, Ecos, sobres gratis y garantías), lo ganado
+  // por día (para no pagar dos veces), objetos y lo equipado, movimientos, pedidos de monedas y límites de compra.
+  `CREATE TABLE monedero (
+     user_id      TEXT PRIMARY KEY,
+     ganadas      INTEGER NOT NULL DEFAULT 0,
+     compradas    INTEGER NOT NULL DEFAULT 0,
+     ecos         INTEGER NOT NULL DEFAULT 0,
+     sobres       INTEGER NOT NULL DEFAULT 0,
+     gratis       INTEGER NOT NULL DEFAULT 0,
+     sin_epica    INTEGER NOT NULL DEFAULT 0,
+     sin_leg      INTEGER NOT NULL DEFAULT 0,
+     semana       TEXT,
+     membresia_at INTEGER
+   );
+   CREATE TABLE monedas_dia (
+     user_id TEXT NOT NULL,
+     day     TEXT NOT NULL,
+     ganadas INTEGER NOT NULL DEFAULT 0,
+     sobre   INTEGER NOT NULL DEFAULT 0,
+     PRIMARY KEY (user_id, day)
+   );
+   CREATE TABLE inventario (
+     user_id   TEXT NOT NULL,
+     objeto_id TEXT NOT NULL,
+     origen    TEXT NOT NULL,
+     at        INTEGER NOT NULL,
+     PRIMARY KEY (user_id, objeto_id)
+   );
+   CREATE TABLE equipado (
+     user_id   TEXT NOT NULL,
+     ranura    TEXT NOT NULL,
+     objeto_id TEXT NOT NULL,
+     PRIMARY KEY (user_id, ranura)
+   );
+   CREATE TABLE movimientos (
+     id       INTEGER PRIMARY KEY AUTOINCREMENT,
+     user_id  TEXT NOT NULL,
+     bolsillo TEXT NOT NULL,
+     cantidad INTEGER NOT NULL,
+     motivo   TEXT NOT NULL,
+     at       INTEGER NOT NULL
+   );
+   CREATE INDEX movimientos_papu ON movimientos (user_id, at);
+   CREATE TABLE pedidos_monedas (
+     codigo      TEXT PRIMARY KEY,
+     user_id     TEXT NOT NULL,
+     paquete     TEXT NOT NULL,
+     metodo      TEXT NOT NULL,
+     usd         REAL NOT NULL,
+     clp         INTEGER NOT NULL,
+     monedas     INTEGER NOT NULL,
+     estado      TEXT NOT NULL,
+     creado_at   INTEGER NOT NULL,
+     avisado_at  INTEGER,
+     resuelto_at INTEGER,
+     registro_id TEXT
+   );
+   CREATE INDEX pedidos_monedas_papu ON pedidos_monedas (user_id, creado_at);
+   CREATE TABLE compras_control (
+     user_id    TEXT PRIMARY KEY,
+     limite_usd REAL,
+     bloqueado  INTEGER NOT NULL DEFAULT 0
+   );`,
+  // 11: machetazos (src/moderation/strikes.ts, decision de GyroP, 28 oct. 2026). Cada fila es un machetazo o una
+  // advertencia, con la XP que le quito a un dia (para devolverla al perdonar). Los strikes de antes quedan como
+  // 'antiguo' y no cuentan: la escalera nueva empieza de cero.
+  `ALTER TABLE strikes ADD COLUMN tipo TEXT NOT NULL DEFAULT 'machetazo';
+   ALTER TABLE strikes ADD COLUMN xp_quitada INTEGER NOT NULL DEFAULT 0;
+   ALTER TABLE strikes ADD COLUMN dia TEXT;
+   UPDATE strikes SET tipo = 'antiguo';
+   CREATE INDEX strikes_tipo ON strikes (user_id, tipo, expires_at);`,
+  // 12: actualizacion del 31 oct. 2026. Mensajes cedidos con /donar (cuentan como gastados), sobres gratis raros y
+  // legendarios (premios de la trivia), preguntas superadas por Papu (una vez cada una) y premios de cada dificultad,
+  // y mensajes enviados por dia (Papus y Vocaloids; para las estadisticas de Mango9374).
+  `ALTER TABLE quota_usage ADD COLUMN donadas INTEGER NOT NULL DEFAULT 0;
+   ALTER TABLE monedero ADD COLUMN gratis_raro INTEGER NOT NULL DEFAULT 0;
+   ALTER TABLE monedero ADD COLUMN gratis_leg INTEGER NOT NULL DEFAULT 0;
+   CREATE TABLE trivia_superadas (
+     user_id  TEXT NOT NULL,
+     pregunta TEXT NOT NULL,
+     PRIMARY KEY (user_id, pregunta)
+   );
+   CREATE TABLE trivia_premios (
+     user_id    TEXT NOT NULL,
+     dificultad TEXT NOT NULL,
+     at         INTEGER NOT NULL,
+     PRIMARY KEY (user_id, dificultad)
+   );
+   CREATE TABLE mensajes_dia (
+     user_id TEXT NOT NULL,
+     day     TEXT NOT NULL,
+     n       INTEGER NOT NULL DEFAULT 0,
+     bot     INTEGER NOT NULL DEFAULT 0,
+     PRIMARY KEY (user_id, day)
+   );`,
+  // 13: actualizacion del 2 nov. 2026. XP que le costaron al Papu las partidas de trivia pasadas de la 15 del dia
+  // (config/trivia.json limites.castigo) y minutos conectado en voz en el dia, den XP o no (estadisticas de Mango9374;
+  // voz_min solo cuenta los que dieron XP, hasta el tope).
+  `ALTER TABLE xp_dia ADD COLUMN trivia_castigo INTEGER NOT NULL DEFAULT 0;
+   ALTER TABLE xp_dia ADD COLUMN voz_total INTEGER NOT NULL DEFAULT 0;`,
+  // 14: 1vs1 de los Vocaloids (src/peleas/, pedido de GyroP, 4 nov. 2026). Una fila por pelea (los dos Vocaloids, la
+  // cuota de cada uno y como termino) y una por apuesta (Shaula-coins ganadas; pago = lo que recibio al acertar).
+  // Estados: abierta (se apuesta), peleando, terminada y devuelta (el bot se reinicio antes del final: se devolvio todo).
+  `CREATE TABLE peleas (
+     id           TEXT PRIMARY KEY,
+     a            TEXT NOT NULL,
+     b            TEXT NOT NULL,
+     cuota_a      REAL NOT NULL,
+     cuota_b      REAL NOT NULL,
+     canal        TEXT,
+     mensaje      TEXT,
+     estado       TEXT NOT NULL DEFAULT 'abierta',
+     ganador      TEXT,
+     turnos       INTEGER,
+     creada_at    INTEGER NOT NULL,
+     cierra_at    INTEGER NOT NULL,
+     terminada_at INTEGER
+   );
+   CREATE TABLE apuestas (
+     pelea    TEXT NOT NULL,
+     user_id  TEXT NOT NULL,
+     lado     TEXT NOT NULL,
+     cantidad INTEGER NOT NULL,
+     pago     INTEGER NOT NULL DEFAULT 0,
+     at       INTEGER NOT NULL,
+     PRIMARY KEY (pelea, user_id)
+   );`,
+  // 15: hitos de la trivia (pedido de GyroP, 7 nov. 2026). Aciertos por Papu y dificultad que cuentan para el sobre de
+  // cada hito (config/trivia.json dificultades.<d>.hito) y cuantos sobres de hito lleva. Empieza en 0 el 7 nov. 2026.
+  `CREATE TABLE trivia_hitos (
+     user_id    TEXT NOT NULL,
+     dificultad TEXT NOT NULL,
+     aciertos   INTEGER NOT NULL DEFAULT 0,
+     premios    INTEGER NOT NULL DEFAULT 0,
+     PRIMARY KEY (user_id, dificultad)
+   );`,
 ];
 
 export type Db = DatabaseSync;

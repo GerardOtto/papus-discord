@@ -16,9 +16,10 @@ const WEDDING_GROUPS = ["boda_adivinanza", "boda_acierto", "boda_desierta", "bod
 
 /** Grupos obligatorios por bot (PLAN §6 + los que usa el codigo). */
 const BASE_GROUPS: Record<BotId, string[]> = {
-  teto: ["bienvenida", "bienvenida_grupal", "cumpleanos", "ya_volvi", "vitrina_nuevo", "sube_rango", "papu_de_honor", "nivel_maximo", "prestigio", "ranking", "ruleta_premio", "ruleta_mision", "trivia_racha", "trivia_racha_libre", "trivia_cero", "cuota_agotada", "cola_llena", "sin_api", ...PRIVATE_GROUPS, ...PRESENCE_GROUPS],
+  teto: ["bienvenida", "bienvenida_grupal", "cumpleanos", "ya_volvi", "vitrina_nuevo", "sube_rango", "papu_de_honor", "nivel_maximo", "prestigio", "ranking", "ruleta_premio", "ruleta_mision", "sorteo_ganador", "pelea_anuncio", "pelea_ganador", "monedas_llegaron", "sobre_legendario", "sobre_abierto", "trivia_racha", "trivia_racha_libre", "trivia_cero", "cuota_agotada", "cola_llena", "sin_api", ...PRIVATE_GROUPS, ...PRESENCE_GROUPS],
   miku: [
     "votacion_abierta",
+    "vitrina_nueva",
     "vitrina_votacion",
     "ultimo_aviso",
     "ganador",
@@ -80,6 +81,13 @@ export const REQUIRED_FIELDS: Record<string, string[]> = {
   "teto.cumpleanos": ["papu"],
   "teto.ruleta_premio": ["papu", "premio"],
   "teto.ruleta_mision": ["papu", "mision"],
+  "teto.sorteo_ganador": ["papu", "premio"],
+  "teto.pelea_anuncio": ["texto"],
+  "teto.pelea_ganador": ["ganador"],
+  "teto.monedas_llegaron": ["papu", "monedas"],
+  "teto.sobre_legendario": ["papu", "objeto", "rareza"],
+  "teto.sobre_abierto": ["papu", "n"],
+  "miku.vitrina_nueva": ["proxima"],
   "teto.trivia_racha": ["papu", "racha", "xp"],
   "teto.trivia_racha_libre": ["papu", "racha"],
   "teto.trivia_cero": ["papu"],

@@ -21,7 +21,7 @@ import {
 import { BOT_IDS, type BotId } from "../config";
 import { kvGet, kvSet, type Db } from "../db/database";
 import { logError, type LogFn } from "../log";
-import { normalizeBackground, renderCard, type BackgroundFit } from "../levels/card";
+import { normalizeBackground, renderCardAny, type BackgroundFit, type CardData, type CardEquip } from "../levels/card";
 import { podiumBots, renderRanking, RANKING_TOP, type RankingRow } from "../levels/ranking";
 import { activeEvents, eventEnd, nickWithLevel, stripNickTag } from "../levels/rules";
 import type { LevelChange, LevelService, Standing } from "../levels/service";
@@ -29,6 +29,7 @@ import type { RuleSet } from "../moderation/rules";
 import type { Phrases } from "../phrases/catalog";
 import type { Quota } from "../quota/quota";
 import { dayKey } from "../time";
+import { avisoPing } from "./avisos";
 import { CHANNELS, channelKey, findTextChannel } from "./channels";
 
 const MAX_UPLOAD_BYTES = 8 * 1024 * 1024;
@@ -54,7 +55,16 @@ export interface LevelsDiscordDeps {
   grantRole: (userId: string, roleName: string, reason: string) => Promise<void>;
   report: (text: string) => Promise<void>;
   modChannel: () => Promise<SendableChannels | null>;
+  /** Objetos de las Shaula-coins equipados (src/coins/; sin tienda, la tarjeta de siempre). */
+  equipment?: (userId: string) => Promise<CardEquip>;
+  /** Subio de nivel: bono de Shaula-coins (src/coins/). */
+  onLevelUp?: (change: LevelChange) => void;
   log: LogFn;
+}
+
+/** La tarjeta como archivo: nivel.gif si se mueve (objetos animados), si no nivel.png. */
+export function cardFile(card: { data: Buffer; gif: boolean }): AttachmentBuilder {
+  return new AttachmentBuilder(card.data, { name: card.gif ? "nivel.gif" : "nivel.png" });
 }
 
 /** Donde paso lo que hizo subir (el mensaje), para avisar ahi mismo. Sin canal: #general. */
@@ -99,14 +109,33 @@ export class LevelsDiscord {
     for (const change of this.d.levels.onVoiceMinute([...byChannel.values()])) await this.handle(change, {});
   }
 
-  /** Strike de Neru: pierde la XP del dia (y el apodo se corrige si bajo de nivel). */
-  async onStrike(userId: string): Promise<void> {
-    const change = this.d.levels.onStrike(userId);
+  /** Machetazo de Neru: pierde la XP del dia (y el apodo se corrige si bajo de nivel). Devuelve cuanta, para el perdon. */
+  onStrike(userId: string, at = Date.now()): { day: string; xp: number } {
+    const { day, xp, change } = this.d.levels.onStrike(userId, at);
+    if (change) void this.syncNick(userId).catch((e) => logError("apodo con nivel", e));
+    return { day, xp };
+  }
+
+  /**
+   * Perdon de GyroP: vuelve la XP que quitaron los machetazos. Sin anuncio de Teto ni bono de monedas por subir: solo
+   * recupera lo que ya tenia (el apodo se corrige).
+   */
+  async onForgive(userId: string, taken: { day: string; xp: number }[]): Promise<number> {
+    const before = this.d.levels.store.get(userId).xp;
+    const change = this.d.levels.onForgive(userId, taken);
     if (change) await this.syncNick(userId).catch((e) => logError("apodo con nivel", e));
+    return this.d.levels.store.get(userId).xp - before;
   }
 
   /** Anuncia y aplica un cambio de nivel: rol de honor, apodo y frase de Teto (o 🆙 en el mensaje). */
   async handle(change: LevelChange, ctx: LevelContext, opts: { quiet?: boolean } = {}): Promise<void> {
+    if (change.to > change.from) {
+      try {
+        this.d.onLevelUp?.(change);
+      } catch (e) {
+        logError("monedas por nivel", e);
+      }
+    }
     await this.syncNick(change.userId).catch((e) => logError("apodo con nivel", e));
     if (change.to < change.from) return;
     // GyroP sube de nivel solo para verlo: sin rol de honor ni aviso de "Papu de honor". Discord no deja que un bot
@@ -152,7 +181,7 @@ export class LevelsDiscord {
     const card = await this.card(userId).catch((e) => (logError("tarjeta de nivel", e), null));
     await ch.send({
       content,
-      files: card ? [new AttachmentBuilder(card, { name: "nivel.png" })] : [],
+      files: card ? [cardFile(card)] : [],
       allowedMentions: { users: [userId] },
       ...(ctx.messageId ? { reply: { messageReference: ctx.messageId, failIfNotExists: false } } : {}),
     });
@@ -266,7 +295,13 @@ export class LevelsDiscord {
     return path.join(this.d.dataDir, "tarjetas");
   }
 
-  async card(userId: string): Promise<Buffer> {
+  /** Tarjeta con lo equipado (o con `equip`, para probar un objeto antes de comprarlo): GIF si algo se mueve. */
+  async card(userId: string, equip?: CardEquip): Promise<{ data: Buffer; gif: boolean }> {
+    const e = equip ?? (await this.d.equipment?.(userId).catch((err) => (logError("objetos de la tarjeta", err), {} as CardEquip))) ?? {};
+    return renderCardAny(await this.cardData(userId), e);
+  }
+
+  async cardData(userId: string): Promise<CardData> {
     const guild = this.d.guild();
     const mb = await guild.members.fetch(userId).catch(() => null);
     const user = mb?.user ?? (await guild.client.users.fetch(userId));
@@ -275,7 +310,7 @@ export class LevelsDiscord {
     const position = this.standings().find((st) => st.userId === userId)?.position ?? snap.position;
     const left = this.d.quota.remaining(userId);
     const limit = this.d.quota.limitFor(userId) + this.d.quota.extra(userId);
-    return renderCard({
+    return {
       name: stripNickTag(mb?.displayName ?? user.displayName),
       avatar,
       level: snap.level,
@@ -291,7 +326,7 @@ export class LevelsDiscord {
       accent: snap.card.color ?? this.d.defaultAccent,
       background: this.background(userId, snap.card.fondo),
       multiplier: this.d.levels.multiplier(),
-    });
+    };
   }
 
   /** /nivel: tarjeta propia (con botones de apodo y prestigio) o de otro Papu. */
@@ -300,7 +335,7 @@ export class LevelsDiscord {
     if (target.bot) return void (await i.reply({ content: "Los Vocaloids no tenemos nivel… ¡somos el nivel! 🥖", flags: MessageFlags.Ephemeral }));
     const show = i.options.getBoolean("mostrar") ?? false;
     await i.deferReply(show ? {} : { flags: MessageFlags.Ephemeral });
-    const png = await this.card(target.id);
+    const card = await this.card(target.id);
     const own = target.id === i.user.id;
     const rec = this.d.levels.store.get(i.user.id);
     const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
@@ -312,7 +347,7 @@ export class LevelsDiscord {
       row.addComponents(new ButtonBuilder().setCustomId("nivel:prestigio").setLabel("★ Prestigiar").setStyle(ButtonStyle.Success));
     }
     await i.editReply({
-      files: [new AttachmentBuilder(png, { name: "nivel.png" })],
+      files: [cardFile(card)],
       components: own && !show ? [row] : [],
       allowedMentions: { parse: [] },
     });
@@ -530,7 +565,7 @@ export class LevelsDiscord {
     const release = this.d.levels.activeRelease(now.getTime());
     if (release && !kvGet(this.d.db, `niveles:estreno:${release.at}`)) {
       kvSet(this.d.db, `niveles:estreno:${release.at}`, "1");
-      await this.announceEvent(release.window.multiplicador, release.window.hasta);
+      await this.announceEvent(release.window.multiplicador, release.window.hasta, true);
     }
     for (const e of activeEvents(this.settings, now, this.d.timeZone)) {
       const key = `niveles:anunciado:${e.nombre}:${dayKey(now, this.d.timeZone)}`;
@@ -540,11 +575,14 @@ export class LevelsDiscord {
     }
   }
 
-  private async announceEvent(mult: number, until: number): Promise<void> {
+  /** Miku anuncia la XP multiplicada en #general. Si es un estreno, etiqueta el aviso 🎬 Estrenos de #tus-roles. */
+  private async announceEvent(mult: number, until: number, estreno = false): Promise<void> {
     const general = findTextChannel(this.d.guild(), CHANNELS.general);
     if (!general) return;
     const ch = await this.d.sendable("miku", general.id);
-    await ch.send({ content: this.d.phrases.pick("miku", "evento_xp", { n: `×${fmtMult(mult)}`, fecha: `<t:${Math.floor(until / 1000)}:t>` }), allowedMentions: { parse: [] } });
+    const ping = estreno ? avisoPing(this.d.guild(), "estrenos") : null;
+    const text = this.d.phrases.pick("miku", "evento_xp", { n: `×${fmtMult(mult)}`, fecha: `<t:${Math.floor(until / 1000)}:t>` });
+    await ch.send({ content: ping ? `🔔 ${ping.mention}\n${text}` : text, allowedMentions: ping ? { roles: [ping.roleId] } : { parse: [] } });
   }
 }
 

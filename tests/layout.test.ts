@@ -270,7 +270,7 @@ describe("colores de los Vocaloids (coloresBots)", () => {
     for (const b of botOnly) expect(b.color).toMatch(/^#[0-9A-F]{6}$/i);
   });
 
-  it("los colores solo de bots no aparecen en el menu de #tu-color", () => {
+  it("los colores solo de bots no aparecen en el menu de #tus-roles", () => {
     for (const b of botOnly) expect(palette.has(nameKey(b.rol)), b.rol).toBe(false);
   });
 });

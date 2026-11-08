@@ -5,14 +5,14 @@
     "reaccion": "riendo",
     "imagen": "assets/bots/teto_banner.png",
     "titulo": "🌸 ¡Papu papu! Bienvenido al servidor de los Papus 🌸",
-    "texto": "¡Hola, hola! Soy **Teto** y este es nuestro rincón del canal Vocaloid de GyroP ♡(˶ᵔ ᵕ ᵔ˶)\n\nAquí te saludo cada vez que llega un Papu nuevo, ¡así que este canal es solo para eso! ✨\n\n**¿Por dónde empiezo?** 🗺️\n> ✿ Lee {reglas} (Neru se pone gruñona si no 📱)\n> ✿ Preséntate en {general}\n> ✿ Platica con nosotras en {habla-con-los-vocaloids}\n> ✿ Mira los niveles del canal en {niveles-ko-fi}\n> ✿ Elige el color de tu nombre y tu país en {tu-color}\n\n¡Ponte cómodo, que aquí hay música, memes y mucho drama del bueno! (≧▽≦)",
+    "texto": "¡Hola, hola! Soy **Teto** y este es nuestro rincón del canal Vocaloid de GyroP ♡(˶ᵔ ᵕ ᵔ˶)\n\nAquí te saludo cada vez que llega un Papu nuevo, ¡así que este canal es solo para eso! ✨\n\n**¿Por dónde empiezo?** 🗺️\n> ✿ Lee {reglas} (Neru se pone gruñona si no 📱)\n> ✿ Preséntate en {general}\n> ✿ Platica con nosotras en {habla-con-los-vocaloids}\n> ✿ Mira los niveles del canal en {niveles-ko-fi}\n> ✿ Elige tu color, tu país y tus avisos en {tus-roles}\n\n¡Ponte cómodo, que aquí hay música, memes y mucho drama del bueno! (≧▽≦)",
     "pie": "Teto ・ ¡teto-teetoo! 🥖"
   },
   "reglas": {
     "bot": "neru",
     "reaccion": "nerd",
     "titulo": "📜 reglas del server",
-    "texto": "soy neru y modero esto. no es que me importe… pero léanlas. (－。－)\n\n**🤝 respeto**\n・ nada de insultos dirigidos a otra persona. un \"no mames\" pasa; un \"eres un…\" no.\n・ excepción: en #general el lenguaje es libre (groserías e insultos de cotorreo). el acoso, el odio y maltratar a un papu que no se metió con nadie siguen prohibidos ahí también: gyrop lo revisa.\n・ cero odio: racismo, homofobia, burlas por cómo es alguien.\n・ nada de contenido para adultos ni violento.\n\n**🔒 seguridad**\n・ sin invitaciones a otros servers ni enlaces raros. \"nitro gratis\" no existe.\n・ sin spam ni flood. uno a la vez.\n・ cuentas recién llegadas: la primera hora solo enlaces conocidos (gifs, youtube, spotify, redes, arte…). después, libre.\n\n**⚠️ si rompes una regla**\n1 advertencia → 2 silencio de 10 min → 3 una hora → 4 un día y aviso a gyrop. los strikes se borran a los 3 días. yo no expulso a nadie: eso solo lo decide gyrop.\n\n**🤖 sobre nosotras, las vocaloids**\n・ somos bots. las respuestas libres se generan con ia y tus mensajes pueden procesarse en servicios externos.\n・ tus mensajes al día con los vocaloids dependen de tu nivel: sube participando (escribir y hablar en voz). pagar no cambia nada. usa /cuota y /nivel.\n\n**💎 lo de los niveles**\n・ lo que se comparte en los canales de pago se queda ahí. no lo filtres.\n\nlisto. ya pueden seguir con su vida. 📱",
+    "texto": "soy neru y modero esto. no es que me importe… pero léanlas. (－。－)\n\n**🤝 respeto**\n・ nada de insultos dirigidos a otra persona. un \"no mames\" pasa; un \"eres un…\" no.\n・ excepción: en #general el lenguaje es libre (groserías e insultos de cotorreo). el acoso, el odio y maltratar a un papu que no se metió con nadie siguen prohibidos ahí también: gyrop lo revisa.\n・ cero odio: racismo, homofobia, burlas por cómo es alguien.\n・ nada de contenido para adultos ni violento.\n\n**🔒 seguridad**\n・ sin invitaciones a otros servers ni enlaces raros. \"nitro gratis\" no existe.\n・ sin spam ni flood. uno a la vez.\n・ cuentas recién llegadas: la primera hora solo enlaces conocidos (gifs, youtube, spotify, redes, arte…). después, libre.\n\n**⚠️ si rompes una regla**\ncada machetazo borra el mensaje y te quita la xp del día. 1 machetazo → 10 min de silencio · 2 → una hora y sin ganar xp · 3 → un día y gyrop revisa tu caso. 3 advertencias en 3 días = 1 machetazo. todo se borra a los 3 días. yo no expulso a nadie: eso solo lo decide gyrop.\n\n**🤖 sobre nosotras, las vocaloids**\n・ somos bots. las respuestas libres se generan con ia y tus mensajes pueden procesarse en servicios externos.\n・ tus mensajes al día con los vocaloids dependen de tu nivel: sube participando (escribir y hablar en voz). pagar no cambia nada. usa /cuota y /nivel.\n\n**💎 lo de los niveles**\n・ lo que se comparte en los canales de pago se queda ahí. no lo filtres.\n\nlisto. ya pueden seguir con su vida. 📱",
     "pie": "neru ・ moderación"
   },
   "anuncios": {
@@ -36,13 +36,14 @@
     "texto": "¡Papu papu! Este canal es como asomarse por la ventana de la panadería 🥖\n\nAquí te cuento lo que pasa en los canales de los niveles, sin spoilers:\n> 🗳️ qué videos están votando los Puerros (y cuál ganó)\n> 👀 cuando llega un adelanto para los Baguettes\n> 🎬 notas de producción, contenido del motor, la bóveda y más\n\nNo te digo **qué** hay, solo **dónde** y para **quién** ✨ Si algo te dio curiosidad, mira los niveles en {niveles-ko-fi}.\n\nEste canal es solo para leer: avisamos nosotras.",
     "pie": "Teto ・ ¡mira lo que te pierdes! 👀"
   },
-  "tu-color": {
+  "tus-roles": {
     "bot": "miku",
     "reaccion": "saludando",
-    "titulo": "🎨 ¡Elige el color de tu nombre!",
-    "texto": "¡¿QUÉ?! ¿Todavía tienes el nombre sin color? ¡Eso se arregla! ٩(◕‿◕)۶\n\nTodos los Papus pueden elegir un color de la paleta de las Vocaloids con el menú de aquí abajo 👇\n> 🎨 uno a la vez (si eliges otro, cambia)\n> ✨ \"Sin color\" lo quita\n> 🔒 los colores de Miku, Luka, Teto, Neru y el morado Triple Baka son de los niveles de Ko-fi\n\nEl color que elijas es el que se ve, ¡aunque tengas un nivel! ♡\n\n**🌎 ¿Y de dónde eres?** Con el segundo menú pones la bandera y el nombre de tu país en tu perfil (uno a la vez; \"Sin país\" la quita). ¡Los menús funcionan a cualquier hora!",
+    "antes": ["tu-color"],
+    "titulo": "🎨 ¡Elige tus roles!",
+    "texto": "¡¿QUÉ?! ¿Todavía tienes el nombre sin color? ¡Eso se arregla! ٩(◕‿◕)۶\n\nTodos los Papus pueden elegir un color de la paleta de las Vocaloids con el menú de aquí abajo 👇\n> 🎨 uno a la vez (si eliges otro, cambia)\n> ✨ \"Sin color\" lo quita\n> 🔒 los colores de Miku, Luka, Teto, Neru y el morado Triple Baka son de los niveles de Ko-fi\n\nEl color que elijas es el que se ve, ¡aunque tengas un nivel! ♡\n\n**🌎 ¿Y de dónde eres?** Con el segundo menú pones la bandera y el nombre de tu país en tu perfil (uno a la vez; \"Sin país\" la quita). \n\n**🔔 ¿Te avisamos?** Con el tercer menú eliges de qué quieres que te etiquetemos:\n> ⚔️ **Ludópata**: cuando abren las apuestas de las peleas 1vs1\n> 💍 **Rizzler**: cuando sale una adivinanza para casarte con una Vocaloid\n> 🎬 **Estrenos**: cuando empieza la XP doble de un video nuevo\nMarca todos los que quieras de una vez: lo que no marques se quita (si lo dejas vacío, no te avisamos de nada).\n\n¡Los menús funcionan a cualquier hora!",
     "pie": "Miku ・ ¡que se vea tu color! 🎤",
-    "menu": ["colores", "paises"]
+    "menu": ["colores", "paises", "avisos"]
   },
   "novedades": {
     "bot": "luka",
@@ -100,6 +101,13 @@
     "texto": "¡Ustedes lo pidieron, y aquí está! Deja tu @ de Instagram para que los Papus se sigan entre ellos (≧▽≦)\n\n**Cómo se usa**\n> ✿ un mensaje con tu @ (o el enlace a tu perfil) y, si quieres, qué subes: fanart, covers, memes…\n> ✿ si sigues a alguien, díselo bonito ♡\n> ✿ un mensaje por minuto, para que no se pierda ningún @\n\n**Cuídate**\n> ✿ piensa bien qué compartes: tu dirección o tu escuela, mejor no\n> ✿ nadie está obligado a seguir de vuelta, ni a aceptar mensajes\n> ✿ si alguien te molesta por privado, usa /reporte en {reportes-y-reclamos}\n\n¡A seguirse, Papus! 🥖",
     "pie": "Teto ・ ¡teto-teetoo! 🥖"
   },
+  "gaming": {
+    "bot": "neru",
+    "reaccion": "broma",
+    "titulo": "🎮 gaming",
+    "texto": "aquí se habla de juegos. el celular también cuenta como consola. no acepto debates. (￣ー￣)\n\n**qué va aquí**\n・ a qué estás jugando y qué tal\n・ capturas, clips y récords (project diva, juegos de ritmo, lo que sea)\n・ buscar con quién jugar: deja el juego, tu plataforma y a qué hora\n\n**qué no**\n・ nada para adultos ni gore, aunque el juego lo tenga. hay papus chicos\n・ cuentas, contraseñas ni datos personales. jamás\n・ ni ventas ni enlaces raros de \"skins gratis\"\n\npara jugar en voz están los canales de voz. y si ganas, presume. si pierdes, culpa al lag. 📱",
+    "pie": "neru ・ gg"
+  },
   "memes": {
     "bot": "neru",
     "reaccion": "broma",
@@ -125,7 +133,7 @@
     "bot": "neru",
     "reaccion": "pensando",
     "titulo": "🐞 reportes y reclamos",
-    "texto": "algo no funciona? aquí se avisa. no es que me importe… pero gyrop lo lee todo. 📱\n\n**cómo**\n・ escribe **/reporte** y cuéntame qué pasó, dónde y más o menos a qué hora\n・ te abro un **ticket privado**: un hilo que solo ven tú y gyrop\n・ ahí mismo puedes subir capturas y seguir platicando con gyrop\n・ un ticket abierto a la vez (máximo 3 al día). gyrop lo cierra cuando se resuelve\n\n**qué puedes reportar**\n・ un bot que no responde, responde raro o se queda pensando\n・ tu rol de ko-fi no llegó (espera unos minutos y revisa que conectaste discord en ko-fi)\n・ un canal que no ves y deberías ver\n・ un reclamo, una queja o algo que te pareció injusto (también un strike o un silencio mío)\n\n**qué NO va aquí**\n・ tu correo, teléfono u otros datos personales: eso por privado a gyrop\n\nen el canal no se escribe: todo va en tu ticket. así nadie lee lo tuyo y gyrop no se pierde nada.",
+    "texto": "algo no funciona? aquí se avisa. no es que me importe… pero gyrop lo lee todo. 📱\n\n**cómo**\n・ escribe **/reporte** y cuéntame qué pasó, dónde y más o menos a qué hora\n・ te abro un **ticket privado**: un hilo que solo ven tú y gyrop\n・ ahí mismo puedes subir capturas y seguir platicando con gyrop\n・ un ticket abierto a la vez (máximo 3 al día). gyrop lo cierra cuando se resuelve\n\n**qué puedes reportar**\n・ un bot que no responde, responde raro o se queda pensando\n・ tu rol de ko-fi no llegó (espera unos minutos y revisa que conectaste discord en ko-fi)\n・ un canal que no ves y deberías ver\n・ un reclamo, una queja o algo que te pareció injusto (también un machetazo o un silencio mío)\n\n**qué NO va aquí**\n・ tu correo, teléfono u otros datos personales: eso por privado a gyrop\n\nen el canal no se escribe: todo va en tu ticket. así nadie lee lo tuyo y gyrop no se pierde nada.",
     "pie": "neru ・ gracias por avisar. supongo."
   },
   "puerro": {
@@ -174,7 +182,7 @@
     "bot": "miku",
     "reaccion": "saludando",
     "titulo": "📅 Calendario de publicación",
-    "texto": "¡Hola, Papus! Aquí verán **qué video viene y cuándo**, y el **tema de la semana**, antes que nadie 👀✨\n\n> 🗓️ cada semana fijo aquí el calendario de **2 semanas**: lunes, miércoles y viernes, con la hora en tu zona horaria\n> 🗳️ los lunes, el que eligieron los Puerros · 🎬 los miércoles, el de GyroP · 🏅 algunos viernes, el de los Papus de honor\n> ✏️ lo voy actualizando sola cuando gana una votación\n> 📆 las fechas pueden moverse un poquito (¡los videos se hacen con cariño!)\n> 🤫 lo que ves aquí es un adelanto para Puerros y superiores: no lo cuentes fuera, ¡que sea sorpresa!\n\nPon recordatorio y no te pierdas ningún estreno ♡",
+    "texto": "¡Hola, Papus! Aquí verán **qué video viene y cuándo**, y el **tema de la semana**, antes que nadie 👀✨\n\n> 🗓️ cada semana fijo aquí el calendario de **2 semanas**: lunes, miércoles y viernes, con la hora en tu zona horaria\n> 🗳️ los lunes, el que eligieron los Puerros · 🎬 los miércoles, el de GyroP · 🏅 algunos viernes, el de los Papus de honor\n> 🎃 en los especiales puede haber video otros días (¡hasta uno diario!)\n> ✏️ lo voy actualizando sola cuando gana una votación\n> 📆 las fechas pueden moverse un poquito (¡los videos se hacen con cariño!)\n> 🤫 lo que ves aquí es un adelanto para Puerros y superiores: no lo cuentes fuera, ¡que sea sorpresa!\n\nPon recordatorio y no te pierdas ningún estreno ♡",
     "pie": "Miku ・ ¡Nos vemos en el estreno! 🎤"
   },
   "tips-y-curiosidades": {
@@ -286,7 +294,7 @@
     "bot": "neru",
     "reaccion": "enojado",
     "titulo": "🛡️ moderación",
-    "texto": "aquí dejo todo lo que modero, gyrop. 📱\n\n・ cada mensaje que borro, con el original y el motivo\n・ los strikes y silencios que pongo\n・ las alertas de automod (también las de cuando el pc está apagado)\n・ te menciono si alguien llega a 4 strikes: expulsar o banear lo decides tú\n\n/strikes y /perdonar son tuyos, por si me equivoco. no pasa seguido. y /strike, si algo se me escapa.",
+    "texto": "aquí dejo todo lo que modero, gyrop. 📱\n\n・ cada mensaje que borro, con el original y el motivo\n・ los machetazos, advertencias y silencios que pongo\n・ las alertas de automod (también las de cuando el pc está apagado)\n・ te menciono si alguien llega a 3 machetazos: expulsar o banear lo decides tú\n\n/machetazos y /perdonar son tuyos, por si me equivoco (perdonar devuelve la xp). no pasa seguido. y /machetazo, si algo se me escapa.",
     "pie": "neru ・ solo staff"
   },
   "registro-bots": {

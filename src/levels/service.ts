@@ -16,6 +16,7 @@ import {
   releaseWindows,
   type GateState,
   type LevelSettings,
+  type Release,
   type XpWindow,
 } from "./rules";
 import { LevelStore } from "./store";
@@ -61,15 +62,19 @@ export interface LevelServiceDeps {
    * GyroP): no le quita puestos a los Papus ni le da beneficios (ya los tiene todos).
    */
   unranked?: (userId: string) => boolean;
+  /** Con 2 o mas machetazos de Neru no gana XP de ninguna forma (src/moderation/strikes.ts). */
+  xpBlocked?: (userId: string, at: number) => boolean;
 }
 
 export class LevelService {
   readonly store: LevelStore;
   private readonly gates = new Map<string, GateState>();
   /** Videos del calendario (titulo y hora de salida): XP multiplicada en su estreno. */
-  private releases: { title: string; at: number }[] = [];
+  private releases: Release[] = [];
   /** Estrenos anunciados con /estreno de Miku (worker): XP multiplicada desde el anuncio. */
   private launched: { title: string; at: number }[] = [];
+  /** Despues de sumar XP (src/coins/: pone al dia las Shaula-coins del dia). */
+  afterAward?: (userId: string, day: string) => void;
 
   constructor(private readonly d: LevelServiceDeps) {
     this.store = new LevelStore(d.db);
@@ -102,7 +107,7 @@ export class LevelService {
   }
 
   /** Lo llama el calendario de Miku cada vez que se arma (cada hora). */
-  setReleases(list: { title: string; at: number }[]): void {
+  setReleases(list: Release[]): void {
     this.releases = list;
   }
 
@@ -111,17 +116,18 @@ export class LevelService {
     this.launched = list;
   }
 
-  private allReleases(): { title: string; at: number }[] {
+  private allReleases(): Release[] {
     return [...this.releases, ...this.launched];
   }
 
-  /** Estreno en curso (para que Miku lo anuncie una vez), o null. */
-  activeRelease(now = Date.now()): { title: string; at: number; window: XpWindow } | null {
+  /** Estreno en curso (el último que salió, para que Miku anuncie cada uno una vez), o null. */
+  activeRelease(now = Date.now()): (Release & { window: XpWindow }) | null {
+    let best: (Release & { window: XpWindow }) | null = null;
     for (const r of this.allReleases()) {
       const w = releaseWindows(this.d.settings, [r])[0];
-      if (w && (w.desde ?? 0) <= now && now < w.hasta) return { ...r, window: w };
+      if (w && (w.desde ?? 0) <= now && now < w.hasta && (!best || r.at > best.at)) best = { ...r, window: w };
     }
-    return null;
+    return best;
   }
 
   multiplier(now = new Date()): number {
@@ -176,10 +182,47 @@ export class LevelService {
     return amount > 0 ? this.award(userId, amount, at) : null;
   }
 
-  /** Strike de Neru: se pierde la XP ganada ese dia (el rol de honor se queda). */
-  onStrike(userId: string, at = Date.now()): LevelChange | null {
-    const { before, after } = this.store.removeDay(userId, dayKey(new Date(at), this.d.timeZone));
+  /** Le quita XP (partidas de trivia de mas del dia, config/trivia.json limites.castigo). Puede bajarlo de nivel. */
+  penalize(userId: string, amount: number, at = Date.now()): LevelChange | null {
+    if (amount <= 0) return null;
+    const { before, after } = this.store.subtract(userId, amount, dayKey(new Date(at), this.d.timeZone));
     return this.change(userId, before, after);
+  }
+
+  /**
+   * XP por `units` mensajes ganados que no cupieron en su cuota llena (decision de GyroP, 31 oct. 2026): cada uno vale
+   * `cuotaSobrante.porcentajeNivel` de lo que pide su nivel actual (con minimo). Solo calcula; se suma con `bonus`.
+   */
+  overflowXp(userId: string, units: number): number {
+    const c = this.d.settings.cuotaSobrante ?? { porcentajeNivel: 0.05, minimo: 15 };
+    if (units <= 0) return 0;
+    const { needed } = progress(this.d.settings, this.store.get(userId).xp);
+    return Math.round(Math.max(c.minimo, c.porcentajeNivel * needed) * units);
+  }
+
+  /** ¿Puede ganar XP ahora? (no, con 2 o mas machetazos activos). */
+  canEarn(userId: string, at = Date.now()): boolean {
+    return !this.d.xpBlocked?.(userId, at);
+  }
+
+  /** Machetazo de Neru: se pierde la XP ganada ese dia (el rol de honor se queda). Devuelve cuanta fue, para devolverla al perdonar. */
+  onStrike(userId: string, at = Date.now()): { day: string; xp: number; change: LevelChange | null } {
+    const day = dayKey(new Date(at), this.d.timeZone);
+    const { before, after } = this.store.removeDay(userId, day);
+    return { day, xp: before - after, change: this.change(userId, before, after) };
+  }
+
+  /** Perdon de GyroP: devuelve la XP que quitaron los machetazos y levanta el castigo de esos dias (ruleta y monedas). */
+  onForgive(userId: string, taken: { day: string; xp: number }[], at = Date.now()): LevelChange | null {
+    const beforeXp = this.store.get(userId).xp;
+    for (const t of taken) this.store.restoreDay(userId, t.day, t.xp);
+    const change = this.change(userId, beforeXp, this.store.get(userId).xp);
+    try {
+      this.afterAward?.(userId, dayKey(new Date(at), this.d.timeZone));
+    } catch {
+      /* las monedas no deben frenar el perdon */
+    }
+    return change;
   }
 
   /**
@@ -202,10 +245,16 @@ export class LevelService {
   }
 
   private award(userId: string, amount: number, at: number): LevelChange | null {
+    if (!this.canEarn(userId, at)) return null;
     const day = dayKey(new Date(at), this.d.timeZone);
     const { before, after } = this.store.add(userId, amount, day);
     const change = this.change(userId, before, after);
     if (change && change.to > change.from) this.store.markLevelUp(userId, day);
+    try {
+      this.afterAward?.(userId, day);
+    } catch {
+      /* las monedas no deben frenar la XP */
+    }
     return change;
   }
 

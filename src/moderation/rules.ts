@@ -23,11 +23,6 @@ export interface ModerationSettings {
   autolesion?: string[];
   /** Línea que acompaña la frase de apoyo: teléfonos de ayuda por país. */
   lineasDeAyuda?: string;
-  /**
-   * Papus que Neru no castiga solo (decision de GyroP, 25 oct. 2026): sus infracciones se borran y llevan aviso, pero
-   * sin strike ni silencio; los strikes se los pone GyroP a mano. No se les dice que estan en la lista.
-   */
-  sinStrikes?: { id: string; nombre?: string }[];
   estafas: string[];
   dominiosSospechosos: string[];
   enlacesPermitidos: string[];
@@ -37,6 +32,7 @@ export interface ModerationSettings {
     mayusculasPorcentaje: number;
     mayusculasMinCaracteres: number;
     cuentaNuevaHoras: number;
+    /** Dias que duran los machetazos y las advertencias. */
     strikeDias: number;
   };
 }
@@ -56,7 +52,7 @@ export interface Violation {
   kind: ViolationKind;
   /** Borrar el mensaje. */
   remove: boolean;
-  /** Suma strike (las mayusculas y los enlaces de cuentas nuevas no). */
+  /** Machetazo (las mayusculas y los enlaces de cuentas nuevas no). */
   strike: boolean;
   detail: string;
 }

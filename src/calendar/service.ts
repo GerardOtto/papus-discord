@@ -3,9 +3,10 @@
 // Solo títulos y fechas. Lo publica Miku desde el PC (src/discord/app.ts), fijado y editado cuando cambia algo.
 import type { D1Query } from "../cloud/d1";
 import { kvGet, kvSet, type Db } from "../db/database";
+import type { Release } from "../levels/rules";
 import { dayKey } from "../time";
 import type { HonorSettings, RoundSettings } from "../votes/rounds";
-import { addDays, choices, isHonorWeek, planWeek, SLOT_LABEL, weekToShow, zonedTime, type Slot, type VoteOutcome, type WeekInput } from "./plan";
+import { addDays, choices, isHonorWeek, planWeek, SLOT_LABEL, weekdayOf, weekToShow, zonedTime, type Slot, type VoteOutcome, type WeekInput } from "./plan";
 
 export interface CalendarSettings {
   canal: string;
@@ -13,8 +14,15 @@ export interface CalendarSettings {
   hora: string;
   zona: string;
   semanas: number;
-  /** Videos fijados a mano por GyroP: día "AAAA-MM-DD" -> título (o título con hora propia). Mandan sobre todo lo automático. */
+  /**
+   * Videos fijados a mano por GyroP: día "AAAA-MM-DD" -> título (o título con hora propia). Mandan sobre todo lo automático.
+   * Pueden ir en cualquier día de la semana: los que no son lunes, miércoles ni viernes se suman a esa semana.
+   */
   fijos?: Record<string, string | FixedVideo>;
+  /** Desde el lunes `desde`, los ganadores de las votaciones salen `semanas` semanas después de lo normal (se vota igual). */
+  retraso?: { desde: string; semanas: number };
+  /** Lunes de semanas que llevan solo los videos fijados (sin votaciones ni videos automáticos de GyroP). */
+  soloFijos?: string[];
 }
 
 /** Video fijado con una hora distinta a la del calendario ("hora" en "zona"; sin "zona", la del calendario). */
@@ -22,6 +30,8 @@ export interface FixedVideo {
   titulo: string;
   hora?: string;
   zona?: string;
+  /** XP de su estreno distinta a la de config/niveles.json (ej.: ×2 por 12 h). */
+  estreno?: { multiplicador?: number; horas?: number };
 }
 
 const fixedEntries = (s: CalendarSettings): [string, FixedVideo][] =>
@@ -145,9 +155,25 @@ export class CalendarService {
     const today = dayKey(new Date(now), s.zona);
     let monday = weekToShow(today);
     for (let w = 0; w < s.semanas; w++, monday = addDays(monday, 7)) {
-      const slots = planWeek({ monday, kofi: kofiFor(monday), ...honorFor(monday), own: (day) => fixed[day] ?? pickOwn(day) }).map((sl) =>
-        fixed[sl.day] ? { day: sl.day, weekday: sl.weekday, kind: "propio" as const, title: fixed[sl.day]! } : sl,
-      );
+      const sunday = addDays(monday, 6);
+      let slots: Slot[];
+      if (s.soloFijos?.includes(monday)) {
+        slots = [];
+        // Los videos de GyroP que tenían esos días vuelven a la fila.
+        for (let d = monday; d <= sunday; d = addDays(d, 1)) if (!fixed[d]) delete own[d];
+      } else {
+        // Con retraso, cada lunes lleva lo que se votó para el de `semanas` semanas antes.
+        const votes = s.retraso && monday >= s.retraso.desde ? addDays(monday, -7 * s.retraso.semanas) : monday;
+        slots = planWeek({ monday, kofi: kofiFor(votes), ...honorFor(votes), own: (day) => fixed[day] ?? pickOwn(day) }).map((sl) =>
+          fixed[sl.day] ? { day: sl.day, weekday: sl.weekday, kind: "propio" as const, title: fixed[sl.day]! } : sl,
+        );
+      }
+      // Fijados en otros días (martes, jueves, fin de semana): se suman a la semana, en orden. En la primera semana
+      // también los que faltan antes de su lunes (ej.: el domingo de mañana, si hoy es sábado).
+      const from = w === 0 && today < monday ? today : monday;
+      for (const [day, title] of Object.entries(fixed))
+        if (day >= from && day <= sunday && !slots.some((sl) => sl.day === day)) slots.push({ day, weekday: weekdayOf(day), kind: "propio", title });
+      slots.sort((a, b) => a.day.localeCompare(b.day));
       // Un día que dejó de ser de GyroP (ej.: llegó la idea ganadora de honor) libera su video para otro día.
       for (const sl of slots) if (sl.kind !== "propio") delete own[sl.day];
       weeks.push({ monday, current: monday <= today, slots });
@@ -156,18 +182,27 @@ export class CalendarService {
     return weeks;
   }
 
-  /** Videos con titulo y su hora de salida (ms): los estrenos que dan XP multiplicada (src/levels/). */
-  releases(weeks: CalendarWeek[]): { title: string; at: number }[] {
+  /**
+   * Videos con titulo y su hora de salida (ms): los estrenos que dan XP multiplicada (src/levels/). Los fijados del día
+   * anterior y de hoy entran aunque su semana ya no se muestre (el sábado se muestra la que viene).
+   */
+  releases(weeks: CalendarWeek[]): Release[] {
     const { zona, hora } = this.d.settings;
     const fixed = Object.fromEntries(fixedEntries(this.d.settings));
-    return weeks.flatMap((w) =>
-      w.slots
-        .filter((sl) => sl.title && !sl.pending)
-        .map((sl) => {
-          const f = sl.kind === "propio" ? fixed[sl.day] : undefined;
-          return { title: sl.title!, at: zonedTime(sl.day, f?.hora ?? hora, f?.zona ?? zona) };
-        }),
+    const release = (day: string, title: string, f?: FixedVideo): Release => ({
+      title,
+      at: zonedTime(day, f?.hora ?? hora, f?.zona ?? zona),
+      ...(f?.estreno?.multiplicador ? { multiplicador: f.estreno.multiplicador } : {}),
+      ...(f?.estreno?.horas ? { horas: f.estreno.horas } : {}),
+    });
+    const shown = weeks.flatMap((w) =>
+      w.slots.filter((sl) => sl.title && !sl.pending).map((sl) => ({ day: sl.day, r: release(sl.day, sl.title!, sl.kind === "propio" ? fixed[sl.day] : undefined) })),
     );
+    const today = dayKey(new Date((this.d.now ?? Date.now)()), zona);
+    const recent = Object.entries(fixed)
+      .filter(([day]) => day >= addDays(today, -1) && day <= today && !shown.some((x) => x.day === day))
+      .map(([day, f]) => ({ day, r: release(day, f.titulo, f) }));
+    return [...recent, ...shown].map((x) => x.r);
   }
 
   /** Estrenos anunciados con /estreno (worker) en el último día: su XP multiplicada empieza al anunciarlos. */
@@ -184,8 +219,9 @@ export class CalendarService {
     const fmt = (day: string, o: Intl.DateTimeFormatOptions) => new Date(zonedTime(day, "12:00", zona)).toLocaleDateString("es-MX", { timeZone: zona, ...o });
     return weeks
       .map((w, i) => {
-        const fri = addDays(w.monday, 4);
-        const range = `${fmt(w.monday, { day: "numeric" })} al ${fmt(fri, { day: "numeric", month: "long" })}`;
+        const last = w.slots.at(-1)?.day ?? addDays(w.monday, 4);
+        const first = w.slots.reduce((d, sl) => (sl.day < d ? sl.day : d), w.monday);
+        const range = `${fmt(first, { day: "numeric" })} al ${fmt(last, { day: "numeric", month: "long" })}`;
         const lines = w.slots.map((sl) => {
           const f = sl.kind === "propio" ? fixed[sl.day] : undefined;
           const when = `<t:${Math.floor(zonedTime(sl.day, f?.hora ?? hora, f?.zona ?? zona) / 1000)}:t>`;

@@ -1,0 +1,319 @@
+{
+  "$comment": "Temporada 1 «Lanzamiento» de las Shaula-coins (propuesta, 26 oct. 2026). Fondos de tarjeta hechos con renders de Diva-a-Render; la rareza sigue qué tan histórica o viral es la canción del traje. 'pjs' = renders usados (DivaRenders/output). Lo genera fuente/temporada1.ts.",
+  "objetos": [
+    {
+      "tipo": "Fondo",
+      "id": "gemelos-del-mal",
+      "nombre": "Gemelos del mal",
+      "rareza": "mitica",
+      "pjs": [
+        "eden/rin_riliane/rin/rin_presumido.png",
+        "eden/len_allen/len/len_neutral.png"
+      ],
+      "motivo": "Daughter of Evil + Servant of Evil (mothy, 2008): la saga que más contaste en el canal, con los dos gemelos juntos."
+    },
+    {
+      "tipo": "Fondo",
+      "id": "la-hija-del-mal",
+      "nombre": "La hija del mal",
+      "rareza": "legendaria",
+      "pjs": [
+        "eden/rin_riliane/rin/rin_presumido.png"
+      ],
+      "motivo": "Rin como Riliane: Daughter of Evil (2008), clásico de la historia de Vocaloid y cap. 1 de tu serie."
+    },
+    {
+      "tipo": "Fondo",
+      "id": "el-sirviente-del-mal",
+      "nombre": "El sirviente del mal",
+      "rareza": "legendaria",
+      "pjs": [
+        "eden/len_allen/len/len_neutral.png"
+      ],
+      "motivo": "Len como Allen: Servant of Evil (2008), la otra mitad de la historia y cap. 3 de tu serie."
+    },
+    {
+      "tipo": "Fondo",
+      "id": "triple-baka",
+      "nombre": "Triple Baka",
+      "rareza": "legendaria",
+      "pjs": [
+        "gestos/tet/tet_02_paz_ojo.png",
+        "gestos/mik/mik_03_doble_v.png",
+        "gestos/ner/ner_04_pulgar.png"
+      ],
+      "motivo": "Miku, Teto y Neru: el trío meme de Vocaloid y el nombre de tu nivel más alto de Ko-fi."
+    },
+    {
+      "tipo": "Fondo",
+      "id": "principe-azul",
+      "nombre": "El príncipe azul",
+      "rareza": "epica",
+      "pjs": [
+        "looks_saga_final/kai/kai_presumido.png"
+      ],
+      "motivo": "Kaito como Kyle, el príncipe del país azul (saga del mal, módulo Requiem)."
+    },
+    {
+      "tipo": "Fondo",
+      "id": "chica-del-pais-verde",
+      "nombre": "La chica del país verde",
+      "rareza": "epica",
+      "pjs": [
+        "looks_saga_noble/mik/mik_feliz.png"
+      ],
+      "motivo": "Miku como Michaela (saga del mal, módulo Noble)."
+    },
+    {
+      "tipo": "Fondo",
+      "id": "espadachina-roja",
+      "nombre": "La espadachina roja",
+      "rareza": "epica",
+      "pjs": [
+        "looks_saga_final/mei/mei_presumido.png"
+      ],
+      "motivo": "Meiko como Germaine (saga del mal, módulo Blazing)."
+    },
+    {
+      "tipo": "Fondo",
+      "id": "el-intercambio",
+      "nombre": "El intercambio",
+      "rareza": "epica",
+      "pjs": [
+        "eden/rin_allen/rin/rin_neutral.png",
+        "eden/len_riliane/len/len_timido.png"
+      ],
+      "motivo": "Rin vestida de sirviente y Len de princesa: el giro final de Servant of Evil (cap. 5 y 6 de tu serie)."
+    },
+    {
+      "tipo": "Fondo",
+      "id": "familia-crypton",
+      "nombre": "Familia Crypton",
+      "rareza": "epica",
+      "pjs": [
+        "gestos/mik/mik_01_saludo.png",
+        "gestos/rin/rin_03_doble_v.png",
+        "gestos/len/len_04_pulgar.png",
+        "gestos/luk/luk_02_paz_ojo.png",
+        "gestos/kai/kai_07_animo.png",
+        "gestos/mei/mei_01_saludo.png"
+      ],
+      "motivo": "Los seis de Crypton juntos en el escenario."
+    },
+    {
+      "tipo": "Fondo",
+      "id": "halloween-elluka",
+      "nombre": "Noche de brujas",
+      "rareza": "epica",
+      "pjs": [
+        "looks_saga_lukafix/luk/luk_pensando.png"
+      ],
+      "motivo": "Especial de Halloween: Luka como la bruja Elluka (módulo Majokko).",
+      "limitado": "Solo la semana de Halloween (del 27 oct. al 2 nov.) de cada año."
+    },
+    {
+      "tipo": "Fondo",
+      "id": "teto-saludo",
+      "nombre": "Teto saluda",
+      "rareza": "rara",
+      "pjs": [
+        "gestos/tet/tet_01_saludo.png"
+      ],
+      "motivo": "Pose especial con el traje original."
+    },
+    {
+      "tipo": "Fondo",
+      "id": "miku-doble-v",
+      "nombre": "Miku doble V",
+      "rareza": "rara",
+      "pjs": [
+        "gestos/mik/mik_03_doble_v.png"
+      ],
+      "motivo": "Pose especial con el traje original."
+    },
+    {
+      "tipo": "Fondo",
+      "id": "luka-guino",
+      "nombre": "Luka guiña",
+      "rareza": "rara",
+      "pjs": [
+        "gestos/luk/luk_02_paz_ojo.png"
+      ],
+      "motivo": "Pose especial con el traje original."
+    },
+    {
+      "tipo": "Fondo",
+      "id": "neru-pulgar",
+      "nombre": "Neru aprueba",
+      "rareza": "rara",
+      "pjs": [
+        "gestos/ner/ner_04_pulgar.png"
+      ],
+      "motivo": "Pose especial con el traje original."
+    },
+    {
+      "tipo": "Fondo",
+      "id": "rin-gato",
+      "nombre": "Rin gatita",
+      "rareza": "rara",
+      "pjs": [
+        "gestos/rin/rin_11_gato.png"
+      ],
+      "motivo": "Pose especial con el traje original."
+    },
+    {
+      "tipo": "Fondo",
+      "id": "len-animo",
+      "nombre": "Len da ánimo",
+      "rareza": "rara",
+      "pjs": [
+        "gestos/len/len_07_animo.png"
+      ],
+      "motivo": "Pose especial con el traje original."
+    },
+    {
+      "tipo": "Fondo",
+      "id": "kaito-shh",
+      "nombre": "Kaito: ¡shh!",
+      "rareza": "rara",
+      "pjs": [
+        "gestos/kai/kai_10_shh.png"
+      ],
+      "motivo": "Pose especial con el traje original."
+    },
+    {
+      "tipo": "Fondo",
+      "id": "meiko-senala",
+      "nombre": "Meiko te señala",
+      "rareza": "rara",
+      "pjs": [
+        "gestos/mei/mei_09_senalar.png"
+      ],
+      "motivo": "Pose especial con el traje original."
+    },
+    {
+      "tipo": "Fondo",
+      "id": "haku-mejillas",
+      "nombre": "Haku tímida",
+      "rareza": "rara",
+      "pjs": [
+        "gestos/hak/hak_06_mejillas.png"
+      ],
+      "motivo": "Pose especial con el traje original."
+    },
+    {
+      "tipo": "Fondo",
+      "id": "teto-original",
+      "nombre": "Teto clásica",
+      "rareza": "comun",
+      "pjs": [
+        "avatares_v3/tet/tet_01.png"
+      ],
+      "motivo": "Traje original: el diseño con el que debutó."
+    },
+    {
+      "tipo": "Fondo",
+      "id": "miku-original",
+      "nombre": "Miku clásica",
+      "rareza": "comun",
+      "pjs": [
+        "avatares_v3/mik/mik_01.png"
+      ],
+      "motivo": "Traje original: el diseño con el que debutó."
+    },
+    {
+      "tipo": "Fondo",
+      "id": "luka-original",
+      "nombre": "Luka clásica",
+      "rareza": "comun",
+      "pjs": [
+        "avatares_v3/luk/luk_09.png"
+      ],
+      "motivo": "Traje original: el diseño con el que debutó."
+    },
+    {
+      "tipo": "Fondo",
+      "id": "neru-original",
+      "nombre": "Neru clásica",
+      "rareza": "comun",
+      "pjs": [
+        "avatares_v3/ner/ner_09.png"
+      ],
+      "motivo": "Traje original: el diseño con el que debutó."
+    },
+    {
+      "tipo": "Fondo",
+      "id": "rin-original",
+      "nombre": "Rin clásica",
+      "rareza": "comun",
+      "pjs": [
+        "avatares_v3/rin/rin_07.png"
+      ],
+      "motivo": "Traje original: el diseño con el que debutó."
+    },
+    {
+      "tipo": "Fondo",
+      "id": "len-original",
+      "nombre": "Len clásico",
+      "rareza": "comun",
+      "pjs": [
+        "avatares_v3/len/len_04.png"
+      ],
+      "motivo": "Traje original: el diseño con el que debutó."
+    },
+    {
+      "tipo": "Fondo",
+      "id": "kaito-original",
+      "nombre": "Kaito clásico",
+      "rareza": "comun",
+      "pjs": [
+        "avatares_v3/kai/kai_01.png"
+      ],
+      "motivo": "Traje original: el diseño con el que debutó."
+    },
+    {
+      "tipo": "Fondo",
+      "id": "meiko-original",
+      "nombre": "Meiko clásica",
+      "rareza": "comun",
+      "pjs": [
+        "avatares_v3/mei/mei_07.png"
+      ],
+      "motivo": "Traje original: el diseño con el que debutó."
+    },
+    {
+      "tipo": "Fondo",
+      "id": "haku-original",
+      "nombre": "Haku clásica",
+      "rareza": "comun",
+      "pjs": [
+        "avatares_v3/hak/hak_03.png"
+      ],
+      "motivo": "Traje original: el diseño con el que debutó."
+    }
+  ],
+  "fundadores": {
+    "id": "noche-de-estreno",
+    "nombre": "Noche de estreno",
+    "rareza": "fundador",
+    "tema": "estreno",
+    "colores": [
+      "#0D0A2A",
+      "#2A1B4D"
+    ],
+    "pjs": [
+      "gestos/luk/luk_07_animo.png",
+      "gestos/mik/mik_03_doble_v.png",
+      "gestos/tet/tet_01_saludo.png",
+      "gestos/ner/ner_03_doble_v.png"
+    ],
+    "motivo": "Teto, Miku, Luka y Neru la noche en que abrió el servidor (17 oct. 2026). Nunca se vende ni sale en sobres.",
+    "tipo": "Fondo",
+    "extras": [
+      "Borde «Estrella fundadora»",
+      "Insignia ⭐ 17",
+      "Título «Fundador/a del servidor»",
+      "Número de fundador en la tarjeta"
+    ]
+  }
+}

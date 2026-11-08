@@ -26,6 +26,7 @@ import { progress, rankFor, stripNickTag } from "../levels/rules";
 import type { LevelService } from "../levels/service";
 import type { Phrases } from "../phrases/catalog";
 import type { Quota } from "../quota/quota";
+import { avisoPing, canPingRoles } from "./avisos";
 import { channelKey, findTextChannel } from "./channels";
 import type { LevelsDiscord } from "./levels";
 
@@ -136,7 +137,20 @@ export class BodasDiscord {
       `> ✍️ ${s.intentos} intentos por Papu · ⏳ ${s.duracionMinutos} min · los casados no juegan hasta que termine su boda.`,
     ].join("\n");
     const ch = await this.d.sendable(bot, channel.id);
-    const msg = await ch.send({ content: `${intro}\n\n${rules}`, allowedMentions: { parse: [] } });
+    // Aviso a los 💍 Rizzler (#tus-roles). La chica lo etiqueta si puede (rol Vocaloids); si no (Coro), lo hace Neru.
+    const ping = avisoPing(this.d.guild(), "bodas");
+    const botUser = this.d.clients[bot]?.user?.id;
+    const inline = !!ping && !!botUser && canPingRoles(channel, botUser);
+    const msg = await ch.send({
+      content: `${inline ? `🔔 ${ping!.mention}\n` : ""}${intro}\n\n${rules}`,
+      allowedMentions: inline ? { roles: [ping!.roleId] } : { parse: [] },
+    });
+    if (ping && !inline) {
+      const neruCh = await this.d.sendable("neru", channel.id).catch(() => null);
+      await neruCh
+        ?.send({ content: `🔔 ${ping.mention} ¡${name} dejó una adivinanza! 💍 Respondan en el hilo 👆`, allowedMentions: { roles: [ping.roleId] } })
+        .catch((e) => logError("aviso de la boda", e));
+    }
     let threadId: string | null = null;
     try {
       // El hilo lo abre Neru (tiene los permisos de moderacion); las chicas de conversacion no tienen permisos propios.
@@ -240,7 +254,8 @@ export class BodasDiscord {
     const ls = this.d.levels.settings;
     const before = this.d.levels.snapshot(m.authorId);
     const mult = this.d.levels.multiplier();
-    const gained = weddingXp(this.w.settings, ls, before.xp, mult);
+    // Con 2 o mas machetazos de Neru, la boda va igual (y reinicia la cuota), pero sin XP.
+    const gained = this.d.levels.canEarn(m.authorId) ? weddingXp(this.w.settings, ls, before.xp, mult) : 0;
     const change = this.d.levels.bonus(m.authorId, gained);
     const after = this.d.levels.snapshot(m.authorId);
     this.w.marry(bot, m.authorId, m.authorName, gained);

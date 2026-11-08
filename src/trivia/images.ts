@@ -1,10 +1,11 @@
 // Imagenes de las preguntas de siluetas (src/trivia/rules.ts): la figura de un Vocaloid (assets/bots/<id>_figura.png)
 // como silueta negra, pixelada o en un acercamiento, centrada sobre un fondo neutro (el mismo para todos, asi el color
-// no delata a nadie). Se dibujan una vez y quedan en memoria.
+// no delata a nadie). Se dibujan una vez y quedan en memoria. Las preguntas generadas con imagenes del motor
+// (renderPicture) se dibujan una sola vez con npm run trivia:imagenes y el bot solo adjunta el archivo.
 import { readFileSync } from "node:fs";
 import { createCanvas, loadImage, type Image, type SKRSContext2D } from "@napi-rs/canvas";
 import type { BotId } from "../config";
-import { figurePath, type ImageMode } from "./rules";
+import { figurePath, type ImageMode, type PictureMode } from "./rules";
 
 const SIZE = 512;
 const PAD = 28;
@@ -52,10 +53,9 @@ function silhouette(img: Image): Buffer {
   return c.toBuffer("image/png");
 }
 
-/** Pixelada: la figura reducida a ~22 pixeles de ancho y agrandada sin suavizar. */
-function pixel(img: Image): Buffer {
+/** Pixelada: la figura reducida a ~`small` pixeles de ancho y agrandada sin suavizar. */
+function pixel(img: Image, small = 22): Buffer {
   const r = fit(img, SIZE - PAD * 2);
-  const small = 22;
   const k = small / r.w;
   const tiny = createCanvas(Math.max(1, Math.round(SIZE * k)), Math.max(1, Math.round(SIZE * k)));
   const tctx = tiny.getContext("2d");
@@ -72,7 +72,7 @@ function pixel(img: Image): Buffer {
  * Acercamiento: un cuadro de un cuarto del ancho de la figura, en un punto que siempre cae sobre ella (se busca el que
  * tiene mas figura entre varios candidatos de la mitad superior, sin la cara justo al centro).
  */
-function zoom(img: Image, bot: BotId): Buffer {
+function zoom(img: Image, key: string): Buffer {
   const probe = createCanvas(img.width, img.height);
   const pctx = probe.getContext("2d");
   pctx.drawImage(img, 0, 0);
@@ -85,8 +85,7 @@ function zoom(img: Image, bot: BotId): Buffer {
     return n / all;
   };
   // Candidatos fijos por Vocaloid (siempre el mismo recorte para la misma pregunta).
-  let seed = [...bot].reduce((a, ch) => a * 31 + ch.charCodeAt(0), 7) >>> 0;
-  const next = () => ((seed = (seed * 1103515245 + 12345) >>> 0) / 4294967296);
+  const next = seeded(key);
   let best = { x: 0, y: 0, c: -1 };
   for (let i = 0; i < 24; i++) {
     const x = Math.floor(next() * (img.width - side));
@@ -102,6 +101,121 @@ function zoom(img: Image, bot: BotId): Buffer {
   background(ctx);
   ctx.drawImage(img, best.x, best.y, side, side, 0, 0, SIZE, SIZE);
   return c.toBuffer("image/png");
+}
+
+/** Numeros al azar fijos para una clave (la misma pregunta se dibuja siempre igual). */
+function seeded(key: string): () => number {
+  let seed = [...key].reduce((a, ch) => a * 31 + ch.charCodeAt(0), 7) >>> 0;
+  return () => (seed = (seed * 1103515245 + 12345) >>> 0) / 4294967296;
+}
+
+/** La imagen entera, centrada sobre el fondo. */
+function plain(img: Image): Buffer {
+  const c = createCanvas(SIZE, SIZE);
+  const ctx = c.getContext("2d");
+  background(ctx);
+  const r = fit(img, SIZE - PAD * 2);
+  ctx.drawImage(img, r.x, r.y, r.w, r.h);
+  return c.toBuffer("image/png");
+}
+
+/** Solo una mitad (izquierda o derecha); la otra queda tapada con un signo de pregunta. */
+function half(img: Image, key: string): Buffer {
+  const c = createCanvas(SIZE, SIZE);
+  const ctx = c.getContext("2d");
+  background(ctx);
+  const r = fit(img, SIZE - PAD * 2);
+  ctx.drawImage(img, r.x, r.y, r.w, r.h);
+  const left = seeded(key)() < 0.5;
+  ctx.fillStyle = "#151826";
+  ctx.fillRect(left ? SIZE / 2 : 0, 0, SIZE / 2, SIZE);
+  ctx.fillStyle = "#9fb4ff";
+  ctx.font = "bold 120px sans-serif";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText("?", left ? (SIZE * 3) / 4 : SIZE / 4, SIZE / 2);
+  return c.toBuffer("image/png");
+}
+
+/** En gris: sin el color del pelo, que delata a casi todos. */
+function gray(img: Image): Buffer {
+  const c = createCanvas(SIZE, SIZE);
+  const ctx = c.getContext("2d");
+  background(ctx);
+  const r = fit(img, SIZE - PAD * 2);
+  ctx.drawImage(img, r.x, r.y, r.w, r.h);
+  const data = ctx.getImageData(0, 0, SIZE, SIZE);
+  const px = data.data;
+  for (let k = 0; k < px.length; k += 4) {
+    const y = Math.round(0.299 * px[k]! + 0.587 * px[k + 1]! + 0.114 * px[k + 2]!);
+    px[k] = px[k + 1] = px[k + 2] = y;
+  }
+  ctx.putImageData(data, 0, 0);
+  return c.toBuffer("image/png");
+}
+
+/** Piezas revueltas: la imagen en 3x3 cuadros cambiados de lugar (nunca queda armada). */
+function tiles(img: Image, key: string): Buffer {
+  const whole = createCanvas(SIZE, SIZE);
+  const wctx = whole.getContext("2d");
+  background(wctx);
+  const r = fit(img, SIZE - PAD * 2);
+  wctx.drawImage(img, r.x, r.y, r.w, r.h);
+  const n = 3;
+  const side = SIZE / n;
+  const next = seeded(key);
+  const order = Array.from({ length: n * n }, (_, k) => k);
+  do {
+    for (let k = order.length - 1; k > 0; k--) {
+      const j = Math.floor(next() * (k + 1));
+      [order[k], order[j]] = [order[j]!, order[k]!];
+    }
+  } while (order.some((v, k) => v === k));
+  const c = createCanvas(SIZE, SIZE);
+  const ctx = c.getContext("2d");
+  ctx.fillStyle = "#0b0d16";
+  ctx.fillRect(0, 0, SIZE, SIZE);
+  order.forEach((from, to) => {
+    const g = 3;
+    ctx.drawImage(whole, (from % n) * side, Math.floor(from / n) * side, side, side, (to % n) * side + g, Math.floor(to / n) * side + g, side - g * 2, side - g * 2);
+  });
+  return c.toBuffer("image/png");
+}
+
+/** En franjas: solo se ve una de cada dos franjas horizontales. */
+function strips(img: Image): Buffer {
+  const c = createCanvas(SIZE, SIZE);
+  const ctx = c.getContext("2d");
+  background(ctx);
+  const r = fit(img, SIZE - PAD * 2);
+  ctx.drawImage(img, r.x, r.y, r.w, r.h);
+  const band = SIZE / 12;
+  ctx.fillStyle = "#151826";
+  for (let k = 1; k < 12; k += 2) ctx.fillRect(0, k * band, SIZE, band);
+  return c.toBuffer("image/png");
+}
+
+/** Dibuja una imagen del motor para una pregunta generada (PNG; `key` fija el azar de la pregunta). */
+export async function renderPicture(src: string, mode: PictureMode, key: string): Promise<Buffer> {
+  const img = await loadImage(readFileSync(src));
+  switch (mode) {
+    case "normal":
+      return plain(img);
+    case "silueta":
+      return silhouette(img);
+    case "pixel":
+      return pixel(img, 30);
+    case "zoom":
+      return zoom(img, key);
+    case "mitad":
+      return half(img, key);
+    case "gris":
+      return gray(img);
+    case "piezas":
+      return tiles(img, key);
+    case "franjas":
+      return strips(img);
+  }
 }
 
 export async function renderFigure(bot: BotId, mode: ImageMode, figures?: string): Promise<Buffer> {

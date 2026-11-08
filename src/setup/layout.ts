@@ -33,11 +33,12 @@ export interface ServerLayout {
   /**
    * `todos` = Teto se lo da a cada Papu al entrar; `hasta` = fecha limite de una insignia (Fundador);
    * `sobreNiveles` = rol de una sola persona (config/especiales.json) por encima de los niveles: su color manda, salvo
-   * que elija uno de #tu-color, y entonces Teto le pone ese color al rol (npm run servidor no se lo devuelve).
+   * que elija uno de #tus-roles, y entonces Teto le pone ese color al rol (npm run servidor no se lo devuelve).
    * `bots` = rol de las 4 chicas con tareas (Vocaloids); `botsCharla` = rol de los Vocaloids que solo conversan (Coro),
    * el último rol separado de la lista de miembros.
    * `mod` = Papus elegidos por GyroP que pueden dar strikes y avisos con Neru (/strike, /advertir, /strikes y el clic
    * derecho), sin permisos propios de Discord: el silencio lo aplica siempre Neru.
+   * `sobreviviente` = rol de adorno que Teto da a quien GyroP perdona de un machetazo (/perdonar).
    */
   rolesExtra: {
     rol: string;
@@ -50,6 +51,7 @@ export interface ServerLayout {
     musica?: string[];
     sobreNiveles?: boolean;
     mod?: boolean;
+    sobreviviente?: boolean;
   }[];
   /** Color del nombre de cada bot: un rol de la paleta (texto) o uno solo suyo, fuera del menu ({rol, color}). */
   coloresBots?: Record<string, string | { rol: string; color: string }>;
@@ -57,11 +59,22 @@ export interface ServerLayout {
   coloresPapu?: { canal: string; colores: { rol: string; color: string }[] };
   /** Paises que cada Papu elige en el mismo canal (rol "🇲🇽 México": sin color ni permisos, al fondo de la lista de roles). */
   paisesPapu?: { canal: string; paises: string[] };
+  /** Avisos que cada Papu elige en el mismo canal (varios a la vez): el bot etiqueta el rol al empezar su evento. */
+  avisosPapu?: { canal: string; avisos: AvisoSpec[] };
   seguridad: { verificacion: number; filtroContenido: number };
   categorias: CategorySpec[];
   /** Las categorias hechas a mano (no estan en el archivo, p. ej. "Canales de voz") van justo despues de esta. */
   categoriasManualesDespuesDe?: string;
 }
+
+/** Un aviso de #tus-roles: `id` lo usa el codigo (peleas, bodas, estrenos); `rol` es el nombre del rol en Discord. */
+export interface AvisoSpec {
+  id: AvisoId;
+  rol: string;
+  nombre: string;
+  descripcion: string;
+}
+export type AvisoId = "peleas" | "bodas" | "estrenos";
 
 const REPO_ROOT = path.resolve(import.meta.dirname, "../..");
 
@@ -229,9 +242,9 @@ export function blockAtBottom(roles: { id: string; position: number }[], block: 
 
 /**
  * Orden de roles con `block` (ids, de arriba abajo) arriba de todos los que se pueden mover, justo debajo de `ceiling`.
- * Discord muestra el color del rol más alto: así el color de #tu-color se ve sobre niveles e insignias.
+ * Discord muestra el color del rol más alto: así el color de #tus-roles se ve sobre niveles e insignias.
  */
-/** Rol de color de cada bot (`coloresBots`) y los roles que son solo de bots (no estan en la paleta de #tu-color). */
+/** Rol de color de cada bot (`coloresBots`) y los roles que son solo de bots (no estan en la paleta de #tus-roles). */
 export function botColorRoles(layout: ServerLayout): { byBot: Map<string, string>; botOnly: { rol: string; color: string }[] } {
   const byBot = new Map<string, string>();
   const botOnly = new Map<string, { rol: string; color: string }>();

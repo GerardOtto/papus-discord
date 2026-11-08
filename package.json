@@ -31,7 +31,12 @@
     "conversaciones": "node --disable-warning=ExperimentalWarning --import tsx scripts/conversaciones.ts",
     "niveles": "node --disable-warning=ExperimentalWarning --import tsx scripts/niveles.ts",
     "baguette": "node --disable-warning=ExperimentalWarning --import tsx scripts/baguette.ts",
-    "trivia:audio": "node --disable-warning=ExperimentalWarning --import tsx scripts/trivia-audio.ts"
+    "trivia:audio": "node --disable-warning=ExperimentalWarning --import tsx scripts/trivia-audio.ts",
+    "trivia:generar": "node --disable-warning=ExperimentalWarning --import tsx scripts/trivia-generar.ts",
+    "trivia:imagenes": "node --disable-warning=ExperimentalWarning --import tsx scripts/trivia-imagenes.ts",
+    "coleccion": "node --disable-warning=ExperimentalWarning --import tsx scripts/coleccion.ts",
+    "peleas:avatares": "python scripts/peleas_avatares.py",
+    "peleas:wiki": "node --disable-warning=ExperimentalWarning --import tsx scripts/peleas-wiki.ts"
   },
   "dependencies": {
     "@napi-rs/canvas": "1.0.10",

@@ -8,3 +8,5 @@ data/
 .wrangler/
 # Fragmentos de canciones de la trivia (npm run trivia:audio; copyright, como la musica del motor). nube subir los copia.
 assets/trivia/audio/
+# Imagenes de las preguntas generadas de la trivia (npm run trivia:imagenes, desde las del motor). nube subir las copia.
+assets/trivia/imagenes/

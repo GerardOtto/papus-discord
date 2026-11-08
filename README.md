@@ -16,7 +16,7 @@ Gakupo, Kaito, flower, IA, Haku, Gumi, Rin, Len, Meiko, Adachi Rei y Ruko, que s
 5. `npm run conversaciones [-- --desde AAAA-MM-DD | --horas N]` exporta las conversaciones con los Vocaloids (solo
    lectura, Papus con seudónimo) a `data/revision/` para buscar alucinaciones y refinar las fichas. Además deja
    `general-<fecha>.md`: **todo #general** y sus hilos con nombres reales, y arriba lo que en otro canal habría sido
-   sanción, para moderar a mano el canal de lenguaje libre (`/advertir`, `/strike`, `/strikes`). Borrar los informes al terminar.
+   sanción, para moderar a mano el canal de lenguaje libre (`/advertir`, `/machetazo`, `/machetazos`). Borrar los informes al terminar.
 
 ## Agregar un Vocaloid de conversación (Discord Developer Portal)
 Para cada uno (hoy faltan Rin, Len, Meiko, Adachi Rei y Ruko; el código ya los tiene):
@@ -29,6 +29,17 @@ Para cada uno (hoy faltan Rin, Len, Meiko, Adachi Rei y Ruko; el código ya los 
 4. `npm run servidor` (vista previa) y luego `npm run servidor -- --apply`: le da el rol **🎤 Coro** (y se lo quita a
    Vocaloids si lo tenía) y lo deja al final de la lista de miembros.
 5. `npm run perfiles -- rin` (avatar, banner y biografía de `assets/bots/` y `content/perfiles.json`) y reiniciar los bots.
+
+## Mango9374 (el que imita a un Papu)
+Bot de broma (PLAN §4): a cada @ (sin límite) le da al Papu sus números del día (cuota gastada, XP, mensajes enviados y con
+qué Vocaloids no se puede casar ahora) y, 1 de cada 3 veces, contesta "Sea serio ve", "Poco serio ve" o "See you in the
+next reel, tetolovers". A GyroP le da los totales del servidor.
+1. Developer Portal → **New Application** "Mango9374" → **Bot** → Reset Token y copiarlo a `.env` (`DISCORD_TOKEN_MANGO9374`).
+   Sin intents privilegiados; desactivar **Public Bot**.
+2. Invitarlo con la misma URL que los Vocaloids de conversación (scope `bot`, permissions=`274878024768`).
+3. Darle **a mano** el rol 🎤 Coro (así ve y escribe en todos los canales; `npm run servidor` no lo toca porque no es un Vocaloid).
+4. Reiniciar los bots: al conectarse copia la foto de perfil del Papu Mango9374 (por su id) y se pone el nombre "Mango9374"
+   (`config/mango.json`: nombre, usuario real y frases). Si Discord rechaza el cambio, avisa en #registro-bots.
 
 ## Qué se edita sin tocar código
 | Archivo | Qué contiene |
@@ -46,13 +57,26 @@ Para cada uno (hoy faltan Rin, Len, Meiko, Adachi Rei y Ruko; el código ya los 
 | `content/canales.json` | Mensaje fijado de guía de cada canal y qué Vocaloid lo firma. `npm run guias -- --apply` publica o **edita** (no duplica). Imágenes: `python scripts/make_reactions.py`. |
 | `content/perfiles.json` | Biografía de cada bot. Avatares y banners: `npm run avatares` (elige la cara en `SPEC` de `scripts/make_avatars.py`); se aplican con `npm run perfiles`. Figuras del podio de `/ranking`: `python scripts/make_avatars.py --figuras` (pose en `SPEC` → `figura`). |
 
+## Shaula-coins (tienda)
+Moneda para adornar la tarjeta de nivel (PLAN §3.6). Menú en #🪙・tienda-shaula; los pedidos de monedas llegan a
+#🧾・registro-compras para que GyroP confirme si llegó el pago.
+
+| Archivo | Qué contiene |
+|---|---|
+| `config/monedas.json` | Economía: cuánto se gana, sobres y garantías, precios, Ecos, paquetes (USD y CLP), regalo de membresía, vitrinas, temporada en curso, canales y fundadores. |
+| `config/objetos.json` | Objetos de cada temporada (tipo, rareza, si es arte propio o render, animado, limitado). Miniaturas del arte propio: `npm run coleccion`. |
+
+Variables de `.env` (nunca en el repo): `PAYPAL_ME_USUARIO` (link paypal.me de GyroP) y, para la transferencia en
+Chile, `TRANSFERENCIA_BANCO`, `TRANSFERENCIA_TIPO`, `TRANSFERENCIA_NUMERO`, `TRANSFERENCIA_RUT`, `TRANSFERENCIA_NOMBRE`
+y `TRANSFERENCIA_CORREO`. Sin ellas, esa forma de pago no aparece.
+
 ## Estructura
 - `src/services/` lógica de conversación y moderación (probada sin Discord).
 - `src/discord/` conexión de los bots, comandos, AutoMod y canales.
 - `src/llm/` interfaz única, cadena de respaldo, cola y armado de la petición.
-- `src/moderation/` reglas fijas, strikes y reglas de AutoMod.
+- `src/moderation/` reglas fijas, machetazos y reglas de AutoMod.
 - `src/quota/`, `src/phrases/`, `src/engine/`, `src/db/`.
-- Datos del bot: `data/papus.sqlite` (cuotas, strikes, mazos de frases, uso de APIs). No se sube al repo.
+- Datos del bot: `data/papus.sqlite` (cuotas, machetazos, mazos de frases, uso de APIs). No se sube al repo.
 
 ## Funcionamiento diario
 - **Arranque automático:** la tarea "Papus Discord" del Programador de tareas inicia los bots 30 s después de iniciar
@@ -82,31 +106,37 @@ Para cada uno (hoy faltan Rin, Len, Meiko, Adachi Rei y Ruko; el código ya los 
 | Quién | Comando | Dónde corre |
 |---|---|---|
 | Todos | `/cuota` (Teto): mensajes que quedan hoy (la cuota depende del nivel) | PC |
+| Todos | `/donar papu cantidad` (Teto): regalarle mensajes de tu cuota de hoy a otro Papu (los pierdes tú; al otro solo le llegan hasta llenar su cuota) | PC |
 | Todos | `/nivel [papu] [mostrar]` (Teto): tarjeta de nivel; botones para poner el nivel en el apodo y prestigiar en el 99 | PC |
 | Todos | `/tarjeta frase · color · fondo · imagen` (Teto): personaliza la tarjeta (la imagen propia la aprueba GyroP en #moderación) | PC |
 | Todos | `/ranking` (Teto): ranking de Papus por nivel (top 10 y tu puesto); solo lo ve quien lo pide | PC |
 | GyroP | `/publicar-ranking` (Teto): publica el ranking en el canal donde se usa, para todos | PC |
 | Todos | `/divorcio` (Teto): divorciarse de su Vocaloid (con confirmación); conserva la XP y la cuota, pierde el rol, y ella deja otra adivinanza | PC |
-| Todos | `/trivia` (Teto): preguntas Vocaloid privadas con tiempo límite (opciones, texto, audio y siluetas); XP en cada acierto y la racha final sale en el canal | PC |
-| Todos | `/ruleta` (Teto): misiones del día (2 h en voz, 200 mensajes, subir de nivel) y hasta 3 giros de la ruleta (XP o mensajes extra); el resultado sale público como GIF | PC |
+| Todos | `/trivia [dificultad]` (Teto): ~5.750 preguntas Vocaloid privadas con tiempo límite (opciones, verdadero o falso, texto, audio, siluetas e imágenes) en fácil, media o difícil, con contador de superadas; XP en cada acierto, la racha final sale en el canal y superar toda una dificultad da un sobre (común, raro o legendario). Desde la partida 16 del día, cada partida quita XP (el doble cada vez; Teto avisa antes) | PC |
+| Todos | `/ruleta` (Teto): misiones del día (2 h en voz, 200 mensajes, subir de nivel) y hasta 3 giros de la ruleta (XP, mensajes extra o un sobre común; con la cuota llena, los mensajes se vuelven XP); el resultado sale público como GIF | PC |
+| GyroP | `/sorteo [premio] [xp] [niveles] [mensajes]` (Teto): todos los Papus en una ruleta; el premio lo eliges tú (XP, niveles y mensajes extra de hoy se entregan solos; solo texto = lo entregas tú) o sale al azar; primero lo ves solo tú y decides si se lo queda, giras otra vez sin él o se lo das a otro; al confirmar sale público como GIF (`config/sorteo.json`) | PC |
+| GyroP | `/pelea [vocaloid1] [vocaloid2] [cancelar]` (Teto): 1vs1 de Vocaloids en este canal; los Papus apuestan de 10 a 400 Shaula-coins ganadas con los botones del cartel (3 min) y la pelea se narra línea a línea; también hay peleas solas a las 14:00 y 21:00 en #⚔️・peleas. `cancelar` devuelve lo apostado (`config/peleas.json`) | PC |
+| Todos | `/tienda` (Teto): abre el menú de la tienda (comprar monedas, vitrina, sobres, colección, tarjeta y ayuda); solo lo ve quien lo usa | PC |
+| GyroP | `/monedas panel · dar · quitar · limite · bloquear` (Teto): compras del mes por Papu, ajustar saldos, límite mensual y bloqueo de compras | PC |
 | GyroP | `/boda [vocaloid]` (Teto): una chica deja ya su adivinanza de boda en #general (no gasta las 3 del día) | PC |
 | GyroP | `/evento multiplicador [horas]` (Teto): XP multiplicada; Miku lo anuncia (los estrenos del calendario ya dan ×2 solos) | PC |
 | Atún y superiores | `/tip` (Luka): dato + fuente | Cloudflare |
 | Triple Baka | `/pedido`, `/mi-pedido` (Miku) | Cloudflare |
 | GyroP | `/cola ver · detalle · estado · agregar` (Miku) | Cloudflare |
-| Todos | Menú de colores en #tu-color (Miku): color del nombre de la paleta Vocaloid (se ve sobre el de los niveles) | Cloudflare |
-| Todos | Menú de países en #tu-color (Miku): bandera y nombre del país en el perfil, sin color | Cloudflare |
+| Todos | Menú de colores en #tus-roles (Miku): color del nombre de la paleta Vocaloid (se ve sobre el de los niveles) | Cloudflare |
+| Todos | Menú de países en #tus-roles (Miku): bandera y nombre del país en el perfil, sin color | Cloudflare |
+| Todos | Menú de avisos en #tus-roles (Miku, varios a la vez): ⚔️ Ludópata (peleas), 💍 Rizzler (bodas), 🎬 Estrenos (XP doble) | Cloudflare |
 | GyroP | `/votacion abrir · cerrar` (Miku): encuesta, aviso 12 h antes y ganador | Cloudflare |
 | GyroP | `/votacion listo · listos · quitar-listo · honor` (Miku): votación de los Papus de honor, automática cada 2 semanas (lunes 18:00 a jueves 18:00): videos listos + las 2 ideas con más 👍 de #charla-de-honor | Cloudflare |
 | GyroP | `/votacion candidato · candidatos · quitar · semanal · desempate` (Miku): votación semanal automática (`config/votaciones.json`); el 2.º lugar vuelve con candidatos nuevos | Cloudflare |
 | GyroP | `/calendario`, `/estreno`, `/noticia` (Miku) | Cloudflare |
 | GyroP | `/tip-usado` (Luka): lleva un tip al Salón de la Fama | Cloudflare |
-| GyroP | `/perdonar` (Neru): solo GyroP | PC |
-| GyroP y 🛡️ Mod | `/strikes` (Neru) | PC |
-| GyroP y 🛡️ Mod | `/advertir @papu [motivo]` o clic derecho en un mensaje → Apps → **Advertir (Neru)**: aviso público de Neru (frases `aviso`), sin borrar ni strike; queda en #moderación | PC |
-| GyroP y 🛡️ Mod | `/strike @papu [motivo]` o clic derecho → Apps → **Strike (Neru)**: strike a mano con la escalera normal, sin borrar; **Strike y borrar (Neru)** hace lo mismo y borra el mensaje | PC |
+| GyroP | `/perdonar` (Neru): solo GyroP. Borra machetazos y advertencias, devuelve la XP que quitaron y levanta el silencio | PC |
+| GyroP y 🛡️ Mod | `/machetazos` (Neru): machetazos y advertencias activos de un Papu | PC |
+| GyroP y 🛡️ Mod | `/advertir @papu [motivo]` o clic derecho en un mensaje → Apps → **Advertir (Neru)**: advertencia pública de Neru (frases `aviso`), sin borrar; **3 en 3 días = 1 machetazo**; queda en #moderación | PC |
+| GyroP y 🛡️ Mod | `/machetazo @papu [motivo]` o clic derecho → Apps → **Machetazo (Neru)**: machetazo a mano con la escalera normal (1: 10 min; 2: 1 h y sin ganar XP; 3: 24 h y aviso a GyroP; siempre sin la XP del día) y borra el mensaje | PC |
 
-**🛡️ Mod** (lo das tú a mano): sanciona igual que GyroP con Neru, sin permisos propios de Discord; en #moderación sale qué Mod fue. No puede sancionar a otro Mod ni a GyroP, ni usar `/perdonar`. Para que vea los comandos (una vez): Ajustes del servidor → Integraciones → Neru → en `/strike`, `/advertir`, `/strikes`, **Strike (Neru)**, **Strike y borrar (Neru)** y **Advertir (Neru)**, agregar el rol 🛡️ Mod.
+**🛡️ Mod** (lo das tú a mano): sanciona igual que GyroP con Neru, sin permisos propios de Discord; en #moderación sale qué Mod fue. No puede sancionar a otro Mod ni a GyroP, ni usar `/perdonar`. Para que vea los comandos (una vez): Ajustes del servidor → Integraciones → Neru → en `/machetazo`, `/advertir`, `/machetazos`, **Machetazo (Neru)** y **Advertir (Neru)**, agregar el rol 🛡️ Mod.
 
 Automático (PC): Teto da el rol **Papu** a cada uno al entrar y **Fundador** a quien tenga un nivel en la primera semana
 (`config/servidor.json`); cuando GyroP publica en un canal de nivel de solo lectura, Teto avisa en #vitrina dónde y

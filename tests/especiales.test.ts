@@ -80,7 +80,7 @@ describe("color del rol especial (sobre los niveles)", () => {
   const palette = ["🎨 Kaito", "🎨 Rin y Len"];
   const AZUL = 0x1e40af;
 
-  it("sin color de #tu-color, el suyo; con uno elegido, ese (aunque tenga niveles e insignias)", () => {
+  it("sin color de #tus-roles, el suyo; con uno elegido, ese (aunque tenga niveles e insignias)", () => {
     const nivel = { name: "💥 Triple Baka", color: 0xff0000, position: 20 };
     const honor = { name: "🏅 Papu de honor", color: 0xc9d1dc, position: 5 };
     expect(specialRoleColor(AZUL, [nivel, honor], palette)).toBe(AZUL);

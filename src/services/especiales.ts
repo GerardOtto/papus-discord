@@ -141,7 +141,7 @@ export class Especiales {
 }
 
 /**
- * Color del rol especial (`sobreNiveles`): el de #tu-color que tenga elegido (el mas alto, como lo mostraria Discord)
+ * Color del rol especial (`sobreNiveles`): el de #tus-roles que tenga elegido (el mas alto, como lo mostraria Discord)
  * o, si no eligio ninguno, el suyo de config/servidor.json.
  */
 export function specialRoleColor(base: number, memberRoles: { name: string; color: number; position: number }[], palette: string[]): number {

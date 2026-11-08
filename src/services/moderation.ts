@@ -1,8 +1,8 @@
-// Moderacion de Neru (PLAN §7): reglas fijas -> borrar -> strike -> sancion -> aviso en el canal y en #moderacion.
-// Neru nunca expulsa ni banea; GyroP queda exento. Tambien aplica los strikes de los bloqueos de AutoMod.
+// Moderacion de Neru (PLAN §7): reglas fijas -> borrar -> machetazo -> sancion -> aviso en el canal y en #moderacion.
+// Neru nunca expulsa ni banea; GyroP queda exento. Tambien aplica los machetazos de los bloqueos de AutoMod.
 import type { Phrases } from "../phrases/catalog";
 import { FloodTracker, INVITE_RE, isExpressive, type RuleSet, type Violation, type ViolationKind } from "../moderation/rules";
-import type { Penalty, StrikeStore } from "../moderation/strikes";
+import { MAX_MACHETAZOS, WARNINGS_PER_MACHETAZO, type Machetazo, type Penalty, type StrikeStore } from "../moderation/strikes";
 
 export interface ModMessage {
   messageId: string;
@@ -26,6 +26,7 @@ export interface ModLogEntry {
   detail: string;
   excerpt: string;
   action: string;
+  /** Machetazos activos despues de la accion (null si no aplica). */
   activeStrikes: number | null;
 }
 
@@ -48,7 +49,7 @@ export interface AutoModHit {
 const CAPS_COOLDOWN_MS = 10 * 60_000;
 /** Una frase de apoyo por Papu cada 6 h: si sigue hablando del tema, le responde el Vocaloid (con la guía de comun.md). */
 const SUPPORT_COOLDOWN_MS = 6 * 3_600_000;
-/** Infracciones con frase propia (explican la regla); si ademas toca silencio, manda la del silencio. */
+/** Infracciones con frase propia (explican la regla); la linea del machetazo dice la sancion. */
 const OWN_PHRASE: Partial<Record<ViolationKind, string>> = {
   invitacion: "invitacion",
   estafa: "estafa",
@@ -60,25 +61,26 @@ const OWN_PHRASE: Partial<Record<ViolationKind, string>> = {
 /** Se citan (con la grosería tapada) para que todos aprendan del ejemplo. Datos, invitaciones y estafas no: citarlos
  * volvería a exponer el teléfono o el enlace. */
 const QUOTED: ReadonlySet<ViolationKind> = new Set(["insulto", "muy_fuerte", "odio"]);
-const MAX_STRIKES = 4;
 
-/** Regla del filtro de spam de Discord ("Neru · spam"): bloquea, pero sin strike. */
+/** Regla del filtro de spam de Discord ("Neru · spam"): bloquea, pero sin machetazo. */
 const isSpamRule = (ruleName: string) => /·\s*spam$/i.test(ruleName);
 
 /** Que frase lleva un bloqueo de AutoMod. */
 const kindOfHit = (hit: AutoModHit): ViolationKind =>
   /dato|estafa/i.test(hit.ruleName) ? (INVITE_RE.test(hit.content) ? "invitacion" : "estafa") : "insulto";
 
-/** Lo que dice #moderacion cuando la lista `sinStrikes` evita un strike. */
-const SPARED_NOTE = "sin strike (lista de GyroP)";
+/** "🔪 machetazo 1 de 3 · 10 min de silencio y sin la XP de hoy. al siguiente, …" (la escalera real de penaltyFor). */
+export function machetazoLine(active: number, penalty: Penalty): string {
+  const n = Math.min(active, MAX_MACHETAZOS);
+  const silence = penalty.minutes >= 1440 ? "un día de silencio" : penalty.minutes >= 60 ? "una hora de silencio" : `${penalty.minutes} min de silencio`;
+  const now = `${silence}, sin la XP de hoy${penalty.blockXp ? " y sin ganar XP" : ""}`;
+  const next = n <= 1 ? "al siguiente, una hora y sin ganar XP" : n === 2 ? "al 3.º, un día sin escribir y gyrop revisa tu caso" : "gyrop ya está avisado y revisa tu caso";
+  return `🔪 **machetazo ${n} de ${MAX_MACHETAZOS}** · ${now}. ${next}. (se borran a los 3 días)`;
+}
 
-/** "strike 2 de 4 · 10 min de silencio. al siguiente, una hora." (la escalera real de penaltyFor). */
-export function strikeLine(active: number, penalty: Penalty): string {
-  const n = Math.min(active, MAX_STRIKES);
-  const now = penalty.kind === "advertencia" ? "advertencia" : penalty.minutes >= 1440 ? "un día de silencio" : penalty.minutes >= 60 ? "una hora de silencio" : `${penalty.minutes} min de silencio`;
-  const next =
-    n <= 1 ? "al siguiente, 10 min de silencio" : n === 2 ? "al siguiente, una hora" : n === 3 ? "al 4.º, un día sin escribir y gyrop decide si te quedas" : "gyrop ya está avisado y decide si te quedas";
-  return `**strike ${n} de ${MAX_STRIKES}** · ${now}. ${next}. (se borran a los 3 días)`;
+/** "advertencia 2 de 3 · a la tercera, machetazo." */
+export function warningLine(warnings: number): string {
+  return `**advertencia ${warnings} de ${WARNINGS_PER_MACHETAZO}** · a la tercera, machetazo. (se borran a los 3 días)`;
 }
 
 export class ModerationService {
@@ -118,30 +120,18 @@ export class ModerationService {
     }
 
     const removed = v.remove ? await this.remove(m.channelId, m.messageId) : false;
-    const spared = v.strike && this.spared(m.authorId);
-    let penalty: Penalty | null = null;
-    let active: number | null = null;
-    if (v.strike && !spared) {
-      const r = this.strikes.add({ userId: m.authorId, reason: v.kind, excerpt: m.text, channelId: m.channelId }, t);
-      penalty = r.penalty;
-      active = r.active;
-    }
-    const action = await this.apply(m.authorId, m.channelId, v.kind, penalty, active, m.text);
+    const hit = v.strike ? this.strikes.add({ userId: m.authorId, reason: v.kind, excerpt: m.text, channelId: m.channelId }, t) : null;
+    const action = await this.apply(m.authorId, m.channelId, v.kind, hit, m.text);
     await this.port.log({
       userId: m.authorId,
       channelId: m.channelId,
       kind: v.kind,
       detail: v.detail,
       excerpt: m.text,
-      action: `${v.remove ? (removed ? "borrado" : "no se pudo borrar") : "sin borrar"}${action ? ` · ${action}` : ""}${spared ? ` · ${SPARED_NOTE}` : ""}`,
-      activeStrikes: active ?? (spared ? this.strikes.active(m.authorId, t) : null),
+      action: `${v.remove ? (removed ? "borrado" : "no se pudo borrar") : "sin borrar"}${action ? ` · ${action}` : ""}`,
+      activeStrikes: hit?.active ?? null,
     });
     return v;
-  }
-
-  /** En la lista `sinStrikes` de config/moderacion.json: aviso, pero el strike solo lo pone GyroP. */
-  spared(userId: string): boolean {
-    return (this.rules.settings.sinStrikes ?? []).some((p) => p.id === userId);
   }
 
   /**
@@ -169,9 +159,9 @@ export class ModerationService {
   }
 
   /**
-   * Bloqueo de AutoMod visto en vivo: Neru lo publica como suyo y suma el strike. El filtro de spam de Discord solo
-   * bloquea (Discord ya le muestra el aviso al Papu): sin strike ni frase, porque tambien atrapa copiar y pegar, que ya
-   * no es infracción (decisión de GyroP, 22 oct. 2026). Queda en #moderación.
+   * Bloqueo de AutoMod visto en vivo: Neru lo publica como suyo y suma el machetazo (el mensaje ya no existe). El
+   * filtro de spam de Discord solo bloquea (Discord ya le muestra el aviso al Papu): sin machetazo ni frase, porque
+   * tambien atrapa copiar y pegar, que ya no es infracción (decisión de GyroP, 22 oct. 2026). Queda en #moderación.
    */
   async handleAutoModHit(hit: AutoModHit): Promise<void> {
     if (this.exempt().has(hit.userId)) return;
@@ -182,100 +172,105 @@ export class ModerationService {
         kind: "automod",
         detail: hit.ruleName,
         excerpt: hit.content,
-        action: "bloqueado por AutoMod · sin strike",
+        action: "bloqueado por AutoMod · sin machetazo",
         activeStrikes: this.strikes.active(hit.userId, this.now()),
       });
       return;
     }
-    if (this.spared(hit.userId)) {
-      // AutoMod ya bloqueó el mensaje: solo el aviso de Neru, sin strike.
-      const action = hit.channelId ? await this.apply(hit.userId, hit.channelId, kindOfHit(hit), null, null, hit.content) : "";
-      await this.port.log({
-        userId: hit.userId,
-        channelId: hit.channelId,
-        kind: "automod",
-        detail: hit.ruleName,
-        excerpt: hit.content,
-        action: `bloqueado por AutoMod${action ? ` · ${action}` : ""} · ${SPARED_NOTE}`,
-        activeStrikes: this.strikes.active(hit.userId, this.now()),
-      });
-      return;
-    }
-    const { penalty, active } = this.strikes.add(
+    const m = this.strikes.add(
       { userId: hit.userId, reason: `automod: ${hit.ruleName}`, excerpt: hit.content, channelId: hit.channelId ?? undefined },
       this.now(),
     );
-    const action = hit.channelId ? await this.apply(hit.userId, hit.channelId, kindOfHit(hit), penalty, active, hit.content) : "";
+    // Sin canal no hay donde avisar, pero el silencio igual va.
+    const action = hit.channelId ? await this.apply(hit.userId, hit.channelId, kindOfHit(hit), m, hit.content) : await this.punish(hit.userId, "automod", m);
     await this.port.log({
       userId: hit.userId,
       channelId: hit.channelId,
       kind: "automod",
       detail: hit.ruleName,
       excerpt: hit.content,
-      action: `bloqueado por AutoMod${action ? ` · ${action}` : ""}`,
-      activeStrikes: active,
+      action: `bloqueado por AutoMod · ${action}`,
+      activeStrikes: m.active,
     });
   }
 
   /**
-   * Aviso a mano de GyroP o de un Mod (clic derecho "Advertir (Neru)" o /advertir): Neru llama la atencion en publico
-   * con una frase fija, sin borrar el mensaje ni sumar strike. Queda en #moderacion (con quien lo dio) por si se repite.
-   * `por`: quien lo da en el registro ("GyroP" por defecto; "Mod <@id>").
+   * Advertencia a mano de GyroP o de un Mod (clic derecho "Advertir (Neru)" o /advertir): Neru llama la atencion en
+   * publico con una frase fija, sin borrar el mensaje. Vence a los 3 dias; la tercera activa se vuelve un machetazo
+   * (decision de GyroP, 28 oct. 2026): entonces se borra el mensaje y va la sancion completa. Queda en #moderacion (con
+   * quien la dio). `por`: quien la da en el registro ("GyroP" por defecto; "Mod <@id>"). Devuelve las advertencias
+   * activas y el machetazo, si lo hubo.
    */
-  async warn(w: { userId: string; channelId: string; messageId?: string; excerpt?: string; motivo?: string; por?: string }): Promise<void> {
-    const lines = [this.phrases.pick("neru", "aviso", { papu: `<@${w.userId}>` })];
-    if (w.motivo?.trim()) lines.push(`> ${w.motivo.trim().replace(/\n/g, " ")}`);
-    await this.port.say(w.channelId, lines.join("\n"), w.userId, w.messageId);
+  async warn(w: {
+    userId: string;
+    channelId: string;
+    messageId?: string;
+    excerpt?: string;
+    motivo?: string;
+    por?: string;
+  }): Promise<{ warnings: number; machetazo: Machetazo | null }> {
+    const por = w.por ?? "GyroP";
+    const motivo = w.motivo?.trim().replace(/\n/g, " ") ?? "";
+    const r = this.strikes.warn(
+      { userId: w.userId, reason: `advertencia de ${por.toLowerCase()}: ${motivo || "a mano"}`, excerpt: w.excerpt || motivo, channelId: w.channelId },
+      this.now(),
+    );
+    let action: string;
+    if (r.machetazo) {
+      const removed = w.messageId ? await this.remove(w.channelId, w.messageId) : false;
+      const applied = await this.apply(w.userId, w.channelId, "manual", r.machetazo, "", { motivo, replyTo: removed ? undefined : w.messageId, por, fromWarnings: true });
+      action = `${removed ? "borrado" : w.messageId ? "no se pudo borrar" : "sin mensaje"} · ${WARNINGS_PER_MACHETAZO} advertencias · ${applied}`;
+    } else {
+      const lines = [this.phrases.pick("neru", "aviso", { papu: `<@${w.userId}>` })];
+      if (motivo) lines.push(`> ${motivo}`);
+      lines.push(warningLine(r.warnings));
+      await this.port.say(w.channelId, lines.join("\n"), w.userId, w.messageId);
+      action = `sin borrar · advertencia ${r.warnings} de ${WARNINGS_PER_MACHETAZO}`;
+    }
     await this.port.log({
       userId: w.userId,
       channelId: w.channelId,
-      kind: "aviso",
-      detail: w.motivo?.trim() || `aviso de ${w.por ?? "GyroP"}`,
+      kind: `advertencia de ${por}`,
+      detail: motivo || `advertencia de ${por}`,
       excerpt: w.excerpt ?? "",
-      action: "sin borrar · sin strike",
-      activeStrikes: this.strikes.active(w.userId, this.now()),
+      action,
+      activeStrikes: r.machetazo?.active ?? this.strikes.active(w.userId, this.now()),
     });
+    return r;
   }
 
   /**
-   * Strike a mano de GyroP o de un Mod (/strike o clic derecho "Strike (Neru)"; decisiones de GyroP, 20 y 21 oct. 2026):
-   * la misma escalera y el mismo aviso publico que un strike automatico, con el motivo citado. No borra el mensaje,
-   * salvo con `borrar` (clic derecho "Strike y borrar (Neru)", decision de GyroP, 22 oct. 2026): entonces el aviso va
-   * suelto, sin responder al mensaje que ya no existe. Devuelve los activos. `por`: quien lo da ("GyroP" por defecto;
-   * "Mod <@id>").
+   * Machetazo a mano de GyroP o de un Mod (/machetazo o clic derecho "Machetazo (Neru)"): la misma escalera y el mismo
+   * aviso publico que uno automatico, con el motivo citado. Borra el mensaje, si lo hay (el aviso va suelto, sin
+   * responder al mensaje que ya no existe). Devuelve los activos. `por`: quien lo da ("GyroP" por defecto; "Mod <@id>").
    */
-  async strike(s: { userId: string; channelId: string; messageId?: string; excerpt?: string; motivo?: string; por?: string; borrar?: boolean }): Promise<number | null> {
+  async strike(s: { userId: string; channelId: string; messageId?: string; excerpt?: string; motivo?: string; por?: string }): Promise<number> {
     const motivo = s.motivo?.trim().replace(/\n/g, " ") ?? "";
     const por = s.por ?? "GyroP";
-    // A los de `sinStrikes` solo GyroP les pone strike: el de un Mod queda como aviso (y devuelve null).
-    if (por !== "GyroP" && this.spared(s.userId)) {
-      await this.warn({ ...s, por });
-      return null;
-    }
-    const { penalty, active } = this.strikes.add(
-      { userId: s.userId, reason: `${por.toLowerCase()}: ${motivo || "strike a mano"}`, excerpt: s.excerpt || motivo, channelId: s.channelId },
+    const m = this.strikes.add(
+      { userId: s.userId, reason: `${por.toLowerCase()}: ${motivo || "machetazo a mano"}`, excerpt: s.excerpt || motivo, channelId: s.channelId },
       this.now(),
     );
-    const removed = s.borrar && s.messageId ? await this.remove(s.channelId, s.messageId) : false;
-    const action = await this.apply(s.userId, s.channelId, "manual", penalty, active, "", { motivo, replyTo: removed ? undefined : s.messageId, por });
+    const removed = s.messageId ? await this.remove(s.channelId, s.messageId) : false;
+    const action = await this.apply(s.userId, s.channelId, "manual", m, "", { motivo, replyTo: removed ? undefined : s.messageId, por });
     await this.port.log({
       userId: s.userId,
       channelId: s.channelId,
-      kind: `strike de ${por}`,
-      detail: motivo || "strike a mano",
+      kind: `machetazo de ${por}`,
+      detail: motivo || "machetazo a mano",
       excerpt: s.excerpt ?? "",
-      action: `${removed ? "borrado" : s.borrar ? "no se pudo borrar" : "sin borrar"} · ${action}`,
-      activeStrikes: active,
+      action: `${removed ? "borrado" : s.messageId ? "no se pudo borrar" : "sin mensaje"} · ${action}`,
+      activeStrikes: m.active,
     });
-    return active;
+    return m.active;
   }
 
   /**
-   * Bloqueos de AutoMod ocurridos con el PC apagado: suma los strikes pendientes (sin silencios tardios)
+   * Bloqueos de AutoMod ocurridos con los bots apagados: suma los machetazos pendientes (sin silencios tardios)
    * y devuelve el resumen de Neru, o null si no hubo bloqueos.
    */
   async applyOfflineHits(hits: AutoModHit[]): Promise<string | null> {
-    const relevant = hits.filter((h) => !this.exempt().has(h.userId) && !this.spared(h.userId) && !isSpamRule(h.ruleName));
+    const relevant = hits.filter((h) => !this.exempt().has(h.userId) && !isSpamRule(h.ruleName));
     if (!relevant.length) return null;
     const flagged = new Set<string>();
     for (const h of relevant) {
@@ -283,42 +278,49 @@ export class ModerationService {
         { userId: h.userId, reason: `automod (sin conexion): ${h.ruleName}`, excerpt: h.content, channelId: h.channelId ?? undefined },
         this.now(),
       );
-      if (penalty.kind === "silencio" && penalty.notifyOwner) flagged.add(h.userId);
+      if (penalty.notifyOwner) flagged.add(h.userId);
     }
-    for (const u of flagged) await this.port.notifyOwner(`<@${u}> acumuló 4 o más strikes mientras los bots estaban desconectados. Revisa #moderación.`);
+    for (const u of flagged) await this.port.notifyOwner(`<@${u}> llegó a ${MAX_MACHETAZOS} machetazos mientras los bots estaban desconectados. Revisa su caso en #moderación.`);
     return this.phrases.pick("neru", "resumen_despertar", { n: relevant.length });
   }
 
   /**
-   * Aplica la sancion y llama la atencion EN PUBLICO, en el mismo canal (decision de GyroP: que todos aprendan del
-   * ejemplo): frase de Neru + lo que se dijo (con la groseria tapada) + en que strike va y que viene despues.
-   * Devuelve la descripcion de la accion para el registro.
+   * Aplica el machetazo y llama la atencion EN PUBLICO, en el mismo canal (decision de GyroP: que todos aprendan del
+   * ejemplo): frase de Neru + lo que se dijo (con la groseria tapada) + en que machetazo va y que viene despues. Sin
+   * machetazo (`hit` null), solo la frase. Devuelve la descripcion de la accion para el registro.
    */
   private async apply(
     userId: string,
     channelId: string,
     kind: ViolationKind | "manual",
-    penalty: Penalty | null,
-    active: number | null,
+    hit: Machetazo | null,
     excerpt = "",
-    extra: { motivo?: string; replyTo?: string; por?: string } = {},
+    extra: { motivo?: string; replyTo?: string; por?: string; fromWarnings?: boolean } = {},
   ): Promise<string> {
     const papu = `<@${userId}>`;
-    const silence = penalty?.kind === "silencio" ? penalty : null;
-    if (silence) await this.port.timeout(userId, silence.minutes, `Neru: ${kind === "manual" ? `strike de ${extra.por ?? "GyroP"}` : kind}`).catch(() => {});
     const own = kind === "manual" ? undefined : OWN_PHRASE[kind];
-    const phrase = this.phrases.pick("neru", silence ? `silencio_${silence.minutes}` : (own ?? "advertencia"), { papu });
+    const phrase = this.phrases.pick("neru", own ?? (hit ? `silencio_${hit.penalty.minutes}` : "advertencia"), { papu });
     const lines = [phrase];
     if (kind !== "manual" && QUOTED.has(kind) && excerpt.trim()) {
       const { text, masked } = this.rules.mask(excerpt.trim().slice(0, 200));
       if (masked > 0) lines.push(`> ${text.replace(/\n/g, " ")}`);
     }
     if (extra.motivo) lines.push(`> ${extra.motivo}`);
-    if (penalty && active !== null) lines.push(strikeLine(active, penalty));
-    // Si el aviso no sale (p. ej. un hilo cerrado), el strike y el silencio ya estan: que igual quede en #moderacion.
+    if (extra.fromWarnings) lines.push(`-# ${WARNINGS_PER_MACHETAZO} advertencias = 1 machetazo.`);
+    if (hit) lines.push(machetazoLine(hit.active, hit.penalty));
+    const action = hit ? await this.punish(userId, kind === "manual" ? `machetazo de ${extra.por ?? "GyroP"}` : kind, hit) : "";
+    // Si el aviso no sale (p. ej. un hilo cerrado), el machetazo y el silencio ya estan: que igual quede en #moderacion.
     await this.port.say(channelId, lines.join("\n"), userId, extra.replyTo).catch(() => {});
-    if (silence?.notifyOwner) await this.port.notifyOwner(`${papu} llegó a 4+ strikes activos (último: ${kind}). Silencio de 24 h aplicado; tú decides lo demás.`);
-    return silence ? `silencio ${silence.minutes} min` : penalty ? "advertencia" : "";
+    return action;
+  }
+
+  /** Silencio del machetazo y, al 3.º, aviso a GyroP. La XP del dia ya la quitaron los niveles (StrikeStore.onAdd). */
+  private async punish(userId: string, reason: string, hit: Machetazo): Promise<string> {
+    const { minutes, blockXp, notifyOwner } = hit.penalty;
+    await this.port.timeout(userId, minutes, `Neru: ${reason}`).catch(() => {});
+    if (notifyOwner)
+      await this.port.notifyOwner(`<@${userId}> llegó a ${hit.active} machetazos activos (último: ${reason}). Silencio de 24 h aplicado y sin ganar XP; revisa su caso.`);
+    return `machetazo ${hit.active} · silencio ${minutes} min · sin la XP de hoy${blockXp ? " · sin ganar XP" : ""}`;
   }
 
   /** Borra el mensaje; false si Discord no lo dejo (asi el registro no dice "borrado" cuando no lo esta). */

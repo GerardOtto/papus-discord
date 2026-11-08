@@ -48,10 +48,12 @@ const wantRoles = [
   ...layout.niveles.map((n) => ({ rol: n.rol, color: n.color, separado: true })),
   ...layout.rolesExtra.map((r) => ({ rol: r.rol, color: r.color, separado: r.separado, colorVariable: !!r.sobreNiveles })),
   ...(layout.coloresPapu?.colores ?? []).map((c) => ({ rol: c.rol, color: c.color, separado: false })),
-  // Colores solo de bots (las 4 chicas y Ruko): como los de #tu-color, pero fuera del menu.
+  // Colores solo de bots (las 4 chicas y Ruko): como los de #tus-roles, pero fuera del menu.
   ...botColorRoles(layout).botOnly.map((c) => ({ rol: c.rol, color: c.color, separado: false })),
   // Paises: solo la bandera y el nombre en el perfil (sin color).
   ...(layout.paisesPapu?.paises ?? []).map((p) => ({ rol: p, color: "#000000", separado: false })),
+  // Avisos de #tus-roles (peleas, bodas, estrenos): como los paises, sin color; el bot los etiqueta.
+  ...(layout.avisosPapu?.avisos ?? []).map((a) => ({ rol: a.rol, color: "#000000", separado: false })),
 ];
 for (const w of wantRoles) {
   const r = byName(w.rol);
@@ -61,7 +63,7 @@ for (const w of wantRoles) {
     if (APPLY) await rest.post(Routes.guildRoles(G), { body: { name: w.rol, color: hex(w.color), hoist: w.separado, mentionable: false, permissions: "0" } });
   } else if (r.name !== w.rol || (r.color !== hex(w.color) && !("colorVariable" in w && w.colorVariable)) || r.hoist !== w.separado) {
     // Mismo rol (se reconoce sin emojis ni acentos): se renombra en vez de duplicar. Ko-fi asigna por id, no por nombre.
-    // Un rol `sobreNiveles` conserva su color: Teto lo cambia al de #tu-color que elija su dueña.
+    // Un rol `sobreNiveles` conserva su color: Teto lo cambia al de #tus-roles que elija su dueña.
     const color = "colorVariable" in w && w.colorVariable ? r.color : hex(w.color);
     log(`ajustar rol "${r.name}"${r.name !== w.rol ? ` → "${w.rol}"` : ""}: color #${color.toString(16).padStart(6, "0")}, ${w.separado ? "separado" : "no separado"} en la lista`);
     if (APPLY) await rest.patch(Routes.guildRole(G, r.id), { body: { name: w.rol, color, hoist: w.separado } });
@@ -138,7 +140,7 @@ for (const id of config.activeBots) {
     log(`quitar el rol "${botRole.rol}" a ${id} (va en "${own.rol}")`);
     if (APPLY) await rest.delete(Routes.guildMemberRole(G, u.id, vid));
   }
-  // Su color (coloresBots): el rol de #tu-color que le corresponde o uno solo suyo.
+  // Su color (coloresBots): el rol de #tus-roles que le corresponde o uno solo suyo.
   const colorName = botColorRoles(layout).byBot.get(id);
   const cid = colorName ? byName(colorName)?.id : undefined;
   if (colorName && (!cid || !m.roles.includes(cid))) {
@@ -183,7 +185,7 @@ const modSpec = layout.rolesExtra.find((r) => r.mod);
 }
 
 // Orden de los roles de los Papus (solo los que están debajo de Teto, que es quien los mueve):
-//   1. colores de #tu-color arriba de todo (decisión de GyroP, 19 oct. 2026): el color que elige cada uno se ve sobre
+//   1. colores de #tus-roles arriba de todo (decisión de GyroP, 19 oct. 2026): el color que elige cada uno se ve sobre
 //      el de su nivel y sus insignias. No son separados, así que la lista de miembros sigue agrupada por nivel.
 //   2. insignias (Papu de honor, Fundador, Papu) juntas debajo del nivel más bajo.
 //   3. países al fondo, debajo de Papu: no cambian el color ni el grupo de nadie.
@@ -205,7 +207,7 @@ const modSpec = layout.rolesExtra.find((r) => r.mod);
 
   const top = blockAtTop(roles, ids([...(layout.coloresPapu?.colores ?? []).map((c) => c.rol), ...botColorRoles(layout).botOnly.map((c) => c.rol)]), ceiling);
   if (top.length) {
-    log(`ordenar roles: colores de #tu-color arriba de todos (su color se ve sobre el de los niveles)`);
+    log(`ordenar roles: colores de #tus-roles arriba de todos (su color se ve sobre el de los niveles)`);
     if (APPLY) await rest.patch(Routes.guildRoles(G), { body: top });
   }
   await refresh(top.length > 0);
@@ -225,14 +227,15 @@ const modSpec = layout.rolesExtra.find((r) => r.mod);
 
   // Coro (sin color) al fondo de todo, debajo de los países: así es el último rol separado y el grupo de los Vocaloids
   // de conversación sale al final de la lista de miembros, justo encima de "En línea" (decisión de GyroP, 20 oct. 2026).
-  const bottom = blockAtBottom(roles, ids([...(layout.paisesPapu?.paises ?? []), ...(chatRole ? [chatRole.rol] : [])]), tetoPos);
+  const avisoRoles = (layout.avisosPapu?.avisos ?? []).map((a) => a.rol);
+  const bottom = blockAtBottom(roles, ids([...(layout.paisesPapu?.paises ?? []), ...avisoRoles, ...(chatRole ? [chatRole.rol] : [])]), tetoPos);
   if (bottom.length) {
-    log(`ordenar roles: países al fondo de la lista (debajo de "Papu")${chatRole ? ` y "${chatRole.rol}" el último (su grupo sale al final)` : ""}`);
+    log(`ordenar roles: países${avisoRoles.length ? " y avisos" : ""} al fondo de la lista (debajo de "Papu")${chatRole ? ` y "${chatRole.rol}" el último (su grupo sale al final)` : ""}`);
     if (APPLY) await rest.patch(Routes.guildRoles(G), { body: bottom });
   }
   await refresh(bottom.length > 0);
 
-  // Neru, la que modera, con su rol de bot sobre TODOS los roles de los Papus (colores de #tu-color, Mod, niveles…):
+  // Neru, la que modera, con su rol de bot sobre TODOS los roles de los Papus (colores de #tus-roles, Mod, niveles…):
   // Discord solo deja silenciar a quien tiene el rol más alto por debajo del suyo (caso real del 21 oct. 2026: estaba
   // debajo de los 🎨 colores y sus strikes no silenciaban a nadie). Teto la deja justo debajo de su propio rol, lo más
   // alto que puede mover; si GyroP la sube a mano por encima de Teto, aquí no se la baja.

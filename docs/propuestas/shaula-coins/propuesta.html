@@ -1,0 +1,1373 @@
+<title>Shaula-coins</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Figtree:wght@400;500;600;700&display=swap">
+<style>
+/* Diseño: noche de concierto. Fondo tinta morada, oro de moneda, rosa Teto y aguamarina Miku; una sola página que baja
+   como una licitación ilustrada: cada sección es una imagen o un gráfico con una línea de texto. */
+:root {
+  --ink: #120d1a;
+  --panel: #1c1628;
+  --panel-2: #251d35;
+  --line: #3a2f50;
+  --fg: #f4eefc;
+  --muted: #b9adcf;
+  --gold: #ffc83d;
+  --gold-soft: #ffe9a8;
+  --pink: #ff5fa2;
+  --teal: #39c5bb;
+  --violet: #b36bff;
+  --common: #c9ced6;
+  --good: #3ddc84;
+  --bad: #ff6b6b;
+  --display: "Fredoka", "Segoe UI", system-ui, sans-serif;
+  --body: "Figtree", "Segoe UI", system-ui, sans-serif;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--ink); color: var(--fg); font-family: var(--body); font-size: 16px; line-height: 1.55; }
+.wrap { max-width: 1120px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 0; }
+h1, h2, h3 { font-family: var(--display); text-wrap: balance; margin: 0; line-height: 1.1; }
+h2 { font-size: clamp(28px, 4vw, 40px); }
+h3 { font-size: 21px; }
+p { margin: 0; }
+img { max-width: 100%; display: block; }
+section { padding-block: 64px; border-top: 1px solid var(--line); }
+.eyebrow { font-family: var(--display); font-weight: 600; font-size: 13px; letter-spacing: .14em; text-transform: uppercase; color: var(--gold); }
+.lead { color: var(--muted); max-width: 62ch; margin-top: 10px; }
+.head { display: grid; gap: 6px; margin-bottom: 32px; }
+.num { font-variant-numeric: tabular-nums; }
+.coin { display: inline-block; width: 1.05em; height: 1.05em; vertical-align: -0.16em; }
+
+/* Portada */
+.hero { padding-block: 56px 40px; display: grid; grid-template-columns: 1fr auto; gap: 40px; align-items: center; }
+.hero h1 { font-size: clamp(48px, 9vw, 104px); letter-spacing: -0.01em; background: linear-gradient(90deg, var(--gold), var(--gold-soft), var(--pink), var(--gold)); background-size: 300% 100%; -webkit-background-clip: text; background-clip: text; color: transparent; animation: flow 6s linear infinite; }
+@keyframes flow { to { background-position: 300% 0; } }
+.hero .sub { font-size: 20px; color: var(--fg); margin-top: 14px; max-width: 34ch; }
+.hero .lore { margin-top: 18px; display: inline-flex; gap: 10px; align-items: center; background: var(--panel); border: 1px solid var(--line); border-radius: 999px; padding: 8px 16px; color: var(--muted); font-size: 14px; }
+.hero-coin { width: 220px; border-radius: 50%; }
+.toc { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 28px; }
+.toc a { color: var(--fg); text-decoration: none; font-size: 14px; padding: 6px 12px; border-radius: 999px; background: var(--panel-2); border: 1px solid var(--line); }
+.toc a:hover, .toc a:focus-visible { border-color: var(--gold); outline: none; }
+
+/* Diagrama de flujo */
+.diagram { overflow-x: auto; background: var(--panel); border: 1px solid var(--line); border-radius: 20px; padding: 20px; }
+.diagram svg { min-width: 760px; width: 100%; height: auto; display: block; }
+
+/* Glosario */
+.glossary { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 14px; margin-top: 22px; }
+.term { background: var(--panel); border: 1px solid var(--line); border-radius: 16px; padding: 16px 18px; display: grid; gap: 4px; }
+.term b { font-family: var(--display); font-size: 18px; font-weight: 600; }
+.term span { color: var(--muted); font-size: 14.5px; }
+.term em { color: var(--gold-soft); font-style: normal; font-size: 14px; }
+
+/* Galería de tarjetas */
+.cards { display: grid; gap: 18px; }
+.card-row { display: grid; grid-template-columns: 170px 1fr; gap: 20px; align-items: center; }
+.card-row img { border-radius: 18px; width: 100%; }
+.card-meta { display: grid; gap: 6px; }
+.chip { display: inline-flex; align-items: center; gap: 6px; font-family: var(--display); font-weight: 600; font-size: 13px; letter-spacing: .06em; text-transform: uppercase; padding: 4px 10px; border-radius: 999px; width: fit-content; }
+.r-hoy { background: #2b2838; color: var(--muted); }
+.r-comun { background: var(--common); color: #2a2f38; }
+.r-rara { background: var(--teal); color: #072d2a; }
+.r-epica { background: var(--violet); color: #fff; }
+.r-legendaria { background: var(--gold); color: #3a2600; }
+.r-mitica { background: linear-gradient(90deg, #ff3b5c, #ff9f1c, #ffe14d, #3ddc84, #36c5f0, #8c5cff); color: #fff; text-shadow: 0 1px 2px rgba(0,0,0,.5); }
+.card-meta small { color: var(--muted); font-size: 13.5px; }
+
+/* Rarezas */
+.two { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.box { background: var(--panel); border: 1px solid var(--line); border-radius: 20px; padding: 22px; min-width: 0; }
+.box h3 { margin-bottom: 16px; }
+.bars { display: grid; gap: 12px; }
+.bar { display: grid; grid-template-columns: 96px 1fr 56px; gap: 10px; align-items: center; font-size: 14px; }
+.bar .track { height: 22px; background: var(--panel-2); border-radius: 11px; overflow: hidden; }
+.bar .fill { height: 100%; border-radius: 11px; min-width: 6px; }
+.bar .v { text-align: right; font-variant-numeric: tabular-nums; color: var(--muted); }
+.pity { display: grid; gap: 14px; margin-top: 20px; }
+.pity-line { display: grid; gap: 6px; font-size: 14px; color: var(--muted); }
+.dots { display: flex; gap: 4px; flex-wrap: wrap; }
+.dots i { width: 14px; height: 14px; border-radius: 4px; background: var(--panel-2); border: 1px solid var(--line); }
+.dots i.hit { background: var(--violet); border-color: var(--violet); }
+.dots i.gold { background: var(--gold); border-color: var(--gold); }
+.stack { display: flex; height: 44px; border-radius: 12px; overflow: hidden; margin-top: 6px; }
+.stack div { display: grid; place-items: center; font-family: var(--display); font-weight: 600; font-size: 14px; color: #160f22; }
+.legend { display: flex; gap: 14px; flex-wrap: wrap; font-size: 13.5px; color: var(--muted); margin-top: 10px; }
+
+/* Sobre */
+.sobre { display: grid; grid-template-columns: 260px 1fr; gap: 24px; align-items: center; }
+.sobre .closed { max-width: 260px; }
+.sobre .open { border-radius: 18px; border: 1px solid var(--line); }
+.arrow { color: var(--gold); font-family: var(--display); font-size: 15px; display: flex; gap: 8px; align-items: center; margin-bottom: 10px; }
+
+/* Tipos de objeto */
+.types { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; }
+.type { background: var(--panel); border: 1px solid var(--line); border-radius: 16px; padding: 16px; display: grid; gap: 8px; align-content: start; }
+.type .ico { height: 64px; border-radius: 12px; background: var(--panel-2); display: grid; place-items: center; overflow: hidden; }
+.type b { font-family: var(--display); font-weight: 600; font-size: 17px; }
+.type span { color: var(--muted); font-size: 13.5px; }
+.mini-frame { width: 70%; height: 38px; border-radius: 8px; border: 4px solid var(--pink); box-shadow: 0 0 12px var(--pink); }
+.mini-bg { width: 100%; height: 100%; background: linear-gradient(120deg, #39c5bb, #b36bff 55%, #ff5fa2); }
+.mini-bar { width: 75%; height: 14px; border-radius: 7px; background: var(--line); overflow: hidden; }
+.mini-bar i { display: block; height: 100%; width: 62%; background: repeating-linear-gradient(135deg, var(--teal) 0 10px, #7fe3db 10px 18px); background-size: 200% 100%; animation: stripes 1.2s linear infinite; }
+@keyframes stripes { to { background-position: -50px 0; } }
+.rainbow-text { font-family: var(--display); font-weight: 700; font-size: 26px; background: linear-gradient(90deg, #ff3b5c, #ff9f1c, #ffe14d, #3ddc84, #36c5f0, #8c5cff, #ff3b5c); background-size: 200% 100%; -webkit-background-clip: text; background-clip: text; color: transparent; animation: flow 2.4s linear infinite; }
+.mini-ring { width: 44px; height: 44px; border-radius: 50%; border: 5px solid var(--gold); box-shadow: 0 0 12px var(--gold); }
+.mini-badges { display: flex; gap: 6px; font-size: 22px; }
+.mini-title { font-style: italic; color: var(--violet); font-size: 15px; }
+.where { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 18px; }
+.where span { font-size: 13.5px; padding: 6px 12px; border-radius: 999px; background: var(--panel-2); border: 1px solid var(--line); color: var(--muted); }
+
+/* Catálogo */
+.catalog { display: grid; gap: 14px; }
+.cat-row { display: grid; grid-template-columns: 150px 1fr; gap: 14px; align-items: start; }
+.cat-row > b { font-family: var(--display); font-weight: 600; padding-top: 6px; }
+.items { display: flex; flex-wrap: wrap; gap: 8px; }
+.item { font-size: 14px; padding: 6px 12px; border-radius: 10px; background: var(--panel); border: 1px solid var(--line); border-left: 4px solid var(--c); }
+.counts { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 18px; }
+
+/* Ganar */
+.profiles { display: grid; gap: 16px; }
+.profile { display: grid; grid-template-columns: 190px 1fr 120px; gap: 16px; align-items: center; }
+.profile .who b { font-family: var(--display); font-weight: 600; font-size: 17px; display: block; }
+.profile .who span { color: var(--muted); font-size: 13px; }
+.seg { display: flex; height: 34px; border-radius: 10px; overflow: hidden; background: var(--panel-2); }
+.seg div { display: grid; place-items: center; font-size: 12.5px; font-weight: 700; color: #160f22; white-space: nowrap; overflow: hidden; }
+.profile .res { font-family: var(--display); font-weight: 600; text-align: right; }
+.profile .res small { display: block; font-family: var(--body); font-weight: 400; color: var(--muted); font-size: 12.5px; }
+.scale { display: grid; grid-template-columns: 190px 1fr 120px; gap: 16px; font-size: 12px; color: var(--muted); }
+.scale .ticks { position: relative; height: 16px; }
+.scale .ticks span { position: absolute; transform: translateX(-50%); }
+.earn { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-top: 26px; }
+.earn div { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 14px 16px; display: grid; gap: 2px; }
+.earn b { font-family: var(--display); font-size: 24px; color: var(--gold); font-weight: 600; }
+.earn span { color: var(--muted); font-size: 13.5px; }
+
+/* Comprar */
+.packs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+.pack { background: var(--panel); border: 1px solid var(--line); border-radius: 20px; padding: 20px; display: grid; gap: 10px; justify-items: center; text-align: center; }
+.pack .stackcoins { display: flex; justify-content: center; height: 70px; align-items: flex-end; }
+.pack .stackcoins img { width: 44px; margin-left: -18px; filter: drop-shadow(0 3px 4px rgba(0,0,0,.5)); }
+.pack .usd { font-family: var(--display); font-size: 30px; font-weight: 700; }
+.pack .sc { color: var(--gold); font-family: var(--display); font-size: 20px; font-weight: 600; }
+.pack .bonus { font-size: 13px; padding: 3px 10px; border-radius: 999px; background: var(--panel-2); color: var(--muted); }
+.pack .bonus.on { background: var(--good); color: #062a16; font-weight: 700; }
+.tiers { margin-top: 22px; }
+.tier { display: grid; grid-template-columns: 170px 1fr 90px; gap: 14px; align-items: center; padding-block: 8px; border-bottom: 1px solid var(--line); }
+.tier:last-child { border-bottom: 0; }
+.tier b { font-family: var(--display); font-weight: 600; }
+.tier b small { display: block; font-family: var(--body); font-weight: 400; font-size: 12.5px; color: var(--muted); }
+.tier .track { height: 18px; border-radius: 9px; background: var(--panel-2); overflow: hidden; }
+.tier .track i { display: block; height: 100%; border-radius: 9px; background: linear-gradient(90deg, var(--gold), var(--gold-soft)); }
+.tier .v { text-align: right; font-variant-numeric: tabular-nums; color: var(--gold); font-weight: 700; }
+
+/* Bolsillos */
+.pockets { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.pocket { border-radius: 20px; padding: 20px; display: grid; gap: 12px; border: 2px solid var(--c); background: var(--panel); }
+.pocket h3 { color: var(--c); }
+.pocket ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; font-size: 15px; }
+.pocket li { display: flex; gap: 10px; align-items: baseline; }
+.yes::before { content: "✔"; color: var(--good); font-weight: 700; }
+.no::before { content: "✖"; color: var(--bad); font-weight: 700; }
+.example { margin-top: 16px; background: var(--panel-2); border-radius: 14px; padding: 14px 18px; font-size: 14.5px; color: var(--muted); }
+.example b { color: var(--fg); }
+
+/* Tienda */
+.shop-img { border-radius: 18px; border: 1px solid var(--line); }
+.week { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; margin-top: 18px; }
+.week div { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 8px; font-size: 12.5px; text-align: center; color: var(--muted); min-width: 0; }
+.week div b { display: block; color: var(--fg); font-family: var(--display); font-weight: 600; font-size: 14px; }
+.week div.mon { border-color: var(--gold); background: #2a2210; }
+.prices { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-top: 22px; }
+.price { background: var(--panel); border: 1px solid var(--line); border-top: 4px solid var(--c); border-radius: 14px; padding: 14px; display: grid; gap: 4px; }
+.price b { font-family: var(--display); font-size: 26px; font-weight: 700; }
+.price span { color: var(--muted); font-size: 13px; }
+
+/* Reglas */
+.rules { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; }
+.rule { background: var(--panel); border: 1px solid var(--line); border-radius: 16px; padding: 18px; display: grid; grid-template-columns: 44px 1fr; gap: 12px; align-items: start; }
+.rule .ic { width: 44px; height: 44px; border-radius: 12px; display: grid; place-items: center; font-size: 22px; background: var(--panel-2); }
+.rule b { font-family: var(--display); font-weight: 600; font-size: 16px; display: block; margin-bottom: 2px; }
+.rule span { color: var(--muted); font-size: 14px; }
+
+/* Comandos: maqueta de Discord */
+.discord { background: #313338; border-radius: 16px; padding: 18px; display: grid; gap: 4px; font-family: "gg sans", "Segoe UI", system-ui, sans-serif; color: #dbdee1; font-size: 15px; overflow-x: auto; }
+.discord .hint { color: #949ba4; font-size: 12px; text-transform: uppercase; letter-spacing: .04em; font-weight: 700; padding: 0 8px 8px; }
+.cmd { display: grid; grid-template-columns: 34px 1fr; gap: 12px; align-items: center; padding: 8px; border-radius: 8px; }
+.cmd:hover { background: #2b2d31; }
+.cmd .av { width: 34px; height: 34px; border-radius: 50%; overflow: hidden; background: #ff5fa2; }
+.cmd .av img { width: 100%; height: 100%; object-fit: cover; }
+.cmd code { color: #fff; font-family: inherit; font-weight: 600; }
+.cmd .d { color: #b5bac1; font-size: 13.5px; }
+
+/* Fases */
+.phases { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0; position: relative; }
+.phase { padding: 0 14px 0 0; display: grid; gap: 10px; align-content: start; min-width: 0; }
+.phase .dot { display: flex; align-items: center; gap: 0; }
+.phase .dot i { width: 22px; height: 22px; border-radius: 50%; background: var(--c); box-shadow: 0 0 0 5px var(--ink), 0 0 16px var(--c); flex: none; }
+.phase .dot s { flex: 1; height: 3px; background: var(--line); text-decoration: none; }
+.phase b { font-family: var(--display); font-weight: 600; font-size: 18px; color: var(--c); }
+.phase ul { margin: 0; padding-left: 18px; color: var(--muted); font-size: 14px; display: grid; gap: 4px; }
+
+/* Decisiones */
+.decisions { display: grid; gap: 10px; }
+.decision { display: grid; grid-template-columns: 28px 1fr auto; gap: 12px; align-items: center; background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 12px 16px; }
+.decision input { width: 20px; height: 20px; accent-color: var(--gold); }
+.decision label { cursor: pointer; }
+.decision label small { display: block; color: var(--muted); font-size: 13px; }
+.decision .prop { font-family: var(--display); font-weight: 600; color: var(--gold); font-size: 14px; text-align: right; }
+
+/* Carpeta */
+.tree { background: var(--panel); border: 1px solid var(--line); border-radius: 16px; padding: 18px 22px; font-family: ui-monospace, "Cascadia Mono", Consolas, monospace; font-size: 14px; line-height: 1.75; overflow-x: auto; white-space: pre; color: var(--muted); }
+.tree b { color: var(--gold-soft); font-weight: 600; }
+.tree i { color: #7d7196; font-style: normal; }
+footer { padding-block: 40px 60px; color: var(--muted); font-size: 13.5px; border-top: 1px solid var(--line); }
+
+/* Opciones de moneda */
+.coins { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; margin-top: 20px; }
+.coin-opt { background: var(--panel); border: 2px solid var(--line); border-radius: 18px; padding: 14px 12px; display: grid; gap: 6px; justify-items: center; text-align: center; cursor: pointer; color: var(--fg); font: inherit; }
+.coin-opt:hover, .coin-opt:focus-visible { border-color: var(--muted); outline: none; }
+.coin-opt[aria-checked="true"] { border-color: var(--gold); background: #2a2210; }
+.coin-opt img { width: 96px; height: 96px; border-radius: 12px; }
+.coin-opt b { font-family: var(--display); font-weight: 600; font-size: 15px; }
+.coin-opt b i { font-style: normal; color: var(--gold); margin-right: 4px; }
+.coin-opt span { color: var(--muted); font-size: 12.5px; line-height: 1.35; }
+
+/* Ko-fi contra tienda propia */
+.vs { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 20px; }
+.vs-col { background: var(--panel); border: 1px solid var(--line); border-radius: 18px; padding: 18px 20px; }
+.vs-col.on { border: 2px solid var(--good); }
+.vs-col h3 { margin-bottom: 10px; }
+.vs-col ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; font-size: 14.5px; color: var(--muted); }
+.vs-col li { display: flex; gap: 10px; align-items: baseline; }
+
+/* Maqueta de Discord */
+.dc { background: #313338; border-radius: 16px; overflow: hidden; font-family: "gg sans", "Segoe UI", system-ui, sans-serif; color: #dbdee1; font-size: 15px; }
+.dc-top { padding: 12px 16px; border-bottom: 1px solid #26272b; font-weight: 700; color: #f2f3f5; display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; }
+.dc-top .hash { color: #80848e; font-size: 20px; }
+.dc-topic { color: #949ba4; font-weight: 400; font-size: 13px; }
+.dc-msg { display: grid; grid-template-columns: 40px 1fr; gap: 14px; padding: 16px; }
+.dc-av { width: 40px; height: 40px; border-radius: 50%; background: #ff5fa2; overflow: hidden; }
+.dc-av img { width: 100%; height: 100%; }
+.dc-body { min-width: 0; display: grid; gap: 6px; }
+.dc-name { color: #ff8ab8; font-weight: 600; display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+.dc-name .bot { background: #5865f2; color: #fff; font-size: 10px; font-weight: 700; padding: 1px 5px; border-radius: 4px; }
+.dc-time { color: #949ba4; font-size: 12px; font-weight: 400; }
+.dc-embed { background: #2b2d31; border-left: 4px solid #ff5fa2; border-radius: 4px; padding: 12px 16px; display: grid; grid-template-columns: 1fr auto; gap: 16px; max-width: 560px; }
+.dc-embed.gold { border-left-color: var(--gold); }
+.dc-embed-text { display: grid; gap: 6px; font-size: 14px; min-width: 0; }
+.dc-embed-text b { color: #f2f3f5; font-size: 15.5px; }
+.dc-small { color: #949ba4; font-size: 12.5px; }
+.dc-thumb { width: 72px; height: 72px; }
+.dc-buttons { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 4px; }
+.dbtn { border: 0; border-radius: 4px; padding: 8px 14px; font: inherit; font-size: 14px; font-weight: 500; color: #fff; cursor: pointer; }
+.dbtn.green { background: #248046; } .dbtn.green:hover { background: #1a6334; }
+.dbtn.blurple { background: #5865f2; } .dbtn.blurple:hover { background: #4752c4; }
+.dbtn.grey { background: #4e5058; } .dbtn.grey:hover { background: #6d6f78; }
+.dbtn.red { background: #da373c; }
+.dbtn:disabled { cursor: default; opacity: .9; }
+.dbtn:focus-visible { outline: 2px solid #00a8fc; outline-offset: 2px; }
+.dbtn.link { background: #4e5058; }
+.dc-eph { padding: 0 16px 16px 70px; }
+.dc-eph:empty { display: none; }
+.eph { background: #2b2d31; border-radius: 8px; padding: 14px 16px; display: grid; gap: 10px; border: 1px solid #3f4147; }
+.eph-note { color: #949ba4; font-size: 12px; display: flex; gap: 6px; align-items: center; }
+.eph-note button { background: none; border: 0; color: #00a8fc; font: inherit; font-size: 12px; cursor: pointer; padding: 0; }
+.eph h4 { margin: 0; color: #f2f3f5; font-size: 15px; }
+.eph p { font-size: 14px; }
+.eph-packs { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 8px; }
+.eph-pack { background: #1e1f22; border: 2px solid #3f4147; border-radius: 8px; padding: 10px; display: grid; gap: 2px; justify-items: center; cursor: pointer; color: #dbdee1; font: inherit; }
+.eph-pack:hover, .eph-pack:focus-visible { border-color: var(--gold); outline: none; }
+.eph-pack b { font-size: 18px; color: #f2f3f5; }
+.eph-pack span { color: var(--gold-soft); font-size: 13.5px; }
+.eph-pack small { color: #949ba4; font-size: 12px; }
+.eph-select { background: #1e1f22; color: #dbdee1; border: 1px solid #3f4147; border-radius: 4px; padding: 9px 10px; font: inherit; font-size: 14px; width: 100%; }
+.eph-items { display: flex; flex-wrap: wrap; gap: 8px; }
+.eph-items span { padding: 6px 10px; border-radius: 6px; background: #1e1f22; border-left: 4px solid var(--c); font-size: 13.5px; }
+.eph-pockets { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.eph-pockets div { background: #1e1f22; border-radius: 6px; padding: 10px; display: grid; gap: 2px; }
+.eph-pockets b { font-size: 20px; color: #f2f3f5; font-variant-numeric: tabular-nums; }
+.eph-pockets span { color: #949ba4; font-size: 12px; }
+.eph-steps { margin: 0; padding-left: 20px; display: grid; gap: 6px; font-size: 14px; }
+.ok { color: #3ddc84; font-weight: 600; }
+
+/* Moneda elegida */
+.chosen { display: flex; flex-wrap: wrap; gap: 32px; align-items: center; background: var(--panel); border: 1px solid var(--line); border-radius: 20px; padding: 24px; }
+.chosen-big { width: 220px; }
+.chosen-sizes { display: flex; flex-wrap: wrap; gap: 28px; align-items: flex-end; }
+.chosen-sizes > div { display: grid; gap: 8px; justify-items: center; color: var(--muted); font-size: 13px; }
+.chat-sample p { background: #313338; color: #dbdee1; border-radius: 8px; padding: 10px 14px; display: flex; gap: 6px; align-items: center; font-size: 15px; }
+.others { margin-top: 16px; color: var(--muted); }
+.others summary { cursor: pointer; padding: 6px 0; }
+.others img { margin-top: 10px; }
+
+/* Principios de la tienda */
+.ux { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; }
+.ux > div { background: var(--panel); border: 1px solid var(--line); border-radius: 16px; padding: 16px; display: grid; gap: 4px; justify-items: center; text-align: center; }
+.ux img { width: 64px; height: 64px; }
+.ux b { font-family: var(--display); font-weight: 600; }
+.ux span { color: var(--muted); font-size: 13px; }
+
+/* Simulador: contenedor de Discord (Components V2) */
+.cv2 { background: #2b2d31; border-left: 4px solid #ff5fa2; border-radius: 8px; padding: 12px; display: grid; gap: 10px; max-width: 640px; }
+.cv2 p { font-size: 14.5px; }
+.cv2-img, .eph-img { border-radius: 8px; width: 100%; }
+.eph-img.narrow { max-width: 420px; }
+.em { width: 22px; height: 22px; vertical-align: -5px; display: inline-block; }
+.bi { width: 20px; height: 20px; display: inline-block; vertical-align: -4px; margin-right: 6px; }
+.dbtn { display: inline-flex; align-items: center; }
+.dbtn.fake { cursor: default; }
+.menu-btns .dbtn { flex: 1 1 30%; justify-content: center; padding-block: 10px; }
+.saldo { display: flex; flex-wrap: wrap; gap: 6px; }
+.saldo span { background: #1e1f22; border-radius: 999px; padding: 4px 10px; font-size: 13px; color: #b5bac1; display: inline-flex; align-items: center; gap: 2px; }
+.saldo b { color: #f2f3f5; margin-right: 4px; font-variant-numeric: tabular-nums; }
+.eph h4 { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; }
+.eph .back { border-top: 1px solid #3f4147; padding-top: 10px; }
+.gal { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.gal img { border-radius: 8px; width: 100%; }
+.gal.gal4 { grid-template-columns: repeat(4, 1fr); }
+.sec { display: grid; grid-template-columns: 72px 1fr; gap: 12px; align-items: start; }
+.sec > img { width: 72px; height: 72px; border-radius: 10px; object-fit: contain; }
+.sec > div { display: grid; gap: 6px; min-width: 0; }
+.sec b { color: #f2f3f5; }
+.sec .sobre-img { width: 72px; height: auto; }
+.sep { height: 1px; background: #3f4147; }
+.items-list { display: grid; gap: 10px; }
+.row { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.rchip { font-size: 11.5px; font-weight: 700; padding: 2px 8px; border-radius: 999px; text-transform: uppercase; letter-spacing: .03em; }
+.rchip.owned { background: #4e5058; color: #fff; }
+.rchip.only { background: #3DDC84; color: #062a16; }
+.price-chip { display: inline-flex; align-items: center; background: #1e1f22; border-radius: 999px; padding: 2px 10px 2px 6px; font-weight: 700; color: var(--gold-soft); font-size: 13.5px; }
+.price-chip .bi { width: 16px; height: 16px; margin-right: 4px; vertical-align: 0; }
+.thumb-big { width: 140px; border-radius: 16px; }
+.pity-mini { display: flex; gap: 3px; }
+.pity-mini i { width: 18px; height: 12px; border-radius: 3px; background: #1e1f22; }
+.pity-mini i.on { background: var(--violet); }
+.tabs .dbtn { padding: 5px 10px; font-size: 12.5px; }
+.owned-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(88px, 1fr)); gap: 8px; }
+.owned-grid figure { margin: 0; display: grid; gap: 4px; justify-items: center; text-align: center; }
+.owned-grid img { width: 100%; border-radius: 10px; }
+.owned-grid figcaption { font-size: 11.5px; color: #b5bac1; }
+.owned-grid .locked img { filter: grayscale(1) brightness(.45); }
+.dsels { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 8px; }
+.dsel { display: grid; gap: 4px; font-size: 12px; color: #b5bac1; font-weight: 700; text-transform: uppercase; letter-spacing: .03em; }
+.dsel select { background: #1e1f22; color: #dbdee1; border: 1px solid #3f4147; border-radius: 4px; padding: 8px; font: inherit; font-size: 14px; text-transform: none; letter-spacing: 0; font-weight: 400; }
+.odds-mini { display: flex; flex-wrap: wrap; gap: 10px; font-size: 13.5px; }
+
+/* Mapa del menú */
+.map { background: var(--panel); border: 1px solid var(--line); border-radius: 20px; padding: 20px; display: grid; gap: 18px; justify-items: center; }
+.map-root { font-family: var(--display); font-weight: 600; font-size: 18px; display: flex; gap: 10px; align-items: center; background: var(--panel-2); border: 2px solid var(--gold); border-radius: 999px; padding: 8px 18px; }
+.map-root img { width: 30px; height: 30px; }
+.map-cols { display: grid; grid-template-columns: repeat(6, 1fr); gap: 10px; width: 100%; position: relative; }
+.map-col { display: grid; gap: 6px; justify-items: center; align-content: start; text-align: center; border-top: 2px solid var(--line); padding-top: 12px; min-width: 0; }
+.map-col img { width: 52px; height: 52px; }
+.map-col b { font-family: var(--display); font-weight: 600; font-size: 14.5px; }
+.map-col span { font-size: 12.5px; color: var(--muted); background: var(--panel-2); border-radius: 8px; padding: 4px 8px; width: 100%; }
+.map-col span + span::before { content: "↓ "; color: var(--gold); }
+
+/* Pagos */
+.pays { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.pay { background: var(--panel); border: 1px solid var(--line); border-radius: 20px; padding: 20px; display: grid; gap: 6px; align-content: start; }
+.pay.cl { border-color: #4c7bff; }
+.steps { margin: 8px 0 0; padding-left: 22px; display: grid; gap: 6px; font-size: 14.5px; }
+.steps .good { color: var(--good); font-weight: 600; }
+.steps .you { color: var(--gold); font-weight: 600; }
+.pack-imgs { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
+.pack-imgs img { width: 100%; }
+
+.cmp { display: grid; gap: 16px; }
+.cmp-row { display: grid; grid-template-columns: 80px 1fr; gap: 12px; align-items: center; }
+.cmp-row > b { font-family: var(--display); font-weight: 600; }
+.cmp-bars { position: relative; display: grid; gap: 4px; }
+.cmp-bar { position: relative; height: 26px; background: var(--panel-2); border-radius: 8px; overflow: hidden; }
+.cmp-bar i { position: absolute; inset: 0 auto 0 0; background: #e9e4f2; border-radius: 8px; }
+.cmp-bar.cl i { background: var(--good); }
+.cmp-bar span { position: relative; font-size: 13px; color: #1d1626; padding-left: 10px; line-height: 26px; white-space: nowrap; }
+.cmp-bars s { position: absolute; top: -4px; bottom: -4px; border-left: 2px dashed var(--gold); }
+
+/* Temporada 1 */
+.rubric { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 12px; }
+.rubric > div { background: var(--panel); border: 1px solid var(--line); border-top: 4px solid var(--c); border-radius: 14px; padding: 14px; display: grid; gap: 6px; align-content: start; }
+.rubric b { font-family: var(--display); font-weight: 600; }
+.rubric > div > span:last-child { color: var(--muted); font-size: 13.5px; }
+.t1-filters { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; }
+.t1-filters button { font: inherit; font-size: 14px; padding: 6px 14px; border-radius: 999px; border: 1px solid var(--line); background: var(--panel-2); color: var(--fg); cursor: pointer; }
+.t1-filters button[aria-selected="true"] { border-color: var(--gold); background: #2a2210; }
+.t1-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 14px; }
+.t1-card { background: var(--panel); border: 1px solid var(--line); border-radius: 16px; padding: 10px; display: grid; gap: 8px; min-width: 0; }
+.t1-card img { border-radius: 12px; width: 100%; }
+.t1-card .row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.t1-card b { font-family: var(--display); font-weight: 600; }
+.t1-card p { color: var(--muted); font-size: 13px; }
+.t1-card .lim { color: var(--gold-soft); font-size: 12.5px; }
+.founder { display: grid; grid-template-columns: 1.4fr 1fr; gap: 20px; align-items: start; }
+.founder > img { border-radius: 16px; border: 1px solid var(--line); }
+.founder-list { display: grid; gap: 12px; }
+.founder-list > div { display: grid; grid-template-columns: 48px 1fr; gap: 12px; align-items: center; font-size: 14px; color: var(--muted); }
+.founder-list > div b { display: block; color: var(--fg); font-family: var(--display); font-weight: 600; }
+.founder-list img { width: 48px; height: 48px; border-radius: 10px; }
+.founder-ico { width: 48px; height: 48px; border-radius: 10px; background: #2a2210; display: grid; place-items: center; font-size: 22px; color: var(--gold); font-weight: 700; }
+.warn { margin-top: 28px; background: #2a1c10; border: 1px solid #6b4a1a; border-radius: 16px; padding: 16px 18px; display: grid; gap: 8px; font-size: 14.5px; }
+.warn b { color: var(--gold-soft); }
+
+.showcase { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.showcase figure { margin: 0; background: var(--panel); border: 1px solid var(--line); border-radius: 16px; padding: 10px; display: grid; gap: 10px; }
+.showcase img { border-radius: 12px; width: 100%; }
+.showcase figcaption { display: grid; gap: 4px; color: var(--muted); font-size: 13.5px; }
+.showcase figcaption b { color: var(--fg); font-family: var(--display); font-weight: 600; font-size: 17px; }
+
+.cover { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 18px; }
+.cover div { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 14px; display: grid; gap: 4px; }
+.cover b { font-family: var(--display); font-size: 30px; color: var(--gold); }
+.cover span { color: var(--muted); font-size: 13.5px; }
+
+/* Control */
+.ctrl { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 18px; }
+.kv { display: grid; grid-template-columns: auto 1fr; gap: 3px 14px; font-size: 13.5px; }
+.kv span { color: #949ba4; }
+.kv b { font-size: 13.5px; color: #dbdee1; font-weight: 600; }
+.acts { display: grid; gap: 12px; }
+.acts div { display: grid; gap: 2px; }
+.acts b { font-family: var(--display); font-weight: 600; }
+.acts span { color: var(--muted); font-size: 14px; }
+.flag { font-size: 11px; padding: 1px 6px; border-radius: 6px; margin-left: 6px; background: var(--panel-2); color: var(--gold-soft); }
+
+@media (max-width: 820px) {
+  .hero { grid-template-columns: 1fr; }
+  .hero-coin { width: 140px; order: -1; }
+  .two, .pockets { grid-template-columns: 1fr; }
+  .sobre { grid-template-columns: 1fr; }
+  .sobre .closed { max-width: 200px; }
+  .card-row { grid-template-columns: 1fr; gap: 8px; }
+  .packs { grid-template-columns: 1fr; }
+  .profile, .scale { grid-template-columns: 1fr; gap: 6px; }
+  .scale > :first-child, .scale > :last-child { display: none; }
+  .profile .res { text-align: left; }
+  .tier { grid-template-columns: 120px 1fr 70px; }
+  .cat-row { grid-template-columns: 1fr; gap: 6px; }
+  .phases { grid-template-columns: 1fr 1fr; row-gap: 24px; }
+  .week { grid-template-columns: repeat(4, 1fr); }
+  .vs, .ctrl { grid-template-columns: 1fr; }
+  .dc-eph { padding-left: 16px; }
+  .dc-embed { grid-template-columns: 1fr; }
+  .dc-thumb { display: none; }
+  .eph-pockets { grid-template-columns: 1fr; }
+  .pays { grid-template-columns: 1fr; }
+  .map-cols { grid-template-columns: 1fr 1fr; row-gap: 18px; }
+  .pack-imgs { grid-template-columns: 1fr 1fr; }
+  .menu-btns .dbtn { flex-basis: 45%; }
+  .chosen-big { width: 150px; }
+  .founder { grid-template-columns: 1fr; }
+  .showcase { grid-template-columns: 1fr; }
+  .cover { grid-template-columns: 1fr; }
+  .gal.gal4 { grid-template-columns: 1fr 1fr; }
+  .t1-grid { grid-template-columns: 1fr; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; }
+}
+</style>
+
+<div class="wrap">
+  <header class="hero">
+    <div>
+      <div class="eyebrow">Propuesta para el servidor de los Papus · 25 oct. 2026</div>
+      <h1>Shaula-coins</h1>
+      <p class="sub">Una moneda para personalizar tu tarjeta de nivel: bordes, fondos, barras de XP y nombres con efectos.</p>
+      <div class="lore">🔨 En honor a Shaula, la primera persona baneada del servidor</div>
+      <nav class="toc" aria-label="Secciones">
+        <a href="#moneda">Elige la moneda</a>
+        <a href="#flujo">Cómo funciona</a>
+        <a href="#tarjetas">Las tarjetas</a>
+        <a href="#sobres">Sobres y rarezas</a>
+        <a href="#objetos">Objetos</a>
+        <a href="#temporada1">Temporada 1</a>
+        <a href="#arte-propio">Arte propio</a>
+        <a href="#ganar">Ganar</a>
+        <a href="#comprar">Tienda de monedas</a>
+        <a href="#control">Tu control</a>
+        <a href="#tienda">Tienda de objetos</a>
+        <a href="#reglas">Reglas</a>
+        <a href="#fases">Fases</a>
+        <a href="#decisiones">Tus decisiones</a>
+      </nav>
+    </div>
+    <img class="hero-coin" id="hero-coin" src="imagenes/moneda/shaula-coin-gira.gif" alt="La Shaula-coin elegida, girando">
+  </header>
+
+  <!-- 0. Moneda -->
+  <section id="moneda">
+    <div class="head">
+      <div class="eyebrow">0 · La moneda</div>
+      <h2>Elegida: la ficha arcade</h2>
+      <p class="lead">Las letras «SC» ahora están centradas midiendo su contorno real: quedan a menos de un píxel del centro.</p>
+    </div>
+    <div class="chosen">
+      <img src="imagenes/moneda/shaula-coin.png" alt="Shaula-coin: ficha arcade octagonal tornasol con SC al centro" class="chosen-big">
+      <div class="chosen-sizes">
+        <div><img src="imagenes/moneda/shaula-coin-gira.gif" alt="" width="128" height="128"><span>Girando</span></div>
+        <div><img src="imagenes/moneda/shaula-coin-emoji.png" alt="" width="64" height="64"><span>Emoji grande</span></div>
+        <div class="chat-sample"><p><img src="imagenes/moneda/shaula-coin-emoji.png" alt="" width="22" height="22"> 340 monedas</p><span>Tamaño del chat</span></div>
+      </div>
+    </div>
+    <details class="others"><summary>Ver las otras opciones</summary><img class="shop-img" src="imagenes/moneda/opciones/comparacion.png" alt="Las seis opciones lado a lado" loading="lazy"></details>
+  </section>
+
+  <!-- 1. Flujo -->
+  <section id="flujo">
+    <div class="head">
+      <div class="eyebrow">1 · Cómo funciona</div>
+      <h2>Dos caminos para ganar monedas, dos bolsillos</h2>
+      <p class="lead">Las que ganas participando sirven para todo. Las que se compran sirven solo en la tienda, que vende a precio fijo y sin azar.</p>
+    </div>
+    <div class="diagram">
+      <svg viewBox="0 0 980 360" role="img" aria-label="Diagrama: participar da monedas ganadas, que abren sobres o compran en la tienda; Ko-fi da monedas compradas, que solo compran en la tienda; todo termina en la tarjeta del Papu.">
+        <defs>
+          <marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#b9adcf"/></marker>
+          <marker id="ahx" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#ff6b6b"/></marker>
+        </defs>
+        <g font-family="Figtree, Segoe UI, sans-serif" font-size="14" fill="#f4eefc">
+          <!-- Origen -->
+          <rect x="10" y="40" width="200" height="110" rx="16" fill="#1f3a37" stroke="#39c5bb" stroke-width="2"/>
+          <text x="110" y="78" text-anchor="middle" font-family="Fredoka, sans-serif" font-size="19" font-weight="600">💬 Participar</text>
+          <text x="110" y="102" text-anchor="middle" fill="#b9adcf" font-size="13">chat, voz, misiones,</text>
+          <text x="110" y="120" text-anchor="middle" fill="#b9adcf" font-size="13">subir de nivel, bodas</text>
+          <rect x="10" y="210" width="200" height="110" rx="16" fill="#3a1d2c" stroke="#ff5fa2" stroke-width="2"/>
+          <text x="110" y="248" text-anchor="middle" font-family="Fredoka, sans-serif" font-size="19" font-weight="600">🏪 Tienda de monedas</text>
+          <text x="110" y="272" text-anchor="middle" fill="#b9adcf" font-size="13">en el servidor, con PayPal,</text>
+          <text x="110" y="290" text-anchor="middle" fill="#b9adcf" font-size="13">y regalo de membresía</text>
+          <!-- Bolsillos -->
+          <path d="M210 95 H280" stroke="#b9adcf" stroke-width="2" marker-end="url(#ah)"/>
+          <path d="M210 265 H280" stroke="#b9adcf" stroke-width="2" marker-end="url(#ah)"/>
+          <rect x="285" y="50" width="190" height="90" rx="45" fill="#2a2210" stroke="#ffc83d" stroke-width="2"/>
+          <text x="380" y="88" text-anchor="middle" font-family="Fredoka, sans-serif" font-size="18" font-weight="600" fill="#ffc83d">🪙 Ganadas</text>
+          <text x="380" y="112" text-anchor="middle" fill="#b9adcf" font-size="13">bolsillo verde</text>
+          <rect x="285" y="220" width="190" height="90" rx="45" fill="#2a2210" stroke="#ffc83d" stroke-width="2" stroke-dasharray="6 5"/>
+          <text x="380" y="258" text-anchor="middle" font-family="Fredoka, sans-serif" font-size="18" font-weight="600" fill="#ffc83d">🪙 Compradas</text>
+          <text x="380" y="282" text-anchor="middle" fill="#b9adcf" font-size="13">bolsillo dorado</text>
+          <!-- Destinos -->
+          <rect x="560" y="40" width="190" height="110" rx="16" fill="#2b1d40" stroke="#b36bff" stroke-width="2"/>
+          <text x="655" y="82" text-anchor="middle" font-family="Fredoka, sans-serif" font-size="19" font-weight="600">🎁 Sobre</text>
+          <text x="655" y="106" text-anchor="middle" fill="#b9adcf" font-size="13">3 a 5 objetos al azar</text>
+          <text x="655" y="124" text-anchor="middle" fill="#b9adcf" font-size="13">200 monedas ganadas</text>
+          <rect x="560" y="210" width="190" height="110" rx="16" fill="#1f3a37" stroke="#39c5bb" stroke-width="2"/>
+          <text x="655" y="252" text-anchor="middle" font-family="Fredoka, sans-serif" font-size="19" font-weight="600">🛒 Tienda</text>
+          <text x="655" y="276" text-anchor="middle" fill="#b9adcf" font-size="13">eliges el objeto</text>
+          <text x="655" y="294" text-anchor="middle" fill="#b9adcf" font-size="13">precio fijo, lunes y jueves</text>
+          <path d="M475 95 H555" stroke="#3ddc84" stroke-width="2.5" marker-end="url(#ah)"/>
+          <path d="M455 130 L560 230" stroke="#3ddc84" stroke-width="2.5" marker-end="url(#ah)"/>
+          <path d="M475 265 H555" stroke="#ffc83d" stroke-width="2.5" marker-end="url(#ah)"/>
+          <path d="M455 222 L548 158" stroke="#ff6b6b" stroke-width="2.5" stroke-dasharray="5 5" marker-end="url(#ahx)"/>
+          <circle cx="502" cy="190" r="15" fill="#120d1a" stroke="#ff6b6b" stroke-width="2"/>
+          <text x="502" y="195" text-anchor="middle" fill="#ff6b6b" font-size="15" font-weight="700">✖</text>
+          <!-- Resultado -->
+          <path d="M750 95 Q800 95 820 160" stroke="#b9adcf" stroke-width="2" fill="none" marker-end="url(#ah)"/>
+          <path d="M750 265 Q800 265 820 200" stroke="#b9adcf" stroke-width="2" fill="none" marker-end="url(#ah)"/>
+          <rect x="800" y="140" width="170" height="80" rx="16" fill="#3a2a10" stroke="#ffc83d" stroke-width="2"/>
+          <text x="885" y="175" text-anchor="middle" font-family="Fredoka, sans-serif" font-size="18" font-weight="600">🖼️ Tu tarjeta</text>
+          <text x="885" y="198" text-anchor="middle" fill="#b9adcf" font-size="13">/equipar</text>
+        </g>
+      </svg>
+    </div>
+    <div class="glossary">
+      <div class="term"><b>Shaula-coin 🪙</b><span>La moneda. Una sola, guardada en dos bolsillos según de dónde vino.</span></div>
+      <div class="term"><b>Sobre</b><span>Trae de 3 a 5 objetos al azar. Solo se abre con monedas ganadas.</span><em>Ej.: 200 monedas ganadas = un sobre. Y uno gratis cada semana si participaste 3 días.</em></div>
+      <div class="term"><b>Ecos</b><span>Lo que te dan los objetos repetidos. Con Ecos fabricas el objeto que te falte.</span><em>Ej.: un Común repetido da +6 Ecos; fabricarlo cuesta 60, lo mismo que en la tienda.</em></div>
+      <div class="term"><b>Garantía</b><span>Si tienes mala suerte, el sobre número 10 sin Épica trae una segura.</span></div>
+    </div>
+  </section>
+
+  <!-- 2. Tarjetas -->
+  <section id="tarjetas">
+    <div class="head">
+      <div class="eyebrow">2 · Lo que se ve</div>
+      <h2>La tarjeta de nivel, de hoy a Mítica</h2>
+      <p class="lead">Imágenes hechas con el mismo motor de dibujo de /nivel. Desde Rara en adelante la tarjeta sale como GIF animado.</p>
+    </div>
+    <div class="cards">
+      <div class="card-row"><div class="card-meta"><span class="chip r-hoy">Hoy</span><small>La tarjeta actual, sin objetos</small></div><img src="imagenes/tarjetas/0-hoy.png" alt="Tarjeta de nivel actual" loading="lazy"></div>
+      <div class="card-row"><div class="card-meta"><span class="chip r-comun">Común</span><small>Borde gris, 1 insignia, título</small></div><img src="imagenes/tarjetas/1-comun.png" alt="Tarjeta con objetos comunes" loading="lazy"></div>
+      <div class="card-row"><div class="card-meta"><span class="chip r-rara">Rara</span><small>Nombre en degradado, barra con rayas que avanzan, fondo de Miku</small></div><img src="imagenes/tarjetas/2-rara.gif" alt="Tarjeta con objetos raros, animada" loading="lazy"></div>
+      <div class="card-row"><div class="card-meta"><span class="chip r-epica">Épica</span><small>Nombre neón que late, barra ecualizador, taladros de Teto que giran</small></div><img src="imagenes/tarjetas/3-epica.gif" alt="Tarjeta con objetos épicos, animada" loading="lazy"></div>
+      <div class="card-row"><div class="card-meta"><span class="chip r-legendaria">Legendaria</span><small>Nombre arcoíris que se desplaza, luces de escenario que corren por el borde, notas en órbita</small></div><img src="imagenes/tarjetas/4-legendaria.gif" alt="Tarjeta con objetos legendarios, animada" loading="lazy"></div>
+      <div class="card-row"><div class="card-meta"><span class="chip r-mitica">Mítica</span><small>Borde arcoíris, brillo que barre el nombre, destellos de colores</small></div><img src="imagenes/tarjetas/5-mitica.gif" alt="Tarjeta con objetos míticos, animada" loading="lazy"></div>
+    </div>
+  </section>
+
+  <!-- 3. Sobres -->
+  <section id="sobres">
+    <div class="head">
+      <div class="eyebrow">3 · Sobres y rarezas</div>
+      <h2>Abres el sobre y Teto lo anuncia</h2>
+    </div>
+    <div class="sobre">
+      <img class="closed" src="imagenes/sobre/sobre-cerrado.png" alt="Sobre Papu cerrado con Teto" loading="lazy">
+      <div>
+        <div class="arrow">/sobre abrir → imagen pública en el canal</div>
+        <img class="open" src="imagenes/sobre/sobre-abierto.png" alt="Resultado de abrir un sobre: cuatro objetos con su rareza" loading="lazy">
+      </div>
+    </div>
+
+    <div class="two" style="margin-top:28px">
+      <div class="box">
+        <h3>Probabilidad de cada objeto</h3>
+        <div class="bars num" id="odds"></div>
+        <p class="legend">Se publican en #niveles-ko-fi y en /sobre info.</p>
+      </div>
+      <div class="box">
+        <h3>¿Cuántos objetos trae?</h3>
+        <div class="stack">
+          <div style="width:60%;background:var(--common)">3 · 60 %</div>
+          <div style="width:30%;background:var(--teal)">4 · 30 %</div>
+          <div style="width:10%;background:var(--gold)">5</div>
+        </div>
+        <p class="legend">Promedio: 3,5 objetos por sobre (el 10 % trae 5).</p>
+        <div class="pity">
+          <div class="pity-line"><span><b style="color:var(--violet)">Garantía Épica</b>: el sobre 10 sin Épica trae una segura</span><div class="dots" id="pity1"></div></div>
+          <div class="pity-line"><span><b style="color:var(--gold)">Garantía Legendaria</b>: el sobre 40 sin Legendaria trae una segura</span><div class="dots" id="pity2"></div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="box" style="margin-top:20px">
+      <h3>Repetidos → Ecos → fabricar</h3>
+      <div class="bars num" id="ecos"></div>
+      <p class="legend">Barra: Ecos que da un repetido (10 % de su precio). Número de la derecha: Ecos para fabricarlo, igual a su precio en la tienda. Las Míticas no se fabrican.</p>
+    </div>
+  </section>
+
+  <!-- 4. Objetos -->
+  <section id="objetos">
+    <div class="head">
+      <div class="eyebrow">4 · Objetos</div>
+      <h2>7 tipos, 45 objetos en la temporada 1</h2>
+      <p class="lead">Todos son visuales. Ninguno da XP, cuota ni mensajes extra.</p>
+    </div>
+    <div class="types">
+      <div class="type"><div class="ico"><div class="mini-frame"></div></div><b>Borde</b><span>El marco de toda la tarjeta</span></div>
+      <div class="type"><div class="ico"><div class="mini-bg"></div></div><b>Fondo</b><span>Imagen detrás de la tarjeta (banners de los Vocaloids)</span></div>
+      <div class="type"><div class="ico"><div class="mini-bar"><i></i></div></div><b>Barra de XP</b><span>Estilo y animación de la barra</span></div>
+      <div class="type"><div class="ico"><span class="rainbow-text">Papu</span></div><b>Efecto de nombre</b><span>Degradado, neón, arcoíris que se desplaza</span></div>
+      <div class="type"><div class="ico"><div class="mini-ring"></div></div><b>Aro de avatar</b><span>El círculo alrededor de tu foto</span></div>
+      <div class="type"><div class="ico"><div class="mini-badges">🥬 🥖 🐟</div></div><b>Insignia</b><span>Hasta 3 junto a tu nombre</span></div>
+      <div class="type"><div class="ico"><span class="mini-title">« Voz del Mirai »</span></div><b>Título</b><span>Frase bajo tu nombre</span></div>
+    </div>
+    <div class="where">
+      <span>Dónde se ve:</span><span>/nivel</span><span>/perfil</span><span>Top 10 del #ranking</span><span>Aviso de subida de nivel</span><span>Banner de boda</span>
+    </div>
+
+    <h3 style="margin:40px 0 14px">Catálogo de la temporada 1</h3>
+    <div class="counts" id="counts"></div>
+    <div class="catalog" id="catalog"></div>
+  </section>
+
+  <!-- 4b. Temporada 1 -->
+  <section id="temporada1">
+    <div class="head">
+      <div class="eyebrow">4b · Temporada 1 «Lanzamiento»</div>
+      <h2>28 fondos con tus renders de Diva-a-Render</h2>
+      <p class="lead">La rareza sigue qué tan histórica o viral es la canción del traje. Cada imagen es la tarjeta de nivel real con ese fondo puesto.</p>
+    </div>
+    <div class="rubric">
+      <div style="--c:#ff5fa2"><span class="chip r-mitica">Mítica</span><b>La escena más histórica</b><span>Varios personajes de la canción que más contaste en el canal.</span></div>
+      <div style="--c:var(--gold)"><span class="chip r-legendaria">Legendaria</span><b>Canciones históricas o virales</b><span>Daughter of Evil, Servant of Evil, Triple Baka.</span></div>
+      <div style="--c:var(--violet)"><span class="chip r-epica">Épica</span><b>Saga, grupos y especiales</b><span>El resto del elenco de la saga, la familia Crypton y los especiales de temporada (Halloween, Navidad).</span></div>
+      <div style="--c:var(--teal)"><span class="chip r-rara">Rara</span><b>Pose especial</b><span>Un gesto con el traje original: saludo, doble V, gatita…</span></div>
+      <div style="--c:var(--common)"><span class="chip r-comun">Común</span><b>Traje original</b><span>El diseño con el que debutó cada Vocaloid.</span></div>
+    </div>
+    <img class="shop-img" style="margin-top:20px" src="imagenes/temporada1/catalogo.png" alt="Catálogo de la temporada 1 por rareza" loading="lazy">
+
+    <h3 style="margin:36px 0 12px">Míralos en la tarjeta</h3>
+    <div class="t1-filters" id="t1-filters" role="tablist" aria-label="Filtrar por rareza"></div>
+    <div class="t1-grid" id="t1-grid"></div>
+
+    <h3 style="margin:44px 0 12px">Recompensa de los Papus fundadores</h3>
+    <div class="founder">
+      <img src="imagenes/temporada1/fundadores/tarjeta-fundador.png" alt="Tarjeta de fundador: fondo Noche de estreno con Teto, Miku, Luka y Neru, borde de estrellas doradas y la cinta Fundador N.º 007" loading="lazy">
+      <div class="founder-list">
+        <div><img src="imagenes/temporada1/miniaturas/noche-de-estreno.png" alt=""><span><b>Fondo «Noche de estreno»</b>Teto, Miku, Luka y Neru con la fecha de apertura, 17 · 10 · 2026.</span></div>
+        <div><span class="founder-ico">⭐</span><span><b>Borde «Estrella fundadora»</b>Marco dorado con estrellas en las esquinas.</span></div>
+        <div><img src="imagenes/temporada1/fundadores/insignia-fundador.png" alt=""><span><b>Insignia «17»</b>Estrella dorada junto al nombre.</span></div>
+        <div><span class="founder-ico">#</span><span><b>Número de fundador</b>«Fundador N.º 007» en la tarjeta, según el orden en que cada uno recibió el rol. Nadie más tendrá ese número.</span></div>
+        <p class="legend">Nunca se vende, no sale en sobres ni se puede fabricar. Lo reciben solos quienes tienen el rol ⭐ Fundador (nivel de Ko-fi en la primera semana), apenas se abra la tienda.</p>
+      </div>
+    </div>
+
+    <div class="warn">
+      <b>⚠️ Antes de vender estos fondos</b>
+      <p>Las notas del motor marcan los renders de Mega Mix+ y del mod Eden Project como «uso personal no comercial». Venderlos con monedas compradas sería uso comercial, y dLocal prohíbe vender objetos que usen propiedad intelectual ajena: te pueden cerrar la cuenta.</p>
+      <p><b>Propuesta:</b> los fondos con renders se consiguen solo con monedas <b>ganadas</b> (sobres, tienda pagada con ganadas, eventos y fundadores). Con las monedas compradas solo se compran objetos de arte propio: bordes, barras, efectos de nombre e insignias kawaii.</p>
+    </div>
+  </section>
+
+  <!-- 4c. Arte propio -->
+  <section id="arte-propio">
+    <div class="head">
+      <div class="eyebrow">4c · Arte propio</div>
+      <h2>40 objetos que se compran con cualquier moneda</h2>
+      <p class="lead">Dibujados con código: sin renders ni imágenes ajenas, así que se pueden vender con monedas compradas. 14 son animados, incluido el fondo nuevo «Mar de luces».</p>
+    </div>
+    <div class="showcase">
+      <figure><img src="imagenes/arte-propio/tarjetas/mar-de-luces.gif" alt="Fondo animado Mar de luces: focos que barren el escenario y un público con barras de luz" loading="lazy"><figcaption><span class="chip r-legendaria">Legendaria · fondo animado</span><b>Mar de luces</b>Focos que barren el escenario, un mar de barras de luz que se mece y notas que suben. 700 monedas.</figcaption></figure>
+      <figure><img src="imagenes/arte-propio/tarjetas/combinacion-legendaria.gif" alt="Tarjeta con todos los objetos legendarios puestos a la vez" loading="lazy"><figcaption><span class="chip r-legendaria">Combinación</span><b>Todo lo legendario a la vez</b>Mar de luces, Luces del Mirai, Oro líquido, Arcoíris en marcha, Notas en órbita, 3 insignias y el título «Voz del Mirai».</figcaption></figure>
+    </div>
+    <img class="shop-img" style="margin-top:20px" src="imagenes/arte-propio/catalogo.png" alt="Catálogo de arte propio por tipo, con precios" loading="lazy">
+    <h3 style="margin:32px 0 12px">Cada objeto en la tarjeta</h3>
+    <div class="t1-filters" id="ap-filters" role="tablist" aria-label="Filtrar por tipo"></div>
+    <div class="t1-grid" id="ap-grid"></div>
+  </section>
+
+  <!-- 5. Ganar -->
+  <section id="ganar">
+    <div class="head">
+      <div class="eyebrow">5 · Ganar participando</div>
+      <h2>Un día normal de tres Papus</h2>
+      <p class="lead">Calculado con la XP real del 20 al 23 de octubre: la mitad de los Papus gana unas 200 XP al día y los más activos pasan de 2.500.</p>
+    </div>
+    <div class="profiles" id="profiles"></div>
+    <div class="legend" id="earn-legend"></div>
+    <div class="earn">
+      <div><b>1 por 20 XP</b><span>Chat y voz, hasta 60 al día</span></div>
+      <div><b>+5</b><span>Primer mensaje del día</span></div>
+      <div><b>+10</b><span>Cada misión de la ruleta (hasta 3)</span></div>
+      <div><b>+15</b><span>Cada nivel que subes</span></div>
+      <div><b>+50</b><span>Rango nuevo (cada 3 o 4 niveles)</span></div>
+      <div><b>+40</b><span>Boda ganada con una Vocaloid</span></div>
+      <div><b>+50</b><span>7 días seguidos escribiendo</span></div>
+      <div><b>🎁 1 sobre</b><span>Gratis cada lunes si participaste 3 días o más en la semana</span></div>
+      <div><b style="color:var(--bad)">0</b><span>Día con strike de Neru: ese día no gana nada</span></div>
+    </div>
+  </section>
+
+  <!-- 6. Comprar -->
+  <section id="comprar">
+    <div class="head">
+      <div class="eyebrow">6 · Tienda de monedas en el servidor</div>
+      <h2>Canal #🪙・tienda-shaula: un menú con dibujos, sin comandos</h2>
+      <p class="lead">Todo se hace tocando botones con dibujos. Se paga con PayPal o con transferencia (Chile), y no hay que vincular cuentas: el pedido ya sabe quién es el Papu. Así no pasa lo de Ko-fi, donde 3 compras quedaron sin rol.</p>
+    </div>
+
+    <div class="diagram">
+      <svg viewBox="0 0 980 230" role="img" aria-label="Pago: el Papu toca Comprar, Teto crea un pedido con su ID de Discord, el Papu paga en PayPal, PayPal avisa a Cloudflare, Teto entrega las monedas y te avisa a ti.">
+        <defs><marker id="ah2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#b9adcf"/></marker></defs>
+        <g font-family="Figtree, Segoe UI, sans-serif" font-size="13" fill="#b9adcf" text-anchor="middle">
+          <rect x="6" y="40" width="150" height="100" rx="16" fill="#251d35" stroke="#3a2f50" stroke-width="2"/>
+          <text x="81" y="80" font-size="26">👆</text><text x="81" y="108" fill="#f4eefc" font-family="Fredoka, sans-serif" font-size="16" font-weight="600">Toca «Comprar»</text><text x="81" y="126">en el canal</text>
+          <rect x="202" y="40" width="150" height="100" rx="16" fill="#3a1d2c" stroke="#ff5fa2" stroke-width="2"/>
+          <text x="277" y="80" font-size="26">🧾</text><text x="277" y="108" fill="#f4eefc" font-family="Fredoka, sans-serif" font-size="16" font-weight="600">Teto crea el pedido</text><text x="277" y="126">con su ID de Discord</text>
+          <rect x="398" y="40" width="150" height="100" rx="16" fill="#14284a" stroke="#36c5f0" stroke-width="2"/>
+          <text x="473" y="80" font-size="26">💳</text><text x="473" y="108" fill="#f4eefc" font-family="Fredoka, sans-serif" font-size="16" font-weight="600">Paga en PayPal</text><text x="473" y="126">tarjeta o saldo</text>
+          <rect x="594" y="40" width="150" height="100" rx="16" fill="#2a2210" stroke="#ff9f1c" stroke-width="2"/>
+          <text x="669" y="80" font-size="26">☁️</text><text x="669" y="108" fill="#f4eefc" font-family="Fredoka, sans-serif" font-size="16" font-weight="600">Cloudflare recibe</text><text x="669" y="126">el aviso, 24/7</text>
+          <rect x="790" y="40" width="184" height="100" rx="16" fill="#1f3a37" stroke="#3ddc84" stroke-width="2"/>
+          <text x="882" y="80" font-size="26">🪙</text><text x="882" y="108" fill="#f4eefc" font-family="Fredoka, sans-serif" font-size="16" font-weight="600">Monedas entregadas</text><text x="882" y="126">en menos de 1 minuto</text>
+          <path d="M156 90 H197" stroke="#b9adcf" stroke-width="2" marker-end="url(#ah2)"/>
+          <path d="M352 90 H393" stroke="#b9adcf" stroke-width="2" marker-end="url(#ah2)"/>
+          <path d="M548 90 H589" stroke="#b9adcf" stroke-width="2" marker-end="url(#ah2)"/>
+          <path d="M744 90 H785" stroke="#b9adcf" stroke-width="2" marker-end="url(#ah2)"/>
+          <path d="M882 140 V178 H640" stroke="#b9adcf" stroke-width="2" fill="none" marker-end="url(#ah2)"/>
+          <rect x="420" y="160" width="215" height="40" rx="12" fill="#251d35" stroke="#ffc83d" stroke-width="2"/>
+          <text x="527" y="185" fill="#ffe9a8" font-size="13.5">🔒 Te avisa en #registro-compras</text>
+        </g>
+      </svg>
+    </div>
+
+    <div class="vs">
+      <div class="vs-col"><h3>☕ Ko-fi (hoy)</h3><ul><li class="no">El Papu tiene que vincular Discord antes de pagar</li><li class="no">Si se le olvida, no le llega nada y te toca arreglarlo a mano</li><li class="no">Comisión de Ko-fi además de la de PayPal en tienda y membresías sin Ko-fi Gold (por confirmar)</li></ul></div>
+      <div class="vs-col on"><h3>🏪 Tienda propia</h3><ul><li class="yes">El enlace ya sabe quién es el Papu</li><li class="yes">Se compra sin salir del flujo de Discord: botón, pago, listo</li><li class="yes">Solo la comisión de PayPal</li><li class="yes">Ves cada compra y la puedes frenar</li></ul></div>
+    </div>
+
+    <h3 style="margin:44px 0 14px">Cómo se siente usarla</h3>
+    <div class="ux">
+      <div><img src="imagenes/canal-tienda/iconos/tienda.png" alt=""><b>Dibujos, no comandos</b><span>Cada opción es un botón con su dibujo</span></div>
+      <div><img src="imagenes/canal-tienda/iconos/volver.png" alt=""><b>Siempre hay «Volver»</b><span>Nadie queda atrapado en una pantalla</span></div>
+      <div><img src="imagenes/canal-tienda/iconos/probar.png" alt=""><b>Probar antes de comprar</b><span>Ves tu tarjeta con el objeto puesto</span></div>
+      <div><img src="imagenes/canal-tienda/iconos/ok.png" alt=""><b>Confirmar antes de gastar</b><span>Un toque de más evita compras por error</span></div>
+      <div><img src="imagenes/canal-tienda/iconos/mochila.png" alt=""><b>Solo tú lo ves</b><span>Las pantallas son privadas; el canal queda limpio</span></div>
+      <div><img src="imagenes/canal-tienda/iconos/monedero.png" alt=""><b>Tu saldo siempre arriba</b><span>En cada pantalla, sin tener que buscarlo</span></div>
+    </div>
+
+    <h3 style="margin:44px 0 6px">Pruébala: el canal completo</h3>
+    <p class="legend" style="margin:0 0 16px">Simulador con datos de ejemplo. Toca los botones como lo haría un Papu: comprar, pagar, probar, abrir sobres y equipar.</p>
+    <div class="dc" id="demo">
+      <div class="dc-top"><span class="hash">#</span> 🪙・tienda-shaula <span class="dc-topic">Toca un botón · solo tú ves lo que abres</span></div>
+      <div class="dc-msg">
+        <div class="dc-av"><img src="imagenes/canal-tienda/emojis-servidor/teto_hola.png" alt=""></div>
+        <div class="dc-body">
+          <div class="dc-name">Kasane Teto <span class="bot">APP</span> <span class="dc-time">📌 fijado</span></div>
+          <div class="cv2">
+            <img class="cv2-img" src="imagenes/canal-tienda/menu/banner.png" alt="Banner Tienda Shaula con Teto y Miku">
+            <p>¡Hola, Papu! <img class="em" src="imagenes/canal-tienda/emojis-servidor/teto_feliz.gif" alt=""> Aquí compras monedas, abres sobres y adornas tu tarjeta. <b>Toca un dibujo:</b></p>
+            <img class="cv2-img" src="imagenes/canal-tienda/menu/menu.png" alt="Menú con seis opciones ilustradas">
+            <div class="dc-buttons menu-btns" id="menu-btns"></div>
+          </div>
+        </div>
+      </div>
+      <div class="dc-eph" id="eph" aria-live="polite"></div>
+    </div>
+    <p class="legend">En Discord las imágenes no se pueden tocar. Por eso cada dibujo del menú tiene abajo su botón, con el mismo dibujo y en el mismo orden.</p>
+
+    <h3 style="margin:44px 0 14px">Mapa del menú</h3>
+    <div class="map" id="map"></div>
+
+    <h3 style="margin:44px 0 14px">Kawaiimojis nuevos para los botones</h3>
+    <img class="shop-img" src="imagenes/canal-tienda/iconos/hoja.png" alt="Doce emojis kawaii: moneda, tienda, sobre, mochila, tarjeta, monedero, ayuda, banco, mundo, volver, probar y listo" loading="lazy">
+    <p class="legend">12 emojis de 128 px con borde de sticker. Se suben al servidor como los demás. Teto también usa los que ya existen, como :teto_feliz: y :miku_porrista:.</p>
+
+    <h3 style="margin:44px 0 14px">Dos formas de pagar</h3>
+    <div class="pays">
+      <div class="pay">
+        <img src="imagenes/canal-tienda/iconos/mundo.png" alt="" width="72" height="72">
+        <h3>PayPal</h3>
+        <p class="legend">México y cualquier país · tarjeta o saldo</p>
+        <ol class="steps"><li>Elige el paquete</li><li>Teto le da un enlace que es solo suyo</li><li>Paga en PayPal</li><li class="good">Las monedas llegan solas en 1 minuto</li></ol>
+      </div>
+      <div class="pay cl">
+        <img src="imagenes/canal-tienda/iconos/banco.png" alt="" width="72" height="72">
+        <h3>Transferencia (Chile)</h3>
+        <p class="legend">Directo a tu cuenta · <b style="color:var(--good)">más barato</b>, porque no hay comisión de PayPal</p>
+        <ol class="steps"><li>Elige el paquete</li><li>Teto le muestra la boleta con un código, ej. <b>SC-7KQ2</b></li><li>Transfiere con el código en el comentario</li><li>Toca «Ya transferí»</li><li class="you">Tú ves la transferencia en tu banco y tocas «Llegó»</li><li class="good">Le llegan las monedas y Teto le avisa</li></ol>
+      </div>
+    </div>
+    <div class="dc" style="margin-top:16px">
+      <div class="dc-top"><span class="hash">#</span> 🔒・registro-compras <span class="dc-topic">Solo GyroP</span></div>
+      <div class="dc-msg">
+        <div class="dc-av"><img src="imagenes/canal-tienda/emojis-servidor/teto_hola.png" alt=""></div>
+        <div class="dc-body">
+          <div class="dc-name">Kasane Teto <span class="bot">APP</span> <span class="dc-time">hoy a las 18:02</span></div>
+          <div class="dc-embed" style="border-left-color:#4c7bff">
+            <div class="dc-embed-text">
+              <b>🏦 Transferencia por confirmar</b>
+              <div class="kv num"><span>Papu</span><b>Papu de ejemplo</b><span>Código</span><b>SC-7KQ2</b><span>Monto</span><b>$4.000 CLP · Bolsa (3.100)</b><span>Avisó</span><b>hace 3 min</b></div>
+            </div>
+            <img class="dc-thumb" src="imagenes/canal-tienda/iconos/banco.png" alt="">
+          </div>
+          <div class="dc-buttons"><button type="button" class="dbtn green" disabled>✅ Llegó</button><button type="button" class="dbtn red" disabled>❌ No llegó</button><button type="button" class="dbtn grey" disabled>💬 Escribirle</button></div>
+        </div>
+      </div>
+    </div>
+    <p class="legend">Tus datos bancarios van en el archivo .env (nunca en el repo) y solo los ve el Papu que eligió transferir. Un pedido sin confirmar vence a los 7 días.</p>
+
+    <h3 style="margin:44px 0 14px">Paquetes</h3>
+    <div class="pack-imgs">
+      <img src="imagenes/canal-tienda/paquetes/punado.png" alt="Puñado: 1.200 monedas, 2 USD por PayPal o 1.500 pesos por transferencia" loading="lazy">
+      <img src="imagenes/canal-tienda/paquetes/bolsa.png" alt="Bolsa: 3.100 monedas, 5 USD por PayPal o 4.000 pesos por transferencia" loading="lazy">
+      <img src="imagenes/canal-tienda/paquetes/cofre.png" alt="Cofre: 6.300 monedas, 10 USD por PayPal o 8.000 pesos por transferencia" loading="lazy">
+      <img src="imagenes/canal-tienda/paquetes/tesoro.png" alt="Tesoro: 9.500 monedas, 15 USD por PayPal o 12.000 pesos por transferencia; alcanza para todo el arte propio de la temporada" loading="lazy">
+    </div>
+    <div class="box" style="margin-top:16px">
+      <h3>Cuánto paga un Papu chileno</h3>
+      <div class="cmp num" id="cmp"></div>
+      <p class="legend">Barra blanca: el precio de PayPal en pesos (a unos 950 pesos por dólar). Barra verde: transfiriendo. Línea punteada: lo que te queda a ti de PayPal después de su comisión (estimada en 5,4 % + 0,30 USD; revísala en tu cuenta). Con el Puñado te queda lo mismo que con PayPal; con la Bolsa y el Cofre, unos 200 y 700 pesos menos, a cambio de que el Papu chileno ahorre bastante más.</p>
+    </div>
+    <p class="legend">Sin tope automático: tú decides cuánto puede comprar cada Papu (sección 7).</p>
+
+    <div class="box tiers">
+      <h3>Regalo mensual por membresía</h3>
+      <p class="legend" style="margin:-8px 0 12px">Teto mira los roles: al recibir el rol de un nivel de Ko-fi entrega el regalo, y luego cada 30 días mientras lo tenga. Si Ko-fi falla y das el rol a mano, igual funciona.</p>
+      <div id="tiers"></div>
+    </div>
+
+    <h3 style="margin:36px 0 14px">Los dos bolsillos</h3>
+    <div class="pockets">
+      <div class="pocket" style="--c:var(--good)">
+        <h3>🪙 Ganadas</h3>
+        <ul><li class="yes">Abrir sobres</li><li class="yes">Comprar en la tienda</li><li class="yes">Fabricar con Ecos</li></ul>
+      </div>
+      <div class="pocket" style="--c:var(--gold)">
+        <h3>🪙 Compradas</h3>
+        <ul><li class="yes">Comprar en la tienda</li><li class="no">Abrir sobres</li><li class="no">Pasar al bolsillo de ganadas</li></ul>
+      </div>
+    </div>
+    <div class="example"><b>Ejemplo:</b> un Papu tiene 300 ganadas y 150 compradas. Compra un borde Raro de 150: se paga con las compradas, así que conserva sus 300 ganadas: le alcanzan para un sobre (200) y le sobran 100. Un fondo con renders solo se puede pagar con las ganadas.</div>
+  </section>
+
+  <!-- 7. Control de GyroP -->
+  <section id="control">
+    <div class="head">
+      <div class="eyebrow">7 · Tu control</div>
+      <h2>Cada compra te llega a un canal privado</h2>
+      <p class="lead">Solo tú ves #🔒・registro-compras. Desde cada aviso puedes poner un límite, bloquear o devolver, con un botón.</p>
+    </div>
+    <div class="dc">
+      <div class="dc-top"><span class="hash">#</span> 🔒・registro-compras <span class="dc-topic">Solo GyroP</span></div>
+      <div class="dc-msg">
+        <div class="dc-av"><img src="imagenes/moneda/shaula-coin-emoji.png" alt="" class="coin-img"></div>
+        <div class="dc-body">
+          <div class="dc-name">Kasane Teto <span class="bot">APP</span> <span class="dc-time">hoy a las 21:14</span></div>
+          <div class="dc-embed gold">
+            <div class="dc-embed-text">
+              <b>🧾 Compra de Papu de ejemplo</b>
+              <div class="kv num"><span>Paquete</span><b>Bolsa · 3.100 monedas</b><span>Pagó</span><b>5 USD por PayPal</b><span>Este mes</span><b>3 compras · 12 USD</b><span>Límite</span><b>sin límite</b><span>Primera compra</span><b>18 oct. 2026</b></div>
+            </div>
+          </div>
+          <div class="dc-buttons">
+            <button type="button" class="dbtn grey" disabled>📜 Historial</button>
+            <button type="button" class="dbtn grey" disabled>📏 Poner límite</button>
+            <button type="button" class="dbtn red" disabled>⛔ Bloquear compras</button>
+            <button type="button" class="dbtn grey" disabled>↩️ Devolver</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="ctrl">
+      <div class="box">
+        <h3>/monedas panel · este mes</h3>
+        <div class="bars num" id="buyers"></div>
+        <p class="legend">Datos de ejemplo. El panel ordena por gasto del mes y marca a quien tiene límite o bloqueo.</p>
+      </div>
+      <div class="box">
+        <h3>Lo que puedes hacer</h3>
+        <div class="acts">
+          <div><b>📏 Límite por Papu</b><span>Ej.: «máximo 5 USD al mes». Al llegar, el botón de comprar le muestra una frase fija de Teto.</span></div>
+          <div><b>⛔ Bloquear</b><span>No puede comprar más, pero conserva lo que tiene y sigue ganando participando.</span></div>
+          <div><b>↩️ Devolver</b><span>Devuelve el pago en PayPal y quita esas monedas (o las que queden).</span></div>
+          <div><b>🎁 Regalar</b><span>/monedas dar, para premios de eventos o para arreglar un error.</span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 7. Tienda -->
+  <section id="tienda">
+    <div class="head">
+      <div class="eyebrow">8 · Tienda de objetos</div>
+      <h2>Dos vitrinas por semana, con 9 objetos cada una</h2>
+      <p class="lead">Lunes y jueves a las 00:00 (hora de Chile). Cada vitrina mezcla 5 objetos de arte propio (cualquier moneda) y 4 con renders (solo monedas ganadas). Al empezar la temporada el bot arma el calendario: todos los objetos salen al menos una vez.</p>
+    </div>
+    <img class="shop-img" src="imagenes/tienda/tienda-semana.png" alt="Vitrina del lunes con objetos y sus precios" loading="lazy">
+    <div class="week" aria-label="Calendario de vitrinas">
+      <div class="mon"><b>Lun</b>Vitrina nueva<br>Miku la anuncia</div>
+      <div><b>Mar</b>—</div>
+      <div><b>Mié</b>Último día<br>de la del lunes</div>
+      <div class="mon"><b>Jue</b>Vitrina nueva<br>Miku la anuncia</div>
+      <div><b>Vie</b>—</div>
+      <div><b>Sáb</b>—</div>
+      <div><b>Dom</b>Último día<br>de la del jueves</div>
+    </div>
+    <div class="cover">
+      <div><b>67</b><span>objetos de la temporada 1 para la tienda (40 de arte propio + 27 con renders; la mítica sale solo en sobres)</span></div>
+      <div><b>72</b><span>lugares en un mes: 8 vitrinas × 9 objetos</span></div>
+      <div><b>≥ 1</b><span>vez sale cada objeto por temporada; los 5 lugares que sobran repiten los más pedidos</span></div>
+    </div>
+    <div class="prices num">
+      <div class="price" style="--c:var(--common)"><span>Común</span><b>60</b><span>6 Ecos si sale repetido</span></div>
+      <div class="price" style="--c:var(--teal)"><span>Rara</span><b>150</b><span>15 Ecos si sale repetido</span></div>
+      <div class="price" style="--c:var(--violet)"><span>Épica</span><b>350</b><span>35 Ecos si sale repetido</span></div>
+      <div class="price" style="--c:var(--gold)"><span>Legendaria</span><b>700</b><span>70 Ecos si sale repetido</span></div>
+      <div class="price" style="--c:var(--pink)"><span>Mítica</span><b>—</b><span>Solo en sobres</span></div>
+    </div>
+  </section>
+
+  <!-- 8. Reglas -->
+  <section id="reglas">
+    <div class="head">
+      <div class="eyebrow">9 · Reglas de protección</div>
+      <h2>Lo que nunca cambia</h2>
+    </div>
+    <div class="rules">
+      <div class="rule"><div class="ic">💬</div><div><b>Nada da ventaja con los bots</b><span>Ni XP, ni cuota, ni mensajes extra. La regla 1 del servidor sigue igual.</span></div></div>
+      <div class="rule"><div class="ic">🎲</div><div><b>El azar no se compra</b><span>Las monedas compradas no abren sobres. Lo pagado siempre se ve antes de comprarlo.</span></div></div>
+      <div class="rule"><div class="ic">📊</div><div><b>Probabilidades públicas</b><span>Publicadas en #niveles-ko-fi y en /sobre info, con las garantías.</span></div></div>
+      <div class="rule"><div class="ic">🔒</div><div><b>Tú regulas las compras</b><span>Ves cada compra y puedes poner un límite, bloquear o devolver a cada Papu.</span></div></div>
+      <div class="rule"><div class="ic">🤝</div><div><b>Sin intercambio al inicio</b><span>Evita estafas y reventas que habría que moderar. Se puede revisar en la temporada 2.</span></div></div>
+      <div class="rule"><div class="ic">⚠️</div><div><b>Strike = día sin monedas</b><span>Igual que con la ruleta: Neru bloquea las ganancias de ese día.</span></div></div>
+    </div>
+  </section>
+
+  <!-- 9. Comandos -->
+  <section id="comandos">
+    <div class="head">
+      <div class="eyebrow">10 · Atajos</div>
+      <h2>Los comandos quedan solo como atajo</h2>
+      <p class="lead">El menú del canal hace todo. Estos comandos abren la misma pantalla del menú para quien los prefiera; los de GyroP sirven para administrar.</p>
+    </div>
+    <div class="discord" id="cmds"><div class="hint">Comandos de Kasane Teto</div></div>
+  </section>
+
+  <!-- 10. Fases -->
+  <section id="fases">
+    <div class="head">
+      <div class="eyebrow">11 · Fases</div>
+      <h2>Se construye en 4 entregas</h2>
+      <p class="lead">Cada fase se puede usar sola. El dinero entra recién en la fase 3, cuando el resto ya está probado.</p>
+    </div>
+    <div class="phases">
+      <div class="phase" style="--c:var(--teal)"><div class="dot"><i></i><s></s></div><b>1 · Monedero</b><ul><li>Ganar monedas</li><li>/monedero</li><li>Tarjeta con objetos</li><li>/inventario y /equipar</li></ul></div>
+      <div class="phase" style="--c:var(--violet)"><div class="dot"><i></i><s></s></div><b>2 · Sobres</b><ul><li>/sobre abrir y su imagen</li><li>Garantías</li><li>Ecos y /fabricar</li><li>45 objetos dibujados</li></ul></div>
+      <div class="phase" style="--c:var(--gold)"><div class="dot"><i></i><s></s></div><b>3 · Tiendas</b><ul><li>#🪙・tienda-shaula: menú con dibujos</li><li>PayPal por Cloudflare y transferencia (Chile)</li><li>#🔒・registro-compras y /monedas panel</li><li>Tienda de objetos de cada lunes</li><li>Regalo mensual por rol</li></ul></div>
+      <div class="phase" style="--c:var(--pink)"><div class="dot"><i></i></div><b>4 · Temporadas</b><ul><li>Temporada 2 con objetos nuevos</li><li>Ranking de coleccionistas</li><li>Sobre especial del aniversario (17 oct.)</li></ul></div>
+    </div>
+  </section>
+
+  <!-- 11. Decisiones -->
+  <section id="decisiones">
+    <div class="head">
+      <div class="eyebrow">12 · Para decidir</div>
+      <h2>Lo que necesito que confirmes</h2>
+      <p class="lead">A la derecha va lo que propongo. Marca lo que te parece bien; las marcas solo se guardan en tu navegador.</p>
+    </div>
+    <div class="decisions" id="decisions"></div>
+  </section>
+
+  <!-- 12. Carpeta -->
+  <section id="carpeta">
+    <div class="head">
+      <div class="eyebrow">13 · Archivos entregados</div>
+      <h2>Todo está en una sola carpeta</h2>
+    </div>
+<div class="tree"><b>docs/propuestas/shaula-coins/</b>
+├─ <b>propuesta.html</b>              <i>esta página</i>
+├─ temporada1.json              <i>catálogo de la temporada 1</i>
+├─ arte-propio.json             <i>catálogo de arte propio, con precios</i>
+├─ <b>imagenes/</b>
+│  ├─ <b>moneda/</b>
+│  │  ├─ shaula-coin.png           <i>la elegida (ficha arcade), 512 px</i>
+│  │  ├─ shaula-coin-emoji.png     <i>128 px, lista para subir como emoji</i>
+│  │  ├─ shaula-coin-gira.gif
+│  │  └─ <b>opciones/</b>               <i>los 6 diseños nuevos</i>
+│  │     ├─ comparacion.png
+│  │     └─ a-martillo … f-pixel   <i>cada uno: .png, -emoji.png, -gira.gif</i>
+│  ├─ <b>canal-tienda/</b>
+│  │  ├─ <b>menu/</b>                  <i>banner.png, menu.png</i>
+│  │  ├─ <b>iconos/</b>                <i>12 kawaiimojis + hoja.png</i>
+│  │  ├─ <b>paquetes/</b>              <i>punado, bolsa, cofre</i>
+│  │  ├─ <b>objetos/</b>               <i>miniaturas de la tienda</i>
+│  │  ├─ <b>pantallas/</b>             <i>monedero, boleta, ayuda, abrir-sobre.gif</i>
+│  │  └─ <b>emojis-servidor/</b>       <i>copias de emojis que ya existen</i>
+│  ├─ <b>arte-propio/</b>
+│  │  ├─ catalogo.png             <i>los 40 objetos por tipo, con precio</i>
+│  │  ├─ <b>miniaturas/</b>            <i>para la tienda</i>
+│  │  └─ <b>tarjetas/</b>              <i>la tarjeta con cada objeto (GIF si es animado)</i>
+│  ├─ <b>temporada1/</b>
+│  │  ├─ catalogo.png             <i>los 28 fondos por rareza</i>
+│  │  ├─ <b>fondos/</b>                <i>fondo de tarjeta de cada objeto (1000 × 340)</i>
+│  │  ├─ <b>miniaturas/</b>            <i>cuadradas, para la tienda</i>
+│  │  ├─ <b>tarjetas/</b>              <i>la tarjeta de nivel real con cada fondo</i>
+│  │  └─ <b>fundadores/</b>            <i>fondo, tarjeta e insignia de fundador</i>
+│  ├─ <b>tarjetas/</b>
+│  │  ├─ 0-hoy.png
+│  │  ├─ 1-comun.png
+│  │  ├─ 2-rara.gif
+│  │  ├─ 3-epica.gif
+│  │  ├─ 4-legendaria.gif
+│  │  └─ 5-mitica.gif
+│  ├─ <b>sobre/</b>
+│  │  ├─ sobre-cerrado.png
+│  │  └─ sobre-abierto.png
+│  └─ <b>tienda/</b>
+│     └─ tienda-semana.png
+└─ <b>fuente/</b>
+   ├─ maquetas.ts                <i>tarjetas, sobre y tienda</i>
+   ├─ monedas.ts                 <i>las opciones de moneda</i>
+   ├─ tienda.ts                  <i>dibujos del canal de la tienda</i>
+   ├─ temporada1.ts              <i>fondos de la temporada 1 (usa Diva-a-Render)</i>
+   └─ arte-propio.ts             <i>los 40 objetos de arte propio</i></div>
+  </section>
+
+  <footer>Propuesta del 25 de octubre de 2026 para GyroP. Las cifras son un punto de partida; se ajustan con un mes de datos reales.</footer>
+</div>
+
+<script>
+(() => {
+  const R = {
+    comun: { n: "Común", c: "var(--common)" },
+    rara: { n: "Rara", c: "var(--teal)" },
+    epica: { n: "Épica", c: "var(--violet)" },
+    legendaria: { n: "Legendaria", c: "var(--gold)" },
+    mitica: { n: "Mítica", c: "linear-gradient(90deg,#ff3b5c,#ff9f1c,#ffe14d,#3ddc84,#36c5f0,#8c5cff)" },
+  };
+  const fmt = (n) => n.toLocaleString("es-CL");
+
+  // Probabilidades (escala: 62 % = barra llena).
+  const odds = [["comun", 62], ["rara", 27], ["epica", 8.5], ["legendaria", 2.2], ["mitica", 0.3]];
+  document.getElementById("odds").innerHTML = odds.map(([k, p]) =>
+    `<div class="bar"><span>${R[k].n}</span><div class="track"><div class="fill" style="width:${(p / 62) * 100}%;background:${R[k].c}"></div></div><span class="v">${String(p).replace(".", ",")} %</span></div>`).join("");
+
+  // Garantías.
+  const dots = (n, last, cls) => Array.from({ length: n }, (_, i) => `<i class="${i === n - 1 ? cls : ""}"></i>`).join("");
+  document.getElementById("pity1").innerHTML = dots(10, true, "hit");
+  document.getElementById("pity2").innerHTML = dots(40, true, "gold");
+
+  // Ecos: lo que da un repetido (barra, escala 500) y el costo de fabricar.
+  const ecos = [["comun", 6, 60], ["rara", 15, 150], ["epica", 35, 350], ["legendaria", 70, 700], ["mitica", 200, null]];
+  document.getElementById("ecos").innerHTML = ecos.map(([k, give, craft]) =>
+    `<div class="bar"><span>${R[k].n}</span><div class="track"><div class="fill" style="width:${(give / 200) * 100}%;background:${R[k].c}"></div></div><span class="v">${craft ? fmt(craft) : "—"}</span></div>`).join("") +
+    `<div class="legend">${ecos.map(([k, g]) => `${R[k].n}: +${g}`).join(" · ")}</div>`;
+
+  // Catálogo.
+  const cat = {
+    "Borde": [["Cinta de casete", "comun"], ["Pentagrama", "comun"], ["Hoja de cuaderno", "comun"], ["Neón de Akihabara", "rara"], ["Cables de micrófono", "rara"], ["Taladros de Teto", "epica"], ["Atún plateado", "epica"], ["Luces del Mirai", "legendaria"], ["Baneo de Shaula", "mitica"]],
+    "Fondo": [["Papel pautado", "comun"], ["Cielo de Tokio", "comun"], ["Sala de ensayo", "comun"], ["Atardecer de Luka", "rara"], ["Pantalla de Neru", "rara"], ["Quimera de 31 años", "epica"], ["Concierto holográfico", "epica"], ["Noche del 39", "legendaria"]],
+    "Barra de XP": [["Lisa de color", "comun"], ["Punteada", "comun"], ["Ritmo de Teto", "rara"], ["Ecualizador", "epica"], ["Onda de voz", "epica"], ["Oro líquido", "legendaria"]],
+    "Efecto de nombre": [["Tiza blanca", "comun"], ["Dos tonos", "rara"], ["Contorno de cómic", "rara"], ["Neón", "epica"], ["Arcoíris en marcha", "legendaria"], ["Shaula.exe", "mitica"]],
+    "Aro de avatar": [["Aro simple", "comun"], ["Puerro trenzado", "rara"], ["Corazones de Luka", "epica"], ["Notas en órbita", "legendaria"]],
+    "Insignia": [["🥬 Puerro", "comun"], ["🥖 Baguette", "comun"], ["🐟 Atún", "comun"], ["🎤 Micrófono", "comun"], ["🍊 Naranja de Rin", "comun"], ["🍌 Plátano de Len", "comun"], ["📱 Celular de Neru", "rara"], ["🍨 Helado de Kaito", "rara"], ["👑 Corona", "epica"]],
+    "Título": [["Recién llegado al karaoke", "comun"], ["Coleccionista de puerros", "rara"], ["Taladro oficial de Teto", "epica"], ["Voz del Mirai", "legendaria"], ["Sobreviviente de Shaula", "mitica"]],
+  };
+  const tally = { comun: 0, rara: 0, epica: 0, legendaria: 0, mitica: 0 };
+  document.getElementById("catalog").innerHTML = Object.entries(cat).map(([t, list]) =>
+    `<div class="cat-row"><b>${t}</b><div class="items">${list.map(([n, k]) => { tally[k]++; return `<span class="item" style="--c:${k === "mitica" ? "#ff5fa2" : R[k].c}">${n}</span>`; }).join("")}</div></div>`).join("");
+  document.getElementById("counts").innerHTML = Object.entries(tally).map(([k, n]) => `<span class="chip r-${k}">${R[k].n} · ${n}</span>`).join("");
+
+  // Perfiles de un día (escala: 120 monedas = barra llena).
+  const parts = [["Chat y voz", "#ffc83d"], ["Primer mensaje", "#ffe9a8"], ["Misiones", "#b36bff"], ["Subir nivel", "#39c5bb"]];
+  const profiles = [
+    { who: "Tranquilo", xp: "~200 XP · la mitad de los Papus", v: [10, 5, 0, 0] },
+    { who: "Activo", xp: "~1.000 XP · 1 misión", v: [50, 5, 10, 0] },
+    { who: "Muy activo", xp: "3.000+ XP · 3 misiones · 1 nivel", v: [60, 5, 30, 15] },
+  ];
+  const MAX = 120;
+  document.getElementById("profiles").innerHTML = profiles.map((p) => {
+    const total = p.v.reduce((a, b) => a + b, 0);
+    const days = 200 / total;
+    const when = days <= 1 ? "un sobre al día" : `un sobre cada ${Math.round(days)} días`;
+    return `<div class="profile"><div class="who"><b>${p.who}</b><span>${p.xp}</span></div>
+      <div class="seg" role="img" aria-label="${total} monedas al día">${p.v.map((v, i) => v ? `<div style="width:${(v / MAX) * 100}%;background:${parts[i][1]}" title="${parts[i][0]}: ${v}">${v >= 10 ? v : ""}</div>` : "").join("")}</div>
+      <div class="res num">${total} al día<small>${when}</small></div></div>`;
+  }).join("") +
+    `<div class="scale"><span></span><div class="ticks">${[0, 30, 60, 90, 120].map((t) => `<span style="left:${(t / MAX) * 100}%">${t}</span>`).join("")}</div><span></span></div>`;
+  document.getElementById("earn-legend").innerHTML = parts.map(([n, c]) => `<span><span style="display:inline-block;width:10px;height:10px;border-radius:3px;background:${c};margin-right:6px"></span>${n}</span>`).join("");
+
+  // Membresías (escala: 7.000 = barra llena).
+  const tiers = [["🥬 Puerro", 2, 600], ["🐟 Atún", 4, 1200], ["🥖 Baguette", 7, 2000], ["📱 Celular", 12, 3500], ["🎶 Triple Baka", 25, 7000]];
+  document.getElementById("tiers").innerHTML = tiers.map(([n, usd, sc]) =>
+    `<div class="tier"><b>${n}<small>${usd} USD al mes</small></b><div class="track"><i style="width:${(sc / 7000) * 100}%"></i></div><span class="v">${fmt(sc)}</span></div>`).join("");
+
+  // Comandos.
+  const cmds = [
+    ["/monedero", "Tus monedas ganadas y compradas, tus Ecos y cuánto falta para la garantía"],
+    ["/sobre abrir", "Abre un sobre (200 ganadas) y publica la imagen en el canal"],
+    ["/sobre info", "Probabilidades y garantías"],
+    ["/tienda", "La vitrina de la semana; /tienda comprar para comprar"],
+    ["/inventario", "Tus objetos por tipo y rareza"],
+    ["/equipar", "Elige borde, fondo, barra, nombre, aro, insignias y título"],
+    ["/fabricar", "Convierte Ecos en el objeto que te falte"],
+    ["/monedas panel", "Solo GyroP: compras del mes por Papu"],
+    ["/monedas limite · bloquear", "Solo GyroP: límite mensual o bloqueo de compras de un Papu"],
+    ["/monedas dar · quitar", "Solo GyroP: corrige saldos a mano"],
+  ];
+  document.getElementById("cmds").insertAdjacentHTML("beforeend", cmds.map(([c, d]) =>
+    `<div class="cmd"><div class="av"><img class="coin-img" src="imagenes/moneda/shaula-coin-emoji.png" alt=""></div><div><code>${c}</code><div class="d">${d}</div></div></div>`).join(""));
+
+  // Simulador de #tienda-shaula (datos de ejemplo). Cada pantalla es un mensaje privado de Teto que se reemplaza.
+  const T = "imagenes/canal-tienda/";
+  const ico = (n) => `<img class="bi" src="${T}iconos/${n}.png" alt="">`;
+  const coinI = `<img class="bi" src="imagenes/moneda/shaula-coin-emoji.png" alt="">`;
+  const emo = (n) => `<img class="em" src="${T}emojis-servidor/${n}" alt="">`;
+  const btn = (view, label, { icon = "", color = "grey", i, dis = false } = {}) =>
+    `<button type="button" class="dbtn ${color}" data-view="${view}"${i !== undefined ? ` data-i="${i}"` : ""}${dis ? " disabled" : ""}>${icon}${label}</button>`;
+  const st = { ganadas: 450, compradas: 0, ecos: 20, sobres: 6, pack: 1, owned: new Set(["papel-pautado", "atardecer-de-luka", "arcoiris-en-marcha"]) };
+  const PACKS = [["Puñado", "punado", 2, "1.500", 1200], ["Bolsa", "bolsa", 5, "4.000", 3100], ["Cofre", "cofre", 10, "8.000", 6300], ["Tesoro", "tesoro", 15, "12.000", 9500]];
+  const SHOP = [
+    ["papel-pautado", "Pantalla de Neru", "Fondo", "comun", 60, true],
+    ["baguette-dorada", "Baguette dorada", "Insignia", "comun", 60],
+    ["puerro-trenzado", "Puerro trenzado", "Aro de avatar", "rara", 150],
+    ["ritmo-de-teto", "Ritmo de Teto", "Barra de XP", "rara", 150],
+    ["taladros-de-teto", "Taladros de Teto", "Borde", "epica", 350],
+    ["luces-del-mirai", "Luces del Mirai", "Borde", "legendaria", 700],
+  ];
+  const ALL = [...SHOP, ["atardecer-de-luka", "Atardecer de Luka", "Fondo", "rara", 0, true], ["arcoiris-en-marcha", "Arcoíris en marcha", "Efecto de nombre", "legendaria", 0]];
+  const PREVIEW = { comun: "1-comun.png", rara: "2-rara.gif", epica: "3-epica.gif", legendaria: "4-legendaria.gif" };
+  const rchip = (r, t) => `<span class="rchip r-${r}">${R[r].n}${t ? " · " + t : ""}</span>`;
+  const price = (p) => `<span class="price-chip">${coinI}${fmt(p)}</span>`;
+  const shell = (title, inner, back = "menu") => `<div class="eph">
+    <div class="eph-note">👁️ Solo tú puedes ver esto · <button type="button" data-view="cerrar">Descartar mensaje</button></div>
+    <div class="saldo"><span>${coinI}<b>${fmt(st.ganadas)}</b> ganadas</span><span>${coinI}<b>${fmt(st.compradas)}</b> compradas</span><span>${ico("sobre")}<b>${st.ecos}</b> Ecos</span></div>
+    <h4>${title}</h4>${inner}
+    ${back ? `<div class="dc-buttons back">${btn(back, back === "menu" ? "Menú" : "Volver", { icon: ico("volver") })}</div>` : ""}</div>`;
+  let last = { view: "comprar" };
+
+  const V = {
+    cerrar: () => "",
+    comprar: () => shell(`${coinI} Comprar monedas`, `<p>Elige un paquete. Las monedas compradas sirven en la tienda de la semana.</p>
+      <div class="gal gal4">${PACKS.map(([n, f]) => `<img src="${T}paquetes/${f}.png" alt="${n}">`).join("")}</div>
+      <div class="dc-buttons">${PACKS.map(([n], i) => btn("metodo", n, { icon: coinI, color: "green", i })).join("")}</div>`),
+    metodo: (i) => { st.pack = i; const [n, , usd, clp, sc] = PACKS[i]; return shell(`¿Cómo quieres pagar tu ${n}? (${fmt(sc)} monedas)`, `
+      <div class="sec"><img src="${T}iconos/mundo.png" alt=""><div><b>PayPal</b><p class="dc-small">Desde México o cualquier país · tarjeta o saldo · llegan solas en 1 minuto</p>${btn("paypal", `Pagar ${usd} USD`, { color: "blurple", i })}</div></div>
+      <div class="sep"></div>
+      <div class="sec"><img src="${T}iconos/banco.png" alt=""><div><b>Transferencia (solo Chile)</b><p class="dc-small">Desde tu banco · <b class="ok">más barato</b> · GyroP la confirma a mano</p>${btn("transferencia", `Transferir $${clp}`, { color: "blurple", i })}</div></div>`, "comprar"); },
+    paypal: (i) => shell(`${ico("mundo")} Tu enlace de pago está listo`, `<p>Es solo tuyo y vence en 30 minutos. Cuando pagues, vuelve aquí: Teto te avisa.</p>
+      <div class="dc-buttons"><span class="dbtn link fake">Abrir PayPal ↗</span>${btn("pagado", "(demo) Simular pago listo", { color: "grey", i })}</div>`, "comprar"),
+    transferencia: (i) => shell(`${ico("banco")} Transferencia en Chile`, `<img class="eph-img narrow" src="${T}pantallas/boleta-transferencia.png" alt="Boleta con monto, datos de la cuenta y el código SC-7KQ2">
+      <div class="dc-buttons">${btn("copiar", "📋 Copiar datos", { color: "grey", i })}${btn("pendiente", "Ya transferí", { icon: ico("ok"), color: "green", i })}</div>`, "comprar"),
+    copiar: (i) => {
+      const txt = "Banco de ejemplo · Cuenta vista · •••• 1234 · Comentario: SC-7KQ2";
+      try { navigator.clipboard.writeText(txt).catch(() => {}); } catch {}
+      return V.transferencia(i).replace("<h4>", `<p class="ok">✔ Copiado (en la demo son datos de ejemplo)</p><h4>`);
+    },
+    pendiente: (i) => shell(`${emo("teto_hola.png")} ¡Gracias! Le avisé a GyroP`, `<p>Cuando vea tu transferencia en su banco, te llegan las <b>${fmt(PACKS[i][4])}</b> monedas y te aviso por aquí y por mensaje privado.</p>
+      <div class="dc-buttons">${btn("pagado", "(demo) GyroP toca «Llegó»", { color: "grey", i })}</div>`),
+    pagado: (i) => { st.compradas += PACKS[i][4]; return shell(`${ico("ok")} ¡Llegaron tus ${fmt(PACKS[i][4])} monedas! ${emo("miku_porrista.gif")}`, `<p>Están en tu bolsillo de compradas. ¿Vamos a la tienda?</p>
+      <div class="dc-buttons">${btn("tienda", "Tienda de la semana", { icon: ico("tienda"), color: "blurple" })}${btn("tarjeta", "Mi tarjeta", { icon: ico("tarjeta") })}</div>`); },
+    tienda: () => shell(`${ico("tienda")} Tienda de la semana · cambia en 3 d 14 h`, `<div class="items-list">${SHOP.map(([id, n, t, r, p], i) => `
+      <div class="sec item-sec"><img src="${T}objetos/${id}.png" alt=""><div><b>${n}</b><div class="row">${rchip(r, t)}${price(p)}${SHOP[i][5] ? '<span class="rchip only">Solo ganadas</span>' : ""}${st.owned.has(id) ? '<span class="rchip owned">Ya lo tienes</span>' : ""}</div>
+      <div class="dc-buttons">${btn("probar", "Probar", { icon: ico("probar"), i })}${btn("confirmar", "Comprar", { icon: coinI, color: "green", i, dis: st.owned.has(id) })}</div></div></div>`).join('<div class="sep"></div>')}</div>`),
+    probar: (i) => { const [id, n, t, r, p] = SHOP[i]; return shell(`${ico("probar")} Así se vería tu tarjeta con ${n}`, `<img class="eph-img" src="imagenes/tarjetas/${PREVIEW[r]}" alt="Vista previa de la tarjeta">
+      <p class="dc-small">Vista previa: nada se gasta hasta que confirmes.</p>
+      <div class="dc-buttons">${btn("confirmar", `Comprar por ${fmt(p)}`, { icon: coinI, color: "green", i, dis: st.owned.has(id) })}</div>`, "tienda"); },
+    confirmar: (i) => {
+      const [id, n, t, r, p] = SHOP[i];
+      const soloGanadas = !!SHOP[i][5];
+      const total = soloGanadas ? st.ganadas : st.compradas + st.ganadas;
+      if (total < p) return shell(`${emo("neru_jeje.png")} Te faltan ${fmt(p - total)} monedas`, `<p>${n} cuesta ${fmt(p)} y tienes ${fmt(total)}${soloGanadas ? " ganadas (este fondo usa un render: solo se paga con las que ganas participando)" : ""}. Puedes juntarlas participando${soloGanadas ? "" : " o comprar un paquete"}.</p>
+        <div class="dc-buttons">${btn("comprar", "Comprar monedas", { icon: coinI, color: "green" })}</div>`, "tienda");
+      const fb = soloGanadas ? 0 : Math.min(st.compradas, p);
+      return shell(`¿Compras ${n}?`, `<div class="sec"><img src="${T}objetos/${id}.png" alt=""><div><b>${n}</b><div class="row">${rchip(r, t)}${price(p)}</div>
+        <p class="dc-small">Se paga con ${fb ? `${fmt(fb)} compradas` : ""}${fb && p - fb ? " y " : ""}${p - fb ? `${fmt(p - fb)} ganadas` : ""}.</p></div></div>
+        <div class="dc-buttons">${btn("comprado", "Sí, comprar", { icon: ico("ok"), color: "green", i })}${btn("tienda", "Cancelar", { color: "red" })}</div>`, "");
+    },
+    comprado: (i) => {
+      const [id, n, t, , p] = SHOP[i];
+      const fb = SHOP[i][5] ? 0 : Math.min(st.compradas, p);
+      st.compradas -= fb; st.ganadas -= p - fb; st.owned.add(id);
+      return shell(`${ico("ok")} ¡${n} es tuyo! ${emo("gato_pulgar.png")}`, `<img class="thumb-big" src="${T}objetos/${id}.png" alt="">
+        <div class="dc-buttons">${btn("tarjeta", "Equipar ahora", { icon: ico("tarjeta"), color: "blurple" })}${btn("tienda", "Seguir mirando", { icon: ico("tienda") })}</div>`);
+    },
+    sobres: () => shell(`${ico("sobre")} Sobres`, `<div class="sec"><img class="sobre-img" src="imagenes/sobre/sobre-cerrado.png" alt="Sobre Papu"><div>
+      <p>Cada sobre trae <b>3 a 5 objetos</b> sorpresa y cuesta <b>200 ganadas</b> (las compradas no abren sobres). Y cada lunes te llega <b>uno gratis</b> si participaste 3 días.</p>
+      <p class="dc-small">Garantía Épica: ${st.sobres % 10} de 10</p><div class="pity-mini">${Array.from({ length: 10 }, (_, k) => `<i class="${k < st.sobres % 10 ? "on" : ""}"></i>`).join("")}</div>
+      <div class="dc-buttons">${btn("abrir", "Abrir sobre (200)", { icon: ico("sobre"), color: "green", dis: st.ganadas < 200 })}${btn("ayuda", "Probabilidades", { icon: ico("ayuda") })}</div></div></div>`),
+    abrir: () => {
+      if (st.ganadas < 200) return V.sobres();
+      st.ganadas -= 200; st.sobres++; st.ecos += 6;
+      ["atardecer-de-luka", "arcoiris-en-marcha"].forEach((x) => st.owned.add(x));
+      return shell(`${ico("sobre")} ¡Sobre abierto! ${emo("teto_feliz.gif")}`, `<img class="eph-img" src="${T}pantallas/abrir-sobre.gif?v=${Date.now()}" alt="Animación: el sobre tiembla, destella y aparecen cuatro objetos">
+        <p class="dc-small">Teto también lo anuncia en el canal. El repetido se convirtió en +6 Ecos.</p>
+        <div class="dc-buttons">${btn("abrir", "Abrir otro", { icon: ico("sobre"), color: "green", dis: st.ganadas < 200 })}${btn("coleccion", "Ver mi colección", { icon: ico("mochila") })}</div>`);
+    },
+    coleccion: () => shell(`${ico("mochila")} Mi colección`, `<img class="eph-img" src="${T}pantallas/monedero.png" alt="Monedero: ganadas, compradas, Ecos y garantía">
+      <div class="dc-buttons tabs">${["Todo", "Bordes", "Fondos", "Barras", "Nombres", "Aros", "Insignias", "Títulos"].map((t, k) => `<span class="dbtn ${k ? "grey" : "blurple"} fake">${t}</span>`).join("")}</div>
+      <div class="owned-grid">${ALL.map(([id, n, t, r]) => `<figure class="${st.owned.has(id) ? "" : "locked"}"><img src="${T}objetos/${id}.png" alt=""><figcaption>${st.owned.has(id) ? n : "???"}</figcaption></figure>`).join("")}</div>
+      <p class="dc-small">${st.owned.size} de 45 objetos · los grises te faltan</p>
+      <div class="dc-buttons">${btn("tarjeta", "Mi tarjeta", { icon: ico("tarjeta"), color: "blurple" })}</div>`),
+    tarjeta: () => {
+      const mine = ALL.filter(([id]) => st.owned.has(id));
+      const best = ["legendaria", "epica", "rara", "comun"].find((r) => mine.some((m) => m[3] === r)) || "comun";
+      const slot = (label, tipo) => {
+        const opts = mine.filter((m) => m[2] === tipo);
+        return `<label class="dsel"><span>${label}</span><select data-slot>${opts.length ? opts.map(([id, n, , r]) => `<option value="${r}">${n} (${R[r].n})</option>`).join("") : "<option>Aún no tienes</option>"}</select></label>`;
+      };
+      return shell(`${ico("tarjeta")} Mi tarjeta`, `<img class="eph-img" id="card-prev" src="imagenes/tarjetas/${PREVIEW[best]}" alt="Tu tarjeta">
+        <div class="dsels">${slot("Borde", "Borde")}${slot("Fondo", "Fondo")}${slot("Barra de XP", "Barra de XP")}${slot("Efecto de nombre", "Efecto de nombre")}${slot("Aro de avatar", "Aro de avatar")}${slot("Insignias", "Insignia")}</div>
+        <div class="dc-buttons">${btn("guardado", "Guardar", { icon: ico("ok"), color: "green" })}</div>`);
+    },
+    guardado: () => shell(`${ico("ok")} ¡Guardado! ${emo("luka_hola.png")}`, `<p>Tu /nivel, el #ranking y tus avisos de nivel ya salen con tu tarjeta nueva.</p>`),
+    ayuda: () => shell(`${ico("ayuda")} Cómo funciona`, `<img class="eph-img" src="${T}pantallas/ayuda.png" alt="Tres pasos: participa, abre o compra, luce tu tarjeta">
+      <div class="odds-mini">${[["comun", 62], ["rara", 27], ["epica", 8.5], ["legendaria", 2.2], ["mitica", 0.3]].map(([r, p]) => `<span>${rchip(r)} ${String(p).replace(".", ",")} %</span>`).join("")}</div>
+      <p class="dc-small">Probabilidad de cada objeto de un sobre. Garantía: Épica segura cada 10 sobres y Legendaria cada 40.</p>`),
+  };
+
+  const MENU = [["comprar", "Comprar monedas", "moneda", "green"], ["tienda", "Tienda de la semana", "tienda", "blurple"], ["sobres", "Sobres", "sobre", "blurple"], ["coleccion", "Mi colección", "mochila", "grey"], ["tarjeta", "Mi tarjeta", "tarjeta", "grey"], ["ayuda", "Ayuda", "ayuda", "grey"]];
+  document.getElementById("menu-btns").innerHTML = MENU.map(([v, l, i, c]) => btn(v, l, { icon: v === "comprar" ? coinI : ico(i), color: c })).join("");
+  const eph = document.getElementById("eph");
+  const show = (view, i) => {
+    if (view === "menu") { eph.innerHTML = ""; document.getElementById("demo").scrollIntoView({ block: "nearest", behavior: "smooth" }); return; }
+    last = { view, i };
+    eph.innerHTML = V[view](i);
+  };
+  document.getElementById("demo").addEventListener("click", (e) => {
+    const b = e.target.closest("button[data-view]");
+    if (!b || b.disabled) return;
+    show(b.dataset.view, b.dataset.i !== undefined ? +b.dataset.i : undefined);
+  });
+  document.getElementById("demo").addEventListener("change", (e) => {
+    if (!e.target.matches("[data-slot]")) return;
+    const prev = document.getElementById("card-prev");
+    if (prev && PREVIEW[e.target.value]) prev.src = `imagenes/tarjetas/${PREVIEW[e.target.value]}`;
+  });
+  eph.innerHTML = V.comprar();
+
+  // Comparación de precios para Chile (escala: 15.000 pesos = barra llena).
+  const CLP = 950;
+  document.getElementById("cmp").innerHTML = [["Puñado", 2, 1500], ["Bolsa", 5, 4000], ["Cofre", 10, 8000], ["Tesoro", 15, 12000]].map(([n, usd, clp]) => {
+    const pp = usd * CLP, neto = (usd - usd * 0.054 - 0.3) * CLP, pct = Math.round((1 - clp / pp) * 100);
+    const w = (v) => `${(v / 15000) * 100}%`;
+    return `<div class="cmp-row"><b>${n}</b><div class="cmp-bars"><div class="cmp-bar"><i style="width:${w(pp)}"></i><span>PayPal ≈ $${fmt(Math.round(pp / 50) * 50)}</span></div><div class="cmp-bar cl"><i style="width:${w(clp)}"></i><span>Transferencia $${fmt(clp)} · <b>${pct} % menos</b></span></div><s style="left:${w(neto)}" title="Te queda de PayPal: $${fmt(Math.round(neto / 50) * 50)}"></s></div></div>`;
+  }).join("");
+
+  // Mapa del menú.
+  const MAP = [
+    ["moneda", "Comprar monedas", ["Elegir paquete", "PayPal o transferencia", "Pagar", "¡Monedas!"]],
+    ["tienda", "Tienda de la semana", ["6 objetos con dibujo", "Probar en tu tarjeta", "Confirmar", "Equipar"]],
+    ["sobre", "Sobres", ["Ver garantía", "Abrir (animación)", "Repetidos → Ecos"]],
+    ["mochila", "Mi colección", ["Monedero", "Filtrar por tipo", "Lo que falta, en gris"]],
+    ["tarjeta", "Mi tarjeta", ["Vista previa", "Elegir cada pieza", "Guardar"]],
+    ["ayuda", "Ayuda", ["3 pasos con dibujos", "Probabilidades"]],
+  ];
+  document.getElementById("map").innerHTML = `<div class="map-root"><img src="imagenes/moneda/shaula-coin-emoji.png" alt="">Menú fijado del canal</div><div class="map-cols">${MAP.map(([i, t, steps]) =>
+    `<div class="map-col"><img src="${T}iconos/${i}.png" alt=""><b>${t}</b>${steps.map((x) => `<span>${x}</span>`).join("")}</div>`).join("")}</div>`;
+
+  // Panel de compras del mes (ejemplo; escala: 25 USD = barra llena).
+  const buyers = [["Papu A", 22, ""], ["Papu B", 12, ""], ["Papu C", 10, "límite 10"], ["Papu D", 5, ""], ["Papu E", 2, "bloqueado"]];
+  document.getElementById("buyers").innerHTML = buyers.map(([n, u, f]) =>
+    `<div class="bar"><span>${n}</span><div class="track"><div class="fill" style="width:${(u / 25) * 100}%;background:${f === "bloqueado" ? "var(--bad)" : "var(--gold)"}"></div></div><span class="v">${u} USD${f ? `<span class="flag">${f}</span>` : ""}</span></div>`).join("");
+  const bars = document.getElementById("buyers");
+  bars.querySelectorAll(".bar").forEach((r) => (r.style.gridTemplateColumns = "70px 1fr 150px"));
+
+  // Temporada 1: tarjetas reales con cada fondo, filtrables por rareza.
+  const T1 = [{"id": "gemelos-del-mal", "nombre": "Gemelos del mal", "rareza": "mitica", "motivo": "Daughter of Evil + Servant of Evil (mothy, 2008): la saga que más contaste en el canal, con los dos gemelos juntos.", "n": 2}, {"id": "la-hija-del-mal", "nombre": "La hija del mal", "rareza": "legendaria", "motivo": "Rin como Riliane: Daughter of Evil (2008), clásico de la historia de Vocaloid y cap. 1 de tu serie.", "n": 1}, {"id": "el-sirviente-del-mal", "nombre": "El sirviente del mal", "rareza": "legendaria", "motivo": "Len como Allen: Servant of Evil (2008), la otra mitad de la historia y cap. 3 de tu serie.", "n": 1}, {"id": "triple-baka", "nombre": "Triple Baka", "rareza": "legendaria", "motivo": "Miku, Teto y Neru: el trío meme de Vocaloid y el nombre de tu nivel más alto de Ko-fi.", "n": 3}, {"id": "principe-azul", "nombre": "El príncipe azul", "rareza": "epica", "motivo": "Kaito como Kyle, el príncipe del país azul (saga del mal, módulo Requiem).", "n": 1}, {"id": "chica-del-pais-verde", "nombre": "La chica del país verde", "rareza": "epica", "motivo": "Miku como Michaela (saga del mal, módulo Noble).", "n": 1}, {"id": "espadachina-roja", "nombre": "La espadachina roja", "rareza": "epica", "motivo": "Meiko como Germaine (saga del mal, módulo Blazing).", "n": 1}, {"id": "el-intercambio", "nombre": "El intercambio", "rareza": "epica", "motivo": "Rin vestida de sirviente y Len de princesa: el giro final de Servant of Evil (cap. 5 y 6 de tu serie).", "n": 2}, {"id": "familia-crypton", "nombre": "Familia Crypton", "rareza": "epica", "motivo": "Los seis de Crypton juntos en el escenario.", "n": 6}, {"id": "halloween-elluka", "nombre": "Noche de brujas", "rareza": "epica", "motivo": "Especial de Halloween: Luka como la bruja Elluka (módulo Majokko).", "limitado": "Solo la semana de Halloween (del 27 oct. al 2 nov.) de cada año.", "n": 1}, {"id": "teto-saludo", "nombre": "Teto saluda", "rareza": "rara", "motivo": "Pose especial con el traje original.", "n": 1}, {"id": "miku-doble-v", "nombre": "Miku doble V", "rareza": "rara", "motivo": "Pose especial con el traje original.", "n": 1}, {"id": "luka-guino", "nombre": "Luka guiña", "rareza": "rara", "motivo": "Pose especial con el traje original.", "n": 1}, {"id": "neru-pulgar", "nombre": "Neru aprueba", "rareza": "rara", "motivo": "Pose especial con el traje original.", "n": 1}, {"id": "rin-gato", "nombre": "Rin gatita", "rareza": "rara", "motivo": "Pose especial con el traje original.", "n": 1}, {"id": "len-animo", "nombre": "Len da ánimo", "rareza": "rara", "motivo": "Pose especial con el traje original.", "n": 1}, {"id": "kaito-shh", "nombre": "Kaito: ¡shh!", "rareza": "rara", "motivo": "Pose especial con el traje original.", "n": 1}, {"id": "meiko-senala", "nombre": "Meiko te señala", "rareza": "rara", "motivo": "Pose especial con el traje original.", "n": 1}, {"id": "haku-mejillas", "nombre": "Haku tímida", "rareza": "rara", "motivo": "Pose especial con el traje original.", "n": 1}, {"id": "teto-original", "nombre": "Teto clásica", "rareza": "comun", "motivo": "Traje original: el diseño con el que debutó.", "n": 1}, {"id": "miku-original", "nombre": "Miku clásica", "rareza": "comun", "motivo": "Traje original: el diseño con el que debutó.", "n": 1}, {"id": "luka-original", "nombre": "Luka clásica", "rareza": "comun", "motivo": "Traje original: el diseño con el que debutó.", "n": 1}, {"id": "neru-original", "nombre": "Neru clásica", "rareza": "comun", "motivo": "Traje original: el diseño con el que debutó.", "n": 1}, {"id": "rin-original", "nombre": "Rin clásica", "rareza": "comun", "motivo": "Traje original: el diseño con el que debutó.", "n": 1}, {"id": "len-original", "nombre": "Len clásico", "rareza": "comun", "motivo": "Traje original: el diseño con el que debutó.", "n": 1}, {"id": "kaito-original", "nombre": "Kaito clásico", "rareza": "comun", "motivo": "Traje original: el diseño con el que debutó.", "n": 1}, {"id": "meiko-original", "nombre": "Meiko clásica", "rareza": "comun", "motivo": "Traje original: el diseño con el que debutó.", "n": 1}, {"id": "haku-original", "nombre": "Haku clásica", "rareza": "comun", "motivo": "Traje original: el diseño con el que debutó.", "n": 1}];
+  const t1Order = ["todas", "mitica", "legendaria", "epica", "rara", "comun"];
+  let t1Sel = "todas";
+  const t1Paint = () => {
+    document.getElementById("t1-filters").innerHTML = t1Order.map((r) => `<button type="button" role="tab" aria-selected="${r === t1Sel}" data-r="${r}">${r === "todas" ? "Todas" : R[r].n} · ${r === "todas" ? T1.length : T1.filter((x) => x.rareza === r).length}</button>`).join("");
+    document.getElementById("t1-grid").innerHTML = T1.filter((x) => t1Sel === "todas" || x.rareza === t1Sel).map((x) =>
+      `<figure class="t1-card"><img src="imagenes/temporada1/tarjetas/${x.id}.png" alt="Tarjeta con el fondo ${x.nombre}" loading="lazy"><div class="row"><span class="chip r-${x.rareza}">${R[x.rareza].n}</span><b>${x.nombre}</b>${x.n > 1 ? `<span class="chip r-hoy">${x.n} Vocaloids</span>` : ""}</div><p>${x.motivo}</p>${x.limitado ? `<p class="lim">⏳ ${x.limitado}</p>` : ""}</figure>`).join("");
+  };
+  document.getElementById("t1-filters").addEventListener("click", (e) => {
+    const b = e.target.closest("[data-r]");
+    if (!b) return;
+    t1Sel = b.dataset.r;
+    t1Paint();
+  });
+  t1Paint();
+
+  // Arte propio: cada objeto en la tarjeta, filtrable por tipo.
+  const AP = [{"id": "cinta-de-casete", "nombre": "Cinta de casete", "tipo": "Borde", "rareza": "comun", "anim": false, "precio": 60, "desc": "Cinta café con carretes abajo."}, {"id": "pentagrama", "nombre": "Pentagrama", "tipo": "Borde", "rareza": "comun", "anim": false, "precio": 60, "desc": "Cinco líneas arriba y abajo, con clave de sol."}, {"id": "hoja-de-cuaderno", "nombre": "Hoja de cuaderno", "tipo": "Borde", "rareza": "comun", "anim": false, "precio": 60, "desc": "Renglones azules, margen rojo y perforaciones."}, {"id": "neon-de-akihabara", "nombre": "Neón de Akihabara", "tipo": "Borde", "rareza": "rara", "anim": false, "precio": 150, "desc": "Doble tubo de neón rosa y celeste."}, {"id": "cables-de-microfono", "nombre": "Cables de micrófono", "tipo": "Borde", "rareza": "rara", "anim": false, "precio": 150, "desc": "Un cable ondulado que da la vuelta, con su conector."}, {"id": "taladros-de-teto", "nombre": "Taladros de Teto", "tipo": "Borde", "rareza": "epica", "anim": true, "precio": 350, "desc": "Rosa, con espirales que giran en las esquinas."}, {"id": "atun-plateado", "nombre": "Atún plateado", "tipo": "Borde", "rareza": "epica", "anim": true, "precio": 350, "desc": "Plateado con escamas y un brillo que lo recorre."}, {"id": "luces-del-mirai", "nombre": "Luces del Mirai", "tipo": "Borde", "rareza": "legendaria", "anim": true, "precio": 700, "desc": "Dorado, con luces de escenario que corren."}, {"id": "lisa-de-color", "nombre": "Lisa de color", "tipo": "Barra de XP", "rareza": "comun", "anim": false, "precio": 60, "desc": "Un color parejo."}, {"id": "punteada", "nombre": "Punteada", "tipo": "Barra de XP", "rareza": "comun", "anim": false, "precio": 60, "desc": "Bolitas en fila."}, {"id": "ritmo-de-teto", "nombre": "Ritmo de Teto", "tipo": "Barra de XP", "rareza": "rara", "anim": true, "precio": 150, "desc": "Rayas que avanzan."}, {"id": "ecualizador", "nombre": "Ecualizador", "tipo": "Barra de XP", "rareza": "epica", "anim": true, "precio": 350, "desc": "Bloques que suben y bajan al ritmo."}, {"id": "onda-de-voz", "nombre": "Onda de voz", "tipo": "Barra de XP", "rareza": "epica", "anim": true, "precio": 350, "desc": "Dos ondas de sonido que se mueven."}, {"id": "oro-liquido", "nombre": "Oro líquido", "tipo": "Barra de XP", "rareza": "legendaria", "anim": true, "precio": 700, "desc": "Oro con burbujas y un brillo que pasa."}, {"id": "tiza-blanca", "nombre": "Tiza blanca", "tipo": "Efecto de nombre", "rareza": "comun", "anim": false, "precio": 60, "desc": "Blanco suave, como escrito con tiza."}, {"id": "dos-tonos", "nombre": "Dos tonos", "tipo": "Efecto de nombre", "rareza": "rara", "anim": false, "precio": 150, "desc": "Degradado de aguamarina a rosa."}, {"id": "contorno-de-comic", "nombre": "Contorno de cómic", "tipo": "Efecto de nombre", "rareza": "rara", "anim": false, "precio": 150, "desc": "Amarillo con contorno negro grueso y sombra."}, {"id": "neon", "nombre": "Neón", "tipo": "Efecto de nombre", "rareza": "epica", "anim": true, "precio": 350, "desc": "Brillo rosa que late."}, {"id": "arcoiris-en-marcha", "nombre": "Arcoíris en marcha", "tipo": "Efecto de nombre", "rareza": "legendaria", "anim": true, "precio": 700, "desc": "Arcoíris que se desplaza de lado a lado."}, {"id": "aro-simple", "nombre": "Aro simple", "tipo": "Aro de avatar", "rareza": "comun", "anim": false, "precio": 60, "desc": "Un aro blanco y limpio."}, {"id": "puerro-trenzado", "nombre": "Puerro trenzado", "tipo": "Aro de avatar", "rareza": "rara", "anim": false, "precio": 150, "desc": "Trenzado en dos verdes."}, {"id": "corazones-de-luka", "nombre": "Corazones de Luka", "tipo": "Aro de avatar", "rareza": "epica", "anim": true, "precio": 350, "desc": "Rosa, con corazones que giran."}, {"id": "notas-en-orbita", "nombre": "Notas en órbita", "tipo": "Aro de avatar", "rareza": "legendaria", "anim": true, "precio": 700, "desc": "Dorado, con notas que orbitan."}, {"id": "insignia-puerro", "nombre": "Puerro", "tipo": "Insignia", "rareza": "comun", "anim": false, "precio": 60, "desc": "Va junto a tu nombre (hasta 3)."}, {"id": "insignia-baguette", "nombre": "Baguette", "tipo": "Insignia", "rareza": "comun", "anim": false, "precio": 60, "desc": "Va junto a tu nombre (hasta 3)."}, {"id": "insignia-atun", "nombre": "Atún", "tipo": "Insignia", "rareza": "comun", "anim": false, "precio": 60, "desc": "Va junto a tu nombre (hasta 3)."}, {"id": "insignia-microfono", "nombre": "Micrófono", "tipo": "Insignia", "rareza": "comun", "anim": false, "precio": 60, "desc": "Va junto a tu nombre (hasta 3)."}, {"id": "insignia-naranja-de-rin", "nombre": "Naranja de Rin", "tipo": "Insignia", "rareza": "comun", "anim": false, "precio": 60, "desc": "Va junto a tu nombre (hasta 3)."}, {"id": "insignia-platano-de-len", "nombre": "Plátano de Len", "tipo": "Insignia", "rareza": "comun", "anim": false, "precio": 60, "desc": "Va junto a tu nombre (hasta 3)."}, {"id": "insignia-celular-de-neru", "nombre": "Celular de Neru", "tipo": "Insignia", "rareza": "rara", "anim": false, "precio": 150, "desc": "Va junto a tu nombre (hasta 3)."}, {"id": "insignia-helado-de-kaito", "nombre": "Helado de Kaito", "tipo": "Insignia", "rareza": "rara", "anim": false, "precio": 150, "desc": "Va junto a tu nombre (hasta 3)."}, {"id": "insignia-corona", "nombre": "Corona", "tipo": "Insignia", "rareza": "epica", "anim": false, "precio": 350, "desc": "Va junto a tu nombre (hasta 3)."}, {"id": "titulo-recien-llegado", "nombre": "Recién llegado al karaoke", "tipo": "Título", "rareza": "comun", "anim": false, "precio": 60, "desc": "Frase bajo tu nombre."}, {"id": "titulo-coleccionista", "nombre": "Coleccionista de puerros", "tipo": "Título", "rareza": "rara", "anim": false, "precio": 150, "desc": "Frase bajo tu nombre."}, {"id": "titulo-taladro-oficial", "nombre": "Taladro oficial de Teto", "tipo": "Título", "rareza": "epica", "anim": false, "precio": 350, "desc": "Frase bajo tu nombre."}, {"id": "titulo-voz-del-mirai", "nombre": "Voz del Mirai", "tipo": "Título", "rareza": "legendaria", "anim": false, "precio": 700, "desc": "Frase bajo tu nombre."}, {"id": "papel-pautado", "nombre": "Papel pautado", "tipo": "Fondo", "rareza": "comun", "anim": false, "precio": 60, "desc": "Papel crema con pentagramas y notas."}, {"id": "cielo-de-tokio", "nombre": "Cielo de Tokio", "tipo": "Fondo", "rareza": "comun", "anim": false, "precio": 60, "desc": "Atardecer con edificios y una torre."}, {"id": "sala-de-ensayo", "nombre": "Sala de ensayo", "tipo": "Fondo", "rareza": "comun", "anim": false, "precio": 60, "desc": "Espuma acústica, lámpara y micrófono."}, {"id": "mar-de-luces", "nombre": "Mar de luces", "tipo": "Fondo", "rareza": "legendaria", "anim": true, "precio": 700, "desc": "Fondo animado: focos que barren el escenario y un público con barras de luz que se mecen."}];
+  const apTipos = ["Todos", ...new Set(AP.map((x) => x.tipo))];
+  let apSel = "Todos";
+  const apPaint = () => {
+    document.getElementById("ap-filters").innerHTML = apTipos.map((t) => `<button type="button" role="tab" aria-selected="${t === apSel}" data-t="${t}">${t} · ${t === "Todos" ? AP.length : AP.filter((x) => x.tipo === t).length}</button>`).join("");
+    document.getElementById("ap-grid").innerHTML = AP.filter((x) => apSel === "Todos" || x.tipo === apSel).map((x) =>
+      `<figure class="t1-card"><img src="imagenes/arte-propio/tarjetas/${x.id}.${x.anim ? "gif" : "png"}" alt="Tarjeta con ${x.nombre}" loading="lazy"><div class="row"><span class="chip r-${x.rareza}">${R[x.rareza].n}</span><b>${x.nombre}</b><span class="price-chip"><img class="bi" src="imagenes/moneda/shaula-coin-emoji.png" alt="">${fmt(x.precio)}</span>${x.anim ? '<span class="chip r-hoy">▶ Animado</span>' : ""}</div><p>${x.tipo} · ${x.desc}</p></figure>`).join("");
+  };
+  document.getElementById("ap-filters").addEventListener("click", (e) => {
+    const b = e.target.closest("[data-t]");
+    if (!b) return;
+    apSel = b.dataset.t;
+    apPaint();
+  });
+  apPaint();
+
+  // Decisiones.
+  const decisions = [
+    ["Precio del sobre", "Más uno gratis cada lunes para quien participó 3 días", "200 ganadas"],
+    ["Temporada 1", "28 fondos con renders; rareza según la canción del traje", "Revisar la galería 4b"],
+    ["Fondos con renders", "Solo con monedas ganadas, por las licencias y por dLocal", "Nunca con compradas"],
+    ["Recompensa de fundadores", "Fondo, borde, insignia y número; solo para el rol ⭐ Fundador", "Revisar la sección 4b"],
+    ["Tasa de ganancia", "Con el tope, un Papu muy activo saca un sobre al día", "1 por 20 XP, tope 60"],
+    ["Diseño de la moneda", "Ficha arcade con «SC» centrado", "E · elegida"],
+    ["Medios de pago", "PayPal con enlace personal y transferencia para Chile. Las compras nativas de Discord piden requisitos de país y verificación", "PayPal + transferencia"],
+    ["Cuenta PayPal Business", "Necesaria para crear los enlaces de pago desde el bot (las claves van en los secretos de Cloudflare)", "Abrirla antes de la fase 3"],
+    ["Precios de los paquetes", "2, 5, 10 y 15 USD; con 15 se compra todo el arte propio de la temporada", "1.200 a 9.500 monedas"],
+    ["Precios en pesos chilenos", "Más baratos que PayPal: el ahorro de la comisión pasa al Papu", "$1.500 · $4.000 · $8.000 · $12.000"],
+    ["Datos de tu cuenta", "Banco, tipo, número, RUT y correo, guardados en .env", "Me los das en la fase 3"],
+    ["Regalo de las membresías", "En monedas compradas, al recibir el rol y luego cada 30 días", "600 a 7.000"],
+    ["Precios de los objetos", "Común, Rara, Épica, Legendaria; fabricar cuesta lo mismo en Ecos", "60 · 150 · 350 · 700"],
+    ["Vitrinas", "Lunes y jueves, 9 objetos mezclados; todos salen al menos una vez por temporada", "2 por semana"],
+    ["Términos de PayPal", "Revisar que permitan vender moneda virtual (lo revisas tú, como con las APIs)", "Revisar antes de la fase 3"],
+    ["Intercambio entre Papus", "Más trabajo de moderación", "No en la temporada 1"],
+    ["Nombre del sobre y de los Ecos", "Se pueden cambiar sin tocar nada más", "«Sobre Papu» y «Ecos»"],
+  ];
+  let saved = {};
+  try { saved = JSON.parse(localStorage.getItem("shaula-decisiones") || "{}"); } catch {}
+  document.getElementById("decisions").innerHTML = decisions.map(([t, s, p], i) =>
+    `<div class="decision"><input type="checkbox" id="d${i}" ${saved[i] ? "checked" : ""}><label for="d${i}">${t}<small>${s}</small></label><span class="prop">${p}</span></div>`).join("");
+  document.getElementById("decisions").addEventListener("change", (e) => {
+    const m = e.target.id && e.target.id.match(/^d(\d+)$/);
+    if (!m) return;
+    saved[m[1]] = e.target.checked;
+    try { localStorage.setItem("shaula-decisiones", JSON.stringify(saved)); } catch {}
+  });
+})();
+</script>

@@ -34,9 +34,18 @@ import { loadPrivacySettings, PrivacyGuard } from "./services/privacy";
 import { loadRiddles, loadWeddingSettings } from "./bodas/rules";
 import { loadRouletteSettings } from "./ruleta/rules";
 import { RouletteService } from "./ruleta/service";
+import { missions } from "./ruleta/rules";
+import { loadCatalog, loadCoinSettings } from "./coins/rules";
+import { CoinService } from "./coins/service";
+import type { DatosBanco } from "./coins/images";
+import { loadSorteoSettings } from "./sorteo/rules";
+import { SorteoService } from "./sorteo/service";
+import { loadPeleaSettings } from "./peleas/rules";
+import { PeleaService } from "./peleas/service";
 import { WeddingService } from "./bodas/service";
 import { loadQuestions, loadTriviaSettings } from "./trivia/rules";
 import { TriviaService } from "./trivia/service";
+import { loadMangoSettings, MangoService } from "./services/mango";
 
 const QUEUE_CONCURRENCY = 4;
 const MAX_WAIT_MS = 2 * 60_000;
@@ -73,16 +82,55 @@ async function main(): Promise<void> {
   // Trato especial de un Papu concreto (config/especiales.json): regalo de GyroP, no de un nivel de Ko-fi.
   const especiales = new Especiales(loadEspeciales(), Date.now, config.quotaTimeZone);
   // Niveles por participacion: fijan la cuota de cada Papu (regla 1: nada de pago la cambia). GyroP no sube de nivel.
-  const levels = new LevelService({ db, settings: loadLevelSettings(), timeZone: config.quotaTimeZone, unranked: (id) => owners.has(id) });
+  // Con 2 o mas machetazos de Neru no se gana XP de ninguna forma.
+  const levels = new LevelService({
+    db,
+    settings: loadLevelSettings(),
+    timeZone: config.quotaTimeZone,
+    unranked: (id) => owners.has(id),
+    xpBlocked: (id, at) => strikes.xpBlocked(id, at),
+  });
   const quota = new Quota(db, (id, now) => levels.limitFor(id, now), config.quotaTimeZone, { has: (id) => owners.has(id) || especiales.unlimited(id) });
   // Bodas con las Vocaloids (config/bodas.json, PLAN §3.2): adivinanzas fijas, revisadas por el codigo.
   const weddings = new WeddingService({ db, settings: loadWeddingSettings(), riddles: loadRiddles(), decks });
   // Ruleta de los Papus (config/ruleta.json, PLAN §3.3): tiradas por misiones del dia; premios de XP y cuota extra.
-  const roulette = new RouletteService({ db, settings: loadRouletteSettings(), levels, quota, timeZone: config.quotaTimeZone });
+  // La casilla del sobre da sobres comunes de la tienda (coins se crea abajo; sin tienda, la casilla no sale).
+  const roulette = new RouletteService({
+    db,
+    settings: loadRouletteSettings(),
+    levels,
+    quota,
+    giveSobres: loadCoinSettings().activo ? (id, n) => coins?.giveSobres(id, "comun", n) : undefined,
+    timeZone: config.quotaTimeZone,
+  });
+  // Shaula-coins (config/monedas.json y config/objetos.json, PLAN §3.6): solo adornan la tarjeta (regla 1). Lo ganado
+  // participando se pone al dia cada vez que el Papu gana XP.
+  const coinSettings = loadCoinSettings();
+  const coins = coinSettings.activo
+    ? new CoinService({
+        db,
+        settings: coinSettings,
+        catalog: loadCatalog(),
+        timeZone: config.quotaTimeZone,
+        missions: (st) => {
+          const list = missions(roulette.settings, st);
+          return { done: list.filter((m) => m.done).length, total: list.length };
+        },
+      })
+    : null;
+  if (coins) levels.afterAward = (userId) => coins.sync(userId, 1);
+  // Sorteo de GyroP (config/sorteo.json, PLAN §3.5): todos los Papus en la ruleta; GyroP decide si el ganador se queda el premio.
+  const sorteo = new SorteoService({ db, settings: loadSorteoSettings(), levels, quota });
+  // 1vs1 de los Vocaloids (config/peleas.json, PLAN §3.7): apuestas solo con Shaula-coins ganadas (sin tienda, no hay peleas).
+  const peleaSettings = loadPeleaSettings();
+  const peleas = coins && peleaSettings.activo ? new PeleaService({ db, settings: peleaSettings, coins }) : null;
   // Trivia de los Papus (config/trivia.json, PLAN §3.4): preguntas fijas revisadas por el codigo; XP por acierto.
   const triviaSettings = loadTriviaSettings();
-  const trivia = new TriviaService({ db, settings: triviaSettings, questions: loadQuestions(triviaSettings), levels, timeZone: config.quotaTimeZone });
+  // Superar todas las preguntas de una dificultad da su sobre de la tienda (comun, raro o legendario).
+  const trivia = new TriviaService({ db, settings: triviaSettings, questions: loadQuestions(triviaSettings), levels, giveSobre: coins ? (id, tipo, n) => coins.giveSobres(id, tipo, n) : undefined, timeZone: config.quotaTimeZone });
   log(`Trivia: ${trivia.total} preguntas`);
+  // Hitos de aciertos (7 nov. 2026): una sola vez, quienes ya tenian avance reciben los sobres de los hitos que pasaron.
+  for (const h of trivia.seedMilestones()) log(`🎁 Trivia: hitos iniciales de ${h.userId} en ${h.level}: ${h.aciertos} aciertos → ${h.sobres} sobre(s)`);
   const queue = new RequestQueue({ concurrency: QUEUE_CONCURRENCY, maxWaitMs: MAX_WAIT_MS });
 
   let app: PapusApp | null = null;
@@ -125,7 +173,7 @@ async function main(): Promise<void> {
     db,
     quota,
     levels,
-    // Colores de la tarjeta de nivel: los de las 4 chicas y la paleta de #tu-color (solo adorno, regla 1).
+    // Colores de la tarjeta de nivel: los de las 4 chicas y la paleta de #tus-roles (solo adorno, regla 1).
     cardColors: [
       ...CORE_BOT_IDS.map((id) => ({ name: characters[id].displayName, value: `#${characters[id].color.toString(16).padStart(6, "0")}` })),
       ...(layout.coloresPapu?.colores ?? []).map((c) => ({ name: c.rol.replace(/^\S+\s+/, ""), value: c.color })),
@@ -144,10 +192,17 @@ async function main(): Promise<void> {
     founders: founderSettings(layout),
     everyoneRole: layout.rolesExtra.find((r) => r.todos)?.rol ?? null,
     modRole: layout.rolesExtra.find((r) => r.mod)?.rol ?? null,
+    survivorRole: layout.rolesExtra.find((r) => r.sobreviviente) ?? null,
+    // Mango9374 (config/mango.json): a su @, los numeros del dia o una frase fija.
+    mango: config.mangoToken ? new MangoService(loadMangoSettings()) : null,
     vitrina: vitrinaChannels(layout),
     weddings,
     roulette,
     trivia,
+    sorteo,
+    peleas,
+    coins,
+    pagos: pagosFromEnv(process.env),
     calendar: buildCalendar({ db, env: process.env, deliveryDir: config.deliveryDir, engineDir: config.engineDir }),
     log,
     makeConversation: (port) =>
@@ -232,3 +287,11 @@ main().catch((e) => {
   logError("No se pudo arrancar", e);
   process.exit(1);
 });
+
+/** PayPal.me y cuenta en Chile de GyroP para vender Shaula-coins (.env; sin ellos no se ofrece ese medio). */
+function pagosFromEnv(env: NodeJS.ProcessEnv): { paypalMe: string | null; banco: DatosBanco | null } {
+  const v = (k: string) => env[k]?.trim() || null;
+  const banco = { banco: v("TRANSFERENCIA_BANCO"), tipo: v("TRANSFERENCIA_TIPO"), numero: v("TRANSFERENCIA_NUMERO"), rut: v("TRANSFERENCIA_RUT"), nombre: v("TRANSFERENCIA_NOMBRE"), correo: v("TRANSFERENCIA_CORREO") };
+  const complete = Object.values(banco).every(Boolean);
+  return { paypalMe: v("PAYPAL_ME_USUARIO")?.replace(/^https?:\/\/(www\.)?paypal\.me\//i, "").replace(/\/.*$/, "") ?? null, banco: complete ? (banco as DatosBanco) : null };
+}

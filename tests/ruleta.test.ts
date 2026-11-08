@@ -20,13 +20,15 @@ function setup(settings: RouletteSettings = S, rnd = () => 0) {
   let now = NOON;
   const levels = new LevelService({ db, settings: LS, timeZone: TZ });
   const quota = new Quota(db, (id, d) => levels.limitFor(id, d), TZ);
-  const r = new RouletteService({ db, settings, levels, quota, timeZone: TZ, now: () => now, rnd });
+  const sobres: Record<string, number> = {};
+  const r = new RouletteService({ db, settings, levels, quota, giveSobres: (id, n) => (sobres[id] = (sobres[id] ?? 0) + n), timeZone: TZ, now: () => now, rnd });
   const day = () => new Intl.DateTimeFormat("en-CA", { timeZone: TZ }).format(new Date(now));
   return {
     db,
     levels,
     quota,
     r,
+    sobres,
     day,
     at: (t: number) => (now = t),
     /** Mensajes que dan XP (cada uno 3 s despues y distinto, como pide la espera de los niveles). */
@@ -141,38 +143,81 @@ describe("servicio de la ruleta", () => {
     expect(t.levels.store.get("a").xp).toBe(before + res.xp);
   });
 
-  it("premio de cuota: mensajes extra solo por hoy, y el reinicio de cuota no los borra", () => {
-    const i = S.premios.findIndex((p) => p.tipo === "cuota");
+  /** rnd que cae en la primera casilla de ese tipo. */
+  const landOn = (tipo: string) => {
+    const i = S.premios.findIndex((p) => p.tipo === tipo);
     const total = S.premios.reduce((a, p) => a + p.peso, 0);
     const before = S.premios.slice(0, i).reduce((a, p) => a + p.peso, 0);
-    const t = setup(S, () => (before + 0.5) / total);
+    return () => (before + 0.5) / total;
+  };
+
+  it("premio de cuota: mensajes extra solo por hoy, y el reinicio de cuota no los borra", () => {
+    const t = setup(S, landOn("cuota"));
     t.levels.bonus("a", 100, NOON);
-    const limit = t.quota.remaining("a", new Date(NOON));
+    const limit = t.quota.limitFor("a", new Date(NOON));
+    t.quota.reserve("a", 3, new Date(NOON));
     const res = t.r.spin("a")!;
     expect(res.prize.tipo).toBe("cuota");
-    expect(t.quota.remaining("a", new Date(NOON))).toBe(limit + res.messages);
-    t.quota.reserve("a", 2, new Date(NOON));
+    expect(res).toMatchObject({ messages: 1, overflow: 0 });
+    expect(t.quota.remaining("a", new Date(NOON))).toBe(limit - 3 + 1);
     t.quota.reset("a", new Date(NOON));
-    expect(t.quota.remaining("a", new Date(NOON))).toBe(limit + res.messages);
+    expect(t.quota.remaining("a", new Date(NOON))).toBe(limit + 1);
     expect(t.quota.remaining("a", new Date(NOON + 24 * 3_600_000))).toBe(t.quota.limitFor("a", new Date(NOON + 24 * 3_600_000)));
   });
 
-  it("cuota llena: devuelve lo gastado hoy, o 1 extra si no habia gastado nada", () => {
-    const i = S.premios.findIndex((p) => p.tipo === "cuota_llena");
-    const total = S.premios.reduce((a, p) => a + p.peso, 0);
-    const before = S.premios.slice(0, i).reduce((a, p) => a + p.peso, 0);
-    const t = setup(S, () => (before + 0.5) / total);
+  it("con la cuota llena, los mensajes ganados se vuelven XP (GyroP, 31 oct. 2026)", () => {
+    const t = setup(S, landOn("cuota"));
+    t.levels.bonus("a", 100, NOON);
+    const limit = t.quota.limitFor("a", new Date(NOON));
+    const xp = t.levels.store.get("a").xp;
+    const res = t.r.spin("a")!;
+    expect(res).toMatchObject({ messages: 0, overflow: 1 });
+    expect(res.xp).toBe(Math.round(Math.max(LS.cuotaSobrante!.minimo, LS.cuotaSobrante!.porcentajeNivel * progress(LS, xp).needed)));
+    expect(t.levels.store.get("a").xp).toBe(xp + res.xp);
+    expect(t.quota.remaining("a", new Date(NOON))).toBe(limit);
+  });
+
+  it("solo cabe lo que falta para llenar la cuota; el resto es XP", () => {
+    const S2 = { ...S, premios: S.premios.map((p) => (p.tipo === "cuota" ? { ...p, valor: 3 } : p)) };
+    const t = setup(S2, landOn("cuota"));
+    t.levels.bonus("a", 100, NOON);
+    const limit = t.quota.limitFor("a", new Date(NOON));
+    t.quota.reserve("a", 1, new Date(NOON));
+    const expected = t.levels.overflowXp("a", 2);
+    const res = t.r.spin("a")!;
+    expect(res).toMatchObject({ messages: 1, overflow: 2, xp: expected });
+    expect(t.quota.remaining("a", new Date(NOON))).toBe(limit);
+  });
+
+  it("cuota llena: devuelve lo gastado hoy, o 1 mensaje (que con la cuota llena es XP)", () => {
+    const t = setup(S, landOn("cuota_llena"));
     t.levels.bonus("a", 100, NOON);
     const limit = t.quota.remaining("a", new Date(NOON));
     t.quota.reserve("a", 2, new Date(NOON));
     expect(t.r.spin("a")!.messages).toBe(2);
     expect(t.quota.remaining("a", new Date(NOON))).toBe(limit);
 
-    const u = setup(S, () => (before + 0.5) / total);
+    const u = setup(S, landOn("cuota_llena"));
     u.levels.bonus("b", 100, NOON);
-    const lim = u.quota.remaining("b", new Date(NOON));
-    expect(u.r.spin("b")!.messages).toBe(1);
-    expect(u.quota.remaining("b", new Date(NOON))).toBe(lim + 1);
+    const res = u.r.spin("b")!;
+    expect(res).toMatchObject({ messages: 0, overflow: 1 });
+    expect(res.xp).toBeGreaterThan(0);
+  });
+
+  it("la casilla del sobre da un sobre común gratis; sin tienda no sale", () => {
+    const t = setup(S, landOn("sobre"));
+    t.levels.bonus("a", 100, NOON);
+    const res = t.r.spin("a")!;
+    expect(res).toMatchObject({ sobres: 1, xp: 0, messages: 0 });
+    expect(res.prize.tipo).toBe("sobre");
+    expect(t.sobres.a).toBe(1);
+
+    const db = memDb();
+    const levels = new LevelService({ db, settings: LS, timeZone: TZ });
+    const quota = new Quota(db, (id, d) => levels.limitFor(id, d), TZ);
+    const sinTienda = new RouletteService({ db, settings: S, levels, quota, timeZone: TZ, now: () => NOON, rnd: landOn("sobre") });
+    levels.bonus("a", 100, NOON);
+    expect(sinTienda.spin("a")!.prize.tipo).not.toBe("sobre");
   });
 
   it("un strike de Neru bloquea la ruleta ese dia", () => {

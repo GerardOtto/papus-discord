@@ -199,6 +199,19 @@ describe("LevelService", () => {
     expect(lv.multiplier(new Date(t + 10 * 3_600_000 + 60_000))).toBe(S.estrenos!.multiplicador);
   });
 
+  it("un estreno con XP propia (×2 por 12 h) dura lo suyo, y Miku anuncia el último que salió", () => {
+    const lv = make();
+    const t = NOON.getTime();
+    lv.setReleases([
+      { title: "Capítulo 5", at: t, multiplicador: 2, horas: 12 },
+      { title: "Capítulo 6", at: t + 8 * 60_000, multiplicador: 2, horas: 12 },
+    ]);
+    expect(lv.activeRelease(t + 60_000)?.title).toBe("Capítulo 5");
+    expect(lv.activeRelease(t + 10 * 60_000)).toMatchObject({ title: "Capítulo 6", window: { hasta: t + 8 * 60_000 + 12 * 3_600_000 } });
+    expect(lv.multiplier(new Date(t + 11 * 3_600_000))).toBe(2);
+    expect(lv.multiplier(new Date(t + 12 * 3_600_000 + 9 * 60_000))).toBe(1);
+  });
+
   it("doble XP cuando un Vocaloid contesta", () => {
     const lv = make();
     const { base } = lv.onMessage("papu", "hola Teto como estas hoy", NOON.getTime());
@@ -262,13 +275,45 @@ describe("LevelService", () => {
     expect(lv.store.get("papu").xp).toBe(before);
   });
 
-  it("los strikes de Neru avisan a los niveles", () => {
+  it("los machetazos de Neru avisan a los niveles", () => {
     const db = memDb();
     const strikes = new StrikeStore(db);
     const seen: string[] = [];
-    strikes.onAdd = (id) => seen.push(id);
+    strikes.onAdd = (id) => void seen.push(id);
     strikes.add({ userId: "papu", reason: "insulto" });
     expect(seen).toEqual(["papu"]);
+  });
+
+  it("con 2 machetazos no gana XP de ninguna forma; perdonar devuelve la XP quitada y levanta el castigo", () => {
+    const db = memDb();
+    const strikes = new StrikeStore(db);
+    const lv = new LevelService({ db, settings: S, timeZone: TZ, xpBlocked: (id, at) => strikes.xpBlocked(id, at) });
+    strikes.onAdd = (id, at) => lv.onStrike(id, at);
+    const t = NOON.getTime();
+    lv.onMessage("papu", "un mensaje con algunas palabras para ganar XP", t);
+    const earned = lv.store.get("papu").xp;
+    expect(earned).toBeGreaterThan(0);
+
+    strikes.add({ userId: "papu", reason: "insulto" }, t + 1000);
+    expect(lv.store.get("papu").xp).toBe(0);
+    expect(lv.store.dayStats("papu", "2026-10-21").castigo).toBe(true);
+    // Con uno solo, sigue ganando (pero no recupera lo de hoy).
+    lv.onMessage("papu", "otro mensaje distinto con varias palabras más", t + 120_000);
+    const after1 = lv.store.get("papu").xp;
+    expect(after1).toBeGreaterThan(0);
+
+    strikes.add({ userId: "papu", reason: "insulto" }, t + 130_000);
+    expect(lv.store.get("papu").xp).toBe(0);
+    expect(lv.canEarn("papu", t + 140_000)).toBe(false);
+    expect(lv.onMessage("papu", "un tercer mensaje, también con palabras", t + 300_000).change).toBeNull();
+    expect(lv.bonus("papu", 500, t + 300_000)).toBeNull();
+    expect(lv.store.get("papu").xp).toBe(0);
+
+    const cleared = strikes.clear("papu", t + 400_000);
+    lv.onForgive("papu", cleared.xp, t + 400_000);
+    expect(lv.store.get("papu").xp).toBe(earned + after1);
+    expect(lv.store.dayStats("papu", "2026-10-21").castigo).toBe(false);
+    expect(lv.canEarn("papu", t + 400_000)).toBe(true);
   });
 
   it("prestigio solo en el 99: vuelve al 1 con una estrella y cuota de prestigio", () => {

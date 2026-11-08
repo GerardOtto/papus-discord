@@ -16,6 +16,8 @@ export interface Config {
   tokens: Record<CoreBotId, string> & Partial<Record<ChatBotId, string>>;
   /** Bots que se conectan: las 4 chicas y los de conversacion con token. */
   activeBots: BotId[];
+  /** Token de Mango9374 (config/mango.json): no es un Vocaloid ni esta en BOT_IDS; sin token, no se conecta. */
+  mangoToken: string | null;
   guildId: string;
   /** Usuario de Discord de GyroP (exento de moderacion y unico que usa comandos de administracion). */
   ownerId: string | null;
@@ -71,6 +73,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env, rootDir = proce
   return {
     tokens,
     activeBots: BOT_IDS.filter((id) => !!tokens[id]),
+    mangoToken: opt(env, "DISCORD_TOKEN_MANGO9374"),
     guildId,
     ownerId: opt(env, "OWNER_USER_ID"),
     llm: {

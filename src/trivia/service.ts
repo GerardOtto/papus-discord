@@ -5,9 +5,23 @@
 import { transaction, type Db } from "../db/database";
 import type { LevelChange, LevelService } from "../levels/service";
 import { dayKey, nextDayStart } from "../time";
-import { answerXp, dailyCap, playOrder, shuffledOptions, textCorrect, timerFor, type Question, type TriviaSettings } from "./rules";
+import { answerXp, dailyCap, DIFICULTADES, playOrder, runCost, shuffledOptions, textCorrect, timerFor, type Dificultad, type PremioSobre, type Question, type TriviaSettings } from "./rules";
 
-/** Como termino una partida. perfecta = acerto todas las preguntas sin fallar (el secreto). */
+/**
+ * Una partida cuya pregunta vencio hace mas de esto sigue abierta solo si algo fallo al mostrarla (Discord no recibio
+ * la respuesta a tiempo y no se armo el temporizador): la siguiente vez que el Papu juega, se cierra por tiempo. Asi
+ * nadie queda con una trivia "en curso" para siempre (le paso a Wicho el Bicho el 5 nov. 2026).
+ */
+export const STALE_MS = 10_000;
+
+/** Hito cumplido con un acierto: dificultad, aciertos que lleva en ella y el sobre que ya recibio. */
+export interface Milestone {
+  level: Dificultad;
+  n: number;
+  premio: PremioSobre;
+}
+
+/** Como termino una partida. perfecta = acerto todas las preguntas de su dificultad sin fallar. */
 export type EndReason = "error" | "tiempo" | "perfecta";
 
 /** Pregunta en pantalla. */
@@ -32,10 +46,13 @@ export interface RunInfo {
   capLeft: number;
   /** Cuando se recargan las partidas con XP y el tope (medianoche, hora de Chile). */
   resetsAt: number;
+  /** XP que le costo empezar esta partida (las de despues de la 15 del dia; 0 en las demas). */
+  cost: number;
 }
 
 interface Session {
   userId: string;
+  level: Dificultad;
   info: RunInfo;
   channelId: string;
   order: string[];
@@ -47,6 +64,7 @@ interface Session {
 
 export interface RunSummary {
   userId: string;
+  level: Dificultad;
   channelId: string;
   streak: number;
   xp: number;
@@ -60,8 +78,12 @@ export interface RunSummary {
 }
 
 export type AnswerResult =
-  /** Acerto: `next` es la siguiente pregunta (o null si era la ultima: partida perfecta, ver `end`). */
-  | { kind: "acierto"; question: Question; xp: number; info: RunInfo; streak: number; change: LevelChange | null; next: Shown | null; end: RunSummary | null }
+  /**
+   * Acerto: `next` es la siguiente pregunta (o null si era la ultima: partida perfecta, ver `end`). `completed` = con este
+   * acierto supero todas las preguntas de esa dificultad (ya recibio su sobre); `secret` = con este acierto supero TODAS
+   * las preguntas de la trivia por primera vez (Papu Lince: ya recibio sus sobres; el rol y el anuncio los da Discord).
+   */
+  | { kind: "acierto"; question: Question; xp: number; info: RunInfo; streak: number; change: LevelChange | null; next: Shown | null; end: RunSummary | null; completed: Dificultad | null; secret: boolean; milestone: Milestone | null }
   /** Fallo o se acabo el tiempo: la partida termino. */
   | { kind: "fallo" | "tiempo"; question: Question; picked: string | null; end: RunSummary }
   /** Boton o respuesta de una pregunta que ya paso (o de una partida que ya no existe). */
@@ -72,6 +94,8 @@ export interface TriviaServiceDeps {
   settings: TriviaSettings;
   questions: Question[];
   levels: LevelService;
+  /** Da el sobre de premio de una dificultad (src/coins/). Sin tienda, solo se registra. */
+  giveSobre?: (userId: string, tipo: PremioSobre, n?: number) => void;
   timeZone: string;
   now?: () => number;
   rnd?: () => number;
@@ -94,9 +118,30 @@ export class TriviaService {
     return this.d.settings;
   }
 
-  /** Cuantas preguntas hay (las que debe acertar una racha perfecta). */
+  /** Cuantas preguntas hay en total (las que hay que superar para el secreto), o de una dificultad. */
   get total(): number {
     return this.d.questions.length;
+  }
+
+  totalOf(level: Dificultad): number {
+    return this.d.questions.filter((q) => q.level === level).length;
+  }
+
+  /** Preguntas que el Papu ya supero (acerto alguna vez, desde el 31 oct. 2026). */
+  private passed(userId: string): Set<string> {
+    return new Set((this.d.db.prepare("SELECT pregunta FROM trivia_superadas WHERE user_id = ?").all(userId) as { pregunta: string }[]).map((r) => r.pregunta));
+  }
+
+  /** Contador de superadas por dificultad (las que ya no existen no cuentan) y si ya gano su sobre. */
+  progress(userId: string): Record<Dificultad, { done: number; total: number; prize: boolean }> {
+    const passed = this.passed(userId);
+    const prizes = new Set((this.d.db.prepare("SELECT dificultad FROM trivia_premios WHERE user_id = ?").all(userId) as { dificultad: string }[]).map((r) => r.dificultad));
+    const out = {} as Record<Dificultad, { done: number; total: number; prize: boolean }>;
+    for (const level of DIFICULTADES) {
+      const qs = this.d.questions.filter((q) => q.level === level);
+      out[level] = { done: qs.filter((q) => passed.has(q.id)).length, total: qs.length, prize: prizes.has(level) };
+    }
+    return out;
   }
 
   private day(t = this.now()): string {
@@ -105,9 +150,19 @@ export class TriviaService {
 
   // ───────────────────────── partida ─────────────────────────
 
-  /** Partida en curso del Papu (si su tiempo no vencio). */
+  /** Partida en curso del Papu. */
   active(userId: string): Shown | null {
     return this.sessions.get(userId)?.shown ?? null;
+  }
+
+  /**
+   * Cierra por tiempo la partida del Papu si quedo colgada (su pregunta vencio hace mas de STALE_MS: el temporizador
+   * no corrio). Devuelve su resumen para publicarlo, o null si no habia nada que cerrar.
+   */
+  reap(userId: string, t = this.now()): RunSummary | null {
+    const s = this.sessions.get(userId);
+    if (!s || t <= s.shown.deadline + STALE_MS) return null;
+    return this.finish(s, "tiempo");
   }
 
   /** Partidas que el Papu empezo hoy (ya terminadas). */
@@ -125,19 +180,37 @@ export class TriviaService {
     return Math.max(0, dailyCap(this.d.settings, this.d.levels.settings, this.d.levels.store.get(userId).xp, this.d.levels.multiplier(new Date(t))) - this.xpToday(userId, t));
   }
 
-  /** Empieza una partida. Si ya tiene una, devuelve esa (`busy`). */
-  start(userId: string, channelId: string): { shown: Shown; busy: boolean; info: RunInfo } {
+  /** XP que le costaria empezar ahora otra partida (0 si aun no pasa de las gratis del dia). */
+  nextCost(userId: string, t = this.now()): number {
+    return runCost(this.d.settings, this.d.levels.settings, this.d.levels.store.get(userId).xp, this.runsToday(userId, t) + 1);
+  }
+
+  /** Cuando vuelven las partidas gratis (medianoche, hora de Chile). */
+  resetsAt(t = this.now()): number {
+    return nextDayStart(new Date(t), this.d.timeZone);
+  }
+
+  /**
+   * Empieza una partida de una dificultad. Si ya tiene una, devuelve esa (`busy`). Si la partida cuesta XP (despues de
+   * la 15 del dia), se cobra aqui: quien la muestra debe pedir confirmacion antes con `nextCost`. `change` = si el
+   * cobro lo bajo de nivel.
+   */
+  start(userId: string, channelId: string, level: Dificultad): { shown: Shown; busy: boolean; info: RunInfo; level: Dificultad; change: LevelChange | null } {
+    this.reap(userId);
     const current = this.sessions.get(userId);
-    if (current) return { shown: current.shown, busy: true, info: current.info };
+    if (current) return { shown: current.shown, busy: true, info: current.info, level: current.level, change: null };
     const t = this.now();
     const run = this.runsToday(userId, t) + 1;
-    const info: RunInfo = { run, withXp: run <= this.d.settings.limites.partidasConXp, capLeft: this.capLeft(userId, t), resetsAt: nextDayStart(new Date(t), this.d.timeZone) };
+    const cost = this.nextCost(userId, t);
+    const info: RunInfo = { run, withXp: run <= this.d.settings.limites.partidasConXp, capLeft: this.capLeft(userId, t), resetsAt: this.resetsAt(t), cost };
     const seen = new Set((this.d.db.prepare("SELECT pregunta FROM trivia_vistas WHERE user_id = ?").all(userId) as { pregunta: string }[]).map((r) => r.pregunta));
-    const order = playOrder(this.d.questions, seen, this.rnd);
-    const s: Session = { userId, info, channelId, order, pos: 0, streak: 0, xp: 0, shown: null as unknown as Shown };
+    const order = playOrder(this.d.questions.filter((q) => q.level === level), seen, this.rnd, this.passed(userId));
+    if (!order.length) throw new Error(`trivia: no hay preguntas de dificultad ${level}`);
+    const change = cost > 0 ? this.d.levels.penalize(userId, cost, t) : null;
+    const s: Session = { userId, level, info, channelId, order, pos: 0, streak: 0, xp: 0, shown: null as unknown as Shown };
     s.shown = this.show(s);
     this.sessions.set(userId, s);
-    return { shown: s.shown, busy: false, info };
+    return { shown: s.shown, busy: false, info, level, change };
   }
 
   private show(s: Session): Shown {
@@ -183,10 +256,114 @@ export class TriviaService {
     const { xp, change } = s.info.withXp ? this.award(s.userId, s.streak) : (this.count(s.userId), { xp: 0, change: null });
     s.xp += xp;
     s.info = { ...s.info, capLeft: s.info.withXp ? this.capLeft(s.userId) : s.info.capLeft };
+    const { completed, secret } = this.pass(s.userId, question);
+    const milestone = !this.d.settings.hitos?.soloPartidasConXp || s.info.withXp ? this.hit(s.userId, question.level) : null;
     s.pos++;
-    if (s.pos >= s.order.length) return { kind: "acierto", question, xp, info: s.info, streak: s.streak, change, next: null, end: this.finish(s, "perfecta") };
+    const base = { kind: "acierto" as const, question, xp, streak: s.streak, change, completed, secret, milestone };
+    if (s.pos >= s.order.length) return { ...base, info: s.info, next: null, end: this.finish(s, "perfecta") };
     s.shown = this.show(s);
-    return { kind: "acierto", question, xp, info: s.info, streak: s.streak, change, next: s.shown, end: null };
+    return { ...base, info: s.info, next: s.shown, end: null };
+  }
+
+  /**
+   * Pregunta superada (cuenta una vez). Si con ella completa su dificultad, gana el sobre de premio (una sola vez por
+   * dificultad). Si con ella ya supero TODAS las preguntas de la trivia, es el secreto (Papu Lince, decision de GyroP
+   * del 2 nov. 2026): sus sobres de premio (secreto.sobres) una sola vez, guardado como dificultad "todas". Quien gano
+   * el secreto antes (Larper Vocaloid) lo puede ganar al superar las preguntas nuevas.
+   */
+  private pass(userId: string, q: Question): { completed: Dificultad | null; secret: boolean } {
+    return transaction(this.d.db, () => {
+      if (!this.d.db.prepare("INSERT OR IGNORE INTO trivia_superadas (user_id, pregunta) VALUES (?, ?)").run(userId, q.id).changes) return { completed: null, secret: false };
+      const all = this.progress(userId);
+      let completed: Dificultad | null = null;
+      const p = all[q.level];
+      if (p.done >= p.total && !p.prize) {
+        this.d.db.prepare("INSERT INTO trivia_premios (user_id, dificultad, at) VALUES (?, ?, ?)").run(userId, q.level, this.now());
+        this.d.giveSobre?.(userId, this.d.settings.dificultades[q.level].premio);
+        completed = q.level;
+      }
+      const secret = DIFICULTADES.every((d) => all[d].done >= all[d].total) && this.claimSecret(userId);
+      return { completed, secret };
+    });
+  }
+
+  // ───────────────────────── hitos ─────────────────────────
+
+  /**
+   * Cuenta un acierto para los hitos de su dificultad (pedido de GyroP, 7 nov. 2026): cada `hito.cada` aciertos, un
+   * sobre `hito.premio`. Con 2 o mas machetazos de Neru no cuenta (como la XP).
+   */
+  private hit(userId: string, level: Dificultad): Milestone | null {
+    if (!this.d.levels.canEarn(userId, this.now())) return null;
+    return transaction(this.d.db, () => {
+      this.d.db
+        .prepare("INSERT INTO trivia_hitos (user_id, dificultad, aciertos) VALUES (?, ?, 1) ON CONFLICT(user_id, dificultad) DO UPDATE SET aciertos = aciertos + 1")
+        .run(userId, level);
+      const r = this.d.db.prepare("SELECT aciertos, premios FROM trivia_hitos WHERE user_id = ? AND dificultad = ?").get(userId, level) as { aciertos: number; premios: number };
+      const h = this.d.settings.dificultades[level].hito;
+      if (!h) return null;
+      const due = Math.floor(r.aciertos / h.cada);
+      if (due <= r.premios) return null;
+      this.d.db.prepare("UPDATE trivia_hitos SET premios = ? WHERE user_id = ? AND dificultad = ?").run(due, userId, level);
+      this.d.giveSobre?.(userId, h.premio, due - r.premios);
+      return { level, n: r.aciertos, premio: h.premio };
+    });
+  }
+
+  /**
+   * Una sola vez (al primer arranque con hitos, 7 nov. 2026; pedido de GyroP): quienes ya tenian avance reciben sus
+   * hitos. El unico registro por dificultad de antes son las preguntas superadas (trivia_superadas, desde el 31 oct.),
+   * asi que esos son sus aciertos iniciales; reciben los sobres de los hitos que ya pasaron. Devuelve lo entregado.
+   */
+  seedMilestones(): { userId: string; level: Dificultad; aciertos: number; sobres: number }[] {
+    const KEY = "trivia_hitos_inicio";
+    if (!this.d.giveSobre || this.d.db.prepare("SELECT 1 FROM kv WHERE key = ?").get(KEY)) return [];
+    const levelOf = new Map(this.d.questions.map((q) => [q.id, q.level]));
+    const counts = new Map<string, number>();
+    for (const r of this.d.db.prepare("SELECT user_id, pregunta FROM trivia_superadas").all() as { user_id: string; pregunta: string }[]) {
+      const level = levelOf.get(r.pregunta);
+      if (level) counts.set(`${r.user_id}|${level}`, (counts.get(`${r.user_id}|${level}`) ?? 0) + 1);
+    }
+    const out: { userId: string; level: Dificultad; aciertos: number; sobres: number }[] = [];
+    transaction(this.d.db, () => {
+      for (const [k, aciertos] of counts) {
+        const [userId, level] = k.split("|") as [string, Dificultad];
+        const h = this.d.settings.dificultades[level].hito;
+        const sobres = h ? Math.floor(aciertos / h.cada) : 0;
+        this.d.db
+          .prepare("INSERT INTO trivia_hitos (user_id, dificultad, aciertos, premios) VALUES (?, ?, ?, ?) ON CONFLICT(user_id, dificultad) DO UPDATE SET aciertos = aciertos + excluded.aciertos, premios = premios + excluded.premios")
+          .run(userId, level, aciertos, sobres);
+        if (sobres > 0 && h) {
+          this.d.giveSobre!(userId, h.premio, sobres);
+          out.push({ userId, level, aciertos, sobres });
+        }
+      }
+      this.d.db.prepare("INSERT INTO kv (key, value) VALUES (?, ?)").run(KEY, String(this.now()));
+    });
+    return out;
+  }
+
+  /** Aciertos del Papu en una dificultad para los hitos, y cuantos le faltan para el siguiente (null si no tiene hito). */
+  milestones(userId: string, level: Dificultad): { aciertos: number; cada: number; left: number; premio: PremioSobre } | null {
+    const h = this.d.settings.dificultades[level].hito;
+    if (!h) return null;
+    const r = this.d.db.prepare("SELECT aciertos FROM trivia_hitos WHERE user_id = ? AND dificultad = ?").get(userId, level) as { aciertos: number } | undefined;
+    const aciertos = r?.aciertos ?? 0;
+    return { aciertos, cada: h.cada, left: h.cada - (aciertos % h.cada), premio: h.premio };
+  }
+
+  /** ¿Ya es Papu Lince? (supero todas las preguntas alguna vez, desde el 2 nov. 2026) */
+  isLynx(userId: string): boolean {
+    return !!this.d.db.prepare("SELECT 1 FROM trivia_premios WHERE user_id = ? AND dificultad = 'todas'").get(userId);
+  }
+
+  /** Registra el secreto y da sus sobres (una sola vez). */
+  private claimSecret(userId: string): boolean {
+    if (this.isLynx(userId)) return false;
+    this.d.db.prepare("INSERT INTO trivia_premios (user_id, dificultad, at) VALUES (?, 'todas', ?)").run(userId, this.now());
+    const { tipo, cantidad } = this.d.settings.secreto.sobres;
+    this.d.giveSobre?.(userId, tipo, cantidad);
+    return true;
   }
 
   // ───────────────────────── XP ─────────────────────────
@@ -226,7 +403,8 @@ export class TriviaService {
         streak,
         multiplier: this.d.levels.multiplier(new Date(t)),
       });
-      const xp = Math.min(full, this.capLeft(userId, t));
+      // Con 2 o mas machetazos de Neru, el acierto cuenta pero no da XP.
+      const xp = this.d.levels.canEarn(userId, t) ? Math.min(full, this.capLeft(userId, t)) : 0;
       const change = this.d.levels.bonus(userId, xp, t);
       this.d.db
         .prepare("INSERT INTO xp_dia (user_id, day, trivia, trivia_aciertos) VALUES (?, ?, ?, 1) ON CONFLICT(user_id, day) DO UPDATE SET trivia = trivia + excluded.trivia, trivia_aciertos = trivia_aciertos + 1")
@@ -251,7 +429,7 @@ export class TriviaService {
     this.sessions.delete(s.userId);
     const before = this.best(s.userId);
     this.d.db.prepare("INSERT INTO trivia_partidas (user_id, day, racha, xp, fin, at) VALUES (?, ?, ?, ?, ?, ?)").run(s.userId, this.day(), s.streak, s.xp, reason, this.now());
-    return { userId: s.userId, channelId: s.channelId, streak: s.streak, xp: s.xp, withXp: s.info.withXp, reason, best: Math.max(before, s.streak), record: s.streak > before && s.streak > 0 };
+    return { userId: s.userId, level: s.level, channelId: s.channelId, streak: s.streak, xp: s.xp, withXp: s.info.withXp, reason, best: Math.max(before, s.streak), record: s.streak > before && s.streak > 0 };
   }
 
   /** Mejores rachas del servidor (para el resultado publico). */

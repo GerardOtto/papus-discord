@@ -200,25 +200,67 @@ describe("Flood", () => {
   );
 });
 
-describe("Strikes", () => {
-  it("escalera: advertencia, 10 min, 1 h, 24 h + aviso", () => {
-    expect([1, 2, 3, 4, 7].map(penaltyFor)).toEqual([
-      { kind: "advertencia" },
-      { kind: "silencio", minutes: 10, notifyOwner: false },
-      { kind: "silencio", minutes: 60, notifyOwner: false },
-      { kind: "silencio", minutes: 1440, notifyOwner: true },
-      { kind: "silencio", minutes: 1440, notifyOwner: true },
+describe("Machetazos", () => {
+  it("escalera: 10 min; 1 h y sin XP; 24 h, sin XP y aviso", () => {
+    expect([1, 2, 3, 4].map(penaltyFor)).toEqual([
+      { minutes: 10, blockXp: false, notifyOwner: false },
+      { minutes: 60, blockXp: true, notifyOwner: false },
+      { minutes: 1440, blockXp: true, notifyOwner: true },
+      { minutes: 1440, blockXp: true, notifyOwner: true },
     ]);
   });
 
-  it("vencen a los 3 días y se pueden perdonar", () => {
+  it("vencen a los 3 días; con 2 activos no se gana XP", () => {
     const s = new StrikeStore(memDb());
     const day = 86_400_000;
     expect(s.add({ userId: "a", reason: "x" }, 0).active).toBe(1);
-    expect(s.add({ userId: "a", reason: "x" }, day).penalty).toEqual({ kind: "silencio", minutes: 10, notifyOwner: false });
+    expect(s.xpBlocked("a", 0)).toBe(false);
+    expect(s.add({ userId: "a", reason: "x" }, day).penalty).toEqual({ minutes: 60, blockXp: true, notifyOwner: false });
+    expect(s.xpBlocked("a", day)).toBe(true);
     expect(s.active("a", 3 * day + 1)).toBe(1);
+    expect(s.xpBlocked("a", 3 * day + 1)).toBe(false);
     expect(s.add({ userId: "a", reason: "x" }, 5 * day).active).toBe(1);
-    expect(s.clear("a", 5 * day)).toBe(1);
-    expect(s.active("a", 5 * day)).toBe(0);
+  });
+
+  it("3 advertencias activas = 1 machetazo, y se gastan", () => {
+    const s = new StrikeStore(memDb());
+    expect(s.warn({ userId: "a", reason: "x" }, 0)).toEqual({ warnings: 1, machetazo: null });
+    expect(s.warn({ userId: "a", reason: "x" }, 1).warnings).toBe(2);
+    expect(s.warn({ userId: "a", reason: "x" }, 2).machetazo).toMatchObject({ active: 1 });
+    expect(s.warnings("a", 3)).toBe(0);
+    expect(s.active("a", 3)).toBe(1);
+  });
+
+  it("perdonar borra machetazos y advertencias y devuelve la XP que quitaron, por día", () => {
+    const s = new StrikeStore(memDb());
+    const taken = [
+      { day: "2026-10-27", xp: 120 },
+      { day: "2026-10-28", xp: 30 },
+      { day: "2026-10-28", xp: 0 },
+    ];
+    s.onAdd = () => taken.shift()!;
+    s.add({ userId: "a", reason: "x" }, 0);
+    s.add({ userId: "a", reason: "x" }, 1);
+    s.add({ userId: "a", reason: "x" }, 2);
+    s.warn({ userId: "a", reason: "x" }, 3);
+    s.add({ userId: "b", reason: "x" }, 3);
+    const r = s.clear("a", 4);
+    expect(r.machetazos).toBe(3);
+    expect(r.advertencias).toBe(1);
+    expect(r.xp.sort((x, y) => x.day.localeCompare(y.day))).toEqual([
+      { day: "2026-10-27", xp: 120 },
+      { day: "2026-10-28", xp: 30 },
+    ]);
+    expect(s.active("a", 4)).toBe(0);
+    expect(s.warnings("a", 4)).toBe(0);
+    expect(s.active("b", 4)).toBe(1);
+  });
+
+  it("los strikes de antes de los machetazos no cuentan", () => {
+    const db = memDb();
+    db.prepare("INSERT INTO strikes (user_id, reason, created_at, expires_at, tipo) VALUES ('a', 'x', 0, 9e15, 'antiguo')").run();
+    const s = new StrikeStore(db);
+    expect(s.active("a", 1)).toBe(0);
+    expect(s.add({ userId: "a", reason: "x" }, 1).active).toBe(1);
   });
 });

@@ -25,7 +25,7 @@ import {
   type Message,
   type SendableChannels,
 } from "discord.js";
-import { type BotId, type Config, type CoreBotId } from "../config";
+import { BOT_IDS, type BotId, type Config, type CoreBotId } from "../config";
 import { kvDelete, kvGet, kvSet, type Db } from "../db/database";
 import type { CharacterInfo } from "../engine/reader";
 import { logError, type LogFn } from "../log";
@@ -47,9 +47,20 @@ import { RuleSet } from "../moderation/rules";
 import { LevelsDiscord } from "./levels";
 import { BodasDiscord } from "./bodas";
 import { RuletaDiscord } from "./ruleta";
+import { SorteoDiscord } from "./sorteo";
+import { PeleasDiscord } from "./peleas";
+import { TiendaDiscord } from "./tienda";
+import { toCardEquip } from "../coins/equip";
+import type { DatosBanco } from "../coins/images";
+import type { CoinService } from "../coins/service";
 import { TriviaDiscord } from "./trivia";
+import { MangoDiscord } from "./mango";
+import { pardonedFromLog, type MangoService } from "../services/mango";
+import { DayStats, papuText, serverText } from "../services/estadisticas";
 import type { TriviaService } from "../trivia/service";
 import type { RouletteService } from "../ruleta/service";
+import type { SorteoService } from "../sorteo/service";
+import type { PeleaService } from "../peleas/service";
 import type { WeddingService } from "../bodas/service";
 import type { ModerationSettings } from "../moderation/rules";
 import { isTrivialReply, mentionedBots, type ChatPort, type ConversationService } from "../services/conversation";
@@ -59,7 +70,7 @@ import { fillMentions, loadAnuncios, markAnuncio, mentionedUsernames, pendingAnu
 import { planWelcomeCleanup, type WelcomeMessage } from "../services/welcome-cleanup";
 import { dayKey, nextDayStart } from "../time";
 import { CHANNELS, channelKey, chunk, findTextChannel } from "./channels";
-import { commandsFor, contextMenusFor, STRIKE_DELETE_MENU, STRIKE_MENU, WARN_MENU } from "./commands";
+import { commandsFor, contextMenusFor, STRIKE_MENU, WARN_MENU } from "./commands";
 
 /**
  * Menciones por defecto de todos los bots: solo usuarios, nunca @everyone, @here ni roles. El rol Vocaloids tiene el
@@ -146,14 +157,18 @@ export interface AppDeps {
   owners: Set<string>;
   /** Trato especial de un Papu concreto (config/especiales.json): sin cuota, su rol de adorno y su trato con un bot. */
   especiales?: Especiales;
-  /** Roles especiales cuyo color sigue al de #tu-color (`sobreNiveles`): nombre -> color propio; y la paleta. */
+  /** Roles especiales cuyo color sigue al de #tus-roles (`sobreNiveles`): nombre -> color propio; y la paleta. */
   specialColors?: { base: Map<string, number>; palette: string[] };
   /** Insignia Fundador por tiempo limitado (null = ya no se entrega). */
   founders: FounderSettings | null;
   /** Rol que Teto da a cada Papu al entrar (null = ninguno). */
   everyoneRole: string | null;
-  /** Rol de los Mods (dan strikes y avisos con Neru, como GyroP; null = sin Mods). */
+  /** Rol de los Mods (dan machetazos y advertencias con Neru, como GyroP; null = sin Mods). */
   modRole?: string | null;
+  /** Rol de adorno de quien GyroP perdono de un machetazo (🔪 Sobreviviente; null = no se da). */
+  survivorRole?: { rol: string; color: string } | null;
+  /** Mango9374, el que imita a un Papu real (src/services/mango.ts; null = sin token, no se conecta). */
+  mango?: MangoService | null;
   /** Canales de nivel que se anuncian en #vitrina (clave -> nivel con emoji). */
   vitrina: Map<string, string>;
   /** Bodas con las Vocaloids (src/bodas/; null = desactivadas). */
@@ -162,6 +177,14 @@ export interface AppDeps {
   roulette?: RouletteService | null;
   /** Trivia de los Papus (src/trivia/; null = desactivada). */
   trivia?: TriviaService | null;
+  /** Sorteo de GyroP (src/sorteo/; null = desactivado). */
+  sorteo?: SorteoService | null;
+  /** 1vs1 de los Vocaloids con apuestas de Shaula-coins (src/peleas/; null = desactivado). */
+  peleas?: PeleaService | null;
+  /** Shaula-coins: tienda, sobres y objetos de la tarjeta (src/coins/; null = desactivada). */
+  coins?: CoinService | null;
+  /** PayPal.me y cuenta en Chile de GyroP para vender monedas (del .env; null = no se ofrece). */
+  pagos?: { paypalMe: string | null; banco: DatosBanco | null };
   /** Calendario automatico de #calendario (null = desactivado: falta el token de Cloudflare o la carpeta). */
   calendar: { service: CalendarService; channel: string } | null;
   log: LogFn;
@@ -185,6 +208,12 @@ export class PapusApp {
   private bodas: BodasDiscord | null = null;
   private ruleta: RuletaDiscord | null = null;
   private trivia: TriviaDiscord | null = null;
+  private sorteo: SorteoDiscord | null = null;
+  private peleas: PeleasDiscord | null = null;
+  private tienda: TiendaDiscord | null = null;
+  private readonly mango: MangoDiscord | null;
+  /** Mensajes enviados por dia y los numeros que da Mango9374. */
+  private readonly dayStats: DayStats;
 
   constructor(private readonly d: AppDeps) {
     this.ownerId = d.config.ownerId;
@@ -193,6 +222,20 @@ export class PapusApp {
     // nonce, Discord devuelve el mensaje que ya existe en vez de publicarlo dos veces (caso real del 21 oct. 2026: Miku
     // respondio dos veces lo mismo a los 8 @ de un Papu).
     this.clients = Object.fromEntries(d.config.activeBots.map((id) => [id, new Client({ intents: INTENTS[id], enforceNonce: true, allowedMentions: { parse: [...SAFE_MENTIONS.parse], repliedUser: SAFE_MENTIONS.repliedUser } })])) as Record<BotId, Client>;
+    this.dayStats = new DayStats({ db: d.db, quota: d.quota, levels: d.levels, timeZone: d.config.quotaTimeZone, roulette: d.roulette, weddings: d.weddings, trivia: d.trivia, owners: d.owners });
+    const names = Object.fromEntries(BOT_IDS.map((b) => [b, d.characters[b].displayName]));
+    this.mango =
+      d.mango && d.config.mangoToken
+        ? new MangoDiscord({
+            service: d.mango,
+            token: d.config.mangoToken,
+            db: d.db,
+            owners: d.owners,
+            stats: { papu: (id) => papuText(this.dayStats.papu(id), names), server: () => serverText(this.dayStats.server()) },
+            report: (t) => this.report(t),
+            log: d.log,
+          })
+        : null;
   }
 
   async start(): Promise<void> {
@@ -208,6 +251,8 @@ export class PapusApp {
         log(`${id} en línea como ${client.user!.tag}`);
       }),
     );
+    // Mango9374 es opcional: si no conecta, los demas siguen.
+    const mangoUp = await this.mango?.start().then(() => true, (e) => (logError("Mango9374", e), false));
 
     this.guild = await this.clients.neru.guilds.fetch(config.guildId);
     await this.guild.channels.fetch();
@@ -237,6 +282,9 @@ export class PapusApp {
         const ch = findTextChannel(this.guild, CHANNELS.moderacion);
         return ch ? this.sendable("neru", ch.id) : null;
       },
+      // Objetos de las Shaula-coins en la tarjeta y bono por subir de nivel (PLAN §3.6).
+      equipment: this.d.coins ? (userId) => toCardEquip(this.d.coins!.equipped(userId), this.d.coins!.founderNumber(userId)) : undefined,
+      onLevelUp: this.d.coins ? (change) => void this.d.coins!.onLevelChange(change) : undefined,
       log: this.d.log,
     });
     if (this.d.weddings) {
@@ -284,12 +332,67 @@ export class PapusApp {
         log: this.d.log,
       });
     }
-    // Strike de Neru: se pierde la XP del dia.
-    this.d.strikes.onAdd = (userId) => void this.levels.onStrike(userId).catch((e) => logError("XP por strike", e));
+    if (this.d.sorteo) {
+      this.sorteo = new SorteoDiscord({
+        sorteo: this.d.sorteo,
+        levelsDiscord: this.levels,
+        phrases: this.d.phrases,
+        decks: this.d.decks,
+        characters: this.d.characters,
+        online: config.activeBots,
+        owners: this.d.owners,
+        guild: () => this.guild,
+        sendable: (bot, channelId) => this.sendable(bot, channelId),
+        report: (text) => this.report(text),
+        log: this.d.log,
+      });
+    }
+    if (this.d.peleas) {
+      this.peleas = new PeleasDiscord({
+        peleas: this.d.peleas,
+        phrases: this.d.phrases,
+        db: this.d.db,
+        characters: this.d.characters,
+        owners: this.d.owners,
+        guild: () => this.guild,
+        sendable: (bot, channelId) => this.sendable(bot, channelId),
+        report: (text) => this.report(text),
+        timeZone: config.quotaTimeZone,
+        log: this.d.log,
+      });
+    }
+    if (this.d.coins) {
+      this.tienda = new TiendaDiscord({
+        coins: this.d.coins,
+        levelsDiscord: this.levels,
+        phrases: this.d.phrases,
+        db: this.d.db,
+        owners: this.d.owners,
+        clients: this.clients,
+        online: config.activeBots,
+        pagos: this.d.pagos ?? { paypalMe: null, banco: null },
+        guild: () => this.guild,
+        sendable: (bot, channelId) => this.sendable(bot, channelId),
+        report: (text) => this.report(text),
+        log: this.d.log,
+      });
+    }
+    // Machetazo de Neru: se pierde la XP del dia (queda anotada para devolverla al perdonar).
+    this.d.strikes.onAdd = (userId, now) => {
+      try {
+        return this.levels.onStrike(userId, now);
+      } catch (e) {
+        logError("XP por machetazo", e);
+        return null;
+      }
+    };
 
     await this.registerCommands();
     await this.syncAutoMod();
     this.wireEvents();
+    if (mangoUp) void this.mango!.syncProfile(this.guild).catch((e) => logError("perfil de Mango9374", e));
+    void this.trivia?.syncSecretRole().catch((e) => logError("rol secreto de la trivia", e));
+    void this.pastSurvivors().catch((e) => logError("sobrevivientes anteriores", e));
 
     const lastSeen = Number(kvGet(this.d.db, LAST_SEEN_KEY) ?? 0);
     await this.greetOnStart(lastSeen || null).catch((e) => logError("saludo", e));
@@ -308,7 +411,11 @@ export class PapusApp {
       void this.updateCalendar().catch((e) => logError("calendario", e));
       this.calendarTimer = setInterval(() => void this.updateCalendar().catch((e) => logError("calendario", e)), CALENDAR_EVERY_MS);
     }
-    await this.report(`✅ Bots en línea (${config.activeBots.join(", ")}).`);
+    await this.report(`✅ Bots en línea (${[...config.activeBots, ...(mangoUp ? ["mango9374"] : [])].join(", ")}).`);
+    // Tienda de Shaula-coins: emojis, paquete de fundadores, menu fijado y vitrina del dia.
+    void this.tienda?.start().catch((e) => logError("tienda", e));
+    // 1vs1: lo apostado en una pelea que quedo a medias (reinicio) se devuelve.
+    void this.peleas?.start().catch((e) => logError("peleas", e));
     // Bodas: la adivinanza inaugural sale apenas arrancan los bots con el parche (y lo vencido se cierra).
     void this.bodas?.tick().catch((e) => logError("bodas", e));
   }
@@ -326,9 +433,10 @@ export class PapusApp {
     if (this.expiryTimer) clearTimeout(this.expiryTimer);
     if (this.welcomeTimer) clearTimeout(this.welcomeTimer);
     if (this.chatTimer) clearInterval(this.chatTimer);
+    this.peleas?.stop();
     await this.farewell().catch((e) => logError("despedida", e));
     this.touchLastSeen();
-    await Promise.all(this.d.config.activeBots.map((id) => this.clients[id].destroy()));
+    await Promise.all([...this.d.config.activeBots.map((id) => this.clients[id].destroy()), this.mango?.stop()]);
   }
 
   /** Saludo en #general al conectarse, salvo reinicio rapido (entonces se borra la despedida anterior). */
@@ -398,6 +506,15 @@ export class PapusApp {
 
   private lastBeat = 0;
 
+  /** Papus conectados en voz ahora (sin bots ni el canal AFK; para los minutos en voz de Mango9374). */
+  private inVoice(): string[] {
+    const guild = this.guild;
+    if (!guild) return [];
+    return [...guild.voiceStates.cache.values()]
+      .filter((vs) => vs.channelId && vs.channelId !== guild.afkChannelId && !vs.member?.user.bot && !this.botByUserId.has(vs.id))
+      .map((vs) => vs.id);
+  }
+
   /**
    * Latido cada minuto. Si entre dos latidos paso mucho tiempo, el PC estuvo suspendido: al despertar se saluda (si
    * fueron mas de 30 min) y se hacen las tareas de reconexion (bienvenidas, resumen de Neru, "ya volvi").
@@ -408,6 +525,11 @@ export class PapusApp {
     this.lastBeat = now;
     const prevSeen = Number(kvGet(this.d.db, LAST_SEEN_KEY) ?? now);
     this.touchLastSeen();
+    try {
+      this.dayStats.countVoiceMinute(this.inVoice());
+    } catch (e) {
+      logError("minutos en voz", e);
+    }
     void this.levels
       .voiceTick((id) => this.botByUserId.has(id))
       .then(() => this.ruleta?.voiceCheck((id) => this.botByUserId.has(id)))
@@ -416,6 +538,8 @@ export class PapusApp {
       .then(() => this.levels.announceFixedEvents())
       .catch((e) => logError("evento de XP", e));
     if (!this.stopping) void this.bodas?.tick().catch((e) => logError("bodas", e));
+    if (!this.stopping) void this.tienda?.tick().catch((e) => logError("tienda", e));
+    if (!this.stopping) void this.peleas?.tick().catch((e) => logError("pelea automática", e));
     if (gap < HEARTBEAT_MS * 3) return;
     this.d.log(`El PC despertó tras ${Math.round(gap / 60_000)} min de suspensión`);
     void (async () => {
@@ -445,6 +569,9 @@ export class PapusApp {
     this.clients.teto.on(Events.GuildMemberUpdate, (old, member) => {
       if (member.guild.id === this.guild.id) void this.levels.onMemberUpdate(old, member).catch((e) => logError("niveles (miembro)", e));
       if (this.d.especiales?.get(member.id)) void this.syncSpecialColor(member).catch((e) => logError("color de rol especial", e));
+      // Rol de membresia nuevo: su insignia permanente para la tarjeta (pedido de GyroP, 31 oct. 2026).
+      if (!member.user.bot && member.guild.id === this.guild.id && member.roles.cache.size > old.roles.cache.size)
+        void this.tienda?.membershipBadges(member.id, member.roles.cache.map((r) => r.name)).catch((e) => logError("insignia de membresía", e));
       const f = this.d.founders;
       if (!f || member.user.bot || member.guild.id !== this.guild.id || !founderWindowOpen(f, Date.now())) return;
       if (needsFounder(f, member.roles.cache.map((r) => r.name))) void this.grantFounders([member.id]).catch((e) => logError("Fundador", e));
@@ -452,30 +579,42 @@ export class PapusApp {
     for (const id of this.d.config.activeBots) {
       this.clients[id].on(Events.InteractionCreate, (i) => {
         if (i.isChatInputCommand()) void this.onCommand(id, i).catch((e) => logError(`comando /${i.commandName}`, e));
+        else if (i.isAutocomplete() && i.commandName === "pelea") void this.peleas?.autocomplete(i).catch((e) => logError("autocompletar /pelea", e));
         else if (i.isButton())
-          void (async () => (await this.trivia?.button(i)) || (await this.bodas?.button(i)) || (await this.ruleta?.button(i)) || (await this.levels.button(i)))().catch((e) => logError(`botón ${i.customId}`, e));
-        else if (i.isModalSubmit()) void this.trivia?.modal(i).catch((e) => logError(`formulario ${i.customId}`, e));
+          void (async () => (await this.trivia?.button(i)) || (await this.bodas?.button(i)) || (await this.ruleta?.button(i)) || (await this.sorteo?.button(i)) || (await this.peleas?.button(i)) || (await this.tienda?.button(i)) || (await this.levels.button(i)))().catch((e) => logError(`botón ${i.customId}`, e));
+        else if (i.isUserSelectMenu()) void this.sorteo?.userSelect(i).catch((e) => logError(`menú ${i.customId}`, e));
+        else if (i.isStringSelectMenu()) void this.tienda?.select(i).catch((e) => logError(`menú ${i.customId}`, e));
+        else if (i.isModalSubmit()) void (async () => (await this.peleas?.modal(i)) || (await this.trivia?.modal(i)))().catch((e) => logError(`formulario ${i.customId}`, e));
         else if (id === "neru" && i.isMessageContextMenuCommand() && i.commandName === WARN_MENU)
           void this.warnFromMenu(i).catch((e) => logError("advertir (menú)", e));
         else if (id === "neru" && i.isMessageContextMenuCommand() && i.commandName === STRIKE_MENU)
-          void this.strikeFromMenu(i).catch((e) => logError("strike (menú)", e));
-        else if (id === "neru" && i.isMessageContextMenuCommand() && i.commandName === STRIKE_DELETE_MENU)
-          void this.strikeFromMenu(i, true).catch((e) => logError("strike y borrar (menú)", e));
+          void this.strikeFromMenu(i).catch((e) => logError("machetazo (menú)", e));
       });
       this.clients[id].on(Events.Error, (e) => logError(`cliente ${id}`, e));
     }
   }
 
   private async onMessage(m: Message): Promise<void> {
-    if (m.author.bot || m.system || !m.inGuild() || m.guildId !== this.guild.id) return;
+    if (m.system || !m.inGuild() || m.guildId !== this.guild.id) return;
     if (m.type !== MessageType.Default && m.type !== MessageType.Reply) return;
+    // Mensajes del dia de Papus y Vocaloids (los numeros de Mango9374).
+    if (!m.author.bot || this.botByUserId.has(m.author.id)) {
+      try {
+        this.dayStats.countMessage(m.author.id, m.author.bot);
+      } catch (e) {
+        logError("contar mensaje", e);
+      }
+    }
+    if (m.author.bot) return;
 
     // 1) Moderacion primero (reglas fijas, nunca el LLM).
     const replied = m.reference?.messageId ? await m.fetchReference().catch(() => null) : null;
     const others = m.mentions.users.filter((u) => !u.bot && u.id !== m.author.id);
     const targetsSomeone = others.size > 0 || (!!replied && !replied.author.bot && replied.author.id !== m.author.id);
     // A los Vocaloids tampoco se les falta el respeto (GyroP): mencionar o responder a uno de nuestros bots.
-    const targetsBot = m.mentions.users.some((u) => this.botByUserId.has(u.id)) || (!!replied && this.botByUserId.has(replied.author.id));
+    // (Mango9374 tambien: imita a un Papu real.)
+    const ours = (id: string) => this.botByUserId.has(id) || id === this.mango?.userId;
+    const targetsBot = m.mentions.users.some((u) => ours(u.id)) || (!!replied && ours(replied.author.id));
     const joined = m.member?.joinedTimestamp ?? Date.now();
     const violation = await this.moderation.handle({
       messageId: m.id,
@@ -510,6 +649,10 @@ export class PapusApp {
       .catch((e) => (logError("bodas (mensaje)", e), false));
     if (boda) return;
 
+    // Mango9374: frase fija a su @, una vez al dia por Papu (sin LLM ni cuota). Los Vocaloids nombrados en el mismo
+    // mensaje contestan igual.
+    await this.mango?.onMessage(m).catch((e) => logError("Mango9374", e));
+
     // 2) Menciones a los bots (en orden; responder a un bot cuenta como mencionarlo).
     const bots = mentionedBots(m.content, this.botByUserId, replied?.author.bot ? replied.author.id : null);
     if (bots.length === 0) {
@@ -529,6 +672,38 @@ export class PapusApp {
       history: () => this.history(m),
     });
     if (outcome === "answered" || outcome === "partial") await this.levels.onBotReply(m.author.id, xpBase, ctx).catch((e) => logError("XP con Vocaloid", e));
+  }
+
+  /**
+   * /donar (pedido de GyroP, 31 oct. 2026): un Papu le cede mensajes de su cuota de hoy a otro (los pierde él). Al otro le
+   * llegan como extra del dia, solo hasta llenar su cuota. Sale publico para que el otro se entere.
+   */
+  private async donar(i: ChatInputCommandInteraction): Promise<void> {
+    const to = i.options.getUser("papu", true);
+    const n = i.options.getInteger("cantidad", true);
+    const no = (content: string) => i.reply({ content, flags: MessageFlags.Ephemeral, allowedMentions: { parse: [] } });
+    if (to.bot) return void (await no("Los Vocaloids no usan cuota: regálasela a un Papu. 🥖"));
+    if (to.id === i.user.id) return void (await no("No puedes donarte a ti mismo, Papu. 🥖"));
+    const r = this.d.quota.donate(i.user.id, to.id, n);
+    if (!r.ok) {
+      const left = this.d.quota.remaining(i.user.id);
+      const room = this.d.quota.room(to.id);
+      const why =
+        r.motivo === "sin_limite"
+          ? "Tus mensajes no tienen límite: es un regalo solo para ti, así que no se pueden donar. 💙"
+          : r.motivo === "no_alcanza"
+            ? `Solo te ${left === 1 ? "queda **1 mensaje**" : `quedan **${left} mensajes**`} hoy: no alcanza para donar ${n}.`
+            : room > 0
+              ? `A ${to} solo le ${room === 1 ? "cabe **1 mensaje** más" : `caben **${room} mensajes** más`} hoy (no se puede pasar de su cuota diaria).`
+              : `${to} ya tiene su cuota del día llena: guárdalos para ti. 🥖`;
+      return void (await no(why));
+    }
+    const left = this.d.quota.remaining(i.user.id);
+    await i.reply({
+      content: `🎁 ${i.user} le regaló **${n} ${n === 1 ? "mensaje" : "mensajes"}** con los Vocaloids a ${to} (solo por hoy). ¡Qué buen Papu! 🥖\n-# A ${i.user.username} le ${left === 1 ? "queda 1" : `quedan ${left}`} hoy · /donar`,
+      allowedMentions: { users: [to.id] },
+    });
+    this.d.log(`🎁 ${i.user.username} donó ${n} mensajes a ${to.username}`);
   }
 
   /** En #tips-y-curiosidades, un dato sin enlace recibe la frase de Luka "falta la fuente" (max. una cada 30 min por Papu). */
@@ -580,13 +755,14 @@ export class PapusApp {
       const limit = this.d.quota.limitFor(i.user.id) + extra;
       const hours = Math.ceil((nextDayStart(new Date(), this.d.config.quotaTimeZone) - Date.now()) / 3_600_000);
       const text = Number.isFinite(left)
-        ? `Te quedan **${left} de ${limit}** mensajes con los Vocaloids hoy${extra ? ` (${extra} extra de la ruleta 🎰)` : ""} (se comparten entre todos los Vocaloids; cada @ cuenta uno). Se recargan en ~${hours} h, a medianoche de Chile. Tu cuota sube con tu nivel: míralo con /nivel.`
+        ? `Te quedan **${left} de ${limit}** mensajes con los Vocaloids hoy${extra ? ` (${extra} extra de la ruleta, el sorteo o regalos 🎁)` : ""} (se comparten entre todos los Vocaloids; cada @ cuenta uno). Se recargan en ~${hours} h, a medianoche de Chile. Tu cuota sube con tu nivel: míralo con /nivel. Puedes regalarle mensajes a otro Papu con /donar.`
         : this.d.owners.has(i.user.id)
           ? "No tienes límite de mensajes (eres GyroP)."
           : "No tienes límite de mensajes con los Vocaloids: es un regalo de GyroP. 💙";
       await i.reply({ content: text, flags: MessageFlags.Ephemeral });
       return;
     }
+    if (bot === "teto" && i.commandName === "donar") return this.donar(i);
     if (bot === "teto" && i.commandName === "nivel") return this.levels.nivel(i);
     if (bot === "teto" && i.commandName === "tarjeta") return this.levels.tarjeta(i);
     if (bot === "teto" && i.commandName === "ranking") return this.levels.ranking(i);
@@ -597,6 +773,18 @@ export class PapusApp {
     if (bot === "teto" && i.commandName === "ruleta") {
       if (!this.ruleta) return void (await i.reply({ content: "La ruleta está apagada por ahora. 🥖", flags: MessageFlags.Ephemeral }));
       return this.ruleta.ruleta(i);
+    }
+    if (bot === "teto" && (i.commandName === "tienda" || i.commandName === "monedas")) {
+      if (!this.tienda) return void (await i.reply({ content: "La tienda está cerrada por ahora. 🥖", flags: MessageFlags.Ephemeral }));
+      return i.commandName === "tienda" ? this.tienda.tienda(i) : this.tienda.monedas(i);
+    }
+    if (bot === "teto" && i.commandName === "pelea") {
+      if (!this.peleas) return void (await i.reply({ content: "Las peleas están apagadas por ahora. 🥖", flags: MessageFlags.Ephemeral }));
+      return this.peleas.pelea(i);
+    }
+    if (bot === "teto" && i.commandName === "sorteo") {
+      if (!this.sorteo) return void (await i.reply({ content: "El sorteo está apagado por ahora. 🥖", flags: MessageFlags.Ephemeral }));
+      return this.sorteo.sorteo(i);
     }
     if (bot === "teto" && i.commandName === "trivia") {
       if (!this.trivia) return void (await i.reply({ content: "La trivia está apagada por ahora. 🥖", flags: MessageFlags.Ephemeral }));
@@ -648,24 +836,30 @@ export class PapusApp {
       const target = i.options.getUser("papu", true);
       return this.warn(i, target.id, target.bot, i.channelId, { motivo: i.options.getString("motivo") ?? undefined });
     }
-    if (bot === "neru" && i.commandName === "strike") {
+    if (bot === "neru" && i.commandName === "machetazo") {
       const target = i.options.getUser("papu", true);
       return this.manualStrike(i, target.id, target.bot, i.channelId, { motivo: i.options.getString("motivo") ?? undefined });
     }
     if (bot === "neru" && i.commandName === "reporte") return this.openTicket(i);
     if (bot === "neru" && i.commandName === "cerrar-ticket") return this.closeTicket(i);
-    if (bot === "neru" && (i.commandName === "strikes" || i.commandName === "perdonar")) {
-      // Consultar strikes: GyroP y los Mods. Perdonar: solo GyroP (los strikes merecidos se quedan).
-      const allowed = this.d.owners.has(i.user.id) || (i.commandName === "strikes" && (await this.isMod(i.user.id)));
+    if (bot === "neru" && (i.commandName === "machetazos" || i.commandName === "perdonar")) {
+      // Consultar machetazos: GyroP y los Mods. Perdonar: solo GyroP (los machetazos merecidos se quedan).
+      const allowed = this.d.owners.has(i.user.id) || (i.commandName === "machetazos" && (await this.isMod(i.user.id)));
       if (!allowed) {
-        await i.reply({ content: i.commandName === "strikes" ? "eso solo lo usan gyrop y los mods. 📱" : "eso solo lo usa GyroP. 📱", flags: MessageFlags.Ephemeral });
+        await i.reply({ content: i.commandName === "machetazos" ? "eso solo lo usan gyrop y los mods. 📱" : "eso solo lo usa GyroP. 📱", flags: MessageFlags.Ephemeral });
         return;
       }
       const target = i.options.getUser("papu", true);
-      if (i.commandName === "strikes") {
-        await i.reply({ content: `${target} tiene ${this.d.strikes.active(target.id)} strikes activos (vencen a los 3 días).`, flags: MessageFlags.Ephemeral });
+      if (i.commandName === "machetazos") {
+        const m = this.d.strikes.active(target.id);
+        const w = this.d.strikes.warnings(target.id);
+        const content = `${target} tiene ${m} ${m === 1 ? "machetazo activo" : "machetazos activos"} y ${w} ${w === 1 ? "advertencia" : "advertencias"} (vencen a los 3 días)${this.d.strikes.xpBlocked(target.id) ? ". no gana XP mientras tenga 2 o más" : ""}.`;
+        await i.reply({ content, flags: MessageFlags.Ephemeral });
       } else {
-        const n = this.d.strikes.clear(target.id);
+        // Perdonar revierte el machetazo: borra machetazos y advertencias, devuelve la XP que quitaron y levanta el silencio.
+        const cleared = this.d.strikes.clear(target.id);
+        const n = cleared.machetazos + cleared.advertencias;
+        const xpBack = cleared.xp.length ? await this.levels.onForgive(target.id, cleared.xp) : 0;
         // Perdonar tambien levanta el silencio (timeout de Discord) que siga vigente, sea de Neru, de AutoMod o manual.
         const member = await this.guild.members.fetch(target.id).catch(() => null);
         const silenced = !!member?.isCommunicationDisabled();
@@ -680,15 +874,22 @@ export class PapusApp {
         }
         if (!n && !unsilenced) {
           const content = silenced
-            ? `${target} no tiene strikes activos y no pude quitarle el silencio (revisa el rol de Neru). 📱`
-            : `${target} no tiene strikes activos ni silencio. no hay nada que perdonar. 📱`;
+            ? `${target} no tiene machetazos ni advertencias, y no pude quitarle el silencio (revisa el rol de Neru). 📱`
+            : `${target} no tiene machetazos, advertencias ni silencio. no hay nada que perdonar. 📱`;
           await i.reply({ content, flags: MessageFlags.Ephemeral, allowedMentions: { parse: [] } });
           return;
         }
         // En publico, en el canal donde GyroP lo usa: que todos vean que el castigo se levanto (decision de GyroP, 18 oct. 2026).
         await i.reply({ content: this.d.phrases.pick("neru", "perdon", { papu: `<@${target.id}>` }), allowedMentions: { users: [target.id] } });
-        const what = [n ? `${n} strikes` : "", unsilenced ? "el silencio" : ""].filter(Boolean).join(" y ");
-        await this.modLog(`🧽 GyroP perdonó ${what} de ${target}.`);
+        const what = [
+          cleared.machetazos ? `${cleared.machetazos} ${cleared.machetazos === 1 ? "machetazo" : "machetazos"}` : "",
+          cleared.advertencias ? `${cleared.advertencias} ${cleared.advertencias === 1 ? "advertencia" : "advertencias"}` : "",
+          unsilenced ? "el silencio" : "",
+        ].filter(Boolean);
+        const list = what.length > 1 ? `${what.slice(0, -1).join(", ")} y ${what.at(-1)}` : what[0];
+        await this.modLog(`🧽 GyroP perdonó ${list} de ${target}${xpBack > 0 ? ` (le devolví ${xpBack} XP)` : ""}.`);
+        // Sobrevivio a un machetazo: rol de adorno para siempre (decision de GyroP, 28 oct. 2026).
+        if (cleared.machetazos) await this.grantSurvivor(target.id).catch((e) => logError("rol Sobreviviente", e));
       }
     }
   }
@@ -700,7 +901,7 @@ export class PapusApp {
     await this.warn(i, m.author.id, m.author.bot, m.channelId, { messageId: m.id, excerpt: m.content });
   }
 
-  /** Aviso de GyroP o de un Mod en boca de Neru: frase fija en el canal, sin borrar ni strike (ModerationService.warn). */
+  /** Advertencia de GyroP o de un Mod en boca de Neru: frase fija en el canal; la 3.ª activa es un machetazo (ModerationService.warn). */
   private async warn(
     i: ChatInputCommandInteraction | MessageContextMenuCommandInteraction,
     userId: string,
@@ -711,36 +912,36 @@ export class PapusApp {
     const por = await this.moderator(i, userId, isBot, "…a ese no le puedo llamar la atención. 📱");
     if (!por) return;
     await i.deferReply({ flags: MessageFlags.Ephemeral });
-    await this.moderation.warn({ userId, channelId, ...extra, por });
-    await i.editReply("listo. avisé sin strike. quedó en #moderación. 📱");
+    const r = await this.moderation.warn({ userId, channelId, ...extra, por });
+    await i.editReply(
+      r.machetazo
+        ? `listo. era su 3.ª advertencia: machetazo${extra.messageId ? " y mensaje borrado" : ""}, lleva ${r.machetazo.active} activos. quedó en #moderación. 📱`
+        : `listo. advertencia ${r.warnings} de 3. quedó en #moderación. 📱`,
+    );
   }
 
-  private async strikeFromMenu(i: MessageContextMenuCommandInteraction, borrar = false): Promise<void> {
+  private async strikeFromMenu(i: MessageContextMenuCommandInteraction): Promise<void> {
     const m = i.targetMessage;
-    await this.manualStrike(i, m.author.id, m.author.bot, m.channelId, { messageId: m.id, excerpt: m.content, borrar });
+    await this.manualStrike(i, m.author.id, m.author.bot, m.channelId, { messageId: m.id, excerpt: m.content });
   }
 
-  /** Strike de GyroP o de un Mod en boca de Neru: misma escalera que los automaticos; borra el mensaje solo con `borrar` (ModerationService.strike). */
+  /** Machetazo de GyroP o de un Mod en boca de Neru: misma escalera que los automaticos y borra el mensaje (ModerationService.strike). */
   private async manualStrike(
     i: ChatInputCommandInteraction | MessageContextMenuCommandInteraction,
     userId: string,
     isBot: boolean,
     channelId: string,
-    extra: { messageId?: string; excerpt?: string; motivo?: string; borrar?: boolean },
+    extra: { messageId?: string; excerpt?: string; motivo?: string },
   ): Promise<void> {
-    const por = await this.moderator(i, userId, isBot, "…a ese no le puedo poner strike. 📱");
+    const por = await this.moderator(i, userId, isBot, "…a ese no le puedo dar un machetazo. 📱");
     if (!por) return;
     await i.deferReply({ flags: MessageFlags.Ephemeral });
     const active = await this.moderation.strike({ userId, channelId, ...extra, por });
-    if (active === null) {
-      await i.editReply("a ese Papu los strikes se los pone gyrop. le avisé sin strike y quedó en #moderación. 📱");
-      return;
-    }
-    await i.editReply(`listo. strike puesto${extra.borrar ? " y mensaje borrado" : ""}, lleva ${active} activos. quedó en #moderación. 📱`);
+    await i.editReply(`listo. machetazo puesto${extra.messageId ? " y mensaje borrado" : ""}, lleva ${active} activos. quedó en #moderación. 📱`);
   }
 
   /**
-   * Quien puede dar strikes y avisos con Neru: GyroP o un Mod. Devuelve como sale en #moderacion ("GyroP" o
+   * Quien puede dar machetazos y advertencias con Neru: GyroP o un Mod. Devuelve como sale en #moderacion ("GyroP" o
    * "Mod <@id>"), o null si ya respondio que no. A GyroP, a los bots, a uno mismo y (para un Mod) a otro Mod no se les
    * sanciona.
    */
@@ -963,7 +1164,7 @@ export class PapusApp {
       log: async (e) => {
         const lines = [
           `**${e.kind}** · <@${e.userId}>${e.channelId ? ` en <#${e.channelId}>` : ""}`,
-          `${e.detail} → ${e.action}${e.activeStrikes !== null ? ` · strikes activos: ${e.activeStrikes}` : ""}`,
+          `${e.detail} → ${e.action}${e.activeStrikes !== null ? ` · machetazos activos: ${e.activeStrikes}` : ""}`,
           e.excerpt ? `> ${e.excerpt.slice(0, 400).replace(/\n/g, "\n> ")}` : "",
         ].filter(Boolean);
         await this.modLog(lines.join("\n"));
@@ -988,7 +1189,7 @@ export class PapusApp {
 
   private async registerCommands(): Promise<void> {
     // Miku y Luka responden sus comandos desde Cloudflare (worker/), 24/7: sus comandos los registra
-    // `npm run worker:deploy`. Aqui solo los de Teto y Neru, que usan la base local (cuota y strikes).
+    // `npm run worker:deploy`. Aqui solo los de Teto y Neru, que usan la base local (cuota y machetazos).
     for (const id of LOCAL_COMMAND_BOTS) {
       const client = this.clients[id];
       const rest = new REST().setToken(this.d.config.tokens[id]);
@@ -1212,7 +1413,7 @@ export class PapusApp {
     }
   }
 
-  /** Rol especial sobre los niveles: toma el color de #tu-color que elija su dueña, o vuelve al suyo. */
+  /** Rol especial sobre los niveles: toma el color de #tus-roles que elija su dueña, o vuelve al suyo. */
   private async syncSpecialColor(member: GuildMember): Promise<void> {
     const rol = this.d.especiales?.get(member.id)?.rol;
     const sc = this.d.specialColors;
@@ -1223,7 +1424,7 @@ export class PapusApp {
     if (!role || !member.roles.cache.has(role.id)) return;
     const want = specialRoleColor(base, member.roles.cache.map((r) => ({ name: r.name, color: r.colors.primaryColor, position: r.position })), sc.palette);
     if (role.colors.primaryColor === want) return;
-    await role.setColors({ primaryColor: want }, "Color de #tu-color de su dueña (config/especiales.json)");
+    await role.setColors({ primaryColor: want }, "Color de #tus-roles de su dueña (config/especiales.json)");
     this.d.log(`${rol}: color #${want.toString(16).padStart(6, "0")}`);
   }
 
@@ -1242,6 +1443,47 @@ export class PapusApp {
     const role = this.d.everyoneRole;
     if (!role) return;
     for (const id of userIds) await this.grantRole(id, role, "Rol de todos los Papus");
+  }
+
+  /** 🔪 Sobreviviente (solo adorno): Teto lo crea si no existe (sin correr npm run servidor) y se lo da. */
+  private async grantSurvivor(userId: string): Promise<void> {
+    if (!this.d.survivorRole) return;
+    const { rol, color } = this.d.survivorRole;
+    const guild = await this.clients.teto.guilds.fetch(this.guild.id);
+    if (!guild.roles.cache.some((r) => channelKey(r.name) === channelKey(rol))) {
+      await guild.roles.create({ name: rol, colors: { primaryColor: parseInt(color.slice(1), 16) }, permissions: [], mentionable: false, hoist: false, reason: "Rol de adorno: perdonados de un machetazo" });
+      this.d.log(`Rol ${rol} creado`);
+    }
+    const member = await guild.members.fetch(userId).catch(() => null);
+    if (!member || member.roles.cache.some((r) => channelKey(r.name) === channelKey(rol))) return;
+    await this.grantRole(userId, rol, "Perdonado de un machetazo por GyroP (/perdonar)");
+    this.d.log(`${rol} para ${member.user.username}`);
+  }
+
+  /**
+   * Una sola vez: los perdonados antes de que existiera 🔪 Sobreviviente (28 oct. 2026), leidos de las lineas
+   * "🧽 GyroP perdonó …" de Neru en #moderación. Si no se puede leer el canal, se reintenta al reconectar.
+   */
+  private async pastSurvivors(): Promise<void> {
+    const key = "sobrevivientes:anteriores";
+    if (!this.d.survivorRole || kvGet(this.d.db, key)) return;
+    const ch = findTextChannel(this.guild, CHANNELS.moderacion);
+    const neruId = this.clients.neru.user!.id;
+    if (!ch) return;
+    const ids = new Set<string>();
+    let before: string | undefined;
+    for (let page = 0; page < 30; page++) {
+      const msgs = await ch.messages.fetch({ limit: 100, before });
+      for (const x of msgs.values()) {
+        const id = x.author.id === neruId ? pardonedFromLog(x.content) : null;
+        if (id) ids.add(id);
+      }
+      if (msgs.size < 100) break;
+      before = msgs.last()!.id;
+    }
+    for (const id of ids) await this.grantSurvivor(id).catch((e) => logError("rol Sobreviviente", e));
+    kvSet(this.d.db, key, String(Date.now()));
+    if (ids.size) await this.report(`🔪 Sobreviviente para ${ids.size} ${ids.size === 1 ? "Papu perdonado" : "Papus perdonados"} antes de que existiera el rol.`);
   }
 
   /** Da un rol con los permisos de Teto ("Gestionar roles"). */

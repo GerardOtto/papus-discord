@@ -92,7 +92,22 @@ export function commandsFor(
           .toJSON(),
         new SlashCommandBuilder().setName("ranking").setDescription("Ranking de Papus por nivel, con tu puesto (solo lo ves tú)").toJSON(),
         new SlashCommandBuilder().setName("ruleta").setDescription("Tus misiones del día y la ruleta de premios (hasta 3 tiradas al día)").toJSON(),
-        new SlashCommandBuilder().setName("trivia").setDescription("Trivia Vocaloid: acierta seguido, gana XP por cada respuesta y presume tu racha").toJSON(),
+        new SlashCommandBuilder()
+          .setName("trivia")
+          .setDescription("Trivia Vocaloid en fácil, media o difícil: gana XP, supera todas y llévate un sobre")
+          .addStringOption((o) =>
+            o
+              .setName("dificultad")
+              .setDescription("Sin elegir, ves cuántas llevas superadas en cada una")
+              .addChoices({ name: "🟢 Fácil", value: "facil" }, { name: "🟡 Media", value: "medio" }, { name: "🔴 Difícil", value: "dificil" }),
+          )
+          .toJSON(),
+        new SlashCommandBuilder()
+          .setName("donar")
+          .setDescription("Regálale mensajes de tu cuota de hoy a otro Papu (tú los pierdes)")
+          .addUserOption((o) => o.setName("papu").setDescription("A quién se los regalas").setRequired(true))
+          .addIntegerOption((o) => o.setName("cantidad").setDescription("Cuántos mensajes").setRequired(true).setMinValue(1).setMaxValue(50))
+          .toJSON(),
         new SlashCommandBuilder()
           .setName("publicar-ranking")
           .setDescription("Teto publica el ranking de Papus en este canal para todos (solo GyroP)")
@@ -121,6 +136,63 @@ export function commandsFor(
                 { name: "Completa (sin cortar)", value: "completa" },
               ),
           )
+          .toJSON(),
+        new SlashCommandBuilder().setName("tienda").setDescription("Tienda de Shaula-coins: monedas, sobres, tu colección y tu tarjeta (solo lo ves tú)").toJSON(),
+        new SlashCommandBuilder()
+          .setName("monedas")
+          .setDescription("Shaula-coins: compras del mes, dar o quitar monedas, límites y bloqueos (solo GyroP)")
+          .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
+          .addSubcommand((s) => s.setName("panel").setDescription("Compras confirmadas de este mes por Papu"))
+          .addSubcommand((s) =>
+            s
+              .setName("dar")
+              .setDescription("Dar monedas o Ecos a un Papu")
+              .addUserOption((o) => o.setName("papu").setDescription("A quién").setRequired(true))
+              .addIntegerOption((o) => o.setName("cantidad").setDescription("Cuántas").setMinValue(1).setMaxValue(1_000_000).setRequired(true))
+              .addStringOption((o) => o.setName("bolsillo").setDescription("Dónde (por defecto, ganadas)").addChoices({ name: "Ganadas", value: "ganadas" }, { name: "Compradas", value: "compradas" }, { name: "Ecos", value: "ecos" }))
+              .addStringOption((o) => o.setName("motivo").setDescription("Para el registro").setMaxLength(80)),
+          )
+          .addSubcommand((s) =>
+            s
+              .setName("quitar")
+              .setDescription("Quitar monedas o Ecos a un Papu")
+              .addUserOption((o) => o.setName("papu").setDescription("A quién").setRequired(true))
+              .addIntegerOption((o) => o.setName("cantidad").setDescription("Cuántas").setMinValue(1).setMaxValue(1_000_000).setRequired(true))
+              .addStringOption((o) => o.setName("bolsillo").setDescription("De dónde (por defecto, ganadas)").addChoices({ name: "Ganadas", value: "ganadas" }, { name: "Compradas", value: "compradas" }, { name: "Ecos", value: "ecos" }))
+              .addStringOption((o) => o.setName("motivo").setDescription("Para el registro").setMaxLength(80)),
+          )
+          .addSubcommand((s) =>
+            s
+              .setName("limite")
+              .setDescription("Límite de compras al mes de un Papu (0 = sin límite)")
+              .addUserOption((o) => o.setName("papu").setDescription("A quién").setRequired(true))
+              .addNumberOption((o) => o.setName("usd").setDescription("Máximo en USD al mes (0 = sin límite)").setMinValue(0).setMaxValue(10_000).setRequired(true)),
+          )
+          .addSubcommand((s) =>
+            s
+              .setName("bloquear")
+              .setDescription("Bloquear o desbloquear las compras de un Papu")
+              .addUserOption((o) => o.setName("papu").setDescription("A quién").setRequired(true))
+              .addBooleanOption((o) => o.setName("bloquear").setDescription("Sí = no puede comprar; No = puede volver a comprar").setRequired(true)),
+          )
+          .toJSON(),
+        new SlashCommandBuilder()
+          .setName("sorteo")
+          .setDescription("Sorteo: todos los Papus en la ruleta; tú decides si el ganador se queda el premio (solo GyroP)")
+          .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
+          .addStringOption((o) => o.setName("premio").setDescription("Qué se sortea (con XP, niveles o mensajes, es solo el nombre; vacío = al azar)").setMaxLength(80))
+          .addIntegerOption((o) => o.setName("xp").setDescription("XP exacta para el ganador (se entrega sola)").setMinValue(1).setMaxValue(1_000_000))
+          .addIntegerOption((o) => o.setName("niveles").setDescription("Niveles completos para el ganador (sin pasar del 99)").setMinValue(1).setMaxValue(98))
+          .addIntegerOption((o) => o.setName("mensajes").setDescription("Mensajes extra con los Vocaloids, solo hoy").setMinValue(1).setMaxValue(100))
+          .toJSON(),
+        new SlashCommandBuilder()
+          .setName("pelea")
+          .setDescription("1vs1 de Vocaloids con apuestas de Shaula-coins en este canal (solo GyroP)")
+          .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
+          // Autocompletar: son más de 25 luchadores (Vocaloids e invitados), el tope de opciones fijas de Discord.
+          .addStringOption((o) => o.setName("vocaloid1").setDescription("Primer luchador (vacío = al azar)").setAutocomplete(true))
+          .addStringOption((o) => o.setName("vocaloid2").setDescription("Segundo luchador (vacío = al azar)").setAutocomplete(true))
+          .addBooleanOption((o) => o.setName("cancelar").setDescription("Cancelar la pelea en curso y devolver lo apostado"))
           .toJSON(),
         new SlashCommandBuilder()
           .setName("evento")
@@ -326,27 +398,27 @@ export function commandsFor(
     case "neru":
       return [
         new SlashCommandBuilder()
-          .setName("strikes")
-          .setDescription("Strikes activos de un Papu (GyroP y Mods)")
+          .setName("machetazos")
+          .setDescription("Machetazos y advertencias activos de un Papu (GyroP y Mods)")
           .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
           .addUserOption((o) => o.setName("papu").setDescription("Papu").setRequired(true))
           .toJSON(),
         new SlashCommandBuilder()
           .setName("perdonar")
-          .setDescription("Borra los strikes de un Papu y Neru lo anuncia en el canal (solo GyroP)")
+          .setDescription("Borra machetazos y advertencias, devuelve la XP y quita el silencio (solo GyroP)")
           .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
           .addUserOption((o) => o.setName("papu").setDescription("Papu").setRequired(true))
           .toJSON(),
         new SlashCommandBuilder()
           .setName("advertir")
-          .setDescription("Neru le llama la atención a un Papu, sin borrar ni sumar strike (GyroP y Mods)")
+          .setDescription("Advertencia de Neru, sin borrar; 3 en 3 días = 1 machetazo (GyroP y Mods)")
           .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
           .addUserOption((o) => o.setName("papu").setDescription("Papu").setRequired(true))
           .addStringOption((o) => o.setName("motivo").setDescription("Qué cuidar (sale citado bajo la frase de Neru)").setMaxLength(300))
           .toJSON(),
         new SlashCommandBuilder()
-          .setName("strike")
-          .setDescription("Neru le pone un strike a un Papu, con la misma escalera de silencios (GyroP y Mods)")
+          .setName("machetazo")
+          .setDescription("Neru le da un machetazo a un Papu: silencio y sin la XP de hoy (GyroP y Mods)")
           .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
           .addUserOption((o) => o.setName("papu").setDescription("Papu").setRequired(true))
           .addStringOption((o) => o.setName("motivo").setDescription("Por qué (sale citado bajo la frase de Neru)").setMaxLength(300))
@@ -369,15 +441,13 @@ export function commandsFor(
 
 /** Nombre del clic derecho sobre un mensaje → Apps → "Advertir (Neru)". */
 export const WARN_MENU = "Advertir (Neru)";
-/** Clic derecho sobre un mensaje → Apps → "Strike (Neru)": strike a mano, sin borrar el mensaje. */
-export const STRIKE_MENU = "Strike (Neru)";
-/** Clic derecho → Apps → "Strike y borrar (Neru)": el mismo strike, y Neru borra el mensaje (decision de GyroP, 22 oct. 2026). */
-export const STRIKE_DELETE_MENU = "Strike y borrar (Neru)";
+/** Clic derecho sobre un mensaje → Apps → "Machetazo (Neru)": machetazo a mano, y Neru borra el mensaje. */
+export const STRIKE_MENU = "Machetazo (Neru)";
 
 /** Comandos de clic derecho (menu de Apps). */
 export function contextMenusFor(bot: BotId): RESTPostAPIContextMenuApplicationCommandsJSONBody[] {
   if (bot !== "neru") return [];
-  return [WARN_MENU, STRIKE_MENU, STRIKE_DELETE_MENU].map((name) =>
+  return [WARN_MENU, STRIKE_MENU].map((name) =>
     new ContextMenuCommandBuilder()
       .setName(name)
       .setType(ApplicationCommandType.Message)

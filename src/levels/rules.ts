@@ -16,6 +16,8 @@ export interface LevelSettings {
   honor: { nivel: number; rol: string; pisoRolManual?: number };
   cuota: { desde: number; mensajes: number }[];
   cuotaPrestigio: number;
+  /** Mensajes ganados que no caben en la cuota llena: XP por cada uno (fraccion de lo que pide su nivel, con minimo). */
+  cuotaSobrante?: { porcentajeNivel: number; minimo: number };
   transicion: { mensajes: number; hasta: string } | null;
   /** estilo: insignia de la tarjeta y del ranking (0 gris … 10 Salon de la fama), ver tierFill en card.ts. */
   rangos: { desde: number; nombre: string; estilo: number }[];
@@ -158,11 +160,19 @@ export function multiplierAt(s: LevelSettings, now: Date, timeZone: string, wind
   return Math.max(1, ...fixed, ...extra);
 }
 
-/** Ventanas de estreno de los videos del calendario (hora de salida en ms). */
-export function releaseWindows(s: LevelSettings, releases: { at: number }[]): XpWindow[] {
+/** Video del calendario con su hora de salida (ms) y, si la tiene, la XP propia de su estreno (un video fijado). */
+export interface Release {
+  title: string;
+  at: number;
+  multiplicador?: number;
+  horas?: number;
+}
+
+/** Ventanas de estreno de los videos del calendario. */
+export function releaseWindows(s: LevelSettings, releases: Pick<Release, "at" | "multiplicador" | "horas">[]): XpWindow[] {
   const e = s.estrenos;
   if (!e) return [];
-  return releases.map((r) => ({ multiplicador: e.multiplicador, desde: r.at, hasta: r.at + e.horas * 3_600_000 }));
+  return releases.map((r) => ({ multiplicador: r.multiplicador ?? e.multiplicador, desde: r.at, hasta: r.at + (r.horas ?? e.horas) * 3_600_000 }));
 }
 
 // ───────────────────────── cuota ─────────────────────────

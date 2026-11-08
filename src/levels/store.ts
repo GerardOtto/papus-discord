@@ -72,6 +72,23 @@ export class LevelStore {
     });
   }
 
+  /**
+   * Quita XP por las partidas de trivia de mas (config/trivia.json limites.castigo), sin bajar de 0 en su prestigio.
+   * La XP del dia baja lo mismo (sin quedar negativa) y el costo queda en trivia_castigo. Devuelve la XP antes y despues.
+   */
+  subtract(userId: string, amount: number, day: string): { before: number; after: number } {
+    return transaction(this.db, () => {
+      const before = this.get(userId).xp;
+      if (amount <= 0 || before <= 0) return { before, after: before };
+      const after = Math.max(0, before - amount);
+      this.db.prepare("UPDATE niveles SET xp = ? WHERE user_id = ?").run(after, userId);
+      this.db
+        .prepare("INSERT INTO xp_dia (user_id, day, trivia_castigo) VALUES (?, ?, ?) ON CONFLICT(user_id, day) DO UPDATE SET xp = MAX(0, xp - excluded.trivia_castigo), trivia_castigo = trivia_castigo + excluded.trivia_castigo")
+        .run(userId, day, before - after);
+      return { before, after };
+    });
+  }
+
   /** Anota un minuto con XP de voz si le quedan del dia (tope `max`). Devuelve si lo anoto. */
   takeVoiceMinute(userId: string, day: string, max: number): boolean {
     const row = this.db.prepare("SELECT voz_min FROM xp_dia WHERE user_id = ? AND day = ?").get(userId, day) as { voz_min: number } | undefined;
@@ -111,6 +128,17 @@ export class LevelStore {
       this.db.prepare("UPDATE niveles SET xp = ? WHERE user_id = ?").run(after, userId);
       this.db.prepare("UPDATE xp_dia SET xp = 0 WHERE user_id = ? AND day = ?").run(userId, day);
       return { before, after };
+    });
+  }
+
+  /** Perdon de GyroP: devuelve `xp` a ese dia y le quita la marca de castigo (vuelve la ruleta y las monedas del dia). */
+  restoreDay(userId: string, day: string, xp: number): void {
+    transaction(this.db, () => {
+      this.ensure(userId);
+      this.db.prepare("UPDATE niveles SET xp = xp + ? WHERE user_id = ?").run(Math.max(0, xp), userId);
+      this.db
+        .prepare("INSERT INTO xp_dia (user_id, day, xp) VALUES (?, ?, ?) ON CONFLICT(user_id, day) DO UPDATE SET xp = xp + excluded.xp, castigo = 0")
+        .run(userId, day, Math.max(0, xp));
     });
   }
 

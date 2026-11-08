@@ -49,11 +49,11 @@ describe("paleta de colores", () => {
   });
 });
 
-describe("países de #tu-color", () => {
+describe("países de #tus-roles", () => {
   const layout = loadLayout();
   const paises = layout.paisesPapu!.paises;
 
-  it("en #tu-color, con bandera y nombre completo, sin repetir ni chocar con otros roles", () => {
+  it("en #tus-roles, con bandera y nombre completo, sin repetir ni chocar con otros roles", () => {
     expect(layout.paisesPapu!.canal).toBe(layout.coloresPapu!.canal);
     expect(paises[0]).toBe("🇲🇽 México");
     for (const p of paises) expect(splitCountry(p).name.length, p).toBeGreaterThan(3);

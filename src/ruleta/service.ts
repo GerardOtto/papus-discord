@@ -11,7 +11,7 @@ export interface RouletteStatus {
   missions: MissionStatus[];
   used: number;
   left: number;
-  /** Strike de Neru hoy: sin ruleta hasta manana. */
+  /** Machetazo de Neru hoy (o 2 o mas activos): sin ruleta. */
   blocked: boolean;
 }
 
@@ -23,6 +23,10 @@ export interface SpinResult {
   xp: number;
   /** Mensajes extra o devueltos (premios de cuota). */
   messages: number;
+  /** Mensajes que no cupieron en su cuota llena y se cambiaron por XP (ya sumada en `xp`). */
+  overflow: number;
+  /** Sobres comunes gratis ganados (premio de sobre). */
+  sobres: number;
   /** Cambio de nivel por la XP del premio. */
   change: LevelChange | null;
   levelBefore: number;
@@ -36,6 +40,8 @@ export interface RouletteServiceDeps {
   settings: RouletteSettings;
   levels: LevelService;
   quota: Quota;
+  /** Da sobres comunes gratis de la tienda (src/coins/). Sin tienda, la casilla del sobre no sale. */
+  giveSobres?: (userId: string, n: number) => void;
   timeZone: string;
   now?: () => number;
   rnd?: () => number;
@@ -64,7 +70,9 @@ export class RouletteService {
 
   status(userId: string, t = this.now()): RouletteStatus {
     const day = this.day(t);
-    const stats = this.d.levels.store.dayStats(userId, day);
+    const day0 = this.d.levels.store.dayStats(userId, day);
+    // Machetazo hoy, o 2 o mas activos (sin ganar XP): sin ruleta.
+    const stats = { ...day0, castigo: day0.castigo || !this.d.levels.canEarn(userId, t) };
     const used = this.used(userId, day);
     return {
       missions: missions(this.d.settings, stats),
@@ -94,27 +102,35 @@ export class RouletteService {
     return transaction(this.d.db, () => {
       if (this.status(userId, t).left <= 0) return null;
       const s = this.d.settings;
-      const index = pickPrize(s, this.rnd);
+      // Sin tienda, la casilla del sobre no sale (peso 0).
+      const index = pickPrize({ premios: s.premios.map((p) => (p.tipo === "sobre" && !this.d.giveSobres ? { peso: 0 } : p)) }, this.rnd);
       const prize = s.premios[index]!;
       const levelBefore = this.d.levels.snapshot(userId).level;
+      const now = new Date(t);
       let xp = 0;
       let messages = 0;
-      let change: LevelChange | null = null;
+      let overflow = 0;
+      let sobres = 0;
       if (prize.tipo === "xp") {
-        xp = prizeXp(s, this.d.levels.settings, prize, this.d.levels.store.get(userId).xp, this.d.levels.multiplier(new Date(t)));
-        change = this.d.levels.bonus(userId, xp, t);
+        xp = prizeXp(s, this.d.levels.settings, prize, this.d.levels.store.get(userId).xp, this.d.levels.multiplier(now));
       } else if (prize.tipo === "cuota") {
-        messages = prize.valor!;
-        this.d.quota.addExtra(userId, messages, new Date(t));
+        ({ added: messages, overflow } = this.d.quota.grant(userId, prize.valor!, now));
+      } else if (prize.tipo === "cuota_llena") {
+        // Cuota llena: devuelve lo gastado hoy con los Vocaloids (lo donado no vuelve); si no habia gastado nada, un
+        // mensaje extra (para que nunca salga vacio), que con la cuota llena se vuelve XP.
+        messages = this.d.quota.used(userId, now) - this.d.quota.donated(userId, now);
+        if (messages > 0) this.d.quota.reset(userId, now);
+        else ({ added: messages, overflow } = this.d.quota.grant(userId, 1, now));
       } else {
-        // Cuota llena: devuelve lo gastado hoy; si no habia gastado nada, un mensaje extra (para que nunca salga vacio).
-        messages = this.d.quota.used(userId, new Date(t));
-        if (messages > 0) this.d.quota.reset(userId, new Date(t));
-        else this.d.quota.addExtra(userId, (messages = 1), new Date(t));
+        sobres = prize.valor ?? 1;
+        this.d.giveSobres?.(userId, sobres);
       }
-      const detalle = JSON.stringify({ tipo: prize.tipo, etiqueta: prize.etiqueta, xp, mensajes: messages });
+      // Mensajes que no cupieron (cuota llena): XP en su lugar (decision de GyroP, 31 oct. 2026).
+      xp += this.d.levels.overflowXp(userId, overflow);
+      const change: LevelChange | null = this.d.levels.bonus(userId, xp, t);
+      const detalle = JSON.stringify({ tipo: prize.tipo, etiqueta: prize.etiqueta, xp, mensajes: messages, sobrante: overflow, sobres });
       this.d.db.prepare("INSERT INTO ruleta (user_id, day, premio, detalle, at) VALUES (?, ?, ?, ?, ?)").run(userId, day, index, detalle, t);
-      return { index, prize, xp, messages, change, levelBefore, levelAfter: this.d.levels.snapshot(userId).level, left: this.status(userId, t).left };
+      return { index, prize, xp, messages, overflow, sobres, change, levelBefore, levelAfter: this.d.levels.snapshot(userId).level, left: this.status(userId, t).left };
     });
   }
 }

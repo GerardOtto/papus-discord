@@ -7,10 +7,20 @@
 
 export type SlotKind = "kofi" | "honor" | "propio";
 
+export type Weekday = "lunes" | "martes" | "miércoles" | "jueves" | "viernes" | "sábado" | "domingo";
+
+const WEEKDAYS: Weekday[] = ["domingo", "lunes", "martes", "miércoles", "jueves", "viernes", "sábado"];
+
+/** Día de la semana de "AAAA-MM-DD". */
+export function weekdayOf(day: string): Weekday {
+  const [y, m, d] = day.split("-").map(Number) as [number, number, number];
+  return WEEKDAYS[new Date(Date.UTC(y, m - 1, d)).getUTCDay()]!;
+}
+
 export interface Slot {
   /** Día "AAAA-MM-DD" (zona del calendario). */
   day: string;
-  weekday: "lunes" | "miércoles" | "viernes";
+  weekday: Weekday;
   kind: SlotKind;
   /** Título (o las opciones de la votación si aún no hay ganador); null si todavía no se sabe. */
   title: string | null;

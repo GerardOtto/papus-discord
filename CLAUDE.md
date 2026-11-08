@@ -4,13 +4,13 @@
 Servidor de Discord de la comunidad ("Papus") del canal Vocaloid de GyroP: membresías de Ko-fi por niveles y cuatro
 bots con personalidad (**Teto, Miku, Luka y Neru**) que conversan con LLM gratuitos, cumplen tareas del servidor y moderan,
 más once que solo conversan (**Gakupo, Kaito, flower, IA, Haku, Gumi, Rin, Len, Meiko, Adachi Rei y Ruko**; opcionales por
-token, rol 🎤 Coro, PLAN §4).
+token, rol 🎤 Coro, PLAN §4) y **Mango9374**, que imita a un Papu real: da los números del día y a veces frases fijas (sin LLM, PLAN §4).
 **Plan completo y decisiones: `docs/PLAN.md`** (leer antes de cualquier cambio). Estado (16 oct. 2026): **abre al público
 el 17 oct. 2026, sin prueba cerrada**; prueba de carga cuando esté lo mínimo (gratis + Puerro, Atún, Baguette). Hecho:
 conversación con cuota y cola, LLM local (Ollama) + APIs con reparto, moderación de Neru + AutoMod, bienvenidas, servidor
 estructurado (`config/servidor.json`), guías fijadas, emojis de nivel, arranque con Windows (tarea "Papus Discord").
 Miku y Luka responden sus comandos 24/7 desde Cloudflare (`worker/`: pedidos, votaciones, calendario, estrenos, noticias,
-tips). Bodas con las Vocaloids por adivinanzas (PLAN §3.2). Ruleta diaria por misiones (PLAN §3.3). Trivia con rachas, `/trivia` (PLAN §3.4). Niveles por participación (1-99 y prestigios, PLAN §3.1;
+tips). Bodas con las Vocaloids por adivinanzas (PLAN §3.2). Ruleta diaria por misiones (PLAN §3.3). Trivia con rachas en fácil, media y difícil y sobres por hitos de aciertos, `/trivia` (PLAN §3.4; ~5.750 preguntas, 5.014 generadas con `npm run trivia:generar`). `/donar` cuota y cuota sobrante → XP (PLAN §3). Sorteo de GyroP, `/sorteo` (PLAN §3.5). Tienda de Shaula-coins con sobres y objetos para la tarjeta, `/tienda` (PLAN §3.6). 1vs1 de 28 luchadores (Vocaloids e invitados) con apuestas de Shaula-coins ganadas (10-400), `/pelea` y wiki en #peleas (PLAN §3.7). Avisos (⚔️ Ludópata, 💍 Rizzler, 🎬 Estrenos) en #tus-roles (PLAN §3.8). Niveles por participación (1-99 y prestigios, PLAN §3.1;
 cálculo inicial con `npm run niveles`). Pendiente: `/cumple` de Teto, aviso automático de compras de Ko-fi, exportar votaciones y pedidos al motor.
 Uso y archivos editables: `README.md`.
 
@@ -23,8 +23,11 @@ Repo hermano: el motor de videos en `../Proyecto1` (fuente del lore, calendario 
    para todos); nada de pago (Ko-fi) da XP ni cuota; una unidad por cada @ en un mensaje; sin prioridad en la cola por pagar. Única excepción,
    regalo de GyroP y no de un nivel: 🍍♡Piña♡🍍 (`config/especiales.json`, PLAN §cuota); no se extiende a otros Papus.
    Excepción por juego: ganar una boda con una Vocaloid reinicia la cuota del día (PLAN §3.2; se gana adivinando, no pagando),
-   y la ruleta puede dar mensajes extra del día (PLAN §3.3; se gana con misiones de participación). La trivia da XP por
-   acierto (PLAN §3.4; se gana jugando).
+   y la ruleta puede dar mensajes extra del día (PLAN §3.3; se gana con misiones de participación); con la cuota llena, lo ganado
+   se vuelve XP, y `/donar` pasa cuota de un Papu a otro sin subir la cuota diaria (PLAN §3). La trivia da XP por
+   acierto (PLAN §3.4; se gana jugando) y el sorteo de GyroP puede dar XP, niveles y mensajes extra del día (PLAN §3.5; entran todos los Papus por igual).
+   Las Shaula-coins solo adornan la tarjeta: no dan XP ni cuota (PLAN §3.6); las insignias de membresía también son solo adorno.
+   Las apuestas del 1vs1 (PLAN §3.7) solo usan monedas ganadas, nunca compradas, y no dan XP ni cuota.
 2. Los bots son omnipresentes (todos los canales) y no se responden solos entre ellos. Única excepción: la charla de
    #general (PLAN §4), donde un Vocaloid le pregunta a otro con @ y este contesta una sola vez.
 3. La moderación es por reglas fijas + AutoMod de Discord, **nunca el LLM**. Neru no expulsa ni banea (solo GyroP).

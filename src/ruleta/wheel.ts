@@ -1,5 +1,5 @@
-// GIF animado de la ruleta (PLAN §3.3): gira, frena en el premio, la casilla ganadora se ilumina y cae confeti con el
-// recuadro del resultado. Se reproduce una vez y queda en el ultimo cuadro (la ruleta apuntando al premio).
+// GIF animado de la ruleta (PLAN §3.3) y del sorteo (PLAN §3.5): gira, frena en la casilla ganadora, que se ilumina, y
+// cae confeti con el recuadro del resultado. Se reproduce una vez y queda en el ultimo cuadro (la ruleta apuntando al premio).
 // Fondo, rueda y anfitriona se dibujan una sola vez; cada cuadro solo los gira y los compone.
 import { createCanvas, loadImage, type Canvas, type Image, type SKRSContext2D } from "@napi-rs/canvas";
 import * as gifencModule from "gifenc";
@@ -24,10 +24,20 @@ const HOLD_MS = 60_000;
 const CONFETTI = ["#ff3b5c", "#ff9f1c", "#ffe14d", "#3ddc84", "#36c5f0", "#8c5cff", "#ffffff", "#ff7ad9"];
 
 export interface WheelData {
-  /** Casillas en orden (en el sentido del reloj desde arriba). */
+  /** Casillas en orden (en el sentido del reloj desde arriba). En el sorteo, `etiqueta` es el nombre del Papu. */
   prizes: { icono: string; etiqueta: string; color: string }[];
   winner: number;
-  papu: { name: string; avatar: Buffer | null };
+  /** "premios" (icono y etiqueta corta, la ruleta) o "nombres" (un nombre a lo largo de cada casilla, el sorteo). */
+  labels?: "premios" | "nombres";
+  /** Titulo grande ("RULETA" por defecto). */
+  heading?: string;
+  /** Quien gira (avatar y nombre bajo el titulo); sin el, va `tagline` (el premio del sorteo). */
+  papu?: { name: string; avatar: Buffer | null };
+  tagline?: string;
+  /** Encabezado del recuadro final ("✨ ¡PREMIO! ✨" por defecto). */
+  badge?: string;
+  /** Avatar junto al titulo del recuadro final (el ganador del sorteo); sin definir = sin avatar. */
+  winnerAvatar?: Buffer | null;
   /** Vocaloid que presenta la ruleta. */
   host: { name: string; color: string; figure: Buffer | null };
   /** "¡+312 XP!" */
@@ -111,9 +121,14 @@ function wheel(d: WheelData): Canvas {
     ctx.moveTo(m, m);
     ctx.arc(m, m, R, a0, a0 + seg);
     ctx.closePath();
+    // Con muchas casillas (el sorteo, un Papu por casilla) el borde se adelgaza para que no tape los colores.
     ctx.strokeStyle = "rgba(255,255,255,0.9)";
-    ctx.lineWidth = 3;
+    ctx.lineWidth = n > 60 ? 0.6 : n > 24 ? 1.5 : 3;
     ctx.stroke();
+    if (d.labels === "nombres") {
+      nameLabel(ctx, m, a0 + seg / 2, (Math.PI * 2 * R * 0.7) / n, p.etiqueta);
+      continue;
+    }
     // Icono cerca del borde y texto debajo, derechos cuando la casilla esta arriba (asi se lee el premio al final).
     ctx.save();
     ctx.translate(m, m);
@@ -132,6 +147,28 @@ function wheel(d: WheelData): Canvas {
     ctx.restore();
   }
   return c;
+}
+
+/**
+ * Nombre a lo largo de la casilla (del centro hacia el borde), con la letra que quepa en el ancho de la casilla. Con
+ * casillas muy finas (cientos de Papus) no se escribe: el ganador sale en el recuadro final.
+ */
+function nameLabel(ctx: SKRSContext2D, m: number, angle: number, width: number, name: string): void {
+  const size = Math.min(16, Math.floor(width * 0.8));
+  if (size < 7) return;
+  ctx.save();
+  ctx.translate(m, m);
+  ctx.rotate(angle);
+  ctx.textAlign = "right";
+  ctx.textBaseline = "middle";
+  ctx.font = `bold ${size}px ${FONT}`;
+  ctx.lineWidth = Math.max(2, size / 4);
+  ctx.strokeStyle = "rgba(0,0,0,0.45)";
+  const label = fitText(ctx, name, R * 0.6);
+  ctx.strokeText(label, R * 0.94, 0);
+  ctx.fillStyle = "#ffffff";
+  ctx.fillText(label, R * 0.94, 0);
+  ctx.restore();
 }
 
 /** Aro dorado con bombillas (no gira): `phase` alterna las encendidas. */
@@ -252,21 +289,28 @@ async function panel(d: WheelData, base: Canvas): Promise<Canvas> {
   ctx.font = `bold 46px ${TITLE}`;
   ctx.lineWidth = 6;
   ctx.strokeStyle = "rgba(0,0,0,0.5)";
-  ctx.strokeText("RULETA", 405, 62);
+  const heading = d.heading ?? "RULETA";
+  ctx.strokeText(heading, 405, 62);
   ctx.fillStyle = "#ffffff";
-  ctx.fillText("RULETA", 405, 62);
+  ctx.fillText(heading, 405, 62);
   ctx.font = `600 18px ${FONT}`;
   ctx.fillStyle = "#e8dcff";
   ctx.fillText(fitText(ctx, `de los Papus · con ${d.host.name}`, 225), 407, 86);
-  const avatar = d.papu.avatar ? await loadImage(d.papu.avatar).catch(() => null) : null;
-  circleImage(ctx, avatar, 422, 120, 16, d.host.color);
-  ctx.font = `bold 17px ${FONT}`;
-  ctx.fillStyle = "#ffffff";
-  ctx.fillText(fitText(ctx, d.papu.name, 192), 444, 126);
+  if (d.papu) {
+    const avatar = d.papu.avatar ? await loadImage(d.papu.avatar).catch(() => null) : null;
+    circleImage(ctx, avatar, 422, 120, 16, d.host.color);
+    ctx.font = `bold 17px ${FONT}`;
+    ctx.fillStyle = "#ffffff";
+    ctx.fillText(fitText(ctx, d.papu.name, 192), 444, 126);
+  } else if (d.tagline) {
+    ctx.font = `bold 17px ${FONT}`;
+    ctx.fillStyle = "#ffffff";
+    ctx.fillText(fitText(ctx, d.tagline, 225), 407, 126);
+  }
   return c;
 }
 
-function resultBox(ctx: SKRSContext2D, d: WheelData, t: number): void {
+function resultBox(ctx: SKRSContext2D, d: WheelData, t: number, avatar: Image | null | undefined): void {
   const color = d.prizes[d.winner]!.color;
   const x = 398;
   const w = 232;
@@ -285,10 +329,20 @@ function resultBox(ctx: SKRSContext2D, d: WheelData, t: number): void {
   ctx.textAlign = "center";
   ctx.font = `bold 15px ${FONT}`;
   ctx.fillStyle = "#ffe14d";
-  ctx.fillText("✨ ¡PREMIO! ✨", x + w / 2, y + 26);
+  ctx.fillText(d.badge ?? "✨ ¡PREMIO! ✨", x + w / 2, y + 26);
   ctx.font = `bold 32px ${TITLE}`;
   ctx.fillStyle = "#ffffff";
-  ctx.fillText(fitText(ctx, d.title, w - 20), x + w / 2, y + 66);
+  if (avatar !== undefined) {
+    // Avatar y nombre centrados juntos (centrado real: se mide el texto ya recortado).
+    const r = 17;
+    const title = fitText(ctx, d.title, w - 30 - r * 2);
+    const tw = ctx.measureText(title).width;
+    const left = x + (w - (r * 2 + 8 + tw)) / 2;
+    circleImage(ctx, avatar, left + r, y + 55, r, color);
+    ctx.textAlign = "left";
+    ctx.fillText(title, left + r * 2 + 8, y + 66);
+    ctx.textAlign = "center";
+  } else ctx.fillText(fitText(ctx, d.title, w - 20), x + w / 2, y + 66);
   ctx.font = `600 16px ${FONT}`;
   ctx.fillStyle = "#e8dcff";
   ctx.fillText(fitText(ctx, d.subtitle, w - 20), x + w / 2, y + 94);
@@ -346,6 +400,7 @@ export async function renderWheelGif(d: WheelData): Promise<Buffer> {
   const wheelImg = wheel(d);
   const target = finalAngle(d.prizes.length, d.winner, rand);
   const pieces = confetti(rand);
+  const winnerAvatar = d.winnerAvatar === undefined ? undefined : d.winnerAvatar ? await loadImage(d.winnerAvatar).catch(() => null) : null;
   const [, ctx] = canvas(WHEEL_W, WHEEL_H);
 
   const draw = (angle: number, phase: number, end: number | null): Uint8ClampedArray => {
@@ -361,7 +416,7 @@ export async function renderWheelGif(d: WheelData): Promise<Buffer> {
     pointer(ctx);
     if (end !== null) {
       drawConfetti(ctx, pieces, end);
-      resultBox(ctx, d, Math.min(1, (end + 1) / 5));
+      resultBox(ctx, d, Math.min(1, (end + 1) / 5), winnerAvatar);
     }
     return ctx.getImageData(0, 0, WHEEL_W, WHEEL_H).data;
   };

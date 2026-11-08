@@ -55,6 +55,56 @@ export class Quota {
     return Math.max(0, this.limitFor(userId, now) + this.extra(userId, now) - this.used(userId, now));
   }
 
+  /**
+   * Cuantos mensajes ganados le caben hoy: hasta volver a su limite diario (decision de GyroP, 31 oct. 2026). Con la
+   * cuota llena (o sin limite), 0: lo que gane de mas se le cambia por XP.
+   */
+  room(userId: string, now = new Date()): number {
+    if (this.unlimited.has(userId)) return 0;
+    return Math.max(0, this.limitFor(userId, now) - this.remaining(userId, now));
+  }
+
+  /**
+   * Mensajes ganados (ruleta, sorteo): se suman como extra del dia sin pasar de su limite diario. `overflow` = los que
+   * no cupieron (el que llama los cambia por XP).
+   */
+  grant(userId: string, units: number, now = new Date()): { added: number; overflow: number } {
+    if (units <= 0) return { added: 0, overflow: 0 };
+    return transaction(this.db, () => {
+      const added = Math.min(units, this.room(userId, now));
+      this.addExtra(userId, added, now);
+      return { added, overflow: units - added };
+    });
+  }
+
+  /**
+   * /donar: un Papu le cede `units` de sus mensajes de hoy a otro. Al que dona se le cuentan como gastados; el otro los
+   * recibe como extra del dia, solo hasta llenar su cuota. Quien no tiene limite no dona (su regalo es solo suyo, regla 1).
+   */
+  donate(fromId: string, toId: string, units: number, now = new Date()): { ok: true; units: number } | { ok: false; motivo: "sin_limite" | "no_alcanza" | "llena" } {
+    if (this.unlimited.has(fromId)) return { ok: false, motivo: "sin_limite" };
+    if (this.unlimited.has(toId)) return { ok: false, motivo: "llena" };
+    return transaction(this.db, () => {
+      if (units <= 0 || this.remaining(fromId, now) < units) return { ok: false as const, motivo: "no_alcanza" as const };
+      const room = this.room(toId, now);
+      if (room < units) return { ok: false as const, motivo: "llena" as const };
+      this.db
+        .prepare(
+          `INSERT INTO quota_usage (user_id, day, used, donadas) VALUES (?, ?, ?, ?)
+           ON CONFLICT(user_id, day) DO UPDATE SET used = used + excluded.used, donadas = donadas + excluded.donadas`,
+        )
+        .run(fromId, dayKey(now, this.timeZone), units, units);
+      this.addExtra(toId, units, now);
+      return { ok: true as const, units };
+    });
+  }
+
+  /** Mensajes que el Papu dono hoy (incluidos en `used`). */
+  donated(userId: string, now = new Date()): number {
+    const row = this.db.prepare("SELECT donadas FROM quota_usage WHERE user_id = ? AND day = ?").get(userId, dayKey(now, this.timeZone)) as { donadas: number } | undefined;
+    return row?.donadas ?? 0;
+  }
+
   /** Reserva hasta `units` unidades; devuelve cuantas se concedieron (los primeros @ del mensaje). */
   reserve(userId: string, units: number, now = new Date()): Reservation {
     const day = dayKey(now, this.timeZone);
@@ -85,13 +135,14 @@ export class Quota {
 
   /**
    * Reinicio de la cuota (/reiniciar-cuota de GyroP, boda, "cuota llena" de la ruleta): devuelve lo gastado HOY por un
-   * Papu o por todos; los mensajes extra de la ruleta se conservan. Devuelve a cuantos Papus se les devolvieron mensajes.
+   * Papu o por todos; los mensajes extra de la ruleta se conservan y lo donado con /donar no vuelve. Devuelve a cuantos
+   * Papus se les devolvieron mensajes.
    */
   reset(userId: string | null = null, now = new Date()): number {
     const day = dayKey(now, this.timeZone);
     const res = userId
-      ? this.db.prepare("UPDATE quota_usage SET used = 0 WHERE day = ? AND user_id = ? AND used > 0").run(day, userId)
-      : this.db.prepare("UPDATE quota_usage SET used = 0 WHERE day = ? AND used > 0").run(day);
+      ? this.db.prepare("UPDATE quota_usage SET used = donadas WHERE day = ? AND user_id = ? AND used > donadas").run(day, userId)
+      : this.db.prepare("UPDATE quota_usage SET used = donadas WHERE day = ? AND used > donadas").run(day);
     return Number(res.changes);
   }
 

@@ -137,6 +137,9 @@ function codeFiles(): Map<string, string> {
   // Fragmentos de audio de la trivia: no se versionan (copyright, como la musica del motor), pero el bot los necesita.
   const audio = path.join(ROOT, "assets/trivia/audio");
   if (existsSync(audio)) for (const f of readdirSync(audio)) files.set(`assets/trivia/audio/${f}`, path.join(audio, f));
+  // Imagenes de las preguntas generadas (npm run trivia:imagenes, desde las del motor): tampoco se versionan.
+  const pictures = path.join(ROOT, "assets/trivia/imagenes");
+  if (existsSync(pictures)) for (const f of readdirSync(pictures)) files.set(`assets/trivia/imagenes/${f}`, path.join(pictures, f));
   return files;
 }
 

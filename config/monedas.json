@@ -1,0 +1,62 @@
+{
+  "$comment": "Shaula-coins (docs/PLAN.md §3.6; decisiones de GyroP del 25 al 27 oct. 2026). Moneda para adornar la tarjeta de nivel: nada de esto da XP, cuota ni mensajes extra (regla 1). Dos bolsillos: 'ganadas' (participando; sirven para todo) y 'compradas' (pago y regalo de membresía; solo para la tienda y solo para objetos de arte propio). Los objetos están en config/objetos.json. Cambiar algo aquí no requiere tocar código; se aplica al reiniciar.",
+  "activo": true,
+
+  "$ganar": "Monedas ganadas por día, calculadas con lo que guarda el sistema de niveles (tabla xp_dia, hora de Chile). xpPorMoneda: 1 moneda cada tantos XP del día, hasta topeActividad. Bonos: primerMensaje (el día que escribe), mision (cada misión de la ruleta cumplida), boda (cada boda ganada), racha7 (cada 7 días seguidos escribiendo), subirNivel (por nivel) y rangoNuevo. Con un strike de Neru ese día no se gana nada (y se quita lo ganado ese día, si aún lo tiene).",
+  "ganar": { "xpPorMoneda": 20, "topeActividad": 60, "primerMensaje": 5, "mision": 10, "boda": 40, "racha7": 50, "subirNivel": 15, "rangoNuevo": 50 },
+
+  "$sobre": "Se abre solo con monedas ganadas (las compradas no abren sobres: así lo pagado nunca es azar). objetos: [cantidad, peso]. probabilidades: % de cada objeto por rareza. Garantías: el sobre N sin Épica (o mejor) trae una segura; igual con Legendaria. semanal: cada lunes, 1 sobre gratis a quien participó (escribió o habló en voz con XP) al menos 'diasMinimos' días de la semana anterior. porMisiones: 1 sobre gratis cada día que complete todas las misiones de la ruleta (decisión de GyroP, 28 oct. 2026: que los Papus activos abran uno diario, ganado participando).",
+  "sobre": {
+    "precio": 200,
+    "objetos": [[3, 60], [4, 30], [5, 10]],
+    "probabilidades": { "comun": 62, "rara": 27, "epica": 8.5, "legendaria": 2.2, "mitica": 0.3 },
+    "garantiaEpica": 10,
+    "garantiaLegendaria": 40,
+    "semanal": { "diasMinimos": 3 },
+    "porMisiones": true,
+    "$tipos": "Clases de sobre (pedido de GyroP, 31 oct. 2026). El común es el de siempre (también sale en la ruleta). El raro y el legendario son además los premios de la trivia (media y difícil; la fácil da uno común). objetos = [cantidad, peso] (si falta, el del común); minimo = rareza que trae seguro al menos un objeto; precio = ganadas para comprarlo (el común usa sobre.precio; sin precio, solo se regala). Desde el 8 nov. 2026 (pedido de GyroP) el raro y el legendario también se venden, solo con ganadas, con precios según lo que gana un Papu al día (datos del 28 oct. al 8 nov.: un Papu activo gana 125 al día sin apostar, el 10 % más activo 215-245 y el máximo ~425; una apuesta ganada paga hasta ~760 en el 10 % mejor, así que el mejor día posible ronda las 1.000). Común 200 ≈ 1 día de un Papu activo; raro 500 ≈ 2-3 días del 10 % más activo (trae ~733 a precio de tienda, Épica segura); legendario 1.200 ≈ 5-6 días, más que el mejor día con apuestas (no se compra uno diario) y más que un objeto Legendario de la tienda (700), porque trae uno al azar y 4 objetos más (~1.198 a precio de tienda).",
+    "tipos": {
+      "comun": { "nombre": "Sobre común" },
+      "raro": { "nombre": "Sobre raro", "objetos": [[4, 60], [5, 40]], "minimo": "epica", "precio": 500 },
+      "legendario": { "nombre": "Sobre legendario", "objetos": [[5, 100]], "minimo": "legendaria", "precio": 1200 }
+    }
+  },
+
+  "$precios": "Precio de tienda por rareza (en monedas). Fabricar un objeto cuesta lo mismo, pero en Ecos. Un repetido da el 10 % en Ecos (ecos). Las míticas no se venden ni se fabrican.",
+  "precios": { "comun": 60, "rara": 150, "epica": 350, "legendaria": 700 },
+  "ecos": { "comun": 6, "rara": 15, "epica": 35, "legendaria": 70, "mitica": 200 },
+
+  "$paquetes": "Monedas compradas. usd = precio por PayPal; clp = precio por transferencia en Chile (más barato: GyroP no paga la comisión de PayPal). imagen = assets/tienda/paquetes/<id>.png.",
+  "paquetes": [
+    { "id": "punado", "nombre": "Puñado", "monedas": 1200, "usd": 2, "clp": 1500 },
+    { "id": "bolsa", "nombre": "Bolsa", "monedas": 3100, "usd": 5, "clp": 4000 },
+    { "id": "cofre", "nombre": "Cofre", "monedas": 6300, "usd": 10, "clp": 8000 },
+    { "id": "tesoro", "nombre": "Tesoro", "monedas": 9500, "usd": 15, "clp": 12000 }
+  ],
+
+  "$pagos": "PayPal: Teto da el link paypal.me de GyroP con el monto (PAYPAL_ME_USUARIO en .env) y un código SC-XXXX para la nota; GyroP confirma 'Llegó' en #registro-compras. Transferencia: solo Chile; los datos de la cuenta van en .env (TRANSFERENCIA_*), nunca aquí. Un pedido sin confirmar vence a los 'venceDias'.",
+  "pagos": { "venceDias": 7 },
+
+  "$membresias": "Regalo en monedas compradas por nivel de Ko-fi: al recibir el rol y luego cada 30 días mientras lo tenga (si tiene varios, el más alto). Funciona aunque GyroP dé el rol a mano.",
+  "membresias": { "🥬 Puerro": 600, "🐟 Atún": 1200, "🥖 Baguette": 2000, "📱 Celular": 3500, "💥 Triple Baka": 7000 },
+  "$insigniasMembresia": "Insignia permanente de la tarjeta por cada rol de membresía (pedido de GyroP, 31 oct. 2026): Teto la entrega al recibir el rol (y cada hora revisa a todos), y se queda aunque después deje la membresía. Si tiene un lugar de insignia libre, se la pone. Nunca se vende ni sale en sobres (rareza 'membresia' en config/objetos.json). Solo adorno: no da XP ni cuota (regla 1).",
+  "insigniasMembresia": { "🥬 Puerro": "insignia-membresia-puerro", "🐟 Atún": "insignia-membresia-atun", "🥖 Baguette": "insignia-membresia-baguette", "📱 Celular": "insignia-membresia-celular", "💥 Triple Baka": "insignia-membresia-triple-baka" },
+
+  "$vitrinas": "La tienda cambia los días 'dias' (0 = domingo … 6 = sábado) a medianoche de Chile. Cada vitrina trae 'arte' objetos de arte propio (cualquier moneda) y 'renders' fondos con renders (solo ganadas). Al empezar la temporada se arma el calendario para que todos los objetos salgan al menos una vez.",
+  "vitrinas": { "dias": [1, 4], "arte": 5, "renders": 4 },
+
+  "$temporada": "Temporada en curso (config/objetos.json). nombre = cómo se anuncia; desde/hasta = días (hora de Chile; 'hasta' no incluido: el último día es el anterior). Sus objetos salen en sobres y vitrinas; los de temporadas pasadas se pueden fabricar con Ecos.",
+  "temporada": { "id": "t1", "nombre": "Lanzamiento", "desde": "2026-10-27", "hasta": "2026-11-25" },
+
+  "$canales": "Canal del menú de la tienda (Teto lo fija) y canal privado de GyroP donde llega cada compra para confirmarla.",
+  "canales": { "tienda": "tienda-shaula", "registro": "registro-compras" },
+
+  "$fundadores": "Papus fundadores (rol ⭐ Fundador; decisión de GyroP, 26 oct. 2026): reciben fondo 'noche-de-estreno', borde 'estrella-fundadora' con su número, insignia y título. Nunca se vende ni sale en sobres. 'nombre' es solo para leerlo.",
+  "fundadores": [
+    { "id": "312684937918545924", "numero": 0, "nombre": "GyroP" },
+    { "id": "1556419039864299652", "numero": 1, "nombre": "raptorpau152" },
+    { "id": "1249192248881451153", "numero": 2, "nombre": "Yamato" },
+    { "id": "972182598312935445", "numero": 3, "nombre": "Wicho el Bicho" },
+    { "id": "545054807463821313", "numero": 4, "nombre": "🍍♡Piña♡🍍" }
+  ]
+}

@@ -12,7 +12,7 @@ import { CORE_BOT_IDS, loadConfig, loadDotEnv, type CoreBotId } from "../src/con
 import { kvGet, kvSet, openDb } from "../src/db/database";
 import { channelKey } from "../src/discord/channels";
 import { EngineReader } from "../src/engine/reader";
-import { colorMenu, countryMenu } from "../src/setup/color-menu";
+import { avisosMenu, colorMenu, countryMenu } from "../src/setup/color-menu";
 import { loadLayout } from "../src/setup/layout";
 
 interface Guide {
@@ -22,8 +22,10 @@ interface Guide {
   titulo: string;
   texto: string;
   pie?: string;
-  /** Menus adjuntos: "colores" = paleta de #tu-color (config/servidor.json -> coloresPapu); "paises" = paisesPapu. */
-  menu?: ("colores" | "paises")[];
+  /** Menus adjuntos: "colores" = paleta de #tus-roles (config/servidor.json -> coloresPapu); "paises" = paisesPapu; "avisos" = avisosPapu. */
+  menu?: ("colores" | "paises" | "avisos")[];
+  /** Claves anteriores de la misma guia (canal renombrado): edita el mensaje que ya estaba en vez de publicar otro. */
+  antes?: string[];
 }
 
 loadDotEnv();
@@ -74,14 +76,17 @@ for (const [key, g] of guides) {
   if ((embed.description as string).length > 4096) throw new Error(`El texto de ${key} pasa de 4096 caracteres`);
 
   const stateKey = `guia:${key}`;
-  const prev = JSON.parse(kvGet(db, stateKey) ?? "null") as { bot: CoreBotId; channelId: string; messageId: string } | null;
+  const saved = kvGet(db, stateKey) ?? (g.antes ?? []).map((k) => kvGet(db, `guia:${k}`)).find((v) => v) ?? null;
+  const prev = JSON.parse(saved ?? "null") as { bot: CoreBotId; channelId: string; messageId: string } | null;
   const editable = prev && prev.bot === g.bot && prev.channelId === ch.id;
   if (!APPLY) {
     console.log(`• #${ch.name}: ${editable ? "editar" : "publicar y fijar"} el mensaje de ${g.bot} (${(embed.description as string).length} caracteres)`);
     continue;
   }
   const layout = loadLayout();
-  const components = (g.menu ?? []).map((m) => (m === "colores" ? colorMenu(layout.coloresPapu?.colores ?? []) : countryMenu(layout.paisesPapu?.paises ?? [])));
+  const components = (g.menu ?? []).map((m) =>
+    m === "colores" ? colorMenu(layout.coloresPapu?.colores ?? []) : m === "paises" ? countryMenu(layout.paisesPapu?.paises ?? []) : avisosMenu(layout.avisosPapu?.avisos ?? []),
+  );
   const body = { embeds: [embed], components, attachments: files.map((f, i) => ({ id: i, filename: f.name })), allowed_mentions: { parse: [] } };
   let messageId: string;
   if (editable) {
