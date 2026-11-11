@@ -14,8 +14,9 @@ database_name = "papus-plaza-preview"
 database_id = "REEMPLAZAR_CON_EL_ID_DE_LA_BASE_PREVIEW"
 
 [vars]
-# Configurar el ID de la app OAuth de Teto y el ID del servidor.
-# TETO_CLIENT_SECRET se configura con wrangler secret, nunca aquí.
+# Sustituir ambos valores antes del despliegue. El secreto va aparte.
+GUILD_ID = "REEMPLAZAR_CON_ID_DEL_SERVIDOR"
+TETO_CLIENT_ID = "REEMPLAZAR_CON_CLIENT_ID_DE_TETO"
 ACTIVIDAD_PRUEBA = "0"
 
 [[durable_objects.bindings]]
