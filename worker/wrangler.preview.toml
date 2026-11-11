@@ -1,0 +1,38 @@
+# Entorno aislado para probar la plaza. NUNCA usar worker:deploy con este archivo.
+# Antes del primer deploy: crear papus-plaza-preview en D1 y sustituir database_id.
+name = "papus-plaza-preview"
+main = "src/preview.ts"
+compatibility_date = "2026-10-01"
+compatibility_flags = ["nodejs_compat"]
+
+[assets]
+directory = "public"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "papus-plaza-preview"
+database_id = "REEMPLAZAR_CON_EL_ID_DE_LA_BASE_PREVIEW"
+
+[vars]
+# Configurar el ID de la app OAuth de Teto y el ID del servidor.
+# TETO_CLIENT_SECRET se configura con wrangler secret, nunca aquí.
+ACTIVIDAD_PRUEBA = "0"
+
+[[durable_objects.bindings]]
+name = "SALAS"
+class_name = "SalaTrivia"
+
+[[migrations]]
+tag = "preview-v1-trivia"
+new_sqlite_classes = ["SalaTrivia"]
+
+[[durable_objects.bindings]]
+name = "MUNDOS"
+class_name = "SalaMundo"
+
+[[migrations]]
+tag = "preview-v2-mundo"
+new_sqlite_classes = ["SalaMundo"]
+
+[observability]
+enabled = true
