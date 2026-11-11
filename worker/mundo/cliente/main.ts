@@ -373,11 +373,12 @@ function conectar(instancia: string, hola: Pedido, intento: number): void {
   let cerradoPorError = false;
   ws.onopen = () => {
     estado.textContent = "🌳 Plaza de los Papus · verificando acceso…";
-    intento = 0;
     ws!.send(JSON.stringify({ ...hola, aspecto }));
   };
   ws.onmessage = (e) => {
     const m = JSON.parse(String(e.data)) as Aviso;
+    // Solo reinicia el contador cuando la sala confirma que ya nos identificó.
+    if (m.t === "bienvenida") intento = 0;
     if (m.t === "error") cerradoPorError = true;
     recibir(m);
   };
