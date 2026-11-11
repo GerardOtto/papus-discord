@@ -365,11 +365,14 @@ async function iniciar(): Promise<void> {
 }
 
 function conectar(instancia: string, hola: Pedido, intento: number): void {
+  const estado = $("contador");
+  estado.textContent = `🌳 Plaza de los Papus · ${intento ? `reconectando (${intento}/6)…` : "conectando…"}`;
   const url = new URL(`api/sala?instancia=${encodeURIComponent(instancia)}`, location.href);
   url.protocol = url.protocol === "https:" ? "wss:" : "ws:";
   ws = new WebSocket(url);
   let cerradoPorError = false;
   ws.onopen = () => {
+    estado.textContent = "🌳 Plaza de los Papus · verificando acceso…";
     intento = 0;
     ws!.send(JSON.stringify({ ...hola, aspecto }));
   };
@@ -380,7 +383,11 @@ function conectar(instancia: string, hola: Pedido, intento: number): void {
   };
   ws.onclose = () => {
     if (cerradoPorError) return;
-    if (intento > 5) return error("Se cortó la conexión con la plaza. Cierra y vuelve a abrir la Actividad.");
+    if (intento > 5) {
+      estado.textContent = "🌳 Plaza de los Papus · sin conexión";
+      return error("Se cortó la conexión con la plaza. Cierra y vuelve a abrir la Actividad.");
+    }
+    estado.textContent = `🌳 Plaza de los Papus · conexión perdida, reconectando (${intento + 1}/6)…`;
     setTimeout(() => conectar(instancia, hola, intento + 1), 800 * (intento + 1));
   };
 }
