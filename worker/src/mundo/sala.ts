@@ -22,6 +22,8 @@ export interface MundoEnv {
   DB: D1Database;
   GUILD_ID: string;
   ACTIVIDAD_PRUEBA?: string;
+  /** Preview aislado: no encola menciones ni acciones que requieren el puente de bots. */
+  MUNDO_PREVIEW?: string;
 }
 
 /** Lo que guarda cada socket. `id` null = aun no dijo quien es. */
@@ -114,12 +116,15 @@ export class SalaMundo implements DurableObject {
       await this.registrar(papu.id, papu.nombre, null, texto);
       const historial = ((await this.state.storage.get<{ author: string; text: string }[]>("historial")) ?? []).slice(-HISTORIAL);
       const bots = mencionados(texto);
-      if (bots.length) await this.mencionar(papu, texto, bots, historial);
+      if (bots.length && this.env.MUNDO_PREVIEW === "1") {
+        this.enviar(ws, { t: "aviso", texto: "Los Vocaloids todavía no están conectados en esta versión de pruebas. El chat entre Papus sí funciona. 🌱" });
+      } else if (bots.length) await this.mencionar(papu, texto, bots, historial);
       await this.state.storage.put("historial", [...historial, { author: papu.nombre, text: texto }].slice(-HISTORIAL));
       return;
     }
 
     if (m.t === "accion") {
+      if (this.env.MUNDO_PREVIEW === "1") return this.enviar(ws, { t: "accion", ref: Number.isInteger(m.ref) ? m.ref : 0, accion: m.accion, resultado: { ok: false, motivo: "Esta interacción todavía no está habilitada en el preview." } });
       if (now - (ficha.accionAt ?? 0) < ACCION_MIN_MS || !esAccion(m.accion) || !Number.isInteger(m.ref)) return;
       ficha.accionAt = now;
       ws.serializeAttachment(ficha);
