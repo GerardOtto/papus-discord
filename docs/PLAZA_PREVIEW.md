@@ -16,9 +16,9 @@ Este entorno existe para probar la plaza sin desplegar ni modificar el Worker de
 1. Crear una base D1 nueva llamada exactamente `papus-plaza-preview` en la cuenta Cloudflare.
 2. Copiar su UUID en `worker/wrangler.preview.toml`, en `database_id`. No copiar el UUID de `papus`.
 3. Aplicar el esquema inicial a esa base nueva desde `worker/schema.preview.sql`:
-   `npx wrangler d1 execute papus-plaza-preview --remote --file=schema.sql --config=wrangler.preview.toml`.
-4. Configurar el ID del servidor como variable `GUILD_ID` y el ID de la aplicación OAuth de Teto como `TETO_CLIENT_ID` en el Worker preview.
-5. Configurar `TETO_CLIENT_SECRET` como secreto del Worker preview.
+   `npx wrangler d1 execute papus-plaza-preview --remote --file=worker/schema.preview.sql --config=worker/wrangler.preview.toml`.
+4. Sustituir los valores de `GUILD_ID` y `TETO_CLIENT_ID` en `worker/wrangler.preview.toml` por los IDs reales. No modificar el `client_id` de la aplicación de producción.
+5. Desde la raíz del repositorio, guardar el secreto OAuth solo en el Worker preview: `npx wrangler secret put TETO_CLIENT_SECRET --config=worker/wrangler.preview.toml`.
 6. En el Developer Portal de Discord, añadir el redirect URI exacto:
    `https://papus-plaza-preview.<subdominio>.workers.dev/mundo/api/volver`.
    No eliminar ni reemplazar los redirects que ya usa producción.
