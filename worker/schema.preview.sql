@@ -1,0 +1,49 @@
+-- Esquema mínimo de la plaza preview. No incluye tablas de economía ni de bots.
+CREATE TABLE IF NOT EXISTS mundo_menciones (
+  id INTEGER PRIMARY KEY AUTOINCREMENT, sala TEXT NOT NULL, papu_id TEXT NOT NULL,
+  papu_nombre TEXT NOT NULL, texto TEXT NOT NULL, bots TEXT NOT NULL,
+  historial TEXT NOT NULL DEFAULT '[]', creado_at INTEGER NOT NULL, tomado INTEGER NOT NULL DEFAULT 0
+);
+CREATE INDEX IF NOT EXISTS preview_mundo_menciones_pendientes ON mundo_menciones (tomado, id);
+
+CREATE TABLE IF NOT EXISTS mundo_respuestas (
+  id INTEGER PRIMARY KEY AUTOINCREMENT, sala TEXT NOT NULL, mencion_id INTEGER NOT NULL,
+  papu_id TEXT NOT NULL, bot TEXT NOT NULL, tipo TEXT NOT NULL, texto TEXT NOT NULL,
+  creado_at INTEGER NOT NULL, entregado INTEGER NOT NULL DEFAULT 0
+);
+CREATE INDEX IF NOT EXISTS preview_mundo_respuestas_sala ON mundo_respuestas (sala, entregado, id);
+
+CREATE TABLE IF NOT EXISTS mundo_perfiles (
+  papu_id TEXT PRIMARY KEY, nivel INTEGER NOT NULL DEFAULT 1, prestigio INTEGER NOT NULL DEFAULT 0,
+  restante INTEGER, limite INTEGER, ruletas INTEGER NOT NULL DEFAULT 0,
+  pedido_at INTEGER NOT NULL DEFAULT 0, actualizado_at INTEGER NOT NULL DEFAULT 0
+);
+
+CREATE TABLE IF NOT EXISTS mundo_chat (
+  id INTEGER PRIMARY KEY AUTOINCREMENT, sala TEXT NOT NULL, papu_id TEXT,
+  autor TEXT NOT NULL, bot TEXT, texto TEXT NOT NULL, creado_at INTEGER NOT NULL,
+  publicado INTEGER NOT NULL DEFAULT 0
+);
+CREATE INDEX IF NOT EXISTS preview_mundo_chat_pendientes ON mundo_chat (publicado, id);
+
+CREATE TABLE IF NOT EXISTS mundo_estado (
+  clave TEXT PRIMARY KEY, valor TEXT NOT NULL, actualizado_at INTEGER NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS mundo_aspectos (
+  papu_id TEXT PRIMARY KEY, aspecto TEXT NOT NULL, actualizado_at INTEGER NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS mundo_acciones (
+  id INTEGER PRIMARY KEY AUTOINCREMENT, sala TEXT NOT NULL, papu_id TEXT NOT NULL,
+  papu_nombre TEXT NOT NULL, accion TEXT NOT NULL, datos TEXT NOT NULL DEFAULT 'null',
+  ref INTEGER NOT NULL DEFAULT 0, creado_at INTEGER NOT NULL,
+  tomado INTEGER NOT NULL DEFAULT 0, resultado TEXT, entregado INTEGER NOT NULL DEFAULT 0
+);
+CREATE INDEX IF NOT EXISTS preview_mundo_acciones_pendientes ON mundo_acciones (tomado, id);
+CREATE INDEX IF NOT EXISTS preview_mundo_acciones_listas ON mundo_acciones (sala, tomado, entregado);
+
+CREATE TABLE IF NOT EXISTS mundo_eventos (
+  id INTEGER PRIMARY KEY AUTOINCREMENT, papu_id TEXT, tipo TEXT NOT NULL,
+  datos TEXT NOT NULL, creado_at INTEGER NOT NULL
+);
