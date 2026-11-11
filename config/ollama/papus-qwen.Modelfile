@@ -1,0 +1,5 @@
+# Modelo local de los bots (Ollama): Qwen3.5 9B con ventana de 6144 tokens (cabe entera en los 8 GB de la RTX 4060 junto con Windows) (una mencion a los 4 bots con
+# historial y videos ronda 3500 + la respuesta; la ventana por defecto de 4096 la recortaria sin avisar).
+# Crear o actualizar: ollama create papus-qwen -f config/ollama/papus-qwen.Modelfile
+FROM qwen3.5:9b
+PARAMETER num_ctx 6144

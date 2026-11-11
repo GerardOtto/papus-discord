@@ -1,0 +1,655 @@
+{
+  "$comment": "Estructura del servidor (PLAN §8 + niveles publicados en ko-fi.com/tetociencia/tiers). La aplica `npm run servidor` (primero muestra el plan; con --apply lo ejecuta). Nunca borra: lo que no está aquí queda intacto. 'leen': todos | staff | <nivel mínimo> (ese rol y todos los superiores; los niveles son acumulativos). 'escriben': true = quienes leen pueden escribir; false = solo los bots y GyroP (los Papus leen, reaccionan, votan encuestas y usan comandos). Los nombres llevan un emoji y '・' (los bots buscan los canales sin el emoji). 'antes' = nombres anteriores del mismo canal (se renombra en vez de duplicar). Todos los bots (rol Vocaloids) ven y escriben en todos los canales (regla 2).",
+  "niveles": [
+    {
+      "rol": "🥬 Puerro",
+      "color": "#39C5BB"
+    },
+    {
+      "rol": "🐟 Atún",
+      "color": "#E285B2"
+    },
+    {
+      "rol": "🥖 Baguette",
+      "color": "#E91E63"
+    },
+    {
+      "rol": "📱 Celular",
+      "color": "#E8D44D"
+    },
+    {
+      "rol": "💥 Triple Baka",
+      "color": "#9B6CFF"
+    }
+  ],
+  "rolesExtra": [
+    {
+      "rol": "Vocaloids",
+      "color": "#39C5BB",
+      "separado": true,
+      "bots": true,
+      "$comment": "Solo las 4 chicas con tareas (Teto, Miku, Luka y Neru): su grupo sale arriba en la lista de miembros. Puede mencionar a @everyone (avisos por nivel). Los Vocaloids de conversación van en 🎤 Coro (PLAN §4)."
+    },
+    {
+      "rol": "🎤 Coro",
+      "color": "#000000",
+      "separado": true,
+      "botsCharla": true,
+      "$comment": "Los Vocaloids que solo conversan (Gakupo, Kaito, flower, IA, Haku, Gumi, Rin, Len, Meiko, Adachi Rei y Ruko; decisión de GyroP, 20 oct. 2026). Sin color ni permisos propios (ven y escriben en todos los canales por los permisos de cada canal, regla 2). npm run servidor lo deja como el ÚLTIMO rol separado, para que su grupo salga al final de la lista de miembros, justo encima de En línea."
+    },
+    {
+      "rol": "🛡️ Mod",
+      "color": "#E5484D",
+      "separado": true,
+      "mod": true,
+      "$comment": "Papus elegidos por GyroP (lo da a mano) que pueden dar machetazos y advertencias con Neru: /machetazo, /advertir, /machetazos y el clic derecho 'Machetazo (Neru)' / 'Advertir (Neru)' (decisión de GyroP, 21 oct. 2026; machetazos desde el 28 oct.). Desde el 8 nov. 2026 también /perdonar (no a sí mismo), /pelea, /boda y aprobar fondos de tarjeta en #moderación. Sin permisos propios de Discord: el silencio lo aplica siempre Neru y todo queda en #moderación con el nombre del Mod. Un Mod no puede sancionar a otro Mod ni a GyroP. npm run servidor lo deja justo debajo de Vocaloids (su grupo sale sobre los niveles) y siempre debajo de Neru. Para que vean los comandos: Ajustes del servidor → Integraciones → Neru → permitir el rol en /strike, /advertir, /strikes y los dos del clic derecho."
+    },
+    {
+      "rol": "⭐ Fundador",
+      "color": "#FFD166",
+      "separado": false,
+      "hasta": "2026-10-24T00:00:00-03:00",
+      "$comment": "Insignia para siempre de quienes tengan un nivel de Ko-fi en la primera semana (17 al 23 oct. 2026, hora de Chile). Teto la da sola (src/services/founders.ts) y la conserva aunque cancelen. Sin permisos extra."
+    },
+    {
+      "rol": "🏅 Papu de honor",
+      "color": "#C9D1DC",
+      "separado": true,
+      "$comment": "Lo da GyroP a mano a los Papus más fieles y activos (16 oct. 2026). Por ahora solo reconocimiento: sin permisos ni canales extra. Plateado: distinto de los niveles, de Fundador y de la paleta de #tus-roles. Separado en la lista de miembros (quien además tiene un nivel aparece en el grupo de su nivel)."
+    },
+    {
+      "rol": "🔪 Sobreviviente",
+      "color": "#8B1E2D",
+      "separado": false,
+      "sobreviviente": true,
+      "$comment": "Puramente decorativo, sin permisos ni función (decisión de GyroP, 28 oct. 2026): quien recibió un machetazo de Neru y GyroP lo perdonó (/perdonar). Teto lo da sola al perdonar (y lo crea si no existe) y no se quita. Rojo sangre seca, distinto de 🛡️ Mod."
+    },
+    {
+      "rol": "Proyectado del server",
+      "color": "#8E5BD8",
+      "separado": false,
+      "$comment": "Puramente estético: sin permisos ni canales extra (regla 1). Lo da GyroP a mano; el primero fue wildslifer12e (19 oct. 2026). Morado de V flower, el que pidió (mismo que 🎨 flower de #tus-roles)."
+    },
+    {
+      "rol": "💙 Esposa de Kaito",
+      "color": "#1E40AF",
+      "separado": true,
+      "sobreNiveles": true,
+      "$comment": "Sin permisos propios; da acceso a su canal privado con Kaito (categoría 💙 Kaito y Piña) (decisión de GyroP, 18 oct. 2026). Exclusivo de 🍍♡Piña♡🍍: Teto se lo da sola según config/especiales.json (por su id). No es de ningún nivel de Ko-fi ni se da a otros Papus. Azul Kaito, más oscuro que 🎨 Kaito de #tus-roles. Va encima de todos los niveles e insignias: su color manda, salvo que ella elija uno de #tus-roles; entonces Teto le pone ese color a este rol (y vuelve al azul si se lo quita)."
+    },
+    {
+      "rol": "Papu",
+      "color": "#000000",
+      "separado": false,
+      "todos": true,
+      "$comment": "Todos los Papus: Teto se lo da a cada uno al entrar (sentido de pertenencia). Sin color (#000000 = ninguno): el nombre se ve con el color neutro de Discord, de ningún nivel, y si el Papu elige uno en #tus-roles, ese se ve. Sin permisos ni canales extra (regla 1)."
+    },
+    {
+      "rol": "🎵 Música",
+      "color": "#000000",
+      "separado": true,
+      "musica": [
+        "411916947773587456",
+        "412347257233604609",
+        "412347553141751808",
+        "412347780841865216",
+        "614109280508968980"
+      ],
+      "$comment": "Bots de música externos (Jockie Music y sus 3 copias, Chip): sin permisos peligrosos, agrupados en la lista y SIN acceso a los canales de texto del servidor: solo funcionan en los canales de voz (y en su chat). Si invitas otro, agrega aquí su id y corre npm run servidor -- --apply."
+    }
+  ],
+  "coloresBots": {
+    "$comment": "Color del nombre de cada Vocaloid (decisión de GyroP, 20 oct. 2026). Texto = el rol de #tus-roles que le corresponde (lo comparte con los Papus que lo elijan). {rol, color} = rol de color solo para ese bot, fuera del menú de #tus-roles: las 4 chicas (sus colores son los de sus niveles de Ko-fi, reservados para los Papus) y Ruko (no está en la paleta). `npm run servidor` crea los que falten, los pone con los colores de #tus-roles (sobre el rol Vocaloids, para que su color se vea) y se los da a cada bot.",
+    "teto": {
+      "rol": "🎨 Teto",
+      "color": "#E91E63"
+    },
+    "miku": {
+      "rol": "🎨 Miku",
+      "color": "#39C5BB"
+    },
+    "luka": {
+      "rol": "🎨 Luka",
+      "color": "#E285B2"
+    },
+    "neru": {
+      "rol": "🎨 Neru",
+      "color": "#E8D44D"
+    },
+    "gakupo": "🎨 Gakupo",
+    "kaito": "🎨 Kaito",
+    "flower": "🎨 flower",
+    "ia": "🎨 IA",
+    "haku": "🎨 Haku",
+    "gumi": "🎨 Gumi",
+    "rin": "🎨 Rin y Len",
+    "len": "🎨 Rin y Len",
+    "meiko": "🎨 Meiko",
+    "adachirei": "🎨 Adachi Rei",
+    "ruko": {
+      "rol": "🎨 Ruko",
+      "color": "#4A6AA8"
+    }
+  },
+  "coloresPapu": {
+    "canal": "tus-roles",
+    "$comment": "Colores que cada Papu elige en #tus-roles (menú de Miku, lo atiende el worker 24/7). Todas las Vocaloids del motor (Proyecto1/config/characters.json) menos las reservadas a los niveles de Ko-fi: Teto, Miku, Luka y Neru (y sus versiones) y el morado Triple Baka (decisión de GyroP, 17 oct. 2026). Rin y Len comparten color; KAFU va un poco más claro para no confundirse con Kaito. Ordenados por familia de color. Máximo 24 (menú de Discord). Quedan encima de todos los roles de los Papus (niveles, insignias y Papu): el color elegido es el que se ve siempre, aunque tenga un nivel (decisión de GyroP, 19 oct. 2026; antes iban debajo de los niveles). Solo dan el color: sin permisos y sin separar en la lista, que sigue agrupada por nivel. Van debajo del rol de bot de Miku (si no, no podría asignarlos). Lo ordena `npm run servidor`. Nunca se borran roles: si se quita un color de aquí, su rol queda en el servidor.",
+    "colores": [
+      {
+        "rol": "🎨 Rin y Len",
+        "color": "#F2B544"
+      },
+      {
+        "rol": "🎨 Lily",
+        "color": "#F2C200"
+      },
+      {
+        "rol": "🎨 Nero",
+        "color": "#E0A21C"
+      },
+      {
+        "rol": "🎨 Adachi Rei",
+        "color": "#FF7A2F"
+      },
+      {
+        "rol": "🎨 Meiko",
+        "color": "#E0383E"
+      },
+      {
+        "rol": "🎨 Meito",
+        "color": "#B3312C"
+      },
+      {
+        "rol": "🎨 Luki",
+        "color": "#D96A9C"
+      },
+      {
+        "rol": "🎨 IA",
+        "color": "#F4A7C0"
+      },
+      {
+        "rol": "🎨 Ted",
+        "color": "#C77DB5"
+      },
+      {
+        "rol": "🎨 Haku",
+        "color": "#B7A9E6"
+      },
+      {
+        "rol": "🎨 Defoko",
+        "color": "#A98BEA"
+      },
+      {
+        "rol": "🎨 Gakupo",
+        "color": "#A77BFF"
+      },
+      {
+        "rol": "🎨 flower",
+        "color": "#8E5BD8"
+      },
+      {
+        "rol": "🎨 Kaito",
+        "color": "#3D6BFF"
+      },
+      {
+        "rol": "🎨 KAFU",
+        "color": "#5C7CFA"
+      },
+      {
+        "rol": "🎨 Mikuo",
+        "color": "#2FB5AA"
+      },
+      {
+        "rol": "🎨 Gumi",
+        "color": "#7FCB4B"
+      },
+      {
+        "rol": "🎨 Gumiya",
+        "color": "#4E9A2E"
+      }
+    ]
+  },
+  "avisosPapu": {
+    "canal": "tus-roles",
+    "$comment": "Avisos que cada Papu elige en #tus-roles (tercer menú de Miku, en el mismo mensaje que los colores y los países; lo atiende el worker 24/7). Idea de los Papus en #ideas-y-opiniones (Wicho, Nyrex, Piña; nov. 2026), nombres de GyroP (8 nov. 2026). Se pueden marcar varios: lo que quede marcado es lo que tiene (lo que no, se quita). El bot etiqueta el rol al empezar su evento: peleas = al abrir las apuestas del 1vs1 (Teto); bodas = al salir una adivinanza (la Vocaloid, o Neru si ella no puede etiquetar roles); estrenos = al empezar la XP multiplicada de un estreno (Miku); mercado = al abrir el mercado negro (Neru, config/mercado.json; pedido de GyroP, 9 nov. 2026). Como los países: sin color, sin permisos, no separados en la lista y al fondo de la lista de roles; no se pueden mencionar (solo los bots con el rol Vocaloids, que pueden mencionar a todos). Nunca se borran roles: si se quita uno de aquí, su rol queda en el servidor.",
+    "avisos": [
+      { "id": "peleas", "rol": "⚔️ Ludópata", "nombre": "Peleas 1vs1", "descripcion": "Te etiqueto cuando abren las apuestas" },
+      { "id": "bodas", "rol": "💍 Rizzler", "nombre": "Bodas", "descripcion": "Te etiqueto cuando sale una adivinanza" },
+      { "id": "estrenos", "rol": "🎬 Estrenos", "nombre": "Estrenos", "descripcion": "Te etiqueto cuando empieza la XP doble" },
+      { "id": "mercado", "rol": "🕶️ Traficante", "nombre": "Mercado negro", "descripcion": "Te etiqueto cuando abre el mercado negro (1 h al día)" }
+    ]
+  },
+  "paisesPapu": {
+    "canal": "tus-roles",
+    "$comment": "Países que cada Papu elige en #tus-roles (segundo menú de Miku, en el mismo mensaje que los colores; lo atiende el worker 24/7). Uno a la vez. El rol solo pone la bandera y el nombre en el perfil: sin color, sin permisos, no separado en la lista y al fondo de la lista de roles, debajo de Papu (decisión de GyroP, 19 oct. 2026). Lo ordena `npm run servidor`. Formato: bandera, espacio, nombre completo. Máximo 24 (menú de Discord). Nunca se borran roles: si se quita un país de aquí, su rol queda en el servidor.",
+    "paises": [
+      "🇲🇽 México",
+      "🇨🇱 Chile",
+      "🇦🇷 Argentina",
+      "🇨🇴 Colombia",
+      "🇵🇪 Perú",
+      "🇻🇪 Venezuela",
+      "🇪🇨 Ecuador",
+      "🇬🇹 Guatemala",
+      "🇧🇴 Bolivia",
+      "🇺🇾 Uruguay",
+      "🇵🇾 Paraguay",
+      "🇨🇺 Cuba",
+      "🇩🇴 República Dominicana",
+      "🇭🇳 Honduras",
+      "🇸🇻 El Salvador",
+      "🇳🇮 Nicaragua",
+      "🇨🇷 Costa Rica",
+      "🇵🇦 Panamá",
+      "🇵🇷 Puerto Rico",
+      "🇪🇸 España",
+      "🇺🇸 Estados Unidos",
+      "🇧🇷 Brasil",
+      "🇯🇵 Japón",
+      "🌎 Otro país"
+    ]
+  },
+  "seguridad": {
+    "verificacion": 1,
+    "filtroContenido": 2,
+    "$comment": "verificacion 1 = correo verificado (anti-raid suave); filtroContenido 2 = revisar imágenes de todos los miembros (PLAN §7)."
+  },
+  "categorias": [
+    {
+      "nombre": "📢 Inicio",
+      "antes": [
+        "Información"
+      ],
+      "leen": "todos",
+      "canales": [
+        {
+          "nombre": "🌸・bienvenida",
+          "antes": [
+            "bienvenida-y-normas"
+          ],
+          "escriben": false,
+          "tema": "¡Bienvenido, Papu! Aquí Teto saluda a cada Papu nuevo. Lee #reglas y pásate por #general."
+        },
+        {
+          "nombre": "📜・reglas",
+          "escriben": false,
+          "tema": "Normas del servidor, cómo funcionan los bots (cuota diaria, respuestas con IA) y qué hace Neru."
+        },
+        {
+          "nombre": "📣・anuncios",
+          "escriben": false,
+          "tema": "Novedades del canal de GyroP y estrenos de videos."
+        },
+        {
+          "nombre": "✨・novedades",
+          "escriben": false,
+          "tema": "Cambios del servidor y de los bots (por ejemplo, la cuota diaria). Siempre iguales para todos, paguen o no."
+        }
+      ]
+    },
+    {
+      "nombre": "💎 Niveles y perfil",
+      "leen": "todos",
+      "canales": [
+        {
+          "nombre": "💎・niveles-ko-fi",
+          "escriben": false,
+          "tema": "Los 5 niveles: 🥬 Puerro · 🐟 Atún · 🥖 Baguette · 📱 Celular · 💥 Triple Baka → ko-fi.com/tetociencia/tiers"
+        },
+        {
+          "nombre": "👀・vitrina",
+          "escriben": false,
+          "tema": "Lo que está pasando en los canales de los niveles: votaciones, adelantos y novedades. ¡Mira lo que te pierdes!"
+        },
+        {
+          "nombre": "🎨・tus-roles",
+          "antes": [
+            "🎨・tu-color"
+          ],
+          "escriben": false,
+          "tema": "Elige el color de tu nombre, la bandera de tu país y de qué quieres que te avisemos, con los menús de Miku."
+        },
+        {
+          "nombre": "🪙・tienda-shaula",
+          "escriben": false,
+          "tema": "Tienda de Shaula-coins: toca los botones del mensaje fijado. Monedas, sobres, tu colección y tu tarjeta (solo tú ves lo que abres)."
+        },
+        {
+          "nombre": "⚔️・peleas",
+          "escriben": false,
+          "tema": "1vs1 de los Vocaloids: apuesta de 10 a 400 Shaula-coins ganadas con los botones del cartel. Peleas a las 14:00 y 21:00 (hora de Chile)."
+        },
+        {
+          "nombre": "🏆・salón-de-la-fama",
+          "escriben": false,
+          "tema": "Papus cuyos tips llegaron a un video. ¡Gracias por investigar!"
+        }
+      ]
+    },
+    {
+      "nombre": "💬 Charla",
+      "antes": [
+        "Comunidad",
+        "Canales de texto"
+      ],
+      "leen": "todos",
+      "canales": [
+        {
+          "nombre": "💬・general",
+          "escriben": true,
+          "lento": 3,
+          "tema": "Charla general de los Papus."
+        },
+        {
+          "nombre": "🎤・charla-vocaloid",
+          "escriben": true,
+          "tema": "Canciones, productores, personajes y todo lo Vocaloid."
+        },
+        {
+          "nombre": "🎮・gaming",
+          "escriben": true,
+          "tema": "Videojuegos: a qué juegan, partidas, capturas, clips y búsqueda de compañeros para jugar (Project DIVA, ritmo, lo que sea)."
+        },
+        {
+          "nombre": "💌・habla-con-los-vocaloids",
+          "escriben": true,
+          "lento": 3,
+          "tema": "Menciona a @Teto, @Miku, @Luka, @Neru, @Gakupo, @Kaito, @flower, @IA, @Haku, @Gumi, @Rin, @Len, @Meiko, @Adachi Rei o @Ruko para platicar: mensajes al día según tu nivel (/nivel), compartidos entre todos (/cuota)."
+        },
+        {
+          "nombre": "🤝・centro-de-comercio",
+          "escriben": true,
+          "lento": 3600,
+          "tema": "Anuncios de intercambio: usa /intercambio para ofrecer (Shaula-coins, XP, niveles, cuota, sobres, objetos y consumibles). Aquí solo avisos y reacciones; el modo lento es largo para que no se pierdan las ofertas."
+        },
+        {
+          "nombre": "🌳・plaza-papus",
+          "escriben": false,
+          "tema": "Registro del chat de la Plaza de los Papus, el mundo 3D del servidor (solo lectura). Cómo entrar: en el mensaje fijado."
+        }
+      ]
+    },
+    {
+      "nombre": "🎨 Arte y música",
+      "leen": "todos",
+      "canales": [
+        {
+          "nombre": "🎧・recomendaciones",
+          "escriben": true,
+          "tema": "Comparte enlaces a canciones y videos que recomiendes (YouTube, Niconico, Spotify, VocaDB, Piapro…)."
+        },
+        {
+          "nombre": "🎨・fanart",
+          "escriben": true,
+          "tema": "Tus dibujos y los que encuentres (con crédito al artista)."
+        },
+        {
+          "nombre": "🧸・merch-y-colecciones",
+          "escriben": true,
+          "tema": "Presume tu colección Vocaloid: merch original, bootleg o hecha por ti (peluches, figuras, llaveros, pósters…)."
+        },
+        {
+          "nombre": "📸・instagram-de-los-papus",
+          "escriben": true,
+          "lento": 5,
+          "tema": "Deja tu @ de Instagram para que los Papus se sigan entre ellos."
+        },
+        {
+          "nombre": "😹・memes",
+          "escriben": true,
+          "tema": "Memes Vocaloid y del canal."
+        }
+      ]
+    },
+    {
+      "nombre": "🎉 Eventos e ideas",
+      "leen": "todos",
+      "canales": [
+        {
+          "nombre": "🎉・eventos",
+          "antes": [
+            "eventos"
+          ],
+          "escriben": true,
+          "tema": "Sesiones de escucha, cumpleaños de las Vocaloids y eventos de la comunidad."
+        },
+        {
+          "nombre": "🗣️・ideas-y-opiniones",
+          "antes": [
+            "ideas-y-opiniones"
+          ],
+          "escriben": true,
+          "tema": "Ideas para el servidor y el canal, y lo que opinas de todo."
+        },
+        {
+          "nombre": "🐞・reportes-y-reclamos",
+          "escriben": true,
+          "tickets": true,
+          "tema": "Usa /reporte: Neru te abre un ticket privado (solo lo ven tú y GyroP). Bugs, tu rol de Ko-fi, reclamos y todo lo que no funcione."
+        }
+      ]
+    },
+    {
+      "nombre": "🤖 Bots",
+      "leen": "todos",
+      "canales": [
+        {
+          "nombre": "🤖・comandos-de-bots",
+          "escriben": true,
+          "musica": true,
+          "lento": 2,
+          "tema": "Aquí se usan los comandos: /cuota, /nivel y /tarjeta de Teto, /tip de Luka, /pedido de Miku y los bots de música (/play). Entra a un canal de voz y pide tu canción."
+        }
+      ]
+    },
+    {
+      "nombre": "🔒 Exclusivo de los niveles",
+      "leen": "todos",
+      "$comment": "Canales candado: los ven quienes NO tienen ese nivel (ni uno superior) y muestran lo que hay detrás, con su guía fijada. Nunca se publica contenido real aquí. Quien tiene el nivel no ve el candado: ve los canales de verdad.",
+      "canales": [
+        {
+          "nombre": "🔒・🥬-puerro",
+          "escriben": false,
+          "ocultarDesde": "Puerro",
+          "tema": "🔒 Del nivel 🥬 Puerro: votaciones y calendario. Mira el mensaje fijado."
+        },
+        {
+          "nombre": "🔒・🐟-atún",
+          "escriben": false,
+          "ocultarDesde": "Atún",
+          "tema": "🔒 Del nivel 🐟 Atún: tips, propuestas y stickers. Mira el mensaje fijado."
+        },
+        {
+          "nombre": "🔒・🥖-baguette",
+          "escriben": false,
+          "ocultarDesde": "Baguette",
+          "tema": "🔒 Del nivel 🥖 Baguette: adelantos, notas de producción, fondos y charla VIP. Mira el mensaje fijado."
+        },
+        {
+          "nombre": "🔒・📱-celular",
+          "escriben": false,
+          "ocultarDesde": "Celular",
+          "tema": "🔒 Del nivel 📱 Celular: el motor por dentro, lost media y preguntas a GyroP. Mira el mensaje fijado."
+        },
+        {
+          "nombre": "🔒・💥-triple-baka",
+          "escriben": false,
+          "ocultarDesde": "Triple Baka",
+          "tema": "🔒 Del nivel 💥 Triple Baka: la bóveda y tu video personalizado. Mira el mensaje fijado."
+        }
+      ]
+    },
+    {
+      "nombre": "🥬 Puerro",
+      "leen": "Puerro",
+      "canales": [
+        {
+          "nombre": "🗳️・votaciones",
+          "escriben": false,
+          "tema": "Vota el tema de los próximos videos (encuestas de Miku)."
+        },
+        {
+          "nombre": "📅・calendario",
+          "escriben": false,
+          "tema": "Calendario de publicación y tema de la semana, antes que nadie."
+        }
+      ]
+    },
+    {
+      "nombre": "🐟 Atún",
+      "leen": "Atún",
+      "canales": [
+        {
+          "nombre": "💡・tips-y-curiosidades",
+          "escriben": true,
+          "tema": "Comparte tips con /tip (texto + fuente). Si se usa el tuyo, sales en los créditos y en #salón-de-la-fama."
+        },
+        {
+          "nombre": "📝・propuestas-de-temas",
+          "escriben": true,
+          "tema": "Propón temas para las votaciones. Aquí también se vota quién presenta los episodios y se eligen miniaturas."
+        },
+        {
+          "nombre": "📥・descargas",
+          "escriben": false,
+          "tema": "Pack de stickers del canal (en producción: a más tardar el 17 de noviembre)."
+        }
+      ]
+    },
+    {
+      "nombre": "🥖 Baguette",
+      "leen": "Baguette",
+      "canales": [
+        {
+          "nombre": "👀・adelantos",
+          "escriben": false,
+          "tema": "Cada video 24 h antes que en Instagram."
+        },
+        {
+          "nombre": "🎬・notas-de-producción",
+          "escriben": false,
+          "tema": "Por qué elegí cada tema, las fuentes y lo que se cortó."
+        },
+        {
+          "nombre": "💭・inspiraciones",
+          "escriben": false,
+          "tema": "Productores, canciones y álbumes que me marcaron."
+        },
+        {
+          "nombre": "🖼️・fondos",
+          "escriben": false,
+          "tema": "Fondos de pantalla del canal para celular y PC (en producción: a más tardar el 17 de noviembre)."
+        },
+        {
+          "nombre": "☕・charla-vip",
+          "escriben": true,
+          "tema": "Charla de los Papus Baguette y superiores."
+        }
+      ]
+    },
+    {
+      "nombre": "📱 Celular",
+      "leen": "Celular",
+      "canales": [
+        {
+          "nombre": "⚙️・proceso-y-motor",
+          "escriben": false,
+          "tema": "Cómo funciona por dentro el motor que hace los videos."
+        },
+        {
+          "nombre": "📼・archivo-lost-media",
+          "escriben": false,
+          "tema": "Los episodios perdidos de la primera etapa del canal (carpeta privada de Google Drive). Para entrar, mándale a GyroP por privado tu Gmail."
+        },
+        {
+          "nombre": "❓・preguntas-a-gyrop",
+          "escriben": true,
+          "tema": "Preguntas y respuestas con GyroP cada mes, y votación del tema de los especiales."
+        }
+      ]
+    },
+    {
+      "nombre": "💥 Triple Baka",
+      "leen": "Triple Baka",
+      "canales": [
+        {
+          "nombre": "🔐・bóveda",
+          "escriben": false,
+          "tema": "TODOS los videos de la historia del canal: publicados, archivados, inéditos y cancelados (carpeta privada de Google Drive, solo para ver). Para entrar, mándale a GyroP por privado tu Gmail."
+        },
+        {
+          "nombre": "🎁・cola-de-pedidos",
+          "escriben": false,
+          "tema": "Tu video personalizado con los Vocaloids, por orden de llegada: pide el tuyo y mira tu posición."
+        }
+      ]
+    },
+    {
+      "nombre": "🏅 Sala de honor",
+      "leen": "rol:🏅 Papu de honor",
+      "$comment": "Solo los Papus de honor (los da GyroP a mano). Cada semana votan un video aparte de la votación de Puerro: videos que GyroP ya tiene listos para subir + temas que ellos propongan en #charla-de-honor. Quien además tenga un nivel vota en las dos. Sin ventajas con los bots (regla 1).",
+      "canales": [
+        {
+          "nombre": "💬・charla-de-honor",
+          "escriben": true,
+          "lento": 3,
+          "tema": "Ponte de acuerdo con los demás Papus de honor: qué temas quieren ver en los videos. Los más apoyados pasan a la votación de la semana."
+        },
+        {
+          "nombre": "🗳️・votacion-de-honor",
+          "escriben": false,
+          "tema": "Cada semana eligen un video entre los que GyroP tiene listos para subir y los temas que propusieron en #charla-de-honor."
+        },
+        {
+          "nombre": "🎙️ Sala de honor",
+          "escriben": true,
+          "voz": true
+        },
+        {
+          "nombre": "🎧 Rincón de honor",
+          "escriben": true,
+          "voz": true
+        }
+      ]
+    },
+    {
+      "nombre": "💙 Kaito y Piña",
+      "leen": "rol:💙 Esposa de Kaito",
+      "$comment": "Canal privado de 🍍♡Piña♡🍍 con Kaito (decisión de GyroP, 18 oct. 2026): solo lo ve quien tiene el rol 💙 Esposa de Kaito, que es exclusivo de ella (config/especiales.json). Los demás Papus no lo ven. Los bots sí (regla 2: Neru lo modera igual que todo) y GyroP también, como dueño del servidor. Regalo personal, no de un nivel de Ko-fi (regla 1).",
+      "canales": [
+        {
+          "nombre": "💙・kaito-y-piña",
+          "escriben": true,
+          "tema": "El rincón de Piña y Kaito. Escríbele con @Kaito cuando quieras; aquí no los ve nadie más."
+        }
+      ]
+    },
+    {
+      "nombre": "🔒 Staff",
+      "leen": "staff",
+      "canales": [
+        {
+          "nombre": "🛡️・moderación",
+          "escriben": false,
+          "tema": "Registro de Neru y alertas de AutoMod."
+        },
+        {
+          "nombre": "📋・registro-bots",
+          "escriben": false,
+          "tema": "Avisos de los bots: conexión, uso de las APIs, errores."
+        },
+        {
+          "nombre": "🧾・registro-compras",
+          "escriben": false,
+          "tema": "Compras de Shaula-coins por confirmar (PayPal y transferencias): toca Llegó o No llegó. Solo GyroP."
+        },
+        {
+          "nombre": "🧪・pruebas-bots",
+          "escriben": true,
+          "tema": "Para probar los bots sin molestar a nadie."
+        }
+      ]
+    }
+  ],
+  "categoriasManualesDespuesDe": "🤖 Bots"
+}

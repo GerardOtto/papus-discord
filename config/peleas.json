@@ -1,0 +1,338 @@
+{
+  "$comment": "1vs1 de los Vocaloids (pedido de GyroP, 4 nov. 2026; docs/PLAN.md §3.7). Dos Vocaloids pelean por turnos al azar y los Papus apuestan Shaula-coins GANADAS (nunca compradas: nada pagado es azar, PLAN §3.6). Las apuestas no dan XP ni cuota (regla 1). Cambiar algo aquí no requiere tocar código; se aplica al reiniciar.",
+  "activo": true,
+
+  "$apuestas": "minima/maxima = Shaula-coins por Papu y por pelea (se puede subir la apuesta hasta 'maxima', siempre al mismo Vocaloid). minutos = cuánto tiempo están abiertas antes de que empiece la pelea (5 desde el 8 nov. 2026, decisión de GyroP; ese mismo día fueron 10 por un pedido de los Papus en #ideas-y-opiniones, que con 3 no alcanzaban). margen = lo que se queda la casa en la cuota (0,05 = 5 %): saca monedas de circulación para que no se inflen. La cuota de cada Vocaloid sale de simular 'simulaciones' peleas: paga = (1 - margen) / probabilidad de ganar, entre cuotaMinima y cuotaMaxima.",
+  "apuestas": { "minima": 10, "maxima": 400, "minutos": 5, "margen": 0.05, "simulaciones": 4000, "cuotaMinima": 1.1, "cuotaMaxima": 5 },
+
+  "$horarios": "Peleas automáticas (HH:MM en la zona 'zona'; desde el 8 nov. 2026 hora de México, donde está casi todo el público: antes 14:00 y 21:00 de Chile, que en noviembre son 11:00 y 18:00 de México, en horario de clases) en el canal 'canal' (si no existe, en 'respaldo'). La pareja sale al azar, sin repetir la anterior. GyroP puede lanzar otra cuando quiera con /pelea (y elegir a los dos). Solo hay una pelea a la vez. Al abrir las apuestas, Teto etiqueta el rol ⚔️ Ludópata (avisos de #tus-roles, config/servidor.json -> avisosPapu), otra vez cuando quedan 15 segundos (respondiendo al banner) y al final dice cuándo es la próxima.",
+  "horarios": ["16:00", "21:00"],
+  "zona": "America/Mexico_City",
+  "canal": "peleas",
+  "respaldo": "general",
+
+  "$pelea": "lineaMs = cada cuánto se agrega una línea al mensaje de la pelea. maxTurnos = si nadie cae antes, gana por puntos quien conserve más vida (en %). acciones = peso de cada acción al azar en cada turno (el especial se usa una sola vez por pelea; si es de curar, solo con menos del 60 % de vida). Si los dos eligen no atacar, se vuelve a sortear una vez (para que no haya turnos aburridos). Daño: ataque ±1; quien también ataca resta la mitad de su defensa (mínimo 1 de daño) y puede esquivar de reflejo (un tercio de su agilidad); bloquear deja la mitad del golpe menos la mitad de la defensa; esquivar acierta con la probabilidad 'agilidad' (%) y si falla recibe el golpe entero.",
+  "pelea": { "lineaMs": 1000, "maxTurnos": 20, "acciones": { "ataque": 45, "bloqueo": 20, "esquiva": 20, "especial": 15 } },
+
+  "$luchadores": "28 luchadores (desde el 8 nov. 2026, pedido de GyroP): los 15 Vocaloids del servidor (nombre, color y avatar de su bot) e invitados con 'nombre', 'color' y 'grupo' (invitado = sale en los videos del canal; especial = invitado de GyroP). El avatar de un invitado va en assets/peleas/luchadores/<id>.png (npm run peleas:avatares); sin avatar no pelea (las imágenes de Don Ramón, Godzilla y Shaula las eligió GyroP). La wiki de #peleas sale de aquí (npm run peleas:wiki -- --apply). Estadísticas según el lore del motor (Proyecto1/config/autopilot/lore.json y content/lore-extra.json) y lo que se sabe de cada uno en el servidor; 'por' explica el porqué. Los números están equilibrados simulando todas las parejas (ninguna pasa de 80/20; las cuotas compensan el resto): si se cambian, conviene revisar con las pruebas (tests/peleas.test.ts). vida = HP; ataque y defensa = puntos; agilidad = % de esquivar con éxito. Los movimientos son fragmentos que se arman en la línea: 'Neru suelta un machetazo, pero Teto se cubre con una baguette'. ataque, bloqueo y esquiva: varias opciones (sale una al azar). especial: nombre, texto y 'dano' (golpe fuerte) o 'cura' (recupera vida). acciones = su estilo (pesos propios: los ágiles esquivan más, los resistentes bloquean más, los agresivos atacan más).",
+  "luchadores": {
+    "teto": {
+      "por": "Se considera gordita y come mucho: la que más vida tiene y defensa alta; poco ágil y bloquea mucho; ataca con sus taladros; su especial es comerse una baguette.",
+      "vida": 34, "ataque": 3, "defensa": 3, "agilidad": 10,
+      "acciones": { "ataque": 50, "bloqueo": 22, "esquiva": 8, "especial": 15 },
+      "movimientos": {
+        "ataque": ["ataca con sus taladros giratorios", "embiste con todo su peso", "da un baguetazo"],
+        "bloqueo": ["se cubre con una baguette", "aguanta firme como la quimera que es"],
+        "esquiva": ["intenta rodar a un lado", "se agacha… con esfuerzo"],
+        "especial": { "nombre": "Pausa para la baguette", "texto": "se come una baguette entera en plena pelea", "cura": 8 }
+      }
+    },
+    "miku": {
+      "por": "La más ágil: esquiva más seguido y casi siempre con éxito; siempre con su puerro por Ievan Polkka; defensa y vida bajas.",
+      "vida": 24, "ataque": 4, "defensa": 1, "agilidad": 80,
+      "acciones": { "ataque": 40, "bloqueo": 10, "esquiva": 35, "especial": 15 },
+      "movimientos": {
+        "ataque": ["da un puerrazo", "gira su puerro como espada", "lanza un puerro como bumerán"],
+        "bloqueo": ["cruza el puerro para cubrirse", "se cubre con sus coletas"],
+        "esquiva": ["salta con las coletas al viento", "da un giro de idol"],
+        "especial": { "nombre": "Ievan Polkka", "texto": "hace girar el puerro al ritmo de Ievan Polkka", "dano": 8 }
+      }
+    },
+    "luka": {
+      "por": "La adulta sensata: equilibrada y con buena defensa; los fans la asocian con el atún.",
+      "vida": 27, "ataque": 4, "defensa": 2, "agilidad": 25,
+      "movimientos": {
+        "ataque": ["lanza un atún", "da un coletazo de atún", "ataca con calma calculada"],
+        "bloqueo": ["se cubre con calma de adulta sensata", "para el golpe con un atún"],
+        "esquiva": ["da un paso elegante al lado", "se aparta sin despeinarse"],
+        "especial": { "nombre": "Lluvia de maguro", "texto": "hace llover atunes desde el cielo", "dano": 8 }
+      }
+    },
+    "neru": {
+      "por": "La de los machetazos del servidor: ataque altísimo, poca defensa; nunca suelta el celular.",
+      "vida": 20, "ataque": 6, "defensa": 1, "agilidad": 20,
+      "acciones": { "ataque": 55, "bloqueo": 15, "esquiva": 15, "especial": 15 },
+      "movimientos": {
+        "ataque": ["suelta un machetazo", "tira un machetazo sin mirar", "lanza el celular a la cara"],
+        "bloqueo": ["se cubre sin soltar el celular", "pone el machete de escudo"],
+        "esquiva": ["se agacha sin dejar de chatear", "se aparta con flojera"],
+        "especial": { "nombre": "Machetazo definitivo", "texto": "guarda el celular (¡por fin!) y da el machetazo con las dos manos", "dano": 10 }
+      }
+    },
+    "rin": {
+      "por": "Pequeña pero con apisonadora: ataque alto y un especial que aplasta; naranjas.",
+      "vida": 23, "ataque": 5, "defensa": 1, "agilidad": 25,
+      "acciones": { "ataque": 55, "bloqueo": 15, "esquiva": 15, "especial": 15 },
+      "movimientos": {
+        "ataque": ["lanza una naranja con fuerza", "da una patada voladora", "tira una lluvia de naranjas"],
+        "bloqueo": ["se cubre detrás de su moño", "aguanta con los brazos cruzados"],
+        "esquiva": ["salta como resorte", "se escurre hacia un lado"],
+        "especial": { "nombre": "¡Apisonadora!", "texto": "aparece arriba de su apisonadora y aplasta todo", "dano": 11 }
+      }
+    },
+    "len": {
+      "por": "El reflejo de Rin, pero más ágil que fuerte; plátanos.",
+      "vida": 24, "ataque": 4, "defensa": 1, "agilidad": 80,
+      "acciones": { "ataque": 40, "bloqueo": 10, "esquiva": 35, "especial": 15 },
+      "movimientos": {
+        "ataque": ["da un platanazo", "lanza un plátano como bumerán", "tira cáscaras de plátano"],
+        "bloqueo": ["se cubre con un racimo de plátanos", "aguanta presumiendo"],
+        "esquiva": ["hace una pirueta", "se desliza como en una cáscara"],
+        "especial": { "nombre": "Lluvia de plátanos", "texto": "hace caer un racimo gigante desde arriba", "dano": 8 }
+      }
+    },
+    "kaito": {
+      "por": "Rescatado por los fans: aguanta mucho (vida y defensa con su bufanda), ataque modesto; helado.",
+      "vida": 27, "ataque": 4, "defensa": 3, "agilidad": 15,
+      "acciones": { "ataque": 40, "bloqueo": 32, "esquiva": 8, "especial": 15 },
+      "movimientos": {
+        "ataque": ["lanza un helado", "da un latigazo con la bufanda", "ataca gritando «¡BaKAITO no!»"],
+        "bloqueo": ["se envuelve en su bufanda", "protege su helado con el cuerpo"],
+        "esquiva": ["se resbala con el helado… a propósito", "da un paso atrás"],
+        "especial": { "nombre": "Avalancha de helado", "texto": "suelta una avalancha de helado de vainilla", "dano": 8 }
+      }
+    },
+    "meiko": {
+      "por": "La primera Vocaloid japonesa (2004): veterana que golpea fuerte y ataca seguido; a cambio, menos vida.",
+      "vida": 20, "ataque": 5, "defensa": 2, "agilidad": 15,
+      "acciones": { "ataque": 55, "bloqueo": 15, "esquiva": 15, "especial": 15 },
+      "movimientos": {
+        "ataque": ["da un golpe de micrófono", "ataca con voz de veterana", "embiste como hermana mayor"],
+        "bloqueo": ["se cubre con el micrófono", "aguanta como la primera del escenario"],
+        "esquiva": ["se mueve con experiencia", "da un paso de escenario"],
+        "especial": { "nombre": "Veterana de 2004", "texto": "le recuerda quién llegó primero, con toda la voz", "dano": 9 }
+      }
+    },
+    "gumi": {
+      "por": "Equilibrada y movida, con sus gafas protectoras; el meme de la fruta con su cara.",
+      "vida": 26, "ataque": 4, "defensa": 2, "agilidad": 53,
+      "acciones": { "ataque": 40, "bloqueo": 10, "esquiva": 35, "especial": 15 },
+      "movimientos": {
+        "ataque": ["lanza una pera con su cara", "da un cabezazo con las gafas", "tira un kiwi de Gumi"],
+        "bloqueo": ["se baja las gafas protectoras", "se cubre con una canasta de frutas"],
+        "esquiva": ["salta hacia un lado", "se escurre entre las frutas"],
+        "especial": { "nombre": "Ensalada de Gumi", "texto": "lanza todas las frutas con su cara a la vez", "dano": 8 }
+      }
+    },
+    "gakupo": {
+      "por": "Samurái con katana: el ataque más alto y buena defensa, pero poca vida (todo o nada); la berenjena de los fans.",
+      "vida": 17, "ataque": 6, "defensa": 2, "agilidad": 20,
+      "acciones": { "ataque": 55, "bloqueo": 15, "esquiva": 15, "especial": 15 },
+      "movimientos": {
+        "ataque": ["da un katanazo", "lanza una berenjena", "ataca con la coleta al viento"],
+        "bloqueo": ["para el golpe con su katana", "se cubre como samurái"],
+        "esquiva": ["se aparta con elegancia", "da un salto hacia atrás"],
+        "especial": { "nombre": "Corte samurái", "texto": "desenvaina en silencio y corta el aire", "dano": 10 }
+      }
+    },
+    "ia": {
+      "por": "Ágil y misteriosa (Kagerou Project); defensa baja.",
+      "vida": 24, "ataque": 4, "defensa": 1, "agilidad": 79,
+      "acciones": { "ataque": 40, "bloqueo": 10, "esquiva": 35, "especial": 15 },
+      "movimientos": {
+        "ataque": ["ataca con sus trenzas", "canta una nota altísima", "lanza un golpe sin aviso"],
+        "bloqueo": ["aclara que NO es una inteligencia artificial y se cubre", "se protege con sus trenzas"],
+        "esquiva": ["se desvanece como en el Kagerou Project", "flota hacia un lado"],
+        "especial": { "nombre": "Outer Science", "texto": "canta Outer Science a todo volumen", "dano": 9 }
+      }
+    },
+    "haku": {
+      "por": "La de la voz débil y pesimista: poco ataque y poca agilidad, pero aguanta; su especial es un quejido.",
+      "vida": 33, "ataque": 3, "defensa": 2, "agilidad": 15,
+      "acciones": { "ataque": 40, "bloqueo": 32, "esquiva": 8, "especial": 15 },
+      "movimientos": {
+        "ataque": ["da un golpe… débil", "suspira y pega", "ataca sin muchas ganas"],
+        "bloqueo": ["se encoge, resignada", "aguanta en silencio"],
+        "esquiva": ["se tropieza… y justo se salva", "se hace a un lado, triste"],
+        "especial": { "nombre": "Quejido final", "texto": "suelta un quejido tan triste que duele", "dano": 10 }
+      }
+    },
+    "flower": {
+      "por": "Voz potente de rock: ataque alto, defensa baja.",
+      "vida": 20, "ataque": 6, "defensa": 1, "agilidad": 25,
+      "acciones": { "ataque": 55, "bloqueo": 15, "esquiva": 15, "especial": 15 },
+      "movimientos": {
+        "ataque": ["lanza un riff de rock", "grita con su voz potente", "da un guitarrazo"],
+        "bloqueo": ["se cubre con la guitarra", "aguanta con actitud"],
+        "esquiva": ["se mueve al ritmo rápido", "salta como en concierto"],
+        "especial": { "nombre": "Solo de rock", "texto": "toca un solo tan rápido que sacude el escenario", "dano": 9 }
+      }
+    },
+    "adachirei": {
+      "por": "Androide: la defensa más alta (blindaje), muy lenta para esquivar.",
+      "vida": 26, "ataque": 3, "defensa": 4, "agilidad": 5,
+      "acciones": { "ataque": 40, "bloqueo": 32, "esquiva": 8, "especial": 15 },
+      "movimientos": {
+        "ataque": ["da un puñetazo robótico", "dispara un pitido entrecortado", "embiste en modo androide"],
+        "bloqueo": ["activa su blindaje", "se cubre: «PROTOCOLO… DEFENSA»"],
+        "esquiva": ["calcula una ruta… lentamente", "intenta moverse… procesando…"],
+        "especial": { "nombre": "Sobrecarga del sistema", "texto": "sobrecarga sus circuitos y suelta una descarga", "dano": 9 }
+      }
+    },
+    "ruko": {
+      "por": "«Ruko se acerca»: aparece de la nada (ágil) y pega fuerte; poca defensa.",
+      "vida": 24, "ataque": 5, "defensa": 1, "agilidad": 57,
+      "acciones": { "ataque": 40, "bloqueo": 10, "esquiva": 35, "especial": 15 },
+      "movimientos": {
+        "ataque": ["aparece de la nada y golpea", "ataca con un ojo rojo y otro azul brillando", "da un golpe con los guantes blancos"],
+        "bloqueo": ["se cubre con su abrigo largo", "cruza los brazos con calma"],
+        "esquiva": ["desaparece dentro de su abrigo", "se aleja… para acercarse otra vez"],
+        "especial": { "nombre": "Ruko se acerca", "texto": "se acerca… y se acerca… y se acerca", "dano": 9 }
+      }
+    },
+    "ted": {
+      "nombre": "Ted", "color": "#C77DB5", "grupo": "invitado",
+      "por": "Kasane Ted, el «hermano» de Teto (UTAU hecho por fans): resistente como ella, con taladros y baguette prestada.",
+      "vida": 27, "ataque": 4, "defensa": 2, "agilidad": 12,
+      "acciones": { "ataque": 40, "bloqueo": 32, "esquiva": 8, "especial": 15 },
+      "movimientos": {
+        "ataque": ["ataca con sus taladros", "da un baguetazo (la baguette es de Teto)", "embiste como hermano mayor"],
+        "bloqueo": ["se cubre con la baguette de su hermana", "aguanta firme como buen Kasane"],
+        "esquiva": ["intenta rodar a un lado", "se agacha… sin mucha gracia"],
+        "especial": { "nombre": "Taladros gemelos", "texto": "hace girar sus dos taladros a toda velocidad", "dano": 9 }
+      }
+    },
+    "nero": {
+      "nombre": "Nero", "color": "#E0A21C", "grupo": "invitado",
+      "por": "Akita Nero, la versión chico de Neru (fanloid): ataque altísimo, poca defensa y el celular siempre en la mano.",
+      "vida": 20, "ataque": 6, "defensa": 1, "agilidad": 20,
+      "acciones": { "ataque": 55, "bloqueo": 15, "esquiva": 15, "especial": 15 },
+      "movimientos": {
+        "ataque": ["lanza el celular a la cara", "ataca sin despegar la vista del celular", "da un golpe con flojera"],
+        "bloqueo": ["se cubre con el celular", "pone la mochila de escudo"],
+        "esquiva": ["se agacha sin dejar de chatear", "se aparta con flojera"],
+        "especial": { "nombre": "Spam de mensajes", "texto": "le manda mil mensajes seguidos hasta marearlo", "dano": 10 }
+      }
+    },
+    "lily": {
+      "nombre": "Lily", "color": "#F2C200", "grupo": "invitado",
+      "por": "VOCALOID2 de 2010 con voz rockera (Yuri Masuda, de m.o.v.e): ataque alto y rápida, defensa baja.",
+      "vida": 24, "ataque": 5, "defensa": 1, "agilidad": 30,
+      "acciones": { "ataque": 55, "bloqueo": 15, "esquiva": 15, "especial": 15 },
+      "movimientos": {
+        "ataque": ["lanza un riff de rock", "da un golpe al ritmo de la batería", "grita con toda la voz"],
+        "bloqueo": ["se cubre con la guitarra", "aguanta con actitud rockera"],
+        "esquiva": ["salta como en concierto", "se mueve al ritmo rápido"],
+        "especial": { "nombre": "Grito de rock", "texto": "suelta un grito de rock que hace volar todo", "dano": 9 }
+      }
+    },
+    "defoko": {
+      "nombre": "Defoko", "color": "#A98BEA", "grupo": "invitado",
+      "por": "Utane Uta, la voz que viene con UTAU (por eso «Defoko», de default): sencilla pero resistente, y siempre vuelve.",
+      "vida": 26, "ataque": 4, "defensa": 2, "agilidad": 20,
+      "acciones": { "ataque": 40, "bloqueo": 32, "esquiva": 8, "especial": 15 },
+      "movimientos": {
+        "ataque": ["canta con voz por defecto", "da un golpe robótico", "ataca con sus lentes"],
+        "bloqueo": ["se cubre con sus lentes", "aguanta como programa gratis"],
+        "esquiva": ["se mueve… con la configuración por defecto", "se aparta a medias"],
+        "especial": { "nombre": "Reinstalar UTAU", "texto": "se reinstala y vuelve como nueva", "cura": 8 }
+      }
+    },
+    "kafu": {
+      "nombre": "KAFU", "color": "#3D5AFE", "grupo": "invitado",
+      "por": "Voz de CeVIO AI (2021) que canta «Kyu-kurarin» de Iyowa: muy ágil y con un especial que duele.",
+      "vida": 25, "ataque": 5, "defensa": 1, "agilidad": 55,
+      "acciones": { "ataque": 40, "bloqueo": 10, "esquiva": 35, "especial": 15 },
+      "movimientos": {
+        "ataque": ["lanza una nota aguda", "ataca con un giro rápido", "da un golpe suave pero certero"],
+        "bloqueo": ["se cubre con las manos", "aguanta en silencio"],
+        "esquiva": ["se desliza como en un video musical", "da un paso al costado"],
+        "especial": { "nombre": "Kyu-kurarin", "texto": "canta «Kyu-kurarin» y todo da vueltas", "dano": 9 }
+      }
+    },
+    "momo": {
+      "nombre": "Momone Momo", "color": "#F07AA6", "grupo": "invitado",
+      "por": "Momone Momo, UTAU de color durazno (momo = durazno en japonés): equilibrada y movida.",
+      "vida": 25, "ataque": 4, "defensa": 2, "agilidad": 35,
+      "movimientos": {
+        "ataque": ["lanza un durazno", "da un golpe con el moño", "ataca con dulzura… y fuerza"],
+        "bloqueo": ["se cubre con una canasta de duraznos", "aguanta con una sonrisa"],
+        "esquiva": ["salta como resorte", "se escurre hacia un lado"],
+        "especial": { "nombre": "Lluvia de duraznos", "texto": "hace caer duraznos del cielo", "dano": 8 }
+      }
+    },
+    "kanon": {
+      "nombre": "Kanon", "color": "#B18CFF", "grupo": "invitado",
+      "por": "Kanon, la mitad tranquila del dúo Anon y Kanon: equilibrada, ágil y aguanta un poco más.",
+      "vida": 25, "ataque": 4, "defensa": 2, "agilidad": 40,
+      "movimientos": {
+        "ataque": ["ataca con una nota suave", "da un golpe sincronizado", "lanza una ola de voz"],
+        "bloqueo": ["se cubre con calma", "aguanta pensando en su dúo"],
+        "esquiva": ["gira como en coreografía", "se aparta con elegancia"],
+        "especial": { "nombre": "Armonía de dúo", "texto": "canta en armonía con Anon y el golpe se duplica", "dano": 8 }
+      }
+    },
+    "anon": {
+      "nombre": "Anon", "color": "#FFB34D", "grupo": "invitado",
+      "por": "Anon, la mitad energética del dúo Anon y Kanon: ataca más fuerte y se mueve rápido, pero se cubre poco.",
+      "vida": 23, "ataque": 5, "defensa": 1, "agilidad": 35,
+      "acciones": { "ataque": 55, "bloqueo": 15, "esquiva": 15, "especial": 15 },
+      "movimientos": {
+        "ataque": ["ataca con una nota alegre", "da un golpe con energía", "lanza una ola de voz"],
+        "bloqueo": ["se cubre con los brazos", "aguanta con energía"],
+        "esquiva": ["salta de alegría", "se mueve al ritmo"],
+        "especial": { "nombre": "Grito de dúo", "texto": "grita con Kanon a la vez y retumba todo", "dano": 9 }
+      }
+    },
+    "donramon": {
+      "nombre": "Don Ramón", "color": "#3B6EA8", "grupo": "especial",
+      "por": "Invitado especial de El Chavo del 8: escurridizo (siempre se escapa de pagar la renta) y reparte coscorrones.",
+      "vida": 23, "ataque": 5, "defensa": 2, "agilidad": 40,
+      "acciones": { "ataque": 40, "bloqueo": 10, "esquiva": 35, "especial": 15 },
+      "movimientos": {
+        "ataque": ["da un coscorrón", "lanza un sombrerazo", "ataca sin pensarlo dos veces"],
+        "bloqueo": ["se cubre con su sombrero", "jura que él no fue"],
+        "esquiva": ["se esconde del Señor Barriga", "sale corriendo: ¡otra vez los 14 meses de renta!"],
+        "especial": { "nombre": "Coscorrón de la vecindad", "texto": "le da el coscorrón más famoso de la vecindad", "dano": 9 }
+      }
+    },
+    "mango": {
+      "nombre": "Mango9374", "color": "#F2A33A", "grupo": "especial",
+      "por": "Invitado especial: el Papu que da los números del día. Agilidad 67 (pedido de GyroP) y su palabra es la ley.",
+      "vida": 26, "ataque": 4, "defensa": 1, "agilidad": 67,
+      "acciones": { "ataque": 40, "bloqueo": 10, "esquiva": 35, "especial": 15 },
+      "movimientos": {
+        "ataque": ["le tira los números del día en la cara", "suelta un «Sea serio ve»", "le pega con su peluche de Teto"],
+        "bloqueo": ["se cubre con su peluche de Teto", "contesta «Poco serio ve» y ni se inmuta"],
+        "esquiva": ["se va al «next reel»", "desaparece como mensaje borrado"],
+        "especial": { "nombre": "Mi palabra es la ley", "texto": "dicta «literalmente mi palabra es la ley» y así se hace", "dano": 9 }
+      }
+    },
+    "godzilla": {
+      "nombre": "Godzilla", "color": "#5E7A3A", "grupo": "especial",
+      "por": "Invitado especial: Godzilla, el rey de los monstruos (en su imagen de «Gigantic Girl», saludando junto a Miku). Enorme y durísimo, pero lentísimo: casi no esquiva.",
+      "vida": 27, "ataque": 4, "defensa": 2, "agilidad": 3,
+      "acciones": { "ataque": 40, "bloqueo": 32, "esquiva": 8, "especial": 15 },
+      "movimientos": {
+        "ataque": ["pisa medio escenario", "da un coletazo gigante", "ruge tan fuerte que tiemblan los edificios"],
+        "bloqueo": ["aguanta con su piel de kaiju", "ni lo siente: mide 100 metros"],
+        "esquiva": ["intenta agacharse… mide 100 metros", "se tropieza con un edificio"],
+        "especial": { "nombre": "Aliento atómico", "texto": "se le iluminan las aletas de la espalda y suelta su aliento atómico", "dano": 10 }
+      }
+    },
+    "shaula": {
+      "nombre": "Shaula", "color": "#B0306A", "grupo": "especial",
+      "por": "Invitada especial de Re:Zero: la guardiana de la Torre de Vigilancia que siempre busca a su «Maestro». Pega durísimo, pero se cubre poco. (Las Shaula-coins le hacen honor.)",
+      "vida": 20, "ataque": 6, "defensa": 1, "agilidad": 30,
+      "acciones": { "ataque": 55, "bloqueo": 15, "esquiva": 15, "especial": 15 },
+      "movimientos": {
+        "ataque": ["dispara un rayito de luz", "ataca con su cola de escorpión", "grita «¡Maestro!» y embiste"],
+        "bloqueo": ["se cubre como guardiana de la torre", "aguanta esperando al Maestro"],
+        "esquiva": ["salta a lo alto de la torre", "se distrae buscando al Maestro… y justo esquiva"],
+        "especial": { "nombre": "Rayo de la Torre", "texto": "dispara su rayo de luz desde lo alto de la Torre de Vigilancia", "dano": 11 }
+      }
+    },
+    "pina": {
+      "nombre": "Piña", "color": "#F6BE32", "grupo": "especial",
+      "por": "Invitada especial: una piña (la fruta). Cáscara con púas que aguanta todo y tan ácida que pica la lengua. Kaito no sabe a quién apoyar.",
+      "vida": 26, "ataque": 3, "defensa": 4, "agilidad": 5,
+      "acciones": { "ataque": 40, "bloqueo": 32, "esquiva": 8, "especial": 15 },
+      "movimientos": {
+        "ataque": ["rueda encima de su rival", "da un golpe con la corona de hojas", "salpica jugo en los ojos"],
+        "bloqueo": ["se cubre con su cáscara llena de púas", "aguanta como fruta tropical"],
+        "esquiva": ["intenta rodar… es una piña", "se queda quieta y reza"],
+        "especial": { "nombre": "Lengua picada", "texto": "es tan ácida que le pica la lengua a su rival", "dano": 9 }
+      }
+    }
+  }
+}

@@ -1,0 +1,40 @@
+# Worker de Cloudflare de los Papus (Miku y Luka, 24/7). Lo despliega `npm run worker:deploy`, que crea la base D1,
+# completa database_id, sube los tokens como secretos y conecta los comandos de Discord a este worker.
+name = "papus-bots"
+main = "src/index.ts"
+compatibility_date = "2026-10-01"
+compatibility_flags = ["nodejs_compat"]
+
+[triggers]
+crons = ["*/15 * * * *"]
+
+[[d1_databases]]
+binding = "DB"
+database_name = "papus"
+database_id = "90a57d9d-5386-4867-9e11-ae6b62238ca8"
+
+[observability]
+enabled = true
+
+# Trivia multijugador (Actividad de Discord de Teto, PLAN §3.4): la pagina y sus imagenes/audios (npm run actividad los
+# arma en public/actividad/) y una sala por instancia de la Actividad (Durable Object con SQLite, plan gratuito).
+[assets]
+directory = "public"
+
+[[durable_objects.bindings]]
+name = "SALAS"
+class_name = "SalaTrivia"
+
+[[migrations]]
+tag = "v1-salas-trivia"
+new_sqlite_classes = ["SalaTrivia"]
+
+# Prototipo del mundo 3D de los Papus (/mundo/, npm run mundo): una plaza por instancia, con WebSockets que hibernan
+# (sin reloj propio: casi no gasta el plan gratuito).
+[[durable_objects.bindings]]
+name = "MUNDOS"
+class_name = "SalaMundo"
+
+[[migrations]]
+tag = "v2-mundo"
+new_sqlite_classes = ["SalaMundo"]

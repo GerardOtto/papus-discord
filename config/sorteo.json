@@ -1,0 +1,14 @@
+{
+  "$comment": "Sorteo de los Papus (pedido de GyroP, 26 oct. 2026; docs/PLAN.md §3.5). /sorteo (Teto, solo GyroP) pone a todos los Papus del servidor en una ruleta (sin bots ni GyroP) y elige un premio al azar de esta lista (o el que GyroP escriba en el comando). Primero solo GyroP ve el giro: decide si el Papu se queda el premio, si se gira otra vez sin él (para no premiar a un AFK) o si se lo da a otro. Solo al confirmar sale público el GIF, que cae en el ganador final, con la frase de Teto. Cambiar algo aquí no requiere tocar código.",
+  "$premios": "Premios al azar (cuando GyroP no elige uno en /sorteo con premio, xp, niveles o mensajes). peso = probabilidad relativa. xp: 'porcentaje' de la XP que pide el nivel actual del ganador (mínimo 'xpMinima'; sin multiplicador de eventos), se entrega sola. fijo: 'xp' exacta, 'niveles' completos y/o 'mensajes' extra con los Vocaloids solo ese día, se entrega solo. manual: lo entrega GyroP a mano (Teto le deja el recordatorio en #registro-bots). 'icono' va delante del nombre al anunciarlo.",
+  "xpMinima": 50,
+  "premios": [
+    { "tipo": "xp", "porcentaje": 0.5, "peso": 30, "icono": "⭐", "nombre": "medio nivel de XP" },
+    { "tipo": "xp", "porcentaje": 1, "peso": 25, "icono": "🆙", "nombre": "un nivel completo de XP" },
+    { "tipo": "xp", "porcentaje": 2, "peso": 10, "icono": "🚀", "nombre": "¡dos niveles de XP!" },
+    { "tipo": "manual", "peso": 20, "icono": "📣", "nombre": "un saludo de GyroP en el próximo video" },
+    { "tipo": "manual", "peso": 15, "icono": "🎨", "nombre": "un rol de color a elección por una semana" }
+  ],
+  "$colores": "Colores de las casillas (uno por Papu, en este orden y vuelta a empezar): los de las Vocaloids, como la ruleta.",
+  "colores": ["#39c5bb", "#d64f6b", "#e07bb5", "#e8b923", "#8c5cff", "#3ddc84", "#ff9f1c", "#36c5f0", "#f2a2c0"]
+}

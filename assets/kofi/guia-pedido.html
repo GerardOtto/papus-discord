@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Guía de tu pedido</title>
+<!-- PDF que se adjunta (Assets) a los productos de video de la tienda de Ko-fi. Render a PDF: node scripts/render-kofi.mjs. -->
+<style>
+  @font-face { font-family: "Fredoka"; font-weight: 600; src: url("../../../Proyecto1/assets/fonts/fredoka-latin-600-normal.woff2") format("woff2"); }
+  @font-face { font-family: "Fredoka"; font-weight: 700; src: url("../../../Proyecto1/assets/fonts/fredoka-latin-700-normal.woff2") format("woff2"); }
+  @font-face { font-family: "Inter"; font-weight: 400; src: url("../../../Proyecto1/assets/fonts/inter-latin-400-normal.woff2") format("woff2"); }
+  @font-face { font-family: "Inter"; font-weight: 600; src: url("../../../Proyecto1/assets/fonts/inter-latin-600-normal.woff2") format("woff2"); }
+  @page { size: A4; margin: 0; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: "Inter", sans-serif; font-size: 12.5px; line-height: 1.42; color: #241f33; background: #fff; }
+  .page { width: 210mm; height: 296mm; overflow: hidden; display: flex; flex-direction: column; }
+  header { position: relative; background: linear-gradient(120deg, #2a1240, #7a2a6a 55%, #ff5fa2); color: #fff; padding: 30px 44px 26px; overflow: hidden; height: 165px; }
+  header h1 { font-family: "Fredoka"; font-weight: 700; font-size: 38px; line-height: 1.05; max-width: 520px; }
+  header p { font-family: "Fredoka"; font-weight: 600; font-size: 18px; margin-top: 10px; max-width: 420px; opacity: .95; }
+  header img { position: absolute; right: 26px; bottom: -120px; height: 300px; filter: drop-shadow(0 8px 16px rgba(0,0,0,.35)); }
+  main { padding: 20px 44px 16px; display: flex; flex-direction: column; gap: 13px; flex: 1; }
+  h2 { font-family: "Fredoka"; font-weight: 700; font-size: 19px; color: #7a2a6a; margin-bottom: 6px; }
+  .steps { display: grid; grid-template-columns: 1fr 1fr; gap: 9px 16px; }
+  .step { display: flex; gap: 12px; align-items: flex-start; background: #fbf4fa; border-radius: 14px; padding: 9px 12px; }
+  .step .n { flex: 0 0 34px; height: 34px; border-radius: 50%; background: #ff5fa2; color: #fff; font-family: "Fredoka"; font-weight: 700; font-size: 19px; display: flex; align-items: center; justify-content: center; }
+  .step b { font-family: "Fredoka"; font-weight: 600; font-size: 16px; display: block; color: #2a1240; }
+  table { width: 100%; border-collapse: collapse; }
+  th, td { text-align: left; padding: 5px 10px; border-bottom: 1px solid #ecdcea; }
+  th { font-family: "Fredoka"; font-weight: 600; font-size: 14px; color: #7a2a6a; }
+  .two { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+  .box { border: 2px solid #ecdcea; border-radius: 14px; padding: 9px 14px; }
+  ul { padding-left: 18px; }
+  li { margin: 3px 0; }
+  footer { background: #2a1240; color: #fff; padding: 16px 44px; font-family: "Fredoka"; font-weight: 600; font-size: 15px; display: flex; justify-content: space-between; }
+</style>
+</head>
+<body>
+<div class="page">
+  <header>
+    <h1>¡Gracias por tu pedido, Papu!</h1>
+    <p>Aquí te cuento qué pasa ahora y cuándo llega tu video con los Vocaloids.</p>
+    <img src="avatars/teto_render.png" alt="">
+  </header>
+  <main>
+    <section>
+      <h2>Cómo sigue tu pedido</h2>
+      <div class="steps">
+        <div class="step"><div class="n">1</div><div><b>Reviso tu mensaje</b>Leo el nombre, la ocasión, los Vocaloids y los detalles que me dejaste al comprar.</div></div>
+        <div class="step"><div class="n">2</div><div><b>Si falta algo, te escribo</b>Te contacto por mensaje de Ko-fi (llega a tu correo). Revisa también la carpeta de spam.</div></div>
+        <div class="step"><div class="n">3</div><div><b>Entras a la cola</b>Los pedidos se hacen por orden de llegada, sin saltarse a nadie.</div></div>
+        <div class="step"><div class="n">4</div><div><b>Producción</b>Escribo el guion, los Vocaloids graban sus voces y armo el video.</div></div>
+        <div class="step"><div class="n">5</div><div><b>Entrega</b>Te envío el enlace de descarga por mensaje de Ko-fi. El video es vertical, en alta calidad y listo para compartir.</div></div>
+        <div class="step"><div class="n">6</div><div><b>Una corrección gratis</b>Si hay un error en el nombre o en tus datos, avísame dentro de 7 días y lo corrijo sin costo.</div></div>
+      </div>
+    </section>
+    <section>
+      <h2>Plazos de entrega</h2>
+      <table>
+        <tr><th>Producto</th><th>Duración</th><th>Vocaloids</th><th>Saludo / ocasión</th><th>Tema libre</th></tr>
+        <tr><td>Saludo Express</td><td>30 s</td><td>1</td><td>7 días</td><td>14 días</td></tr>
+        <tr><td>Video Personalizado</td><td>1 minuto</td><td>Hasta 2</td><td>7 días</td><td>14 días</td></tr>
+        <tr><td>Video Especial a tu Medida</td><td>2 minutos</td><td>Hasta 3</td><td>7 días</td><td>14 días</td></tr>
+      </table>
+      <p style="margin-top:6px">El tema libre tarda más porque incluye un guion propio e investigación de datos. ¿Tienes una fecha límite, como un cumpleaños? Si me la dijiste al comprar, hago lo posible por llegar antes.</p>
+    </section>
+    <div class="two">
+      <div class="box">
+        <h2>Para un mejor video</h2>
+        <ul>
+          <li>Si el nombre es difícil, escribe cómo se pronuncia.</li>
+          <li>Cuéntame gustos, apodos o una anécdota corta.</li>
+          <li>Si eliges varios Vocaloids, dime quién habla más.</li>
+          <li>Dime si quieres que tu video salga en el canal: solo lo publico con tu permiso.</li>
+        </ul>
+      </div>
+      <div class="box">
+        <h2>Lo que no puedo hacer</h2>
+        <ul>
+          <li>Pedidos ofensivos, sexuales, de odio o políticos.</li>
+          <li>Datos personales de otras personas o burlas.</li>
+          <li>Si rechazo un pedido, puedes proponer otro y lo conversamos.</li>
+        </ul>
+      </div>
+    </div>
+    <div class="box">
+      <h2>Uso de tu video</h2>
+      <p>El video es para uso personal: puedes regalarlo y compartirlo en tus redes, pero no venderlo ni usarlo con fines comerciales. Es un proyecto de fans: los personajes pertenecen a sus dueños (Crypton Future Media, TWINDRILL y otros), que no están afiliados a este canal.</p>
+    </div>
+  </main>
+  <footer><span>¿Dudas? Escríbeme por Ko-fi, Instagram o Discord</span><span>— GyroP</span></footer>
+</div>
+</body>
+</html>

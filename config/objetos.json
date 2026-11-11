@@ -1,0 +1,836 @@
+{
+  "$comment": "Objetos de las Shaula-coins (docs/PLAN.md §3.6). tipo = fondo, borde, barra, nombre, aro, insignia o titulo. origen: 'arte' = dibujado con código (src/coins/arte.ts; se compra con cualquier moneda) o 'render' = imagen de Diva-a-Render en assets/coleccion/<imagen> (solo con monedas ganadas: los renders son de uso personal no comercial). rareza 'mitica' sale solo en sobres; 'fundador' solo se regala a los fundadores y 'membresia' a quienes tienen ese rol de Ko-fi (config/monedas.json); 'contrabando' solo se compra en el mercado negro (config/mercado.json, temporada 'mercado': nunca en vitrinas ni sobres, no se fabrica). 'limitado' = días del año (MM-DD, hora de Chile) en que puede salir en vitrinas y sobres. Para agregar objetos de una temporada nueva: sumarlos aquí con su 'temporada'.",
+  "temporadas": [
+    {
+      "id": "t1",
+      "nombre": "Lanzamiento"
+    }
+  ],
+  "objetos": [
+    {
+      "id": "cinta-de-casete",
+      "nombre": "Cinta de casete",
+      "tipo": "borde",
+      "rareza": "comun",
+      "origen": "arte",
+      "descripcion": "Cinta café con carretes abajo.",
+      "temporada": "t1"
+    },
+    {
+      "id": "pentagrama",
+      "nombre": "Pentagrama",
+      "tipo": "borde",
+      "rareza": "comun",
+      "origen": "arte",
+      "descripcion": "Cinco líneas arriba y abajo, con clave de sol.",
+      "temporada": "t1"
+    },
+    {
+      "id": "hoja-de-cuaderno",
+      "nombre": "Hoja de cuaderno",
+      "tipo": "borde",
+      "rareza": "comun",
+      "origen": "arte",
+      "descripcion": "Renglones azules, margen rojo y perforaciones.",
+      "temporada": "t1"
+    },
+    {
+      "id": "neon-de-akihabara",
+      "nombre": "Neón de Akihabara",
+      "tipo": "borde",
+      "rareza": "rara",
+      "origen": "arte",
+      "descripcion": "Doble tubo de neón rosa y celeste.",
+      "temporada": "t1"
+    },
+    {
+      "id": "cables-de-microfono",
+      "nombre": "Cables de micrófono",
+      "tipo": "borde",
+      "rareza": "rara",
+      "origen": "arte",
+      "descripcion": "Un cable ondulado que da la vuelta, con su conector.",
+      "temporada": "t1"
+    },
+    {
+      "id": "taladros-de-teto",
+      "nombre": "Taladros de Teto",
+      "tipo": "borde",
+      "rareza": "epica",
+      "origen": "arte",
+      "animado": true,
+      "descripcion": "Rosa, con espirales que giran en las esquinas.",
+      "temporada": "t1"
+    },
+    {
+      "id": "atun-plateado",
+      "nombre": "Atún plateado",
+      "tipo": "borde",
+      "rareza": "epica",
+      "origen": "arte",
+      "animado": true,
+      "descripcion": "Plateado con escamas y un brillo que lo recorre.",
+      "temporada": "t1"
+    },
+    {
+      "id": "luces-del-mirai",
+      "nombre": "Luces del Mirai",
+      "tipo": "borde",
+      "rareza": "legendaria",
+      "origen": "arte",
+      "animado": true,
+      "descripcion": "Dorado, con luces de escenario que corren.",
+      "temporada": "t1"
+    },
+    {
+      "id": "lisa-de-color",
+      "nombre": "Lisa de color",
+      "tipo": "barra",
+      "rareza": "comun",
+      "origen": "arte",
+      "descripcion": "Un color parejo.",
+      "temporada": "t1"
+    },
+    {
+      "id": "punteada",
+      "nombre": "Punteada",
+      "tipo": "barra",
+      "rareza": "comun",
+      "origen": "arte",
+      "descripcion": "Bolitas en fila.",
+      "temporada": "t1"
+    },
+    {
+      "id": "ritmo-de-teto",
+      "nombre": "Ritmo de Teto",
+      "tipo": "barra",
+      "rareza": "rara",
+      "origen": "arte",
+      "animado": true,
+      "descripcion": "Rayas que avanzan.",
+      "temporada": "t1"
+    },
+    {
+      "id": "ecualizador",
+      "nombre": "Ecualizador",
+      "tipo": "barra",
+      "rareza": "epica",
+      "origen": "arte",
+      "animado": true,
+      "descripcion": "Bloques que suben y bajan al ritmo.",
+      "temporada": "t1"
+    },
+    {
+      "id": "onda-de-voz",
+      "nombre": "Onda de voz",
+      "tipo": "barra",
+      "rareza": "epica",
+      "origen": "arte",
+      "animado": true,
+      "descripcion": "Dos ondas de sonido que se mueven.",
+      "temporada": "t1"
+    },
+    {
+      "id": "oro-liquido",
+      "nombre": "Oro líquido",
+      "tipo": "barra",
+      "rareza": "legendaria",
+      "origen": "arte",
+      "animado": true,
+      "descripcion": "Oro con burbujas y un brillo que pasa.",
+      "temporada": "t1"
+    },
+    {
+      "id": "tiza-blanca",
+      "nombre": "Tiza blanca",
+      "tipo": "nombre",
+      "rareza": "comun",
+      "origen": "arte",
+      "descripcion": "Blanco suave, como escrito con tiza.",
+      "temporada": "t1"
+    },
+    {
+      "id": "dos-tonos",
+      "nombre": "Dos tonos",
+      "tipo": "nombre",
+      "rareza": "rara",
+      "origen": "arte",
+      "descripcion": "Degradado de aguamarina a rosa.",
+      "temporada": "t1"
+    },
+    {
+      "id": "contorno-de-comic",
+      "nombre": "Contorno de cómic",
+      "tipo": "nombre",
+      "rareza": "rara",
+      "origen": "arte",
+      "descripcion": "Amarillo con contorno negro grueso y sombra.",
+      "temporada": "t1"
+    },
+    {
+      "id": "neon",
+      "nombre": "Neón",
+      "tipo": "nombre",
+      "rareza": "epica",
+      "origen": "arte",
+      "animado": true,
+      "descripcion": "Brillo rosa que late.",
+      "temporada": "t1"
+    },
+    {
+      "id": "arcoiris-en-marcha",
+      "nombre": "Arcoíris en marcha",
+      "tipo": "nombre",
+      "rareza": "legendaria",
+      "origen": "arte",
+      "animado": true,
+      "descripcion": "Arcoíris que se desplaza de lado a lado.",
+      "temporada": "t1"
+    },
+    {
+      "id": "aro-simple",
+      "nombre": "Aro simple",
+      "tipo": "aro",
+      "rareza": "comun",
+      "origen": "arte",
+      "descripcion": "Un aro blanco y limpio.",
+      "temporada": "t1"
+    },
+    {
+      "id": "puerro-trenzado",
+      "nombre": "Puerro trenzado",
+      "tipo": "aro",
+      "rareza": "rara",
+      "origen": "arte",
+      "descripcion": "Trenzado en dos verdes.",
+      "temporada": "t1"
+    },
+    {
+      "id": "corazones-de-luka",
+      "nombre": "Corazones de Luka",
+      "tipo": "aro",
+      "rareza": "epica",
+      "origen": "arte",
+      "animado": true,
+      "descripcion": "Rosa, con corazones que giran.",
+      "temporada": "t1"
+    },
+    {
+      "id": "notas-en-orbita",
+      "nombre": "Notas en órbita",
+      "tipo": "aro",
+      "rareza": "legendaria",
+      "origen": "arte",
+      "animado": true,
+      "descripcion": "Dorado, con notas que orbitan.",
+      "temporada": "t1"
+    },
+    {
+      "id": "insignia-puerro",
+      "nombre": "Puerro",
+      "tipo": "insignia",
+      "rareza": "comun",
+      "origen": "arte",
+      "valor": "🥬",
+      "descripcion": "Va junto a tu nombre (hasta 3).",
+      "temporada": "t1"
+    },
+    {
+      "id": "insignia-baguette",
+      "nombre": "Baguette",
+      "tipo": "insignia",
+      "rareza": "comun",
+      "origen": "arte",
+      "valor": "🥖",
+      "descripcion": "Va junto a tu nombre (hasta 3).",
+      "temporada": "t1"
+    },
+    {
+      "id": "insignia-atun",
+      "nombre": "Atún",
+      "tipo": "insignia",
+      "rareza": "comun",
+      "origen": "arte",
+      "valor": "🐟",
+      "descripcion": "Va junto a tu nombre (hasta 3).",
+      "temporada": "t1"
+    },
+    {
+      "id": "insignia-microfono",
+      "nombre": "Micrófono",
+      "tipo": "insignia",
+      "rareza": "comun",
+      "origen": "arte",
+      "valor": "🎤",
+      "descripcion": "Va junto a tu nombre (hasta 3).",
+      "temporada": "t1"
+    },
+    {
+      "id": "insignia-naranja-de-rin",
+      "nombre": "Naranja de Rin",
+      "tipo": "insignia",
+      "rareza": "comun",
+      "origen": "arte",
+      "valor": "🍊",
+      "descripcion": "Va junto a tu nombre (hasta 3).",
+      "temporada": "t1"
+    },
+    {
+      "id": "insignia-platano-de-len",
+      "nombre": "Plátano de Len",
+      "tipo": "insignia",
+      "rareza": "comun",
+      "origen": "arte",
+      "valor": "🍌",
+      "descripcion": "Va junto a tu nombre (hasta 3).",
+      "temporada": "t1"
+    },
+    {
+      "id": "insignia-celular-de-neru",
+      "nombre": "Celular de Neru",
+      "tipo": "insignia",
+      "rareza": "rara",
+      "origen": "arte",
+      "valor": "📱",
+      "descripcion": "Va junto a tu nombre (hasta 3).",
+      "temporada": "t1"
+    },
+    {
+      "id": "insignia-helado-de-kaito",
+      "nombre": "Helado de Kaito",
+      "tipo": "insignia",
+      "rareza": "rara",
+      "origen": "arte",
+      "valor": "🍨",
+      "descripcion": "Va junto a tu nombre (hasta 3).",
+      "temporada": "t1"
+    },
+    {
+      "id": "insignia-corona",
+      "nombre": "Corona",
+      "tipo": "insignia",
+      "rareza": "epica",
+      "origen": "arte",
+      "valor": "👑",
+      "descripcion": "Va junto a tu nombre (hasta 3).",
+      "temporada": "t1"
+    },
+    {
+      "id": "titulo-recien-llegado",
+      "nombre": "Recién llegado al karaoke",
+      "tipo": "titulo",
+      "rareza": "comun",
+      "origen": "arte",
+      "valor": "Recién llegado al karaoke",
+      "descripcion": "Frase bajo tu nombre.",
+      "temporada": "t1"
+    },
+    {
+      "id": "titulo-coleccionista",
+      "nombre": "Coleccionista de puerros",
+      "tipo": "titulo",
+      "rareza": "rara",
+      "origen": "arte",
+      "valor": "Coleccionista de puerros",
+      "descripcion": "Frase bajo tu nombre.",
+      "temporada": "t1"
+    },
+    {
+      "id": "titulo-taladro-oficial",
+      "nombre": "Taladro oficial de Teto",
+      "tipo": "titulo",
+      "rareza": "epica",
+      "origen": "arte",
+      "valor": "Taladro oficial de Teto",
+      "descripcion": "Frase bajo tu nombre.",
+      "temporada": "t1"
+    },
+    {
+      "id": "titulo-voz-del-mirai",
+      "nombre": "Voz del Mirai",
+      "tipo": "titulo",
+      "rareza": "legendaria",
+      "origen": "arte",
+      "valor": "Voz del Mirai",
+      "descripcion": "Frase bajo tu nombre.",
+      "temporada": "t1"
+    },
+    {
+      "id": "papel-pautado",
+      "nombre": "Papel pautado",
+      "tipo": "fondo",
+      "rareza": "comun",
+      "origen": "arte",
+      "descripcion": "Papel crema con pentagramas y notas.",
+      "temporada": "t1"
+    },
+    {
+      "id": "cielo-de-tokio",
+      "nombre": "Cielo de Tokio",
+      "tipo": "fondo",
+      "rareza": "comun",
+      "origen": "arte",
+      "descripcion": "Atardecer con edificios y una torre.",
+      "temporada": "t1"
+    },
+    {
+      "id": "sala-de-ensayo",
+      "nombre": "Sala de ensayo",
+      "tipo": "fondo",
+      "rareza": "comun",
+      "origen": "arte",
+      "descripcion": "Espuma acústica, lámpara y micrófono.",
+      "temporada": "t1"
+    },
+    {
+      "id": "mar-de-luces",
+      "nombre": "Mar de luces",
+      "tipo": "fondo",
+      "rareza": "legendaria",
+      "origen": "arte",
+      "animado": true,
+      "descripcion": "Fondo animado: focos que barren el escenario y un público con barras de luz que se mecen.",
+      "temporada": "t1"
+    },
+    {
+      "id": "baneo-de-shaula",
+      "nombre": "Baneo de Shaula",
+      "tipo": "borde",
+      "rareza": "mitica",
+      "origen": "arte",
+      "animado": true,
+      "descripcion": "Borde arcoíris que corre, con el martillo del baneo.",
+      "temporada": "t1"
+    },
+    {
+      "id": "shaula-exe",
+      "nombre": "Shaula.exe",
+      "tipo": "nombre",
+      "rareza": "mitica",
+      "origen": "arte",
+      "animado": true,
+      "descripcion": "Nombre arcoíris con un brillo que lo barre y un tirón glitch.",
+      "temporada": "t1"
+    },
+    {
+      "id": "titulo-sobreviviente",
+      "nombre": "Sobreviviente de Shaula",
+      "tipo": "titulo",
+      "rareza": "mitica",
+      "origen": "arte",
+      "valor": "Sobreviviente de Shaula",
+      "descripcion": "Frase bajo tu nombre, en arcoíris.",
+      "temporada": "t1"
+    },
+    {
+      "id": "gemelos-del-mal",
+      "nombre": "Gemelos del mal",
+      "tipo": "fondo",
+      "rareza": "mitica",
+      "origen": "render",
+      "imagen": "fondos/gemelos-del-mal.png",
+      "descripcion": "Daughter of Evil + Servant of Evil (mothy, 2008): la saga que más contaste en el canal, con los dos gemelos juntos.",
+      "temporada": "t1"
+    },
+    {
+      "id": "la-hija-del-mal",
+      "nombre": "La hija del mal",
+      "tipo": "fondo",
+      "rareza": "legendaria",
+      "origen": "render",
+      "imagen": "fondos/la-hija-del-mal.png",
+      "descripcion": "Rin como Riliane: Daughter of Evil (2008), clásico de la historia de Vocaloid y cap. 1 de tu serie.",
+      "temporada": "t1"
+    },
+    {
+      "id": "el-sirviente-del-mal",
+      "nombre": "El sirviente del mal",
+      "tipo": "fondo",
+      "rareza": "legendaria",
+      "origen": "render",
+      "imagen": "fondos/el-sirviente-del-mal.png",
+      "descripcion": "Len como Allen: Servant of Evil (2008), la otra mitad de la historia y cap. 3 de tu serie.",
+      "temporada": "t1"
+    },
+    {
+      "id": "triple-baka",
+      "nombre": "Triple Baka",
+      "tipo": "fondo",
+      "rareza": "legendaria",
+      "origen": "render",
+      "imagen": "fondos/triple-baka.png",
+      "descripcion": "Miku, Teto y Neru: el trío meme de Vocaloid y el nombre de tu nivel más alto de Ko-fi.",
+      "temporada": "t1"
+    },
+    {
+      "id": "principe-azul",
+      "nombre": "El príncipe azul",
+      "tipo": "fondo",
+      "rareza": "epica",
+      "origen": "render",
+      "imagen": "fondos/principe-azul.png",
+      "descripcion": "Kaito como Kyle, el príncipe del país azul (saga del mal, módulo Requiem).",
+      "temporada": "t1"
+    },
+    {
+      "id": "chica-del-pais-verde",
+      "nombre": "La chica del país verde",
+      "tipo": "fondo",
+      "rareza": "epica",
+      "origen": "render",
+      "imagen": "fondos/chica-del-pais-verde.png",
+      "descripcion": "Miku como Michaela (saga del mal, módulo Noble).",
+      "temporada": "t1"
+    },
+    {
+      "id": "espadachina-roja",
+      "nombre": "La espadachina roja",
+      "tipo": "fondo",
+      "rareza": "epica",
+      "origen": "render",
+      "imagen": "fondos/espadachina-roja.png",
+      "descripcion": "Meiko como Germaine (saga del mal, módulo Blazing).",
+      "temporada": "t1"
+    },
+    {
+      "id": "el-intercambio",
+      "nombre": "El intercambio",
+      "tipo": "fondo",
+      "rareza": "epica",
+      "origen": "render",
+      "imagen": "fondos/el-intercambio.png",
+      "descripcion": "Rin vestida de sirviente y Len de princesa: el giro final de Servant of Evil (cap. 5 y 6 de tu serie).",
+      "temporada": "t1"
+    },
+    {
+      "id": "familia-crypton",
+      "nombre": "Familia Crypton",
+      "tipo": "fondo",
+      "rareza": "epica",
+      "origen": "render",
+      "imagen": "fondos/familia-crypton.png",
+      "descripcion": "Los seis de Crypton juntos en el escenario.",
+      "temporada": "t1"
+    },
+    {
+      "id": "halloween-elluka",
+      "nombre": "Noche de brujas",
+      "tipo": "fondo",
+      "rareza": "epica",
+      "origen": "render",
+      "imagen": "fondos/halloween-elluka.png",
+      "descripcion": "Especial de Halloween: Luka como la bruja Elluka (módulo Majokko).",
+      "limitado": {
+        "desde": "10-27",
+        "hasta": "11-02",
+        "texto": "Solo la semana de Halloween (del 27 oct. al 2 nov.) de cada año."
+      },
+      "temporada": "t1"
+    },
+    {
+      "id": "teto-saludo",
+      "nombre": "Teto saluda",
+      "tipo": "fondo",
+      "rareza": "rara",
+      "origen": "render",
+      "imagen": "fondos/teto-saludo.png",
+      "descripcion": "Pose especial con el traje original.",
+      "temporada": "t1"
+    },
+    {
+      "id": "miku-doble-v",
+      "nombre": "Miku doble V",
+      "tipo": "fondo",
+      "rareza": "rara",
+      "origen": "render",
+      "imagen": "fondos/miku-doble-v.png",
+      "descripcion": "Pose especial con el traje original.",
+      "temporada": "t1"
+    },
+    {
+      "id": "luka-guino",
+      "nombre": "Luka guiña",
+      "tipo": "fondo",
+      "rareza": "rara",
+      "origen": "render",
+      "imagen": "fondos/luka-guino.png",
+      "descripcion": "Pose especial con el traje original.",
+      "temporada": "t1"
+    },
+    {
+      "id": "neru-pulgar",
+      "nombre": "Neru aprueba",
+      "tipo": "fondo",
+      "rareza": "rara",
+      "origen": "render",
+      "imagen": "fondos/neru-pulgar.png",
+      "descripcion": "Pose especial con el traje original.",
+      "temporada": "t1"
+    },
+    {
+      "id": "rin-gato",
+      "nombre": "Rin gatita",
+      "tipo": "fondo",
+      "rareza": "rara",
+      "origen": "render",
+      "imagen": "fondos/rin-gato.png",
+      "descripcion": "Pose especial con el traje original.",
+      "temporada": "t1"
+    },
+    {
+      "id": "len-animo",
+      "nombre": "Len da ánimo",
+      "tipo": "fondo",
+      "rareza": "rara",
+      "origen": "render",
+      "imagen": "fondos/len-animo.png",
+      "descripcion": "Pose especial con el traje original.",
+      "temporada": "t1"
+    },
+    {
+      "id": "kaito-shh",
+      "nombre": "Kaito: ¡shh!",
+      "tipo": "fondo",
+      "rareza": "rara",
+      "origen": "render",
+      "imagen": "fondos/kaito-shh.png",
+      "descripcion": "Pose especial con el traje original.",
+      "temporada": "t1"
+    },
+    {
+      "id": "meiko-senala",
+      "nombre": "Meiko te señala",
+      "tipo": "fondo",
+      "rareza": "rara",
+      "origen": "render",
+      "imagen": "fondos/meiko-senala.png",
+      "descripcion": "Pose especial con el traje original.",
+      "temporada": "t1"
+    },
+    {
+      "id": "haku-mejillas",
+      "nombre": "Haku tímida",
+      "tipo": "fondo",
+      "rareza": "rara",
+      "origen": "render",
+      "imagen": "fondos/haku-mejillas.png",
+      "descripcion": "Pose especial con el traje original.",
+      "temporada": "t1"
+    },
+    {
+      "id": "teto-original",
+      "nombre": "Teto clásica",
+      "tipo": "fondo",
+      "rareza": "comun",
+      "origen": "render",
+      "imagen": "fondos/teto-original.png",
+      "descripcion": "Traje original: el diseño con el que debutó.",
+      "temporada": "t1"
+    },
+    {
+      "id": "miku-original",
+      "nombre": "Miku clásica",
+      "tipo": "fondo",
+      "rareza": "comun",
+      "origen": "render",
+      "imagen": "fondos/miku-original.png",
+      "descripcion": "Traje original: el diseño con el que debutó.",
+      "temporada": "t1"
+    },
+    {
+      "id": "luka-original",
+      "nombre": "Luka clásica",
+      "tipo": "fondo",
+      "rareza": "comun",
+      "origen": "render",
+      "imagen": "fondos/luka-original.png",
+      "descripcion": "Traje original: el diseño con el que debutó.",
+      "temporada": "t1"
+    },
+    {
+      "id": "neru-original",
+      "nombre": "Neru clásica",
+      "tipo": "fondo",
+      "rareza": "comun",
+      "origen": "render",
+      "imagen": "fondos/neru-original.png",
+      "descripcion": "Traje original: el diseño con el que debutó.",
+      "temporada": "t1"
+    },
+    {
+      "id": "rin-original",
+      "nombre": "Rin clásica",
+      "tipo": "fondo",
+      "rareza": "comun",
+      "origen": "render",
+      "imagen": "fondos/rin-original.png",
+      "descripcion": "Traje original: el diseño con el que debutó.",
+      "temporada": "t1"
+    },
+    {
+      "id": "len-original",
+      "nombre": "Len clásico",
+      "tipo": "fondo",
+      "rareza": "comun",
+      "origen": "render",
+      "imagen": "fondos/len-original.png",
+      "descripcion": "Traje original: el diseño con el que debutó.",
+      "temporada": "t1"
+    },
+    {
+      "id": "kaito-original",
+      "nombre": "Kaito clásico",
+      "tipo": "fondo",
+      "rareza": "comun",
+      "origen": "render",
+      "imagen": "fondos/kaito-original.png",
+      "descripcion": "Traje original: el diseño con el que debutó.",
+      "temporada": "t1"
+    },
+    {
+      "id": "meiko-original",
+      "nombre": "Meiko clásica",
+      "tipo": "fondo",
+      "rareza": "comun",
+      "origen": "render",
+      "imagen": "fondos/meiko-original.png",
+      "descripcion": "Traje original: el diseño con el que debutó.",
+      "temporada": "t1"
+    },
+    {
+      "id": "haku-original",
+      "nombre": "Haku clásica",
+      "tipo": "fondo",
+      "rareza": "comun",
+      "origen": "render",
+      "imagen": "fondos/haku-original.png",
+      "descripcion": "Traje original: el diseño con el que debutó.",
+      "temporada": "t1"
+    },
+    {
+      "id": "noche-de-estreno",
+      "nombre": "Noche de estreno",
+      "tipo": "fondo",
+      "rareza": "fundador",
+      "origen": "render",
+      "imagen": "fondos/noche-de-estreno.png",
+      "descripcion": "Teto, Miku, Luka y Neru la noche en que abrió el servidor (17 oct. 2026). Nunca se vende ni sale en sobres.",
+      "temporada": "t1"
+    },
+    {
+      "id": "estrella-fundadora",
+      "nombre": "Estrella fundadora",
+      "tipo": "borde",
+      "rareza": "fundador",
+      "origen": "arte",
+      "descripcion": "Marco dorado con estrellas en las esquinas y tu número de fundador.",
+      "temporada": "t1"
+    },
+    {
+      "id": "insignia-fundador",
+      "nombre": "Fundador 17",
+      "tipo": "insignia",
+      "rareza": "fundador",
+      "origen": "arte",
+      "valor": "⭐",
+      "imagen": "insignias/fundador.png",
+      "descripcion": "Estrella dorada de quienes estuvieron el 17 de octubre.",
+      "temporada": "t1"
+    },
+    {
+      "id": "titulo-fundador",
+      "nombre": "Fundador del servidor",
+      "tipo": "titulo",
+      "rareza": "fundador",
+      "origen": "arte",
+      "valor": "Fundador del servidor",
+      "descripcion": "Frase bajo tu nombre.",
+      "temporada": "t1"
+    },
+    {
+      "id": "insignia-membresia-puerro",
+      "nombre": "Membresía Puerro",
+      "tipo": "insignia",
+      "rareza": "membresia",
+      "origen": "arte",
+      "valor": "🥬",
+      "imagen": "insignias/membresia-puerro.png",
+      "descripcion": "Insignia permanente de quienes tienen (o tuvieron) la membresía Puerro en Ko-fi. Nunca se vende ni sale en sobres.",
+      "temporada": "t1"
+    },
+    {
+      "id": "insignia-membresia-atun",
+      "nombre": "Membresía Atún",
+      "tipo": "insignia",
+      "rareza": "membresia",
+      "origen": "arte",
+      "valor": "🐟",
+      "imagen": "insignias/membresia-atun.png",
+      "descripcion": "Insignia permanente de quienes tienen (o tuvieron) la membresía Atún en Ko-fi. Nunca se vende ni sale en sobres.",
+      "temporada": "t1"
+    },
+    {
+      "id": "insignia-membresia-baguette",
+      "nombre": "Membresía Baguette",
+      "tipo": "insignia",
+      "rareza": "membresia",
+      "origen": "arte",
+      "valor": "🥖",
+      "imagen": "insignias/membresia-baguette.png",
+      "descripcion": "Insignia permanente de quienes tienen (o tuvieron) la membresía Baguette en Ko-fi. Nunca se vende ni sale en sobres.",
+      "temporada": "t1"
+    },
+    {
+      "id": "insignia-membresia-celular",
+      "nombre": "Membresía Celular",
+      "tipo": "insignia",
+      "rareza": "membresia",
+      "origen": "arte",
+      "valor": "📱",
+      "imagen": "insignias/membresia-celular.png",
+      "descripcion": "Insignia permanente de quienes tienen (o tuvieron) la membresía Celular en Ko-fi. Nunca se vende ni sale en sobres.",
+      "temporada": "t1"
+    },
+    {
+      "id": "insignia-membresia-triple-baka",
+      "nombre": "Membresía Triple Baka",
+      "tipo": "insignia",
+      "rareza": "membresia",
+      "origen": "arte",
+      "valor": "💥",
+      "imagen": "insignias/membresia-triple-baka.png",
+      "descripcion": "Insignia permanente de quienes tienen (o tuvieron) la membresía Triple Baka en Ko-fi. Nunca se vende ni sale en sobres.",
+      "temporada": "t1"
+    },
+    {
+      "id": "insignia-ban-shaula",
+      "nombre": "Ban de Shaula (réplica)",
+      "tipo": "insignia",
+      "rareza": "contrabando",
+      "origen": "arte",
+      "valor": "🚫",
+      "descripcion": "Réplica del primer ban del servidor. Solo en el mercado negro (con monedas ganadas).",
+      "temporada": "mercado"
+    },
+    {
+      "id": "titulo-caos",
+      "nombre": "Caos fue baneado, yo no",
+      "tipo": "titulo",
+      "rareza": "contrabando",
+      "origen": "arte",
+      "valor": "Caos fue baneado, yo no",
+      "descripcion": "Frase bajo tu nombre. Solo en el mercado negro (con monedas ganadas).",
+      "temporada": "mercado"
+    },
+    {
+      "id": "titulo-lucho",
+      "nombre": "Lucho no llegó tan lejos",
+      "tipo": "titulo",
+      "rareza": "contrabando",
+      "origen": "arte",
+      "valor": "Lucho no llegó tan lejos",
+      "descripcion": "Frase bajo tu nombre. Solo en el mercado negro (con monedas ganadas).",
+      "temporada": "mercado"
+    }
+  ]
+}

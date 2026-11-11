@@ -1,0 +1,396 @@
+{
+  "$comment": "Objetos de arte propio de las Shaula-coins (propuesta, 26 oct. 2026): dibujados con código, sin renders ni imágenes ajenas; los únicos que se compran con monedas de pago. Lo genera fuente/arte-propio.ts.",
+  "precios": {
+    "comun": 60,
+    "rara": 150,
+    "epica": 350,
+    "legendaria": 700
+  },
+  "objetos": [
+    {
+      "id": "cinta-de-casete",
+      "nombre": "Cinta de casete",
+      "slot": "borde",
+      "rareza": "comun",
+      "descripcion": "Cinta café con carretes abajo.",
+      "tipo": "Borde",
+      "precio": 60
+    },
+    {
+      "id": "pentagrama",
+      "nombre": "Pentagrama",
+      "slot": "borde",
+      "rareza": "comun",
+      "descripcion": "Cinco líneas arriba y abajo, con clave de sol.",
+      "tipo": "Borde",
+      "precio": 60
+    },
+    {
+      "id": "hoja-de-cuaderno",
+      "nombre": "Hoja de cuaderno",
+      "slot": "borde",
+      "rareza": "comun",
+      "descripcion": "Renglones azules, margen rojo y perforaciones.",
+      "tipo": "Borde",
+      "precio": 60
+    },
+    {
+      "id": "neon-de-akihabara",
+      "nombre": "Neón de Akihabara",
+      "slot": "borde",
+      "rareza": "rara",
+      "descripcion": "Doble tubo de neón rosa y celeste.",
+      "tipo": "Borde",
+      "precio": 150
+    },
+    {
+      "id": "cables-de-microfono",
+      "nombre": "Cables de micrófono",
+      "slot": "borde",
+      "rareza": "rara",
+      "descripcion": "Un cable ondulado que da la vuelta, con su conector.",
+      "tipo": "Borde",
+      "precio": 150
+    },
+    {
+      "id": "taladros-de-teto",
+      "nombre": "Taladros de Teto",
+      "slot": "borde",
+      "rareza": "epica",
+      "anim": true,
+      "descripcion": "Rosa, con espirales que giran en las esquinas.",
+      "tipo": "Borde",
+      "precio": 350
+    },
+    {
+      "id": "atun-plateado",
+      "nombre": "Atún plateado",
+      "slot": "borde",
+      "rareza": "epica",
+      "anim": true,
+      "descripcion": "Plateado con escamas y un brillo que lo recorre.",
+      "tipo": "Borde",
+      "precio": 350
+    },
+    {
+      "id": "luces-del-mirai",
+      "nombre": "Luces del Mirai",
+      "slot": "borde",
+      "rareza": "legendaria",
+      "anim": true,
+      "descripcion": "Dorado, con luces de escenario que corren.",
+      "tipo": "Borde",
+      "precio": 700
+    },
+    {
+      "id": "lisa-de-color",
+      "nombre": "Lisa de color",
+      "slot": "barra",
+      "rareza": "comun",
+      "descripcion": "Un color parejo.",
+      "tipo": "Barra de XP",
+      "precio": 60
+    },
+    {
+      "id": "punteada",
+      "nombre": "Punteada",
+      "slot": "barra",
+      "rareza": "comun",
+      "descripcion": "Bolitas en fila.",
+      "tipo": "Barra de XP",
+      "precio": 60
+    },
+    {
+      "id": "ritmo-de-teto",
+      "nombre": "Ritmo de Teto",
+      "slot": "barra",
+      "rareza": "rara",
+      "anim": true,
+      "descripcion": "Rayas que avanzan.",
+      "tipo": "Barra de XP",
+      "precio": 150
+    },
+    {
+      "id": "ecualizador",
+      "nombre": "Ecualizador",
+      "slot": "barra",
+      "rareza": "epica",
+      "anim": true,
+      "descripcion": "Bloques que suben y bajan al ritmo.",
+      "tipo": "Barra de XP",
+      "precio": 350
+    },
+    {
+      "id": "onda-de-voz",
+      "nombre": "Onda de voz",
+      "slot": "barra",
+      "rareza": "epica",
+      "anim": true,
+      "descripcion": "Dos ondas de sonido que se mueven.",
+      "tipo": "Barra de XP",
+      "precio": 350
+    },
+    {
+      "id": "oro-liquido",
+      "nombre": "Oro líquido",
+      "slot": "barra",
+      "rareza": "legendaria",
+      "anim": true,
+      "descripcion": "Oro con burbujas y un brillo que pasa.",
+      "tipo": "Barra de XP",
+      "precio": 700
+    },
+    {
+      "id": "tiza-blanca",
+      "nombre": "Tiza blanca",
+      "slot": "nombre",
+      "rareza": "comun",
+      "descripcion": "Blanco suave, como escrito con tiza.",
+      "tipo": "Efecto de nombre",
+      "precio": 60
+    },
+    {
+      "id": "dos-tonos",
+      "nombre": "Dos tonos",
+      "slot": "nombre",
+      "rareza": "rara",
+      "descripcion": "Degradado de aguamarina a rosa.",
+      "tipo": "Efecto de nombre",
+      "precio": 150
+    },
+    {
+      "id": "contorno-de-comic",
+      "nombre": "Contorno de cómic",
+      "slot": "nombre",
+      "rareza": "rara",
+      "descripcion": "Amarillo con contorno negro grueso y sombra.",
+      "tipo": "Efecto de nombre",
+      "precio": 150
+    },
+    {
+      "id": "neon",
+      "nombre": "Neón",
+      "slot": "nombre",
+      "rareza": "epica",
+      "anim": true,
+      "descripcion": "Brillo rosa que late.",
+      "tipo": "Efecto de nombre",
+      "precio": 350
+    },
+    {
+      "id": "arcoiris-en-marcha",
+      "nombre": "Arcoíris en marcha",
+      "slot": "nombre",
+      "rareza": "legendaria",
+      "anim": true,
+      "descripcion": "Arcoíris que se desplaza de lado a lado.",
+      "tipo": "Efecto de nombre",
+      "precio": 700
+    },
+    {
+      "id": "aro-simple",
+      "nombre": "Aro simple",
+      "slot": "aro",
+      "rareza": "comun",
+      "descripcion": "Un aro blanco y limpio.",
+      "tipo": "Aro de avatar",
+      "precio": 60
+    },
+    {
+      "id": "puerro-trenzado",
+      "nombre": "Puerro trenzado",
+      "slot": "aro",
+      "rareza": "rara",
+      "descripcion": "Trenzado en dos verdes.",
+      "tipo": "Aro de avatar",
+      "precio": 150
+    },
+    {
+      "id": "corazones-de-luka",
+      "nombre": "Corazones de Luka",
+      "slot": "aro",
+      "rareza": "epica",
+      "anim": true,
+      "descripcion": "Rosa, con corazones que giran.",
+      "tipo": "Aro de avatar",
+      "precio": 350
+    },
+    {
+      "id": "notas-en-orbita",
+      "nombre": "Notas en órbita",
+      "slot": "aro",
+      "rareza": "legendaria",
+      "anim": true,
+      "descripcion": "Dorado, con notas que orbitan.",
+      "tipo": "Aro de avatar",
+      "precio": 700
+    },
+    {
+      "id": "insignia-puerro",
+      "nombre": "Puerro",
+      "slot": "insignia",
+      "rareza": "comun",
+      "valor": "🥬",
+      "descripcion": "Va junto a tu nombre (hasta 3).",
+      "tipo": "Insignia",
+      "precio": 60
+    },
+    {
+      "id": "insignia-baguette",
+      "nombre": "Baguette",
+      "slot": "insignia",
+      "rareza": "comun",
+      "valor": "🥖",
+      "descripcion": "Va junto a tu nombre (hasta 3).",
+      "tipo": "Insignia",
+      "precio": 60
+    },
+    {
+      "id": "insignia-atun",
+      "nombre": "Atún",
+      "slot": "insignia",
+      "rareza": "comun",
+      "valor": "🐟",
+      "descripcion": "Va junto a tu nombre (hasta 3).",
+      "tipo": "Insignia",
+      "precio": 60
+    },
+    {
+      "id": "insignia-microfono",
+      "nombre": "Micrófono",
+      "slot": "insignia",
+      "rareza": "comun",
+      "valor": "🎤",
+      "descripcion": "Va junto a tu nombre (hasta 3).",
+      "tipo": "Insignia",
+      "precio": 60
+    },
+    {
+      "id": "insignia-naranja-de-rin",
+      "nombre": "Naranja de Rin",
+      "slot": "insignia",
+      "rareza": "comun",
+      "valor": "🍊",
+      "descripcion": "Va junto a tu nombre (hasta 3).",
+      "tipo": "Insignia",
+      "precio": 60
+    },
+    {
+      "id": "insignia-platano-de-len",
+      "nombre": "Plátano de Len",
+      "slot": "insignia",
+      "rareza": "comun",
+      "valor": "🍌",
+      "descripcion": "Va junto a tu nombre (hasta 3).",
+      "tipo": "Insignia",
+      "precio": 60
+    },
+    {
+      "id": "insignia-celular-de-neru",
+      "nombre": "Celular de Neru",
+      "slot": "insignia",
+      "rareza": "rara",
+      "valor": "📱",
+      "descripcion": "Va junto a tu nombre (hasta 3).",
+      "tipo": "Insignia",
+      "precio": 150
+    },
+    {
+      "id": "insignia-helado-de-kaito",
+      "nombre": "Helado de Kaito",
+      "slot": "insignia",
+      "rareza": "rara",
+      "valor": "🍨",
+      "descripcion": "Va junto a tu nombre (hasta 3).",
+      "tipo": "Insignia",
+      "precio": 150
+    },
+    {
+      "id": "insignia-corona",
+      "nombre": "Corona",
+      "slot": "insignia",
+      "rareza": "epica",
+      "valor": "👑",
+      "descripcion": "Va junto a tu nombre (hasta 3).",
+      "tipo": "Insignia",
+      "precio": 350
+    },
+    {
+      "id": "titulo-recien-llegado",
+      "nombre": "Recién llegado al karaoke",
+      "slot": "titulo",
+      "rareza": "comun",
+      "valor": "Recién llegado al karaoke",
+      "descripcion": "Frase bajo tu nombre.",
+      "tipo": "Título",
+      "precio": 60
+    },
+    {
+      "id": "titulo-coleccionista",
+      "nombre": "Coleccionista de puerros",
+      "slot": "titulo",
+      "rareza": "rara",
+      "valor": "Coleccionista de puerros",
+      "descripcion": "Frase bajo tu nombre.",
+      "tipo": "Título",
+      "precio": 150
+    },
+    {
+      "id": "titulo-taladro-oficial",
+      "nombre": "Taladro oficial de Teto",
+      "slot": "titulo",
+      "rareza": "epica",
+      "valor": "Taladro oficial de Teto",
+      "descripcion": "Frase bajo tu nombre.",
+      "tipo": "Título",
+      "precio": 350
+    },
+    {
+      "id": "titulo-voz-del-mirai",
+      "nombre": "Voz del Mirai",
+      "slot": "titulo",
+      "rareza": "legendaria",
+      "valor": "Voz del Mirai",
+      "descripcion": "Frase bajo tu nombre.",
+      "tipo": "Título",
+      "precio": 700
+    },
+    {
+      "id": "papel-pautado",
+      "nombre": "Papel pautado",
+      "slot": "fondo",
+      "rareza": "comun",
+      "descripcion": "Papel crema con pentagramas y notas.",
+      "tipo": "Fondo",
+      "precio": 60
+    },
+    {
+      "id": "cielo-de-tokio",
+      "nombre": "Cielo de Tokio",
+      "slot": "fondo",
+      "rareza": "comun",
+      "descripcion": "Atardecer con edificios y una torre.",
+      "tipo": "Fondo",
+      "precio": 60
+    },
+    {
+      "id": "sala-de-ensayo",
+      "nombre": "Sala de ensayo",
+      "slot": "fondo",
+      "rareza": "comun",
+      "descripcion": "Espuma acústica, lámpara y micrófono.",
+      "tipo": "Fondo",
+      "precio": 60
+    },
+    {
+      "id": "mar-de-luces",
+      "nombre": "Mar de luces",
+      "slot": "fondo",
+      "rareza": "legendaria",
+      "anim": true,
+      "descripcion": "Fondo animado: focos que barren el escenario y un público con barras de luz que se mecen.",
+      "tipo": "Fondo",
+      "precio": 700
+    }
+  ]
+}

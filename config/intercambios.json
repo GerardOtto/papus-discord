@@ -1,0 +1,10 @@
+{
+  "$comment": "Intercambios entre Papus (PLAN §3.11, pedido de GyroP, 10 nov. 2026). Como las ofertas de Steam: un Papu arma qué entrega y qué pide, abierta (cualquiera la acepta) o dirigida a un Papu (acepta, rechaza o hace una contraoferta). Se cambian Shaula-coins ganadas y compradas (cada una en su bolsillo), XP, niveles (como su XP), cuota de hoy, sobres regalados, objetos de la colección y consumibles del mercado negro. Para intercambiar: nivel 5 (o prestigio) y 3 días en el servidor. 'lento' = modo lento del canal en segundos; 'venceHoras' = cuánto dura una oferta (las que llevan cuota vencen al terminar el día).",
+  "activo": true,
+  "canal": "🤝・centro-de-comercio",
+  "tema": "Anuncios de intercambio: usa /intercambio para ofrecer (Shaula-coins, XP, niveles, cuota, sobres, objetos y consumibles). Aquí solo avisos y reacciones; el modo lento es largo para que no se pierdan las ofertas.",
+  "lento": 3600,
+  "venceHoras": 72,
+  "maxAbiertas": 5,
+  "requisitos": { "nivel": 5, "dias": 3 }
+}

@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<!-- Portada del perfil de Ko-fi (3:1, 1200x400 renderizada a 2x). ?v=1..4 elige la version; render: node scripts/render-kofi.mjs.
+     Lo importante va al centro; la esquina inferior izquierda queda libre (ahi se superpone la foto de perfil). -->
+<style>
+  @font-face { font-family: "Fredoka"; font-weight: 600; src: url("../../../Proyecto1/assets/fonts/fredoka-latin-600-normal.woff2") format("woff2"); }
+  @font-face { font-family: "Fredoka"; font-weight: 700; src: url("../../../Proyecto1/assets/fonts/fredoka-latin-700-normal.woff2") format("woff2"); }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { width: 1200px; height: 400px; overflow: hidden; }
+  body { font-family: "Fredoka", sans-serif; font-weight: 700; color: #fff; position: relative; }
+  .abs { position: absolute; }
+  .fade { -webkit-mask-image: linear-gradient(to bottom, #000 80%, transparent 100%); }
+  .title { font-size: 58px; line-height: 1; -webkit-text-stroke: 3px var(--stroke, #2a1240); paint-order: stroke fill; text-shadow: 0 5px 0 var(--stroke, #2a1240), 0 10px 18px rgba(0,0,0,.35); }
+  .sub { font-size: 22px; font-weight: 600; }
+  .pill { font-size: 18px; font-weight: 600; letter-spacing: 2px; border-radius: 999px; padding: 4px 16px; }
+  .v { display: none; position: absolute; inset: 0; overflow: hidden; }
+
+  /* 1 - Trio + logo */
+  .v1 { background: radial-gradient(circle at 72% 60%, #7a2a6a 0%, #2a1240 65%); }
+  .v1 .deco img { position: absolute; width: 60px; opacity: .1; }
+
+  /* 2 - Insignias */
+  .v2 { background: linear-gradient(115deg, #39c5bb 0%, #e285b2 40%, #e0587f 65%, #e8d44d 100%); --stroke: #3a1030; }
+  .v2::before { content: ""; position: absolute; inset: 0; background: radial-gradient(circle at 50% 50%, rgba(42,18,64,.15), rgba(42,18,64,.55)); }
+  .v2 .badges img { width: 92px; filter: drop-shadow(0 6px 10px rgba(0,0,0,.35)); }
+
+  /* 3 - Concierto */
+  .v3 { background: linear-gradient(to bottom, #0b0a1e 0%, #1c1440 70%, #2a1240 100%); }
+  .v3 .beam { position: absolute; top: -40px; width: 260px; height: 520px; transform-origin: 50% 0; filter: blur(6px); opacity: .45; }
+  .v3 .stick { position: absolute; width: 8px; height: 46px; border-radius: 6px; box-shadow: 0 0 12px currentColor, 0 0 24px currentColor; background: currentColor; }
+
+  /* 4 - Pastel */
+  .v4 { background: linear-gradient(120deg, #d9fbf7 0%, #ffe3f0 45%, #fff6c8 100%); color: #2a1240; --stroke: #ffffff; }
+  .v4 .deco img { position: absolute; width: 64px; opacity: .16; }
+  .v4 .title { color: #2a1240; text-shadow: 0 5px 0 #fff, 0 10px 18px rgba(42,18,64,.18); }
+
+  /* 5 y 6 - Elenco completo como stickers recortados (borde blanco) + memes del canal */
+  .st { position: absolute; filter: drop-shadow(3px 0 0 #fff) drop-shadow(-3px 0 0 #fff) drop-shadow(0 3px 0 #fff) drop-shadow(0 -3px 0 #fff) drop-shadow(0 5px 7px rgba(0,0,0,.28)); }
+  .v5 { background-color: #ffe9f3; background-image: radial-gradient(#f9b8d6 2.5px, transparent 3px), radial-gradient(#b8f0ea 2.5px, transparent 3px); background-size: 34px 34px; background-position: 0 0, 17px 17px; --stroke: #ffffff; color: #2a1240; }
+  .v5 .title { color: #2a1240; text-shadow: 0 4px 0 #fff, 0 8px 14px rgba(42,18,64,.2); }
+  .v6 { background: radial-gradient(circle at 50% 45%, #4a1f6e 0%, #1a0f30 75%); }
+  .v6 .spark { position: absolute; color: #ffe066; font-size: 22px; }
+</style>
+</head>
+<body>
+<!-- 1: logo a la izquierda-centro, texto al centro, trio a la derecha -->
+<div class="v v1" id="v1">
+  <div class="deco" id="deco1"></div>
+  <div class="abs" style="left:110px;top:62px;width:600px">
+    <img src="brand/logo_horizontal_contorno.png" style="height:96px;display:block;margin-bottom:16px;filter:drop-shadow(0 6px 12px rgba(0,0,0,.4))" alt="">
+    <div class="pill" style="display:inline-block;background:rgba(255,255,255,.14);border:2px solid #ffe066">EL CANAL DE LOS PAPUS</div>
+    <div class="title" style="color:#ffe066;margin-top:12px">¡Apoya el canal!</div>
+    <div class="sub" style="margin-top:12px">El mundo Vocaloid,<br>contado por los Vocaloids</div>
+  </div>
+  <img class="abs fade" src="avatars/miku_render.png" style="left:650px;bottom:0;height:340px;z-index:1" alt="">
+  <img class="abs fade" src="avatars/neru_render.png" style="left:925px;bottom:0;height:330px;z-index:1;transform:scaleX(-1)" alt="">
+  <img class="abs fade" src="avatars/teto_render.png" style="left:790px;bottom:0;height:390px;z-index:2" alt="">
+</div>
+
+<!-- 2: titulo y las 5 insignias al centro, Miku y Teto a los costados -->
+<div class="v v2" id="v2">
+  <img class="abs fade" src="avatars/miku_render.png" style="left:90px;bottom:0;height:360px;z-index:1" alt="">
+  <img class="abs fade" src="avatars/teto_render.png" style="right:110px;bottom:0;height:400px;z-index:1" alt="">
+  <div class="abs" style="left:0;right:0;top:30px;display:flex;flex-direction:column;align-items:center;gap:10px;z-index:2">
+    <img src="brand/logo_horizontal_contorno.png" style="height:62px;filter:drop-shadow(0 4px 8px rgba(0,0,0,.35))" alt="">
+    <div class="title" style="color:#fff">¡Únete a los Papus!</div>
+    <div class="sub" style="text-shadow:0 2px 6px rgba(0,0,0,.4)">Puerro · Atún · Baguette · Celular · Triple Baka</div>
+    <div class="badges" id="badges" style="display:flex;gap:14px;margin-top:6px"></div>
+  </div>
+</div>
+
+<!-- 3: escenario de concierto con focos y barras luminosas -->
+<div class="v v3" id="v3">
+  <div id="beams"></div>
+  <div id="sticks"></div>
+  <img class="abs fade" src="avatars/miku_render.png" style="left:640px;bottom:0;height:310px;z-index:1" alt="">
+  <img class="abs fade" src="avatars/neru_render.png" style="left:860px;bottom:0;height:300px;z-index:1;transform:scaleX(-1)" alt="">
+  <img class="abs fade" src="avatars/teto_render.png" style="left:760px;bottom:0;height:370px;z-index:2" alt="">
+  <div class="abs" style="left:100px;top:90px;width:440px">
+    <img src="brand/logo_horizontal_contorno.png" style="height:84px;display:block;margin-bottom:18px;filter:drop-shadow(0 0 16px rgba(255,95,162,.5))" alt="">
+    <div class="title" style="color:#39c5bb;font-size:50px">Detrás del escenario</div>
+    <div class="sub" style="margin-top:10px;color:#ffd6ea">con GyroP y los Vocaloids</div>
+  </div>
+</div>
+
+<!-- 4: pastel claro, logo al centro y personajes asomandose -->
+<div class="v v4" id="v4">
+  <div class="deco" id="deco4"></div>
+  <img class="abs fade" src="avatars/miku_render.png" style="left:60px;bottom:0;height:320px" alt="">
+  <img class="abs fade" src="avatars/neru_render.png" style="right:70px;bottom:0;height:310px;transform:scaleX(-1)" alt="">
+  <div class="abs" style="left:0;right:0;top:30px;display:flex;flex-direction:column;align-items:center;gap:6px">
+    <img src="brand/logo_horizontal_fondo_claro.png" style="height:120px;margin-top:70px;filter:drop-shadow(0 6px 10px rgba(42,18,64,.15))" alt="">
+    <div class="title" style="font-size:40px;margin-top:18px">El mundo Vocaloid, por GyroP</div>
+  </div>
+</div>
+<!-- 5: elenco completo como stickers sobre lunares rosados (como la celebracion de los 1000) -->
+<div class="v v5" id="v5"><div class="cast" data-cast></div>
+  <div class="abs" style="left:420px;width:360px;top:92px;display:flex;flex-direction:column;align-items:center;gap:10px;z-index:5">
+    <img src="brand/logo_horizontal_fondo_claro.png" style="width:350px;filter:drop-shadow(0 0 3px #fff) drop-shadow(0 0 3px #fff) drop-shadow(0 6px 10px rgba(42,18,64,.2))" alt="">
+    <div class="title" style="font-size:42px">¡Únete a los Papus!</div>
+    <div class="sub" style="font-size:19px">Membresías · Videos personalizados</div>
+  </div>
+</div>
+
+<!-- 6: el mismo elenco sobre fondo oscuro, con las insignias de los niveles -->
+<div class="v v6" id="v6"><div class="cast" data-cast></div>
+  <div class="abs" style="left:420px;width:360px;top:80px;display:flex;flex-direction:column;align-items:center;gap:10px;z-index:5">
+    <img src="brand/logo_horizontal_contorno.png" style="width:350px;filter:drop-shadow(0 0 16px rgba(255,95,162,.45))" alt="">
+    <div class="title" style="font-size:40px;color:#ffe066">¡Únete a los Papus!</div>
+    <div class="badges6" style="display:flex;gap:6px;margin-top:2px"></div>
+  </div>
+  <span class="spark" style="left:400px;top:40px">✦</span><span class="spark" style="left:790px;top:70px">✦</span><span class="spark" style="left:770px;top:330px;color:#39c5bb">✦</span><span class="spark" style="left:410px;top:300px;color:#ff5fa2">✦</span>
+</div>
+<script>
+  const SLUGS = ["puerro", "atun", "baguette", "celular", "triple_baka"];
+  const badge = (i) => `badge_${i}_${SLUGS[i - 1]}.png`;
+  const v = Number(new URLSearchParams(location.search).get("v") || 1);
+  document.getElementById(`v${v}`).style.display = "block";
+  // Patrones deterministas con las insignias.
+  const pattern = (id, size) => {
+    let html = "", k = 0;
+    for (let y = -10; y < 400; y += size + 30) for (let x = (k % 2 ? 20 : 70); x < 1200; x += size + 50)
+      html += `<img src="${badge((k++ % 5) + 1)}" style="left:${x}px;top:${y}px;transform:rotate(${(k % 3 - 1) * 14}deg)" alt="">`;
+    document.getElementById(id).innerHTML = html;
+  };
+  pattern("deco1", 60); pattern("deco4", 64);
+  // Elenco (los 11 de las imagenes grupales) y memes: [archivo, x, y, alto, rotacion, voltear, z]
+  const C = "../../../Proyecto1/assets/characters/", M = "../../../Proyecto1/assets/memes/";
+  const CAST = [
+    [C + "luka/saludando_2.png", 18, 6, 200, -6], [C + "rin/emocionado_3.png", 152, 2, 186, 5], [C + "len/emocionado_6.png", 284, 16, 182, -4],
+    ["avatars/miku_render.png", -12, 158, 250, 4, 0, 2], [C + "kaito/saludando_2.png", 138, 182, 214, -5, 0, 2], [C + "meiko/saludando_2.png", 246, 204, 196, 6, 0, 2],
+    [C + "gumi/feliz.png", 796, 4, 192, 5], [C + "adachirei/feliz.png", 930, 0, 190, -6], [C + "gakupo/maduro_feliz.png", 1062, 8, 212, 4],
+    ["avatars/teto_render.png", 800, 150, 262, -4, 0, 2], ["avatars/neru_render.png", 948, 176, 228, 5, 1, 2],
+    [M + "meme_miku_nendo.png", 340, 300, 96, -10, 0, 3], [M + "meme_teto_nendo.png", 778, 300, 96, 9, 0, 3], [M + "meme_tako_luka.png", 384, 14, 62, 12, 0, 3],
+    [M + "meme_gumi_corazon.png", 720, 10, 74, -10, 0, 3], [M + "meme_gato_pulgar.png", 1088, 258, 124, 8, 0, 3], [M + "meme_kiwi_gumi.png", 1110, 196, 56, -12, 0, 4],
+    [M + "meme_miku_puerros.png", 70, 92, 72, -12, 0, 4],
+  ];
+  document.querySelectorAll("[data-cast]").forEach((el) => {
+    el.innerHTML = CAST.map(([src, x, y, hh, r, flip, z]) =>
+      `<img class="st" src="${src}" style="left:${x}px;top:${y}px;height:${hh}px;z-index:${z || 1};transform:rotate(${r}deg)${flip ? " scaleX(-1)" : ""}" alt="">`).join("");
+  });
+  document.querySelector(".badges6").innerHTML = SLUGS.map((_, i) => `<img src="${badge(i + 1)}" style="width:62px" alt="">`).join("");
+  document.getElementById("badges").innerHTML = SLUGS.map((_, i) => `<img src="${badge(i + 1)}" alt="">`).join("");
+  // Focos de colores del elenco y barras luminosas del publico (posiciones fijas).
+  const COLORS = ["#39c5bb", "#e285b2", "#e0587f", "#e8d44d", "#9b6cff"];
+  document.getElementById("beams").innerHTML = [[60, 22], [300, -14], [560, 10], [820, -18], [1040, 16]].map(([x, r], i) =>
+    `<div class="beam" style="left:${x}px;transform:rotate(${r}deg);background:linear-gradient(to bottom, ${COLORS[i]}, transparent)"></div>`).join("");
+  let st = "";
+  for (let i = 0; i < 34; i++) st += `<div class="stick" style="left:${20 + i * 35}px;bottom:${8 + (i * 37) % 30}px;color:${COLORS[i % 5]};transform:rotate(${(i % 5 - 2) * 9}deg)"></div>`;
+  document.getElementById("sticks").innerHTML = st;
+</script>
+</body>
+</html>

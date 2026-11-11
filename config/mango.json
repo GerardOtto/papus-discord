@@ -1,0 +1,7 @@
+{
+  "$comment": "Mango9374 (pedido de GyroP, 28 oct. 2026): bot que imita a un Papu real. Sin LLM ni cuota (regla 4). Desde el 31 oct. 2026 (GyroP) se le puede nombrar con @ sin límite: a un Papu le da sus números del día (cuota gastada, XP, mensajes enviados, minutos en voz, su trivia y con qué Vocaloids no se puede casar ahora), salvo con 'probabilidadFrase' (1/3), que contesta una de 'frases' al azar; a GyroP, siempre los totales del servidor. 'usuario' = id de Discord del Papu real (su apodo es Mango9374): al conectarse, el bot copia su foto de perfil (la de Teto de peluche). 'nombre' = nombre del bot.",
+  "nombre": "Mango9374",
+  "usuario": "1207431352870502481",
+  "frases": ["Sea serio ve", "Poco serio ve", "See you in the next reel, tetolovers"],
+  "probabilidadFrase": 0.3333
+}

@@ -1,0 +1,18 @@
+{
+  "characters": {
+    "teto": { "displayName": "Teto", "subtitleColor": "#E58FB5", "avatarDir": "assets/characters/teto", "reactions": { "feliz": "feliz.png" } },
+    "miku": { "displayName": "Miku", "subtitleColor": "#39C5BB", "avatarDir": "assets/characters/miku", "reactions": {} },
+    "luka": { "displayName": "Luka", "subtitleColor": "#E285B2", "avatarDir": "assets/characters/luka", "reactions": {} },
+    "neru": { "displayName": "Neru", "subtitleColor": "#E8D44D", "avatarDir": "assets/characters/neru", "reactions": { "enojado": "enojado.png", "feliz": "falta.png" } },
+    "gakupo": { "displayName": "Gakupo", "subtitleColor": "#A77BFF", "avatarDir": "assets/characters/gakupo", "reactions": {} },
+    "kaito": { "displayName": "Kaito", "subtitleColor": "#3D6BFF", "avatarDir": "assets/characters/kaito", "reactions": {} },
+    "flower": { "displayName": "flower", "subtitleColor": "#8E5BD8", "avatarDir": "assets/characters/flower", "reactions": {} },
+    "ia": { "displayName": "IA", "subtitleColor": "#F4A7C0", "avatarDir": "assets/characters/ia", "reactions": {} },
+    "haku": { "displayName": "Haku", "subtitleColor": "#B7A9E6", "avatarDir": "assets/characters/haku", "reactions": {} },
+    "gumi": { "displayName": "Gumi", "subtitleColor": "#7FCB4B", "avatarDir": "assets/characters/gumi", "reactions": {} },
+    "rin": { "displayName": "Rin", "subtitleColor": "#F6C744", "avatarDir": "assets/characters/rin", "reactions": {} },
+    "len": { "displayName": "Len", "subtitleColor": "#F2B544", "avatarDir": "assets/characters/len", "reactions": {} },
+    "meiko": { "displayName": "Meiko", "subtitleColor": "#E0383E", "avatarDir": "assets/characters/meiko", "reactions": {} },
+    "adachirei": { "displayName": "Adachi Rei", "subtitleColor": "#FF7A2F", "avatarDir": "assets/characters/adachirei", "reactions": {} }
+  }
+}

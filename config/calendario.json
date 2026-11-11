@@ -1,0 +1,28 @@
+{
+  "$comment": "Calendario automático de #calendario (Puerro y superiores). Miku lo publica fijado desde el PC con 2 semanas (la actual y la próxima; el fin de semana, las 2 que vienen) y lo edita cuando cambia algo. Lunes = ganador Ko-fi, miércoles = de GyroP, viernes = Papus de honor o GyroP (docs/PLAN.md). Los de GyroP salen de '1. Videos finales' (del número más bajo al más alto) y no cambian una vez asignados. 'hora' en 'zona' = la del calendario del motor; Discord la muestra en la hora de cada Papu.",
+  "canal": "calendario",
+  "hora": "13:00",
+  "zona": "America/Mexico_City",
+  "semanas": 2,
+  "fijos": {
+    "$comment": "Videos fijados a mano: \"AAAA-MM-DD\": \"título\" (o {\"titulo\", \"hora\", \"zona\"} si sale a otra hora). Cualquier día de la semana (los que no son lunes, miércoles ni viernes se suman a esa semana). Mandan sobre lo automático (votación, finales); el video que tenía ese día vuelve a la fila. Para soltar un día, se borra su línea. \"estreno\": {\"multiplicador\", \"horas\"} = XP de su estreno distinta a la de config/niveles.json.",
+    "2026-10-19": "¿Quién es KAITO? Sus canciones, sus shipeos y su origen",
+    "2026-10-21": { "titulo": "Carrusel de Bad End Night", "hora": "18:00", "zona": "America/Santiago" },
+    "2026-10-23": { "titulo": "Objetos Vocaloid parte 2: la zanahoria de Gumi, la berenjena de Gakupo y el sake de Meiko y Haku", "hora": "11:00", "zona": "America/Santiago" },
+    "$saga": "La hija del mal, especial de Halloween (calendario de Instagram de GyroP, 26 oct. 2026; horas de mañana corregidas el 27). El 30 y el 31: ×2 por 12 h (decisión de GyroP).",
+    "2026-10-27": { "titulo": "La hija del mal · Capítulo 2: Celos", "hora": "11:41", "zona": "America/Santiago" },
+    "2026-10-28": { "titulo": "La hija del mal · Capítulo 3: El sirviente", "hora": "11:53", "zona": "America/Santiago" },
+    "2026-10-29": { "titulo": "La hija del mal · Capítulo 4: La revolución", "hora": "11:56", "zona": "America/Santiago" },
+    "2026-10-30": { "titulo": "La hija del mal · Capítulo 5: El intercambio", "hora": "11:56", "zona": "America/Santiago", "estreno": { "multiplicador": 2, "horas": 12 } },
+    "2026-10-31": { "titulo": "La hija del mal · Capítulo 6 (final): La hora de la merienda", "hora": "12:04", "zona": "America/Santiago", "estreno": { "multiplicador": 2, "horas": 12 } },
+    "$noviembre": "Semana del 1 al 5 nov. (calendario de Instagram de GyroP, 31 oct. 2026): solo estos 4; las votaciones pasan a la semana siguiente (ver 'retraso').",
+    "2026-11-01": { "titulo": "Bad End Night: el tráiler", "hora": "11:31", "zona": "America/Santiago" },
+    "2026-11-02": { "titulo": "¡Teto llegó a Fortnite!", "hora": "11:49", "zona": "America/Santiago" },
+    "2026-11-04": { "titulo": "Ruko se acerca... ¡Huyan!", "hora": "15:27", "zona": "America/Santiago" },
+    "2026-11-05": { "titulo": "¿Quién canta Nyan Cat?", "hora": "15:45", "zona": "America/Santiago" }
+  },
+  "$retraso": "Decisión de GyroP (31 oct. 2026): se vota igual, pero desde el lunes 9 nov. cada ganador sale una semana después (Kafu, de la ronda del 24 oct., el lunes 9; el de la ronda del 31 oct., el lunes 16; honor del 2-5 nov., el viernes 13). Para quitarlo, se borran 'retraso' y 'soloFijos'.",
+  "retraso": { "desde": "2026-11-09", "semanas": 1 },
+  "$soloFijos": "Lunes de semanas que llevan solo los videos de 'fijos' (sin ganadores de votaciones ni videos automáticos de GyroP).",
+  "soloFijos": ["2026-11-02"]
+}

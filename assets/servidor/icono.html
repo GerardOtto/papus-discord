@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<!-- Ícono animado del servidor (512x512; Discord lo recorta en círculo). ?t=ms dibuja ese instante del bucle de 6 s:
+     Teto, Miku, Luka y Neru se turnan 1,5 s cada una en un retrato redondo con aro de su color, sobre el fondo de
+     marca (morado de las portadas de Ko-fi, rayos que giran y destellos). Cuadros: node scripts/render-servidor.mjs icono;
+     GIF: python scripts/make_icono.py (hace todo). Los bustos (icono_bustos/) también los genera make_icono.py. -->
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { width: 512px; height: 512px; overflow: hidden; }
+  body { position: relative; background: radial-gradient(circle at 50% 50%, #7a2a6a 0%, #3a1650 48%, #1c0c34 100%); }
+  .rays { position: absolute; left: 50%; top: 50%; width: 900px; height: 900px; margin: -450px 0 0 -450px; border-radius: 50%;
+          background: repeating-conic-gradient(from var(--a), rgba(255,255,255,.075) 0 8deg, transparent 8deg 16deg); }
+  .glow { position: absolute; left: 50%; top: 50%; width: 470px; height: 470px; margin: -235px 0 0 -235px; border-radius: 50%;
+          background: radial-gradient(circle, var(--c) 0%, transparent 68%); opacity: .55; }
+  .ring { position: absolute; left: 50%; top: 50%; width: 404px; height: 404px; margin: -202px 0 0 -202px; border-radius: 50%;
+          border: 12px solid #fff; box-shadow: 0 0 0 6px var(--c), 0 0 34px 8px var(--c), 0 10px 26px rgba(0,0,0,.45); }
+  .disc { position: absolute; left: 50%; top: 50%; width: 380px; height: 380px; margin: -190px 0 0 -190px; border-radius: 50%; overflow: hidden;
+          background: radial-gradient(circle at 50% 35%, var(--c2) 0%, var(--c) 60%, #2a1240 140%); }
+  .disc img { position: absolute; left: 0; top: 0; width: 380px; height: 380px; }
+  .spark { position: absolute; font-family: sans-serif; line-height: 1; text-shadow: 0 0 10px currentColor; transform-origin: 50% 50%; }
+</style>
+</head>
+<body>
+<div class="rays"></div>
+<div class="glow"></div>
+<div class="ring"></div>
+<div class="disc" id="disc"></div>
+<div id="sparks"></div>
+<script>
+  const LOOP = 6000, SLOT = LOOP / 4, IN = 320, OUT = 260;
+  // Orden: Teto (la cara del canal) primero. c = color del aro, c2 = luz del fondo del retrato.
+  const GIRLS = [
+    { id: "teto", c: "#e0587f", c2: "#ffb3c6" },
+    { id: "miku", c: "#39c5bb", c2: "#b9f3ee" },
+    { id: "luka", c: "#e285b2", c2: "#ffd1e6" },
+    { id: "neru", c: "#e8c23d", c2: "#fff1b0" },
+  ];
+  // El primer cuadro es la imagen quieta de Discord (sin el mouse encima): arranca con Teto ya entera, pasada su entrada.
+  const t = (Number(new URLSearchParams(location.search).get("t") || 0) + IN + 120) % LOOP;
+  const ease = (x) => 1 - Math.pow(1 - x, 3);
+  const back = (x) => { const s = 1.9; return 1 + (s + 1) * Math.pow(x - 1, 3) + s * Math.pow(x - 1, 2); };
+  const mix = (a, b, k) => { const p = (h) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16)); const A = p(a), B = p(b);
+    return `rgb(${A.map((v, i) => Math.round(v + (B[i] - v) * k)).join(",")})`; };
+
+  const i = Math.floor(t / SLOT), local = t - i * SLOT, g = GIRLS[i], prev = GIRLS[(i + 3) % 4];
+  const k = Math.min(1, local / IN);
+  const root = document.documentElement.style;
+  root.setProperty("--c", mix(prev.c, g.c, ease(k)));
+  root.setProperty("--c2", mix(prev.c2, g.c2, ease(k)));
+  root.setProperty("--a", `${(16 * t) / LOOP}deg`); // un periodo del patrón por vuelta: el bucle no se nota
+
+  // Retratos: la que sale se achica y se apaga; la que entra aparece con un rebote.
+  const layers = [];
+  if (local < IN) {
+    const o = local / IN;
+    layers.push({ id: prev.id, scale: 1 - 0.12 * ease(o), op: 1 - ease(o), y: 18 * ease(o) });
+    layers.push({ id: g.id, scale: 0.82 + 0.18 * back(o), op: ease(o), y: 26 * (1 - ease(o)) });
+  } else {
+    const bob = Math.sin(((local - IN) / (SLOT - IN)) * Math.PI) * -5; // leve respiración
+    layers.push({ id: g.id, scale: 1, op: 1, y: bob });
+  }
+  document.getElementById("disc").innerHTML = layers.map((l) =>
+    `<img src="icono_bustos/${l.id}.png" style="opacity:${l.op};transform:translateY(${l.y}px) scale(${l.scale})" alt="">`).join("");
+
+  // Destellos que titilan (fase por posición; función del tiempo del bucle, sin azar).
+  const SP = [[70, 92, 30, "#ffe066"], [418, 70, 24, "#ffffff"], [446, 330, 28, "#39c5bb"], [60, 360, 22, "#ff8fb8"], [250, 22, 18, "#ffffff"], [420, 446, 18, "#ffe066"], [96, 452, 16, "#ffffff"]];
+  document.getElementById("sparks").innerHTML = SP.map(([x, y, s, col], n) => {
+    const w = 0.5 + 0.5 * Math.sin((2 * Math.PI * (t / LOOP) * (2 + (n % 3))) + n * 1.7);
+    return `<span class="spark" style="left:${x}px;top:${y}px;font-size:${s}px;color:${col};opacity:${0.25 + 0.75 * w};transform:scale(${0.6 + 0.5 * w}) rotate(${w * 25}deg)">✦</span>`;
+  }).join("");
+</script>
+</body>
+</html>

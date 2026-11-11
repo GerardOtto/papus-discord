@@ -1,0 +1,50 @@
+{
+  "$comment": "Trivia de los Papus (sugerencia de Wicho el Bicho, decisiones de GyroP, 26 oct. 2026; docs/PLAN.md §3.4). /trivia (Teto): preguntas una tras otra que solo ve quien juega; cada acierto da XP al instante y la racha sigue hasta el primer error o el primer tiempo agotado. Entonces Teto publica el resultado en el canal donde se jugaba. Las preguntas son fijas (content/trivia.json, content/trivia-audio.json y las siluetas de assets/bots) y las revisa el código, nunca el LLM (regla 4). La XP es excepción a la regla 1, como las bodas y la ruleta: se gana jugando, no pagando. Cambiar algo aquí no requiere tocar código.",
+  "$segundos": "Tiempo para responder cada pregunta según su tipo (si se acaba, cuenta como error). texto incluye abrir el cuadro y escribir.",
+  "segundos": { "opciones": 20, "texto": 45, "audio": 30, "imagen": 20 },
+  "$xp": "XP por acierto, según el nivel y lo que el Papu ha crecido en los últimos días: lo mayor entre 'porcentajeNivel' de la XP que pide su nivel actual y 'porcentajeDia' de su XP promedio por día activo en los últimos 'dias' días (sin contar la de la trivia), con un mínimo 'minimo' y un tope 'topeNivel' (fracción de su nivel). Se multiplica por el evento de XP vigente. Desde el 26 oct. 2026 el tope bajó de 0,06 a 0,04: en la prueba, los Papus activos sacaban ~100 XP por acierto y algunos subieron 5 a 10 niveles en una tarde.",
+  "xp": { "porcentajeNivel": 0.02, "porcentajeDia": 0.025, "dias": 7, "minimo": 10, "topeNivel": 0.04 },
+  "$racha": "Cada acierto seguido vale más: +'bono' por cada acierto anterior de la racha, hasta 'tope' aciertos (con 0,05 y 20: el acierto 21 y los siguientes valen el doble).",
+  "racha": { "bono": 0.05, "tope": 20 },
+  "$limites": "Límites del día (hora de Chile; se recargan a medianoche, como la cuota y la ruleta). Decisión de GyroP, 26 oct. 2026, tras la prueba (idea de wiwi): solo las primeras 'partidasConXp' partidas del día dan XP; después se puede seguir jugando por la racha, sin XP. Además, la trivia da como máximo 'topeDiaNivel' de lo que pide su nivel actual por día (al menos 'topeDiaMinimo' XP).",
+  "$castigo": "Desde el 2 nov. 2026 (decisión de GyroP: un Papu superó todas las preguntas a pura fuerza bruta en un solo día): las primeras 'desdePartida' - 1 partidas del día (15) son gratis; desde la 16, empezar cada partida le QUITA XP: lo mayor entre 'minimo' y 'porcentajeNivel' de lo que pide su nivel actual, por 'factor' elevado a cuántas van después de la 16 (con 0,05 y 2: la 16 cuesta el 5 % de su nivel, la 17 el 10 %, la 18 el 20 %, la 19 el 40 %…). Puede bajarlo de nivel (nunca de 0 en su prestigio). Teto avisa el costo y pide confirmación antes de cobrar; se recarga a medianoche.",
+  "limites": { "partidasConXp": 10, "topeDiaNivel": 0.5, "topeDiaMinimo": 100, "castigo": null },
+  "$siluetas": "Preguntas con la figura de cada Vocaloid (assets/bots/<id>_figura.png): silueta negra, pixelada y un acercamiento. Las opciones son nombres de otros Vocaloids.",
+  "siluetas": ["silueta", "pixel", "zoom"],
+  "$dificultades": "Secciones de /trivia (decisión de GyroP, 31 oct. 2026): cada partida es de una dificultad (la de cada pregunta está en content/trivia.json y content/trivia-audio.json; las siluetas según 'siluetasDificultad'). Cada pregunta acertada cuenta una vez como 'superada' (contador por dificultad). Quien supera todas las de una dificultad recibe su sobre gratis de la tienda de Shaula-coins (premio = comun, raro o legendario, config/monedas.json sobre.tipos) y Teto lo anuncia con 'mensaje'. Las partidas con XP y el tope del día son los mismos para las tres.",
+  "dificultades": {
+    "facil": { "nombre": "Fácil", "emoji": "🟢", "premio": "comun", "mensaje": "🟢🎉 ¡{papu} superó **las {n} preguntas fáciles** de la trivia! Se lleva un **sobre común** gratis: ábrelo en /tienda → Sobres. ¡Ahora a por la media! 🥖",
+      "hito": { "cada": 200, "premio": "comun", "mensaje": "🟢🎁 ¡{papu} ya lleva **{n} aciertos** en la trivia fácil! Hito cumplido: se lleva un **sobre común** gratis (/tienda → Sobres). ¡Teto-teetoo! 🥖" } },
+    "medio": { "nombre": "Media", "emoji": "🟡", "premio": "raro", "mensaje": "🟡✨ ¡{papu} superó **las {n} preguntas de dificultad media** de la trivia! Se lleva un **sobre raro** gratis (trae al menos una Épica): /tienda → Sobres. ¡Teto-teetoo! 🥖",
+      "hito": { "cada": 300, "premio": "raro", "mensaje": "🟡🎁 ¡{papu} ya lleva **{n} aciertos** en la trivia media! Hito cumplido: se lleva un **sobre raro** gratis (trae al menos una Épica): /tienda → Sobres. 🥖" } },
+    "dificil": { "nombre": "Difícil", "emoji": "🔴", "premio": "legendario", "mensaje": "🔴👑 ¡{papu} superó **las {n} preguntas difíciles** de la trivia! Eso ya es de enciclopedia… Se lleva un **sobre legendario** gratis (trae al menos una Legendaria): /tienda → Sobres. 🥖🥖",
+      "hito": { "cada": 400, "premio": "legendario", "mensaje": "🔴🎁 ¡{papu} ya lleva **{n} aciertos** en la trivia difícil! Hito cumplido: se lleva un **sobre legendario** gratis (trae al menos una Legendaria): /tienda → Sobres. 🥖🥖" } }
+  },
+  "$hitos": "Premios por hito (pedido de GyroP, 7 nov. 2026): cada 'hito.cada' aciertos en una dificultad (se repite: 200, 400, 600…), un sobre 'hito.premio' gratis y Teto lo anuncia con 'hito.mensaje' ({papu}, {n} = aciertos que lleva). Con soloPartidasConXp, solo cuentan los aciertos de las partidas del día que dan XP (las primeras 'limites.partidasConXp'): así no se gana a fuerza bruta repitiendo preguntas ya vistas. Desde el 7 nov. 2026 (decisión de GyroP) está en false: cuentan todos los aciertos, de cualquier partida. Al estrenarse, cada Papu empezó con sus preguntas superadas de cada dificultad. Sin 'hito', esa dificultad no tiene hitos.",
+  "hitos": { "soloPartidasConXp": false },
+  "siluetasDificultad": { "silueta": "facil", "pixel": "medio", "zoom": "dificil" },
+  "$secreto": "Si un Papu supera TODAS las preguntas de las tres dificultades (cada una acertada alguna vez), es el easter egg (decisión de GyroP, 2 nov. 2026; antes daba el rol 🧠 Enciclopedia Vocaloid, que se renombró 🎭 Larper Vocaloid y se queda con quien lo tiene): Teto avisa con 'previa' y una cuenta regresiva, cada Vocaloid conectado dice su frase de 'coro' (en este orden, unos segundos entre una y otra; son frases fijas, no se responden entre ellos), y Teto cierra con 'mensaje' y un diploma animado con el avatar del Papu y orejas de lince. Gana el rol de adorno 'rol' y 'sobres' (solo adorno: no da cuota ni nada de pago, regla 1), una sola vez. Quien ya era Larper puede ganarlo superando las preguntas nuevas. Es un secreto: nadie sabe que existe hasta que alguien lo logra. {papu} = el Papu, {n} = cuántas preguntas, {rol} = el rol.",
+  "secreto": {
+    "rol": "🐾 Papu Lince",
+    "color": "#f2b33d",
+    "sobres": { "tipo": "legendario", "cantidad": 2 },
+    "previa": "🚨🚨 **¡ALTO TODO EL SERVIDOR!** 🚨🚨\nAlguien acaba de hacer algo que nadie había hecho nunca… Los Vocaloids tienen algo que decir. 🥁",
+    "coro": {
+      "miku": "🩵 ¡No puede ser! {papu} se sabe más canciones que yo… y eso que yo las canto. ¡Te regalo un puerro de honor! 🥬",
+      "luka": "🐟 Ordené mis latas de atún por fecha y aun así no me sé ni la mitad. {papu}, mis respetos.",
+      "neru": "📱 …ok, dejé el celular. Eso ya dice todo. Bien hecho, {papu}. (No se acostumbren.)",
+      "rin": "🍊 ¡{papu} es imparable! Ni con la apisonadora lo alcanzo. ¡Roada rolla da!",
+      "len": "🍌 Rin quería aplastarlo con la apisonadora de la envidia. Yo le traje un plátano de felicitación, {papu}.",
+      "kaito": "🍦 Se me derritió el helado de la impresión. Y no me importa. ¡Felicidades, {papu}!",
+      "meiko": "🎤 Llevo en esto desde antes que todos ustedes y {papu} me ganó. Esto se celebra en grande.",
+      "gumi": "🥕 ¡Me puse las goggles para verlo bien y sí, es real! {papu} lo hizo.",
+      "gakupo": "🍆 Desenvaino mi katana… solo para hacerle una reverencia a {papu}.",
+      "ia": "🌙 Ni la inteligencia artificial (que no soy yo) lo habría hecho mejor, {papu}.",
+      "flower": "🎸 Eso fue más rápido que un solo de guitarra. Puro rock, {papu}.",
+      "haku": "🌧️ Yo no logro ni que me salga una nota… y {papu} se sabe todas. Esto me da ánimo.",
+      "adachirei": "🤖 PROCESANDO… {papu} = 100 % DE PREGUNTAS. ERROR: NO ENCUENTRO A NADIE IGUAL.",
+      "ruko": "🌓 Ruko se acerca… para darle la mano a {papu}."
+    },
+    "mensaje": "🐾✨ **¡{papu} superó las {n} preguntas de la trivia!** ✨🐾\n\nFácil, media y difícil: todas. Ojos de lince para los fragmentos, las siluetas y hasta los emojis. 👀\n\nPor eso existe esto, escondido desde el primer día: el rol **{rol}**, y de regalo **dos sobres legendarios** en /tienda → Sobres. 🎁🎁\n\n¡Yo me comí tres baguettes de los nervios! ¡Teto-teetoo! 🥖🥖🥖"
+  }
+}

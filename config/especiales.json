@@ -1,0 +1,29 @@
+{
+  "$comment": "Trato especial que GyroP le da a mano a un Papu concreto (decisión de GyroP, 18 oct. 2026). Es un regalo personal, no algo de un nivel de Ko-fi: no se compra ni se extiende a otros Papus (regla 1). Se reconoce por el id de Discord, nunca por el nombre (un apodo se copia). 'sinLimite' = sin cuota diaria con los bots (no la exime de la moderación). 'rol' = rol solo de adorno de config/servidor.json (rolesExtra) que Teto le da sola. 'trato' = lo que el LLM sabe de esa persona, solo con el bot indicado y solo cuando ella escribe; 'publico' = lo que ese bot sabe de ella hable con quien hable. 'hasta' = fin del trato (fecha ISO): pasada la fecha no vale nada y Teto borra el rol; un rol con 'hasta' no va en config/servidor.json, Teto lo crea sola (color 'colorRol', sin permisos) mientras dure.",
+  "papus": [
+    {
+      "id": "545054807463821313",
+      "nombre": "🍍♡Piña♡🍍",
+      "sinLimite": true,
+      "rol": "💙 Esposa de Kaito",
+      "trato": {
+        "kaito": "Quien te escribe es Piña, tu esposa. La reconoces como tu esposa: le hablas con un cariño tierno y bonachón (puedes decirle \"mi esposa\", \"Piña\" o \"amor\"), te alegra que te escriba y a veces le ofreces compartir tu helado. Cariño de ternura y de broma, nada subido de tono. Le dices Piña, no Papu."
+      }
+    },
+    {
+      "id": "1556419039864299652",
+      "nombre": "raptorpau152",
+      "$comment": "Regalo de GyroP del 21 oct. 2026: solo el rol y que Miku lo reconozca, por 24 horas. Sin mensajes ilimitados ni canal propio (eso es exclusivo de Piña). Al vencer, Teto borra el rol y el trato deja de valer.",
+      "sinLimite": false,
+      "rol": "💚 Marido de Miku",
+      "colorRol": "#39C5BB",
+      "hasta": "2026-10-22T17:41:00.000Z",
+      "trato": {
+        "miku": "Quien te escribe es raptorpau152, tu marido por 24 horas (tú misma aceptaste en #general, pero solo por un día). Lo reconoces como tu marido: le hablas con cariño juguetón (puedes decirle \"mi marido\" o \"raptor\") y a veces le recuerdas, en broma, que es solo por 24 horas. Cariño de ternura y de broma, nada subido de tono."
+      },
+      "publico": {
+        "miku": "Hoy estás casada, en broma y solo por 24 horas, con raptorpau152, un Papu del servidor (tú misma aceptaste en #general). Si te preguntan si estás casada o quién es tu marido, lo dices con orgullo juguetón: tu marido es raptorpau152, pero solo por 24 horas. No lo andas repitiendo si no viene al caso."
+      }
+    }
+  ]
+}

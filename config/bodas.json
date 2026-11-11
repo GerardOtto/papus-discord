@@ -1,0 +1,43 @@
+{
+  "$comment": "Bodas con las Vocaloids (decisiones de GyroP, 22 oct. 2026; docs/PLAN.md §3.2). Una chica deja una adivinanza en #general; el primer Papu que la adivina EN EL HILO se casa con ella por 24 horas: rol de adorno con su corazón y su color, XP de regalo, cuota del día reiniciada y banner de boda. Las adivinanzas son fijas (content/bodas.json) y las revisa el código, nunca el LLM (regla 4). Desde el 25 oct. 2026 juegan los 15 Vocaloids: los chicos (Gakupo, Kaito y Len) se sumaron a las chicas (decisión de GyroP). Cambiar algo aquí no requiere tocar código.",
+  "$chicas": "Quiénes pueden casarse (la clave se llama así desde la primera tanda, pero incluye a los chicos): nombre en el rol y emoji del rol (corazón del color de la chica; los chicos, su objeto). Rol: '<emoji> Espos@ de <nombre>', salvo 'rol' propio. chico = textos en masculino. nota = lo que sabe mientras está casado (manda sobre lo general). Kaito usa 'Espos@ (temporal)': su esposa de verdad es Piña, con su rol permanente '💙 Esposa de Kaito' (config/especiales.json), que las bodas nunca tocan. Un Vocaloid sin token en .env no juega.",
+  "chicas": {
+    "teto": { "nombre": "Teto", "corazon": "❤️" },
+    "miku": { "nombre": "Miku", "corazon": "🩵" },
+    "luka": { "nombre": "Luka", "corazon": "🩷" },
+    "neru": { "nombre": "Neru", "corazon": "💛" },
+    "gakupo": { "nombre": "Gakupo", "corazon": "🍆", "chico": true },
+    "kaito": {
+      "nombre": "Kaito",
+      "corazon": "🍨",
+      "chico": true,
+      "rol": "🍨 Espos@ (temporal) de Kaito",
+      "nota": "Ojo: esta boda es un juego temporal del servidor. Tu esposa de verdad sigue siendo Piña (🍍♡Piña♡🍍) y eso no cambia: a tu espos@ temporal le hablas con cariño de amigo y con humor, pero nunca le dices \"esposa\" ni \"amor\" (eso es solo de Piña). Si te preguntan, explicas que es una boda de juego y que Piña lo sabe y se ríe."
+    },
+    "flower": { "nombre": "flower", "corazon": "💜" },
+    "ia": { "nombre": "IA", "corazon": "🤍" },
+    "haku": { "nombre": "Haku", "corazon": "🩶" },
+    "gumi": { "nombre": "Gumi", "corazon": "💚" },
+    "rin": { "nombre": "Rin", "corazon": "💛" },
+    "len": { "nombre": "Len", "corazon": "🍌", "chico": true },
+    "meiko": { "nombre": "Meiko", "corazon": "❤️‍🔥" },
+    "adachirei": { "nombre": "Adachi Rei", "corazon": "🧡" },
+    "ruko": { "nombre": "Ruko", "corazon": "💙" }
+  },
+  "$inaugural": "Primera adivinanza, apenas arrancan los bots con el parche (una sola vez; cuenta para el máximo del día).",
+  "inaugural": "teto",
+  "canal": "general",
+  "$horario": "Hasta 'porDia' adivinanzas al día, a horas al azar dentro de la ventana (hora de México: que todos estén despiertos), separadas al menos 'separacionMinutos'. Si a esa hora nadie escribió en #general en los últimos 'actividadMinutos' o los bots estaban apagados, esa oportunidad se pierde.",
+  "porDia": 3,
+  "horario": { "zona": "America/Mexico_City", "desde": "14:00", "hasta": "21:00" },
+  "separacionMinutos": 90,
+  "actividadMinutos": 30,
+  "$adivinanza": "Minutos para adivinar (si nadie acierta, la chica se va y revela la respuesta) e intentos por Papu. Mientras dura, Neru no cuenta el flood en #general ni en el hilo.",
+  "duracionMinutos": 60,
+  "intentos": 3,
+  "$boda": "Dura 'horas' desde que el Papu adivina. Mientras está casado no puede volver a jugar, y no puede repetir esposa hasta 'diasSinRepetir' días después de su boda con ella.",
+  "horas": 24,
+  "diasSinRepetir": 3,
+  "$recompensa": "XP de regalo: bajo el nivel 'nivelCompletoHasta', un nivel completo; desde ese nivel, 'porcentaje' de lo que pide su nivel actual. Se multiplica por el evento de XP vigente (×2 = dos niveles o el doble del porcentaje). También le reinicia la cuota del día (excepción a la regla 1: se gana jugando, no pagando).",
+  "recompensa": { "nivelCompletoHasta": 40, "porcentaje": 0.25 }
+}

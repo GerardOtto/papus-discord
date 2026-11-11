@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+    <title>Plaza de los Papus</title>
+    <link rel="stylesheet" href="estilo.css" />
+  </head>
+  <body>
+    <canvas id="lienzo"></canvas>
+    <div id="capa"></div>
+    <header id="contador">🌳 Plaza de los Papus · conectando…</header>
+    <p id="stats" hidden></p>
+    <p id="ayuda">WASD o flechas: moverse · Shift: correr · M: patineta · Enter: hablar · @Teto: hablarle a Teto<br />Rueda: zoom · V: cámara aérea o a ras del suelo · Q/E o arrastrar: girar la cámara · F: usar · /ruleta</p>
+    <div id="botones">
+      <button id="btn-camara" title="Cámara aérea o a ras del suelo (V)">🎥</button>
+      <button id="btn-aspecto" title="Personalizar">🎨</button>
+      <button id="btn-montura" title="Patineta (M)">🛹</button>
+    </div>
+    <button id="btn-hablar" title="Hablar (Enter)">💬</button>
+    <section id="charla" hidden aria-label="Charla con los Vocaloids"></section>
+    <div id="panel" hidden></div>
+    <div id="stand" hidden></div>
+    <div id="aviso"></div>
+    <div id="palanca" hidden><div></div></div>
+    <form id="form-chat" autocomplete="off" hidden>
+      <input id="chat" maxlength="120" placeholder="Escribe… (@Teto para hablarle)" enterkeyhint="send" />
+      <button>💬</button>
+    </form>
+    <div id="premio" hidden role="status"></div>
+    <div id="ventana" hidden></div>
+    <div id="error" hidden></div>
+    <div id="entrada" hidden>
+      <div class="tarjeta">
+        <h1>🌳 Plaza de los Papus</h1>
+        <p class="texto">El mundo de la comunidad de GyroP: pasea, personaliza tu Papu y habla con Teto. Entra con tu cuenta de Discord (solo para Papus del servidor).</p>
+        <a id="btn-entrar" href="api/entrar">Entrar con Discord</a>
+        <p class="nota">Solo se usa tu nombre y tu ficha del servidor. También puedes abrirlo dentro de Discord, en 🚀 Actividades.</p>
+      </div>
+    </div>
+    <script type="module" src="app.js"></script>
+  </body>
+</html>

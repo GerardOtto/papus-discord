@@ -1,0 +1,308 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Guía para montar un servidor de Discord con bots de personaje y membresías</title>
+<!-- Fuente del PDF "Guía para replicar el servidor". Generar: node scripts/render-guia.mjs (deja el PDF en el escritorio). -->
+<style>
+  @font-face { font-family: "Fredoka"; font-weight: 600; src: url("../../Proyecto1/assets/fonts/fredoka-latin-600-normal.woff2") format("woff2"); }
+  @font-face { font-family: "Fredoka"; font-weight: 700; src: url("../../Proyecto1/assets/fonts/fredoka-latin-700-normal.woff2") format("woff2"); }
+  @page { size: A4; margin: 16mm 15mm 16mm 15mm; }
+  :root { --ink: #1d2433; --muted: #5b6577; --line: #dfe4ec; --soft: #f5f7fb; --miku: #2aa59c; --teto: #d9364f; --luka: #c45b8f; --neru: #b59b12; --accent: #5865f2; }
+  * { box-sizing: border-box; }
+  body { font-family: "Segoe UI", system-ui, sans-serif; color: var(--ink); font-size: 10.4pt; line-height: 1.45; margin: 0; }
+  h1, h2, h3 { font-family: "Fredoka", "Segoe UI", sans-serif; line-height: 1.15; margin: 0; }
+  h2 { font-size: 17pt; margin: 0 0 8px; padding-bottom: 6px; border-bottom: 3px solid var(--miku); break-after: avoid; }
+  h3 { font-size: 12pt; margin: 14px 0 5px; color: var(--miku); break-after: avoid; }
+  p { margin: 5px 0; }
+  ul, ol { margin: 5px 0; padding-left: 18px; }
+  li { margin: 2px 0; }
+  code { font-family: Consolas, monospace; font-size: 9pt; background: #eef1f6; border-radius: 4px; padding: 1px 4px; }
+  section { break-before: page; }
+  table { width: 100%; border-collapse: collapse; margin: 6px 0 8px; font-size: 9.4pt; break-inside: auto; }
+  th { text-align: left; background: var(--soft); color: var(--muted); font-weight: 600; }
+  th, td { border-bottom: 1px solid var(--line); padding: 5px 7px; vertical-align: top; }
+  tr { break-inside: avoid; }
+  .note { background: #fff7e0; border-left: 4px solid #f2b544; padding: 7px 10px; border-radius: 6px; margin: 8px 0; break-inside: avoid; }
+  .tip { background: #e9f8f6; border-left: 4px solid var(--miku); padding: 7px 10px; border-radius: 6px; margin: 8px 0; break-inside: avoid; }
+  .warn { background: #fdecef; border-left: 4px solid var(--teto); padding: 7px 10px; border-radius: 6px; margin: 8px 0; break-inside: avoid; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .card { border: 1px solid var(--line); border-radius: 10px; padding: 8px 11px; background: #fff; break-inside: avoid; }
+  .card h4 { margin: 0 0 4px; font-family: "Fredoka", sans-serif; font-size: 11pt; }
+  .step { display: grid; grid-template-columns: 30px 1fr; gap: 8px; margin: 10px 0; break-inside: avoid; }
+  .step b.n { display: flex; align-items: center; justify-content: center; width: 26px; height: 26px; border-radius: 50%; background: var(--miku); color: #fff; font-family: "Fredoka", sans-serif; }
+  .check li { list-style: none; margin-left: -16px; }
+  .check li::before { content: "☐ "; color: var(--miku); font-weight: 700; }
+  /* Portada */
+  .cover { height: 255mm; display: flex; flex-direction: column; justify-content: center; text-align: center;
+           background: radial-gradient(circle at 50% 35%, #3b42b8 0%, #141640 75%); color: #fff; border-radius: 18px; padding: 30px; }
+  .cover h1 { font-size: 30pt; margin: 18px 0 10px; }
+  .cover .sub { font-size: 13pt; opacity: .9; max-width: 140mm; margin: 0 auto; }
+  .cover .meta { margin-top: 26px; font-size: 10pt; opacity: .75; }
+  .chips { display: flex; justify-content: center; gap: 8px; flex-wrap: wrap; margin-top: 18px; }
+  .chips span { background: rgba(255,255,255,.14); border: 1px solid rgba(255,255,255,.35); border-radius: 999px; padding: 4px 12px; font-size: 9.5pt; }
+  /* Diagrama de arquitectura */
+  .arch { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin: 10px 0; }
+  .box { border-radius: 10px; padding: 9px 10px; color: #fff; break-inside: avoid; }
+  .box h4 { margin: 0 0 4px; font-family: "Fredoka", sans-serif; font-size: 11pt; }
+  .box ul { padding-left: 15px; font-size: 9pt; }
+  .pc { background: #2aa59c; } .cf { background: #f38020; } .dc { background: #5865f2; } .kf { background: #ff5e5b; } .ai { background: #6a5acd; } .gd { background: #188038; }
+  .toc li { margin: 4px 0; }
+</style>
+</head>
+<body>
+
+<div class="cover">
+  <div style="font-size:40pt">🎤🥖🐟📱</div>
+  <h1>Cómo montar un servidor de Discord<br>con bots de personaje y membresías</h1>
+  <p class="sub">Guía general para replicar lo que se construyó para el Discord de los Papus: estructura, bots con personalidad, cuotas, moderación, membresías de Ko-fi, votaciones y automatizaciones.</p>
+  <div class="chips"><span>Discord</span><span>Ko-fi</span><span>Cloudflare Workers + D1</span><span>LLM gratuitos</span><span>Node + TypeScript</span><span>Windows</span></div>
+  <p class="meta">Basada en el repo <b>papus-discord</b> · 18 de octubre de 2026 · Para GyroP</p>
+</div>
+
+<section>
+<h2>Contenido</h2>
+<ol class="toc">
+  <li><b>La idea en una página</b>: qué se arma y con qué piezas.</li>
+  <li><b>Cuentas y llaves</b> que hay que tener antes de empezar.</li>
+  <li><b>Paso a paso</b> para levantar un servidor nuevo con este repo.</li>
+  <li><b>Diseño del servidor</b>: categorías, niveles, roles y permisos.</li>
+  <li><b>Los bots</b>: personalidad, cuota, LLM, privacidad y moderación.</li>
+  <li><b>Membresías y comunidad</b>: Ko-fi, votaciones, calendario, bóveda y pedidos.</li>
+  <li><b>Automatizaciones</b> y dónde corre cada una.</li>
+  <li><b>Lecciones aprendidas</b>: los tropiezos que ya resolvimos.</li>
+  <li><b>Qué se edita para otro proyecto</b> (sin tocar código).</li>
+  <li><b>Checklists</b> de lanzamiento y mantenimiento.</li>
+</ol>
+
+<div class="tip"><b>Cómo usar esta guía.</b> El repo <code>papus-discord</code> ya es la plantilla: casi todo lo que cambia de un
+proyecto a otro vive en archivos de <code>config/</code> y <code>content/</code>. Para un servidor nuevo se copia el repo, se
+cambian esos archivos y se siguen los pasos de la sección 3. El código solo se toca si el nuevo proyecto necesita algo distinto.</div>
+
+<h2 style="margin-top:16px">1. La idea en una página</h2>
+<p>Un servidor de Discord gratis para la comunidad, con <b>personajes que conversan</b> (bots con personalidad propia),
+<b>niveles de pago en Ko-fi</b> que abren canales extra, y la mayor parte del trabajo diario <b>automatizado</b>.</p>
+<div class="arch">
+  <div class="box dc"><h4>💬 Discord</h4><ul><li>Una app de Discord por personaje</li><li>Canales por nivel, roles, AutoMod</li><li>Encuestas nativas, menús, mensajes fijados</li></ul></div>
+  <div class="box pc"><h4>🖥️ PC (Windows)</h4><ul><li>Los bots conectados (conversación, moderación, bienvenidas)</li><li>Calendario, vitrina, roles automáticos</li><li>Modelo local (Ollama) de respaldo</li><li>Arranca solo con Windows</li></ul></div>
+  <div class="box cf"><h4>☁️ Cloudflare (gratis)</h4><ul><li>Worker 24/7: comandos de 2 bots</li><li>Base D1: pedidos, votaciones, candidatos</li><li>Cron cada 15 min: abre y cierra votaciones</li></ul></div>
+  <div class="box kf"><h4>☕ Ko-fi</h4><ul><li>Niveles mensuales → rol de Discord automático</li><li>Tienda: videos personalizados, entrada gratis</li><li>Metas del perfil</li></ul></div>
+  <div class="box ai"><h4>🧠 LLM gratuitos</h4><ul><li>Groq, Gemini, OpenRouter, Cloudflare AI</li><li>Se turnan según su cupo diario</li><li>El modelo local, de respaldo</li></ul></div>
+  <div class="box gd"><h4>📁 Google Drive</h4><ul><li>Bóveda y archivo privados</li><li>Acceso por Gmail, sin descargas</li></ul></div>
+</div>
+<p><b>Reparto de trabajo:</b> lo que necesita estar siempre disponible (comandos de pedidos y votaciones, menú de colores)
+vive en Cloudflare. Lo que necesita leer archivos del PC o escuchar todos los mensajes (conversación, moderación,
+calendario) corre en el PC. Si el PC se apaga, AutoMod de Discord sigue moderando lo grave.</p>
+</section>
+
+<section>
+<h2>2. Cuentas y llaves</h2>
+<table>
+  <tr><th style="width:24%">Servicio</th><th>Qué se crea</th><th style="width:30%">Dónde queda</th></tr>
+  <tr><td><b>Discord Developer Portal</b></td><td>Una aplicación por personaje (avatar, nombre, bot). Activar los intents <i>Server Members</i> y <i>Message Content</i> donde se necesiten. Desactivar <i>Public Bot</i> (antes, poner "Install Link" en <i>None</i> o da error).</td><td><code>.env</code>: <code>DISCORD_TOKEN_*</code>, <code>DISCORD_GUILD_ID</code>, <code>OWNER_USER_ID</code></td></tr>
+  <tr><td><b>Servidor de Discord</b></td><td>El servidor vacío. Invitar a los bots. Uno de ellos con Administrador <b>solo mientras se configura</b>.</td><td>—</td></tr>
+  <tr><td><b>Ko-fi</b></td><td>Página, niveles, tienda. Conectar Discord en Ko-fi y subir el rol del bot de Ko-fi por encima de los roles de nivel.</td><td>Panel de Ko-fi</td></tr>
+  <tr><td><b>Cloudflare</b></td><td>Cuenta gratis. Un token con permisos de <b>Workers</b> y <b>D1 (Edit)</b> para desplegar; otro para Workers AI.</td><td><code>CLOUDFLARE_ACCOUNT_ID</code>, <code>CLOUDFLARE_DEPLOY_TOKEN</code>, <code>CLOUDFLARE_API_TOKEN</code></td></tr>
+  <tr><td><b>APIs de LLM gratis</b></td><td>Groq, Google AI Studio (Gemini), OpenRouter. Una cuenta por proveedor (nunca varias del mismo).</td><td><code>GROQ_API_KEY</code>, <code>GEMINI_API_KEY</code>, <code>OPENROUTER_API_KEY</code></td></tr>
+  <tr><td><b>Ollama</b> (opcional)</td><td>Modelo local de respaldo, sin límite diario.</td><td><code>config/ollama/*.Modelfile</code></td></tr>
+  <tr><td><b>Google Drive</b></td><td>Carpetas privadas para el contenido de los niveles altos.</td><td>Enlaces en las guías fijadas</td></tr>
+  <tr><td><b>En el PC</b></td><td>Node 24, Git, Python (imágenes), Windows Pro (para la despedida al apagar).</td><td>—</td></tr>
+</table>
+<div class="warn"><b>Las llaves solo van en <code>.env</code>.</b> Nunca en el repo, en capturas ni en los registros. <code>.env.example</code> lista los nombres sin valores; <code>.gitignore</code> ya excluye <code>.env</code>, <code>data/</code> y <code>.wrangler/</code>.</div>
+
+</section>
+
+<section>
+<h2>3. Paso a paso para un servidor nuevo</h2>
+<div class="step"><b class="n">1</b><div><b>Copiar el repo</b> a una carpeta nueva y <code>npm install</code>. Copiar <code>.env.example</code> a <code>.env</code> y llenarlo.</div></div>
+<div class="step"><b class="n">2</b><div><b>Personalizar los archivos</b> de la sección 9: estructura del servidor, personajes, frases, guías, moderación, votaciones y calendario.</div></div>
+<div class="step"><b class="n">3</b><div><b>Revisar todo:</b> <code>npm run check</code> (llaves y APIs) y <code>npm run check -- --llm</code> (la voz de cada personaje en cada API). <code>npm test</code> debe quedar en verde.</div></div>
+<div class="step"><b class="n">4</b><div><b>Armar el servidor:</b> <code>npm run servidor</code> muestra el plan; <code>npm run servidor -- --apply</code> crea roles, categorías, canales y permisos (nunca borra). Se puede correr las veces que haga falta.</div></div>
+<div class="step"><b class="n">5</b><div><b>Perfiles y guías:</b> <code>npm run avatares</code> + <code>npm run perfiles</code> (avatar, banner, biografía); <code>npm run guias -- --apply</code> publica y fija la guía de cada canal (si ya existe, la edita).</div></div>
+<div class="step"><b class="n">6</b><div><b>Emojis:</b> generar con los scripts de Python y subir con <code>npm run emojis</code>.</div></div>
+<div class="step"><b class="n">7</b><div><b>Worker de Cloudflare:</b> <code>npm run worker:deploy</code> crea la base D1, aplica el esquema, guarda los tokens como secretos, publica y registra los comandos de sus bots.</div></div>
+<div class="step"><b class="n">8</b><div><b>Arranque con Windows:</b> <code>npm run autostart</code> (bots), <code>npm run bandeja</code> (ícono) y, como administrador, <code>npm run despedida-al-apagar</code>.</div></div>
+<div class="step"><b class="n">9</b><div><b>Ko-fi:</b> textos de niveles, bienvenidas, términos y tienda (plantilla en <code>docs/KOFI.md</code>); en cada nivel, su rol de Discord.</div></div>
+<div class="step"><b class="n">10</b><div><b>Revisión final</b> con la checklist de la sección 10 y <b>commit</b> de respaldo (idealmente subido a un repo privado).</div></div>
+</section>
+
+<section>
+<h2>4. Diseño del servidor</h2>
+<h3>Categorías por nivel, acumulativas</h3>
+<p>Cada categoría de pago la ve su nivel <b>y todos los superiores</b> (Ko-fi da solo el rol del nivel; los permisos hacen
+la suma). Dentro, cada canal es "solo lectura" (publica GyroP o un bot) o "escriben todos los que leen".</p>
+<table>
+  <tr><th style="width:26%">Pieza</th><th>Para qué sirve</th></tr>
+  <tr><td><b>Inicio</b> (solo lectura)</td><td>Bienvenida, reglas, anuncios, niveles, vitrina, elegir color, novedades, salón de la fama.</td></tr>
+  <tr><td><b>Comunidad</b></td><td>Charla, fanart, memes, recomendaciones, hablar con los bots, eventos, ideas, comandos de bots y reportes.</td></tr>
+  <tr><td><b>Una categoría por nivel</b></td><td>Lo que promete cada nivel en Ko-fi, ni más ni menos.</td></tr>
+  <tr><td><b>Canales candado 🔒</b></td><td>Un canal por nivel que solo ven quienes <i>no</i> lo tienen, con un mensaje fijado de lo que hay detrás. Discord no permite "ver sin entrar"; esto es lo más parecido, sin filtrar nada.</td></tr>
+  <tr><td><b>👀 Vitrina</b></td><td>Los bots avisan <i>dónde</i> y <i>para quién</i> hay algo nuevo (nunca <i>qué</i>): motiva a subir de nivel.</td></tr>
+  <tr><td><b>Sala para un rol especial</b></td><td>Categoría visible solo para un rol que no se compra (p. ej. "Papu de honor"), con chat, votación y voz.</td></tr>
+  <tr><td><b>Staff</b></td><td>Moderación, registro de los bots, pruebas. Nadie más la ve.</td></tr>
+</table>
+<h3>Roles</h3>
+<div class="grid2">
+  <div class="card"><h4>Automáticos</h4><ul><li><b>Rol de todos</b> (sin color): lo da un bot al entrar, con repaso cada hora.</li><li><b>Fundador</b>: a quien tenga nivel en la primera semana, para siempre.</li><li><b>Niveles</b>: los da Ko-fi.</li></ul></div>
+  <div class="card"><h4>Otros</h4><ul><li><b>Colores elegibles</b>: un menú con una paleta que no use los colores de los niveles.</li><li><b>Rol de honor</b>: a mano, por participación.</li><li><b>Bots de música</b>: agrupados, sin acceso a canales de texto (salvo el de comandos).</li></ul></div>
+</div>
+<h3>Permisos: lo que no hay que olvidar</h3>
+<ul>
+  <li>Discord deja <b>"Mencionar @everyone"</b> activado en @everyone y en cada rol nuevo. <code>npm run servidor</code> lo quita (también administrar, moderar, expulsar) y crea los roles sin permisos.</li>
+  <li>Los bots necesitan <b>Gestionar roles</b> en su propio rol para dar roles, y estar <b>por encima</b> de los roles que dan.</li>
+  <li>Un canal de encuestas visible es un canal donde se puede votar: no se abren los de votación a quien no paga.</li>
+  <li>El bot con Administrador temporal se baja a lo mínimo al terminar (conservando <i>Gestionar roles</i>).</li>
+</ul>
+</section>
+
+<section>
+<h2>5. Los bots</h2>
+<h3>Personalidad</h3>
+<ul>
+  <li><b>Una ficha por personaje</b> (<code>content/personajes/*.md</code>) + reglas comunes (<code>comun.md</code>): cómo habla, frases de ejemplo, canciones favoritas, cómo trata a los demás, y una lista de <b>temas de humor</b> de la que se elige uno al azar en cada respuesta (los pegajosos se marcan con <code>!</code> para que no se repitan).</li>
+  <li><b>Datos de personaje desde una fuente</b> (el lore del motor) y <b>datos de cultura general</b> (<code>cultura.md</code>): solo se mandan los 3 que tienen que ver con la pregunta.</li>
+  <li>Reglas de trato que funcionaron: contestar primero y bromear después; empatía si alguien cuenta algo malo; nunca a la defensiva; no repetir muletillas; tutear y no adivinar el género; reconocer al dueño por su <b>id</b>, no por el nombre.</li>
+</ul>
+<h3>Cuota y frases fijas</h3>
+<ul>
+  <li><b>Cuota diaria única por persona</b>, compartida entre todos los bots e <b>igual para todos los niveles</b> (pagar no da más mensajes). Una unidad por cada @. Se devuelve si la respuesta falla.</li>
+  <li>Todo lo que no es conversación libre (bienvenidas, avisos, cuota agotada, moderación, votaciones) usa <b>grupos de 30-40 frases fijas</b> que no se repiten hasta agotar el mazo. Nunca gastan cuota.</li>
+</ul>
+<h3>LLM: varias APIs gratis que se turnan</h3>
+<ul>
+  <li>Una interfaz única compatible con OpenAI y una <b>cadena de respaldo</b>: cada mensaje va a la API con más cupo del día; si una falla, se demora, bloquea por minuto o <b>devuelve algo ilegible</b>, responde la siguiente. El modelo local queda de respaldo.</li>
+  <li>Varios mensajes con @ a la vez → <b>una sola petición</b> que devuelve un JSON con la respuesta de cada personaje.</li>
+  <li>El estado del día (porcentaje por API) se ve en el ícono de la bandeja.</li>
+</ul>
+<h3>Privacidad del proceso</h3>
+<p>Tres capas para que los bots nunca revelen herramientas ni métodos de producción: preguntas detectadas → frase fija;
+regla en el prompt; y un filtro de salida que descarta la respuesta si menciona algo de la lista privada. De los videos,
+los bots solo conocen <b>título y estado</b> de las carpetas autorizadas.</p>
+<h3>Moderación</h3>
+<ul>
+  <li><b>Reglas fijas, nunca el LLM:</b> odio y groserías fuertes siempre fuera; insultos solo si van <b>dirigidos</b> a alguien; datos personales; estafas e invitaciones; flood; mensajes repetidos.</li>
+  <li><b>Strikes</b>: advertencia → 10 min → 1 hora → 1 día y aviso al dueño. Vencen a los 3 días. El bot nunca expulsa ni banea.</li>
+  <li><b>AutoMod de Discord</b> se sincroniza al arrancar y cubre lo grave aunque el PC esté apagado.</li>
+  <li>Empezar <b>permisivo</b> con enlaces (lista amplia de sitios, restricción solo la primera hora para cuentas nuevas) y con mayúsculas (solo mensajes largos, solo aviso).</li>
+</ul>
+</section>
+
+<section>
+<h2>6. Membresías y comunidad</h2>
+<h3>Ko-fi</h3>
+<ul>
+  <li><b>Niveles acumulativos</b>, cada uno con lo que da (beneficios concretos, sin promesas que no se van a cumplir cada semana). Etiquetas de Ko-fi coherentes con los beneficios (nada de "Merchandise" si es digital).</li>
+  <li><b>Entrada gratis</b> como producto de $0 en la tienda: entrega el enlace de invitación (los productos no dan roles).</li>
+  <li><b>Fundador</b> por tiempo limitado como gancho de lanzamiento.</li>
+  <li>El rol llega solo si la persona <b>conecta su Discord en su cuenta de Ko-fi</b>. Un rol dado a mano no lo quita Ko-fi al cancelar: anotarlo.</li>
+  <li>Plantilla completa de textos (niveles, bienvenidas, términos, tienda, metas) en <code>docs/KOFI.md</code>.</li>
+</ul>
+<h3>Votaciones (encuestas nativas de Discord)</h3>
+<div class="grid2">
+  <div class="card"><h4>Semanal de pago</h4><p>Se abre sola. Opciones: el <b>segundo lugar</b> de la semana anterior + candidatos nuevos de una lista de espera. Recordatorio 12 h antes, anuncio del ganador, empate → decide el dueño. Se anuncia en la vitrina.</p></div>
+  <div class="card"><h4>Sala de honor</h4><p>Cada 2 semanas. Opciones: videos <b>ya listos</b> + las <b>2 ideas con más 👍</b> del chat (sin contar el voto propio ni bots, sin repetir ideas).</p></div>
+</div>
+<h3>Calendario y contenido</h3>
+<ul>
+  <li><b>Ritmo:</b> 3 videos por semana — lunes el que eligió la votación de pago, miércoles el del creador, viernes alternando entre el rol de honor y el creador.</li>
+  <li><b>Calendario automático fijado</b> de 2 semanas: ganadores, opciones en votación ("Video de A / B / C") y videos propios tomados de la carpeta de finales en orden. Se edita solo.</li>
+  <li><b>Bóveda y archivo</b> en carpetas de Drive <b>restringidas</b>: acceso por Gmail enviado en privado; sin descarga para lectores; al cancelar, quitar el acceso.</li>
+  <li><b>Pedidos personalizados</b> del nivel más alto: comando para pedir, cola con tablero fijado (sin el nombre del destinatario), estados con aviso al pedidor y alertas de plazo.</li>
+  <li><b>Tips con fuente</b> y <b>Salón de la Fama</b> cuando un tip llega a un video.</li>
+</ul>
+</section>
+
+<section>
+<h2>7. Automatizaciones y dónde corren</h2>
+<table>
+  <tr><th style="width:34%">Qué</th><th style="width:16%">Dónde</th><th>Cómo</th></tr>
+  <tr><td>Conversación con cuota</td><td>PC</td><td>Un bot "central" lee los mensajes, modera primero y reparte las menciones.</td></tr>
+  <tr><td>Bienvenidas, rol de todos, Fundador</td><td>PC</td><td>Al entrar y en un repaso cada hora (Discord a veces no avisa una entrada).</td></tr>
+  <tr><td>Vitrina</td><td>PC + Cloudflare</td><td>Cuando el dueño publica en un canal de nivel; cuando abre o cierra una votación.</td></tr>
+  <tr><td>Calendario</td><td>PC</td><td>Cada hora; lee la carpeta de finales y la base D1.</td></tr>
+  <tr><td>Avisos de reportes</td><td>PC</td><td>Cada mensaje en #reportes llega con enlace al registro del staff.</td></tr>
+  <tr><td>Comandos de pedidos, votación, tips, colores</td><td>Cloudflare</td><td>Interacciones firmadas; respuesta diferida y privada; tope de 10 s con aviso (nunca "pensando" para siempre).</td></tr>
+  <tr><td>Abrir/cerrar votaciones, alertas de plazo</td><td>Cloudflare</td><td>Cron cada 15 minutos.</td></tr>
+  <tr><td>Saludo al conectarse, despedida al apagar</td><td>PC</td><td>Frases fijas; si el reinicio es rápido, se borra la despedida; script de cierre de sesión de Windows.</td></tr>
+  <tr><td>Arranque y reinicio</td><td>PC</td><td>Tarea programada + bucle que reinicia si falla; archivo de "detener" para apagar con despedida.</td></tr>
+</table>
+<div class="tip"><b>Ícono de la bandeja:</b> estado de los bots, reiniciar/detener, consumo de las APIs, lista de pedidos y accesos a carpetas y enlaces del proyecto.</div>
+
+</section>
+
+<section>
+<h2>8. Lecciones aprendidas</h2>
+<table>
+  <tr><th style="width:36%">Tropiezo</th><th>Solución</th></tr>
+  <tr><td>Todos podían mencionar @everyone</td><td>Quitar ese permiso a @everyone y a todos los roles; crear roles sin permisos.</td></tr>
+  <tr><td>Bots "a la defensiva" o que dicen "no sé"</td><td>Permitir cultura general con datos verificados; prohibir muletillas por escrito; quitar ejemplos que el modelo copia.</td></tr>
+  <tr><td>Un tema "prohibido" bloqueaba la pregunta directa (el puerro)</td><td>Si la persona nombra el tema, ese es el tema de la respuesta.</td></tr>
+  <tr><td>Respuestas que fallaban a ratos</td><td>Un modelo "pensaba" de más y cortaba la respuesta: pensar lo mínimo y, si llega ilegible, pasar a la siguiente API.</td></tr>
+  <tr><td>Groq bloquea por minuto</td><td>Turnar las APIs y saltar a la siguiente; la cuota protege del exceso.</td></tr>
+  <tr><td>Se borraban GIFs</td><td>El buscador de Discord usa Klipy: ampliar sitios permitidos y acortar la restricción de cuentas nuevas.</td></tr>
+  <tr><td>Rol de Ko-fi que no llegó</td><td>La persona no conectó Discord en Ko-fi; el rol manual no se quita solo al cancelar.</td></tr>
+  <tr><td>Roles con el mismo nivel en la lista</td><td>Un rol sin color no tapa el color elegido; no depender del orden si se puede evitar.</td></tr>
+  <tr><td>"Pensando…" para siempre en comandos</td><td>Reintento si Discord aún no registró la respuesta, tope de tiempo y mensaje aparte de respaldo.</td></tr>
+  <tr><td>Probar con "usuarios falsos"</td><td>Los self-bots están prohibidos; probar con webhooks en un canal de staff o con simulaciones.</td></tr>
+  <tr><td>PowerShell agrega una marca invisible (BOM)</td><td>Escribir archivos de configuración con Node o el editor, no con <code>Set-Content</code>.</td></tr>
+  <tr><td>Ko-fi bloquea lectores automáticos</td><td>Leer los datos que la página carga por detrás (tienda) o pedir una captura.</td></tr>
+</table>
+</section>
+
+<section>
+<h2>9. Qué se edita para otro proyecto</h2>
+<table>
+  <tr><th style="width:34%">Archivo</th><th>Qué contiene</th></tr>
+  <tr><td><code>config/servidor.json</code></td><td>Niveles y colores, roles extra (todos, fundador con fecha, honor, música), paleta elegible, categorías, canales, quién lee y quién escribe, candados, voz.</td></tr>
+  <tr><td><code>content/canales.json</code></td><td>Guía fijada de cada canal y qué personaje la firma (con su imagen de reacción).</td></tr>
+  <tr><td><code>content/personajes/*.md</code></td><td>Fichas de personalidad, reglas comunes y datos de cultura.</td></tr>
+  <tr><td><code>content/frases/*.json</code></td><td>Frases fijas por personaje y situación (30-40 por grupo).</td></tr>
+  <tr><td><code>content/perfiles.json</code></td><td>Biografía de cada bot.</td></tr>
+  <tr><td><code>config/moderacion.json</code></td><td>Listas de palabras, sitios permitidos, dominios sospechosos y límites.</td></tr>
+  <tr><td><code>config/privacidad.json</code></td><td>Lo que nunca se cuenta del proceso.</td></tr>
+  <tr><td><code>config/llm.json</code></td><td>APIs, modelos, cupos diarios estimados, preferencia (APIs o local).</td></tr>
+  <tr><td><code>config/votaciones.json</code></td><td>Fechas, frecuencia, duración, opciones y semilla de cada votación.</td></tr>
+  <tr><td><code>config/calendario.json</code></td><td>Canal, hora, zona horaria y semanas visibles.</td></tr>
+  <tr><td><code>config/especiales.json</code></td><td>Excepciones personales decididas por el dueño.</td></tr>
+  <tr><td><code>config/engine-paths.json</code></td><td>De dónde se leen lore, calendario y carpetas de videos (solo lectura).</td></tr>
+  <tr><td><code>.env</code></td><td>Tokens, ids y carpetas del PC.</td></tr>
+  <tr><td><code>docs/KOFI.md</code></td><td>Textos de Ko-fi listos para copiar.</td></tr>
+</table>
+<div class="note"><b>Si el proyecto no tiene un "motor de videos"</b>: el lore puede venir de un archivo propio (como <code>content/lore-extra.json</code>), y el calendario y el catálogo de videos se pueden apagar dejando vacías sus rutas.</div>
+</section>
+
+<section>
+<h2>10. Checklists</h2>
+<div class="grid2">
+  <div class="card"><h4>🚀 Antes de abrir</h4><ul class="check">
+    <li>Tokens y llaves en <code>.env</code>; <code>npm run check</code> en verde</li>
+    <li><code>npm test</code> en verde</li>
+    <li>Servidor aplicado; segunda pasada sin cambios pendientes</li>
+    <li>Nadie con "Mencionar @everyone" ni permisos de moderar</li>
+    <li>Guías fijadas en todos los canales</li>
+    <li>Perfiles, avatares y emojis de los bots</li>
+    <li>Worker desplegado y comandos registrados</li>
+    <li>Ko-fi: textos, rol por nivel, rol del bot de Ko-fi arriba</li>
+    <li>Invitación permanente en Ko-fi y en la entrada gratis</li>
+    <li>Carpetas de Drive restringidas</li>
+    <li>Arranque con Windows, ícono y despedida al apagar</li>
+    <li>Revisar visibilidad real de cada tipo de miembro</li>
+    <li>Commit de respaldo (y subido a un repo privado)</li>
+  </ul></div>
+  <div class="card"><h4>🔁 Mantenimiento</h4><ul class="check">
+    <li><b>Diario:</b> mirar #registro-bots y #reportes; consumo de APIs en el ícono</li>
+    <li><b>Diario:</b> revisar conversaciones (<code>npm run conversaciones</code>) y corregir fichas</li>
+    <li><b>Semanal:</b> candidatos para la votación y videos listos para la de honor</li>
+    <li><b>Semanal:</b> revisar el calendario fijado</li>
+    <li><b>Mensual:</b> accesos de Drive vs. miembros activos; roles dados a mano</li>
+    <li><b>Mensual:</b> metas de Ko-fi y beneficios prometidos</li>
+    <li><b>Al cerrar la configuración:</b> quitar Administrador al bot (dejar <i>Gestionar roles</i>)</li>
+  </ul></div>
+</div>
+<div class="tip" style="margin-top:12px"><b>Para seguir creciendo:</b> el plan completo y todas las decisiones están en <code>docs/PLAN.md</code>;
+el uso diario, en <code>README.md</code>; las reglas para trabajar en el repo, en <code>CLAUDE.md</code>. Esta guía se regenera con
+<code>node scripts/render-guia.mjs</code>.</div>
+</section>
+
+</body>
+</html>
