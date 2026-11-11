@@ -39,7 +39,7 @@ export function urlRegreso(origen: string): string {
 
 /** Pagina de Discord donde el Papu acepta entrar. */
 export function urlAutorizar(clientId: string, origen: string, estado: string): string {
-  const q = new URLSearchParams({ client_id: clientId, response_type: "code", redirect_uri: urlRegreso(origen), scope: SCOPES.join(" "), state: estado, prompt: "none" });
+  const q = new URLSearchParams({ client_id: clientId, response_type: "code", redirect_uri: urlRegreso(origen), scope: SCOPES.join(" "), state: estado });
   return `https://discord.com/oauth2/authorize?${q}`;
 }
 
