@@ -90,6 +90,8 @@ describe("mundo: entrada por el navegador", () => {
     expect(u.searchParams.get("scope")).toBe("identify guilds.members.read");
     expect(u.searchParams.get("redirect_uri")).toBe("https://x.workers.dev/mundo/api/volver");
     expect(u.searchParams.get("state")).toBe("e1");
+    // El acceso web debe permitir que Discord muestre su login si el Papu no tiene una sesion abierta.
+    expect(u.searchParams.has("prompt")).toBe(false);
   });
 
   it("el regreso exige el mismo state que se guardo", () => {
