@@ -6,17 +6,20 @@ import path from "node:path";
 
 const REPO_ROOT = path.resolve(import.meta.dirname, "../..");
 
-export type Rareza = "comun" | "rara" | "epica" | "legendaria" | "mitica" | "fundador" | "membresia";
+export type Rareza = "comun" | "rara" | "epica" | "legendaria" | "mitica" | "fundador" | "membresia" | "contrabando";
 export const RAREZAS_SOBRE = ["comun", "rara", "epica", "legendaria", "mitica"] as const;
 export type RarezaSobre = (typeof RAREZAS_SOBRE)[number];
 export type Tipo = "fondo" | "borde" | "barra" | "nombre" | "aro" | "insignia" | "titulo";
 export const TIPOS: Tipo[] = ["fondo", "borde", "barra", "nombre", "aro", "insignia", "titulo"];
 export const TIPO_NOMBRE: Record<Tipo, string> = { fondo: "Fondo", borde: "Borde", barra: "Barra de XP", nombre: "Efecto de nombre", aro: "Aro de avatar", insignia: "Insignia", titulo: "Título" };
-export const RAREZA_NOMBRE: Record<Rareza, string> = { comun: "Común", rara: "Rara", epica: "Épica", legendaria: "Legendaria", mitica: "Mítica", fundador: "Fundador", membresia: "Membresía" };
-export const RAREZA_COLOR: Record<Rareza, string> = { comun: "#C9CED6", rara: "#39C5BB", epica: "#B36BFF", legendaria: "#FFC83D", mitica: "#FF5FA2", fundador: "#F6E7B0", membresia: "#FF8FB1" };
-const ORDEN: Record<Rareza, number> = { comun: 0, rara: 1, epica: 2, legendaria: 3, mitica: 4, fundador: 5, membresia: 5 };
-/** Rarezas que no se venden, no salen en sobres ni se fabrican: se regalan (fundadores, insignias de membresía). */
-export const RAREZAS_REGALO: readonly Rareza[] = ["fundador", "membresia"];
+export const RAREZA_NOMBRE: Record<Rareza, string> = { comun: "Común", rara: "Rara", epica: "Épica", legendaria: "Legendaria", mitica: "Mítica", fundador: "Fundador", membresia: "Membresía", contrabando: "Contrabando" };
+export const RAREZA_COLOR: Record<Rareza, string> = { comun: "#C9CED6", rara: "#39C5BB", epica: "#B36BFF", legendaria: "#FFC83D", mitica: "#FF5FA2", fundador: "#F6E7B0", membresia: "#FF8FB1", contrabando: "#8FE36B" };
+const ORDEN: Record<Rareza, number> = { comun: 0, rara: 1, epica: 2, legendaria: 3, mitica: 4, fundador: 5, membresia: 5, contrabando: 5 };
+/**
+ * Rarezas que no se venden en la tienda, no salen en sobres ni se fabrican: se regalan (fundadores, insignias de
+ * membresía) o se compran en el mercado negro (contrabando, config/mercado.json).
+ */
+export const RAREZAS_REGALO: readonly Rareza[] = ["fundador", "membresia", "contrabando"];
 
 export interface Objeto {
   id: string;
@@ -125,13 +128,28 @@ export interface DayActivity {
   bodas: number;
   /** Ese día completó una racha de 7 días seguidos escribiendo (7, 14, 21…). */
   racha: boolean;
+  /**
+   * PC de Adachi Rei (mercado negro): XP del día cuando lo usó y monedas por actividad ya ganadas antes. Desde ahí el
+   * tope de actividad vuelve a empezar, sin quitar lo de antes.
+   */
+  reinicio?: { xp: number; previa: number };
+}
+
+/**
+ * Monedas por actividad (1 cada `xpPorMoneda` XP del día, hasta `topeActividad`). Tras el PC de Adachi Rei, lo de antes
+ * más un tramo nuevo con su propio tope.
+ */
+export function activityCoins(s: CoinSettings, a: Pick<DayActivity, "xp" | "reinicio">): number {
+  const g = s.ganar;
+  const tramo = (xp: number) => Math.min(g.topeActividad, Math.floor(Math.max(0, xp) / g.xpPorMoneda));
+  return a.reinicio ? a.reinicio.previa + tramo(a.xp - a.reinicio.xp) : tramo(a.xp);
 }
 
 /** Monedas ganadas en el día (sin los bonos por nivel, que se suman al subir). Con machetazo, 0. */
 export function dayEarnings(s: CoinSettings, a: DayActivity): number {
   if (a.castigo) return 0;
   const g = s.ganar;
-  const actividad = Math.min(g.topeActividad, Math.floor(Math.max(0, a.xp) / g.xpPorMoneda));
+  const actividad = activityCoins(s, a);
   return actividad + (a.mensajes > 0 ? g.primerMensaje : 0) + a.misiones * g.mision + a.bodas * g.boda + (a.racha ? g.racha7 : 0);
 }
 
@@ -187,9 +205,10 @@ export function sobreKind(s: CoinSettings, tipo: TipoSobre): { nombre: string; o
  * Abre un sobre: cuántos objetos, la rareza de cada uno (con garantías: el sobre N sin Épica trae una; igual con
  * Legendaria) y cuál de esa rareza. Si una rareza no tiene objetos, baja a la siguiente que tenga.
  */
-export function rollSobre(s: CoinSettings, pool: Objeto[], pity: Pity, rnd: () => number = Math.random, tipo: TipoSobre = "comun"): { objetos: Objeto[]; pity: Pity } {
+export function rollSobre(s: CoinSettings, pool: Objeto[], pity: Pity, rnd: () => number = Math.random, tipo: TipoSobre = "comun", extra = 0): { objetos: Objeto[]; pity: Pity } {
   const kind = sobreKind(s, tipo);
-  const n = pickWeighted(kind.objetos, rnd);
+  // extra = objetos de más (Helado de Kaito, mercado negro).
+  const n = pickWeighted(kind.objetos, rnd) + extra;
   const byRarity = new Map<RarezaSobre, Objeto[]>();
   for (const r of RAREZAS_SOBRE) byRarity.set(r, pool.filter((o) => o.rareza === r));
   const rarities: RarezaSobre[] = Array.from({ length: n }, () => pickWeighted(RAREZAS_SOBRE.map((r) => [r, s.sobre.probabilidades[r]] as [RarezaSobre, number]), rnd));

@@ -41,6 +41,8 @@ export interface BodasDiscordDeps {
   characters: Record<BotId, CharacterInfo>;
   online: readonly BotId[];
   owners: ReadonlySet<string>;
+  /** GyroP o un Mod: pueden usar /boda. Sin esto, solo GyroP. */
+  isStaff?: (userId: string) => Promise<boolean>;
   clients: Partial<Record<BotId, Client>>;
   guild: () => Guild;
   sendable: (bot: BotId, channelId: string) => Promise<SendableChannels>;
@@ -300,9 +302,9 @@ export class BodasDiscord {
     await thread.setArchived(true).catch((e) => logError("cerrar hilo de boda", e));
   }
 
-  /** /boda de GyroP: la chica elegida (o la siguiente del mazo) deja su adivinanza ya, sin horario ni gastar las del dia. */
+  /** /boda de GyroP o un Mod: la chica elegida (o la siguiente del mazo) deja su adivinanza ya, sin horario ni gastar las del dia. */
   async boda(i: ChatInputCommandInteraction): Promise<void> {
-    if (!this.d.owners.has(i.user.id)) return void (await i.reply({ content: "¡Eso solo lo usa GyroP! 🥖", flags: MessageFlags.Ephemeral }));
+    if (!this.d.owners.has(i.user.id) && !(await this.d.isStaff?.(i.user.id))) return void (await i.reply({ content: "¡Eso solo lo usan GyroP y los Mods! 🥖", flags: MessageFlags.Ephemeral }));
     const chosen = i.options.getString("vocaloid") as BotId | null;
     const active = this.w.active();
     if (active) {

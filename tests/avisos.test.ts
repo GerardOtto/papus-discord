@@ -17,7 +17,7 @@ describe("avisos de #tus-roles", () => {
     const canal = layout.categorias.flatMap((c) => c.canales).filter((c) => channelKey(c.nombre) === "tus-roles");
     expect(canal).toHaveLength(1);
     expect(canal[0]!.antes).toContain("🎨・tu-color");
-    expect(Object.fromEntries(avisos.map((a) => [a.id, a.rol]))).toEqual({ peleas: "⚔️ Ludópata", bodas: "💍 Rizzler", estrenos: "🎬 Estrenos" });
+    expect(Object.fromEntries(avisos.map((a) => [a.id, a.rol]))).toEqual({ peleas: "⚔️ Ludópata", bodas: "💍 Rizzler", estrenos: "🎬 Estrenos", mercado: "🕶️ Traficante" });
   });
 
   it("sus roles no chocan con otros roles del servidor", () => {

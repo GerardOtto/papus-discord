@@ -67,14 +67,14 @@ export interface ServerLayout {
   categoriasManualesDespuesDe?: string;
 }
 
-/** Un aviso de #tus-roles: `id` lo usa el codigo (peleas, bodas, estrenos); `rol` es el nombre del rol en Discord. */
+/** Un aviso de #tus-roles: `id` lo usa el codigo (peleas, bodas, estrenos, mercado); `rol` es el nombre del rol en Discord. */
 export interface AvisoSpec {
   id: AvisoId;
   rol: string;
   nombre: string;
   descripcion: string;
 }
-export type AvisoId = "peleas" | "bodas" | "estrenos";
+export type AvisoId = "peleas" | "bodas" | "estrenos" | "mercado";
 
 const REPO_ROOT = path.resolve(import.meta.dirname, "../..");
 

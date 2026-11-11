@@ -1,9 +1,17 @@
-// Worker de Cloudflare: recibe las interacciones de Miku y Luka (comandos de barra) y corre tareas cada 15 min.
+// Worker de Cloudflare: recibe las interacciones de Miku y Luka (comandos de barra), corre tareas cada 15 min y aloja
+// la trivia multijugador (Actividad de Discord de Teto, /actividad/) y el prototipo del mundo 3D de los Papus (/mundo/).
 // Funciona 24/7, aunque el PC de GyroP este apagado. Despliegue: npm run worker:deploy.
 import cast from "./cast.json";
+import { actividad } from "./actividad/api";
+import { mundo } from "./mundo/api";
 import { PapusWorker } from "./app";
 import { restApi, verifySignature, type BotKey } from "./discord";
 import type { Sql } from "../../src/orders/sql";
+
+// Durable Object de la trivia multijugador (Actividad de Discord): una sala por instancia.
+export { SalaTrivia } from "./actividad/sala";
+// Prototipo del mundo 3D de los Papus: una plaza por instancia.
+export { SalaMundo } from "./mundo/sala";
 
 export interface Env {
   DB: D1Database;
@@ -15,6 +23,14 @@ export interface Env {
   LUKA_PUBLIC_KEY: string;
   MIKU_COLOR: string;
   LUKA_COLOR: string;
+  /** Trivia multijugador (Actividad de Discord de Teto): salas, id y secreto de la app de Teto. */
+  SALAS: DurableObjectNamespace;
+  /** Prototipo del mundo 3D: una plaza por instancia. */
+  MUNDOS: DurableObjectNamespace;
+  TETO_CLIENT_ID?: string;
+  TETO_CLIENT_SECRET?: string;
+  /** "1" solo en `wrangler dev`: deja entrar Papus de prueba sin Discord. */
+  ACTIVIDAD_PRUEBA?: string;
 }
 
 function d1Sql(db: D1Database): Sql {
@@ -43,6 +59,8 @@ export default {
   async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
     const url = new URL(request.url);
     if (request.method === "GET" && url.pathname === "/") return new Response("Papus bots: en línea ✨");
+    const act = (await mundo(request, env)) ?? (await actividad(request, env));
+    if (act) return act;
     const m = /^\/interactions\/(miku|luka)$/.exec(url.pathname);
     if (request.method !== "POST" || !m) return new Response("No encontrado", { status: 404 });
     const bot = m[1] as BotKey;

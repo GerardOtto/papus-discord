@@ -98,6 +98,27 @@ describe("RuleSet: tolerancia media", () => {
   });
 });
 
+describe("RuleSet: maltrato y exclusión (parche del 11 nov. 2026)", () => {
+  it("desearle a otro Papu que lo aborten es maltrato en todos los canales, también en #general (caso real)", () => {
+    expect(check("Voy a decirle a tu mamita que te ab0rte", { freeLanguage: true })).toBe("maltrato");
+    expect(check("debieron abortarte", { freeLanguage: true })).toBe("maltrato");
+    expect(check("nadie te quiere aquí")).toBe("maltrato");
+    expect(check("ojalá no hubieras nacido", { freeLanguage: true })).toBe("maltrato");
+  });
+
+  it("hablar del aborto como tema o de uno mismo no cuenta", () => {
+    for (const t of ["el aborto es un tema delicado", "hay que abortar la misión", "vi un debate sobre abortar temas", "nadie me quiere xd", "me ignoró ve"])
+      expect(check(t, { freeLanguage: true }), t).toBeNull();
+  });
+
+  it("pedir que ignoren o saquen a alguien es exclusión (solo toque), también en #general", () => {
+    expect(check("ignórenlo", { freeLanguage: true })).toBe("exclusion");
+    expect(check("no lo pelen chat", { freeLanguage: true })).toBe("exclusion");
+    expect(check("hagamos como que no existe")).toBe("exclusion");
+    expect(check("mute a raptor jaja", { freeLanguage: true })).toBeNull();
+  });
+});
+
 describe("RuleSet: datos personales, invitaciones y estafas", () => {
   it.each(["mi cel es 55 1234 5678", "llámame al +56 9 8765 4321", "5512345678", "escríbeme a papu.miku@gmail.com"])(
     "en el chat, teléfonos y correos pasan (decisión de GyroP): %s",

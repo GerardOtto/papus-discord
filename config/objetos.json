@@ -1,5 +1,5 @@
 {
-  "$comment": "Objetos de las Shaula-coins (docs/PLAN.md §3.6). tipo = fondo, borde, barra, nombre, aro, insignia o titulo. origen: 'arte' = dibujado con código (src/coins/arte.ts; se compra con cualquier moneda) o 'render' = imagen de Diva-a-Render en assets/coleccion/<imagen> (solo con monedas ganadas: los renders son de uso personal no comercial). rareza 'mitica' sale solo en sobres; 'fundador' solo se regala a los fundadores y 'membresia' a quienes tienen ese rol de Ko-fi (config/monedas.json). 'limitado' = días del año (MM-DD, hora de Chile) en que puede salir en vitrinas y sobres. Para agregar objetos de una temporada nueva: sumarlos aquí con su 'temporada'.",
+  "$comment": "Objetos de las Shaula-coins (docs/PLAN.md §3.6). tipo = fondo, borde, barra, nombre, aro, insignia o titulo. origen: 'arte' = dibujado con código (src/coins/arte.ts; se compra con cualquier moneda) o 'render' = imagen de Diva-a-Render en assets/coleccion/<imagen> (solo con monedas ganadas: los renders son de uso personal no comercial). rareza 'mitica' sale solo en sobres; 'fundador' solo se regala a los fundadores y 'membresia' a quienes tienen ese rol de Ko-fi (config/monedas.json); 'contrabando' solo se compra en el mercado negro (config/mercado.json, temporada 'mercado': nunca en vitrinas ni sobres, no se fabrica). 'limitado' = días del año (MM-DD, hora de Chile) en que puede salir en vitrinas y sobres. Para agregar objetos de una temporada nueva: sumarlos aquí con su 'temporada'.",
   "temporadas": [
     {
       "id": "t1",
@@ -801,6 +801,36 @@
       "imagen": "insignias/membresia-triple-baka.png",
       "descripcion": "Insignia permanente de quienes tienen (o tuvieron) la membresía Triple Baka en Ko-fi. Nunca se vende ni sale en sobres.",
       "temporada": "t1"
+    },
+    {
+      "id": "insignia-ban-shaula",
+      "nombre": "Ban de Shaula (réplica)",
+      "tipo": "insignia",
+      "rareza": "contrabando",
+      "origen": "arte",
+      "valor": "🚫",
+      "descripcion": "Réplica del primer ban del servidor. Solo en el mercado negro (con monedas ganadas).",
+      "temporada": "mercado"
+    },
+    {
+      "id": "titulo-caos",
+      "nombre": "Caos fue baneado, yo no",
+      "tipo": "titulo",
+      "rareza": "contrabando",
+      "origen": "arte",
+      "valor": "Caos fue baneado, yo no",
+      "descripcion": "Frase bajo tu nombre. Solo en el mercado negro (con monedas ganadas).",
+      "temporada": "mercado"
+    },
+    {
+      "id": "titulo-lucho",
+      "nombre": "Lucho no llegó tan lejos",
+      "tipo": "titulo",
+      "rareza": "contrabando",
+      "origen": "arte",
+      "valor": "Lucho no llegó tan lejos",
+      "descripcion": "Frase bajo tu nombre. Solo en el mercado negro (con monedas ganadas).",
+      "temporada": "mercado"
     }
   ]
 }

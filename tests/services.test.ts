@@ -265,6 +265,42 @@ describe("ModerationService", () => {
     expect(port.logs).toEqual([{ kind: "advertencia de GyroP", action: "sin borrar · advertencia 1 de 3", activeStrikes: 0 }]);
   });
 
+  it("maltrato: advertencia automática de Neru respondiendo al mensaje, sin borrar, también en #general", async () => {
+    const { svc, port, advance } = modSetup();
+    expect((await svc.handle(msg("voy a decirle a tu mamita que te ab0rte", { messageId: "m1", freeLanguage: true })))?.kind).toBe("maltrato");
+    expect(port.said[0]).toContain("<@papu>");
+    expect(port.said[0]).toContain("**advertencia 1 de 3**");
+    expect(port.replies[0]).toBe("m1");
+    expect(port.deleted).toEqual([]);
+    expect(port.timeouts).toEqual([]);
+    expect(port.logs[0]).toMatchObject({ kind: "advertencia de Neru", action: "sin borrar · advertencia 1 de 3" });
+    // Una frase partida en dos mensajes seguidos cuenta una vez.
+    expect(await svc.handle(msg("debieron abortarte", { freeLanguage: true }))).toBeNull();
+    advance(61_000);
+    await svc.handle(msg("debieron abortarte", { freeLanguage: true }));
+    expect(port.said[1]).toContain("**advertencia 2 de 3**");
+  });
+
+  it("exclusión: toque público sin sanción, una vez cada 30 min, y queda en #moderación", async () => {
+    const { svc, port, strikes, advance } = modSetup();
+    expect((await svc.handle(msg("no lo pelen", { messageId: "m1", freeLanguage: true })))?.kind).toBe("exclusion");
+    expect(port.said).toHaveLength(1);
+    expect(port.replies[0]).toBe("m1");
+    expect(port.deleted).toEqual([]);
+    expect(strikes.active("papu", 0)).toBe(0);
+    expect(port.logs[0]?.kind).toBe("exclusion");
+    expect(await svc.handle(msg("ignórenlo", { freeLanguage: true }))).toBeNull();
+    advance(30 * 60_000);
+    await svc.handle(msg("ignórenlo", { freeLanguage: true }));
+    expect(port.said).toHaveLength(2);
+  });
+
+  it("GyroP queda exento del maltrato y la exclusión", async () => {
+    const { svc, port } = modSetup();
+    expect(await svc.handle(msg("ignórenlo", { authorId: "gyrop" }))).toBeNull();
+    expect(port.said).toEqual([]);
+  });
+
   it("tres advertencias en 3 días = 1 machetazo (borra el mensaje de la tercera); las vencidas no cuentan", async () => {
     const { svc, port, strikes, advance } = modSetup();
     await svc.warn({ userId: "papu", channelId: "c", messageId: "m1" });

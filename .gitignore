@@ -10,3 +10,6 @@ data/
 assets/trivia/audio/
 # Imagenes de las preguntas generadas de la trivia (npm run trivia:imagenes, desde las del motor). nube subir las copia.
 assets/trivia/imagenes/
+
+# Trivia multijugador: pagina armada y archivos de las preguntas (npm run actividad; audio con copyright).
+worker/public/

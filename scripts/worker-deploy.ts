@@ -72,12 +72,25 @@ writeFileSync(tomlPath, readFileSync(tomlPath, "utf8").replace(/database_id = "[
 wrangler(["d1", "execute", "papus", "--remote", "--file=schema.sql", "--yes"]);
 console.log("✔ esquema de la base aplicado");
 
-// 4) Claves publicas de las apps (para verificar las firmas) y despliegue.
+// 4) Trivia multijugador (Actividad de Discord de Teto): pool de preguntas, sus archivos y la pagina (worker/public/).
+const act = spawnSync("npm", ["run", "-s", "actividad"], { cwd: ROOT, shell: true, encoding: "utf8" });
+if (act.status !== 0) throw new Error(`npm run actividad falló:
+${`${act.stdout ?? ""}${act.stderr ?? ""}`.slice(-1500)}`);
+console.log(act.stdout.trim());
+// Prototipo del mundo 3D de los Papus (worker/public/mundo/).
+const mun = spawnSync("npm", ["run", "-s", "mundo"], { cwd: ROOT, shell: true, encoding: "utf8" });
+if (mun.status !== 0) throw new Error(`npm run mundo falló:
+${`${mun.stdout ?? ""}${mun.stderr ?? ""}`.slice(-1500)}`);
+console.log(mun.stdout.trim());
+
+// 5) Claves publicas de las apps (para verificar las firmas) y despliegue.
 const app = async (token: string) =>
   (await new REST().setToken(token).get(Routes.currentApplication())) as { id: string; verify_key: string };
 const miku = await app(config.tokens.miku);
 const luka = await app(config.tokens.luka);
+const teto = await app(config.tokens.teto);
 const vars: Record<string, string> = {
+  TETO_CLIENT_ID: teto.id,
   GUILD_ID: config.guildId,
   OWNER_ID: OWNER,
   MIKU_PUBLIC_KEY: miku.verify_key,
@@ -89,22 +102,24 @@ const deployOut = wrangler(["deploy", ...Object.entries(vars).flatMap(([k, v]) =
 const url = /https:\/\/[^\s]+\.workers\.dev/.exec(deployOut)?.[0] ?? `https://papus-bots.${subdomain}.workers.dev`;
 console.log(`✔ worker desplegado: ${url}`);
 
-// 5) Secretos (tokens de Discord), via archivo temporal que se borra al instante.
+// 6) Secretos (tokens de Discord y el secreto OAuth de Teto para la Actividad), via archivo temporal que se borra al instante.
 const tmp = mkdtempSync(path.join(os.tmpdir(), "papus-secrets-"));
 try {
   const f = path.join(tmp, "s.json");
-  writeFileSync(f, JSON.stringify({ MIKU_TOKEN: config.tokens.miku, LUKA_TOKEN: config.tokens.luka }));
+  const tetoSecret = process.env.TETO_CLIENT_SECRET?.trim();
+  writeFileSync(f, JSON.stringify({ MIKU_TOKEN: config.tokens.miku, LUKA_TOKEN: config.tokens.luka, ...(tetoSecret ? { TETO_CLIENT_SECRET: tetoSecret } : {}) }));
+  if (!tetoSecret) console.log("⚠ falta TETO_CLIENT_SECRET en .env: la trivia multijugador no podrá identificar a los Papus (ver README).");
   wrangler(["secret", "bulk", f]);
 } finally {
   rmSync(tmp, { recursive: true, force: true });
 }
 console.log("✔ tokens guardados como secretos del worker");
 
-// 6) Comprobacion de que responde.
+// 7) Comprobacion de que responde.
 const health = await fetch(url).then((r) => r.text()).catch((e: Error) => e.message);
 console.log(`✔ el worker responde: "${health}"`);
 
-// 7) Comandos de Miku y Luka, y sus apps conectadas al worker (Discord manda un PING para verificarlo).
+// 8) Comandos de Miku y Luka, y sus apps conectadas al worker (Discord manda un PING para verificarlo).
 for (const [bot, token, id] of [["miku", config.tokens.miku, miku.id], ["luka", config.tokens.luka, luka.id]] as const) {
   const rest = new REST().setToken(token);
   await rest.put(Routes.applicationGuildCommands(id, config.guildId), { body: commandsFor(bot, cast) });
@@ -112,7 +127,7 @@ for (const [bot, token, id] of [["miku", config.tokens.miku, miku.id], ["luka", 
   console.log(`✔ ${bot}: comandos registrados y conectados al worker`);
 }
 
-// 8) El tablero viejo que creo el programa del PC (ahora lo maneja el worker).
+// 9) El tablero viejo que creo el programa del PC (ahora lo maneja el worker).
 const db = openDb(path.join(config.dataDir, "papus.sqlite"));
 const oldBoard = kvGet(db, "tablero_cola");
 if (oldBoard) {

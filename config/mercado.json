@@ -1,0 +1,195 @@
+{
+  "$comment": "Mercado negro (docs/PLAN.md §3.9; pedido de GyroP, 9 nov. 2026). Abre una sola vez al día, durante 'horario.minutos', a una hora sorpresa (en punto) entre 'horario.desde' y 'horario.hasta' (sin incluirla) en la zona 'zona'. La hora sale de la fecha y 'semilla' (cambiar la semilla cambia todas las horas). Lo atiende Neru en el canal 'canal' (si no existe, en 'respaldo') y etiqueta el rol del aviso 'mercado' de #tus-roles (config/servidor.json -> avisosPapu: 🕶️ Traficante). SOLO MONEDAS GANADAS: las compradas no entran (nada pagado da cuota ni XP, regla 1; varios objetos reinician la cuota o ayudan en la ruleta y la trivia, que dan XP). Excepción a la regla 1 como la ruleta y las bodas: se gana participando. Cambiar algo aquí no requiere tocar código; se aplica al reiniciar.",
+  "activo": true,
+  "canal": "tienda-shaula",
+  "respaldo": "general",
+  "zona": "America/Mexico_City",
+  "semilla": "papus-mercado-1",
+  "horario": {
+    "desde": 12,
+    "hasta": 23,
+    "minutos": 60
+  },
+  "$vitrina": "Objetos a la venta en cada apertura (pedido de GyroP, 9 nov. 2026: tienda rotativa de 5, en un banner con podios y un botón debajo de cada uno). Rotan cada día: en ceil(objetos / vitrina) días salen todos al menos una vez (src/mercado/rules.ts: vitrinaDe). Máximo 5 (una fila de botones de Discord).",
+  "vitrina": 5,
+  "$objetos": "efecto: 'atun' (ruleta: descartar el premio y girar otra vez, hasta 'giros' veces en ese giro; cada uso = un giro distinto), 'baguette' (trivia: seguir la partida tras un error o tiempo agotado, hasta 'vidas' veces en una partida; cada uso = una partida distinta; 'espera' = segundos para decidir), 'celular' (trivia: borra dos opciones incorrectas de una pregunta; cada uso = una pregunta), 'seguro' (1vs1: asegura una apuesta; si pierde, se le devuelve completa; si la pelea se cancela, vuelve el uso), 'helado' (el próximo sobre trae 'extra' objetos más; se usa solo al abrirlo), 'microfono' (ese día la misión de voz de la ruleta pide 'vozMinutos'; se activa desde /consumibles), 'regalo' (le da una tirada de la ruleta de hoy a otro Papu; desde /consumibles), 'luna' (por 'dias' días, la XP de los mensajes que contesta un Vocaloid vale el triple; desde /consumibles), 'sake' (pista privada de la adivinanza de boda abierta: palabras y letras), 'zanahoria' (en /trivia elige el tema de la siguiente pregunta), 'doblehelado' (convierte un sobre común regalado en uno raro), 'guitarra' (en /trivia, el resto de esa partida da el doble de XP, con el mismo tope), 'disquete' (para siempre: las tiradas de la ruleta no usadas se guardan para los días siguientes), 'machete' (para siempre: /machetear de Neru, machetazos de mentira; 'espera' = segundos entre uno y otro), 'pc' (reinicia la cuota del día, las tiradas de la ruleta, las partidas con XP y el tope de la trivia y el tope de monedas por actividad, sin quitar nada de lo ganado), 'rol' (rol de adorno para siempre; 'rol' y 'color') y 'objeto' (adorno de la tarjeta de config/objetos.json, rareza 'contrabando'). usos = cuántas veces sirve cada compra (se suman si compras otro). precio = Shaula-coins ganadas. Precios según lo que gana un Papu (PLAN §3.6: ~125 al día un Papu activo, 215-245 el 10 % más activo, ~1.000 el mejor día con apuestas): un consumible cuesta semanas o meses de participar, a propósito.",
+  "objetos": [
+    {
+      "id": "atun-luka",
+      "nombre": "Atún de Luka",
+      "emoji": "🐟",
+      "efecto": "atun",
+      "precio": 7500,
+      "usos": 3,
+      "giros": 2,
+      "descripcion": "Al girar la ruleta, si no te gusta el premio lo descartas y vuelves a girar (hasta 2 veces en ese giro). Sirve en 3 giros distintos; después se acaba."
+    },
+    {
+      "id": "baguette-teto",
+      "nombre": "Baguette de Teto",
+      "emoji": "🥖",
+      "efecto": "baguette",
+      "precio": 6000,
+      "usos": 5,
+      "vidas": 2,
+      "espera": 20,
+      "descripcion": "Si fallas en /trivia (o se te acaba el tiempo), sigues jugando con tu racha, hasta 2 veces en la misma partida. Sirve en 5 partidas distintas; después se acaba."
+    },
+    {
+      "id": "celular-neru",
+      "nombre": "Celular de Neru",
+      "emoji": "📱",
+      "efecto": "celular",
+      "precio": 3000,
+      "usos": 10,
+      "descripcion": "En una pregunta de opciones de /trivia, Neru te sopla por chat y borra dos respuestas incorrectas. 10 usos."
+    },
+    {
+      "id": "seguro-gakupo",
+      "nombre": "Seguro de Gakupo",
+      "emoji": "🍆",
+      "efecto": "seguro",
+      "precio": 4000,
+      "usos": 5,
+      "descripcion": "En el 1vs1, aseguras tu apuesta: si tu Vocaloid pierde, Gakupo te devuelve todo lo apostado. Un uso por pelea; 5 usos."
+    },
+    {
+      "id": "helado-kaito",
+      "nombre": "Helado de Kaito",
+      "emoji": "🍦",
+      "efecto": "helado",
+      "precio": 3500,
+      "usos": 3,
+      "extra": 1,
+      "descripcion": "El próximo sobre que abras (de cualquier clase) trae 1 objeto más. Se usa solo; sirve en 3 sobres."
+    },
+    {
+      "id": "microfono-meiko",
+      "nombre": "Micrófono de Meiko",
+      "emoji": "🎤",
+      "efecto": "microfono",
+      "precio": 2500,
+      "usos": 5,
+      "vozMinutos": 60,
+      "descripcion": "Por un día, la misión de voz de la ruleta pide 1 h en vez de 2. Se activa desde /consumibles; 5 días."
+    },
+    {
+      "id": "regalo-rin-len",
+      "nombre": "Naranja y plátano de Rin y Len",
+      "emoji": "🍊",
+      "efecto": "regalo",
+      "precio": 3000,
+      "usos": 3,
+      "descripcion": "Le regalas una tirada de la ruleta de hoy a otro Papu (Teto lo anuncia). Se usa desde /consumibles; 3 regalos."
+    },
+    {
+      "id": "luna-ia",
+      "nombre": "Luna de IA",
+      "emoji": "🌙",
+      "efecto": "luna",
+      "precio": 9000,
+      "usos": 1,
+      "dias": 14,
+      "descripcion": "Por 2 semanas, los mensajes que te contesta un Vocaloid (tu cuota) dan el triple de XP. Se activa desde /consumibles."
+    },
+    {
+      "id": "sake-haku",
+      "nombre": "Sake de Haku",
+      "emoji": "🍶",
+      "efecto": "sake",
+      "precio": 2000,
+      "usos": 5,
+      "descripcion": "Con una adivinanza de boda abierta, Haku te dice en secreto cuántas palabras y letras tiene la respuesta. 5 usos."
+    },
+    {
+      "id": "zanahoria-gumi",
+      "nombre": "Zanahoria de Gumi",
+      "emoji": "🥕",
+      "efecto": "zanahoria",
+      "precio": 2500,
+      "usos": 10,
+      "descripcion": "En /trivia, eliges el tema de la siguiente pregunta (canciones, personajes, imágenes, audio…). 10 usos."
+    },
+    {
+      "id": "doble-helado-kaito",
+      "nombre": "Doble helado de Kaito",
+      "emoji": "🍨",
+      "efecto": "doblehelado",
+      "precio": 4500,
+      "usos": 3,
+      "descripcion": "Convierte un sobre común regalado en un sobre raro (con Épica segura). Desde /consumibles; 3 usos."
+    },
+    {
+      "id": "guitarra-flower",
+      "nombre": "Guitarra de flower",
+      "emoji": "🎸",
+      "efecto": "guitarra",
+      "precio": 5000,
+      "usos": 5,
+      "descripcion": "En /trivia, desde que la tocas, los aciertos de esa partida dan el doble de XP (con el mismo tope del día). 5 partidas."
+    },
+    {
+      "id": "pc-adachi-rei",
+      "nombre": "PC de Adachi Rei",
+      "emoji": "💻",
+      "efecto": "pc",
+      "precio": 30000,
+      "usos": 3,
+      "descripcion": "Reinicia tu día: cuota con los Vocaloids, tiradas de la ruleta, partidas con XP y tope de la trivia, y el tope de Shaula-coins por actividad. No te quita nada de lo que ya ganaste. 3 usos; se usa desde /consumibles."
+    },
+    {
+      "id": "disquete-adachi-rei",
+      "nombre": "Disquete de Adachi Rei",
+      "emoji": "💾",
+      "efecto": "disquete",
+      "precio": 25000,
+      "descripcion": "Para siempre: las tiradas de la ruleta que no uses ya no se pierden a medianoche; se guardan para los días siguientes."
+    },
+    {
+      "id": "machete-neru",
+      "nombre": "Machete de Neru",
+      "emoji": "🔪",
+      "efecto": "machete",
+      "precio": 15000,
+      "espera": 600,
+      "descripcion": "Para siempre: con /machetear le das machetazos de mentira a quien quieras (no cuentan ni quitan nada). Uno cada 10 min."
+    },
+    {
+      "id": "triple-baka-pirata",
+      "nombre": "Rol Triple Baka Pirata",
+      "emoji": "🏴‍☠️",
+      "efecto": "rol",
+      "rol": "🏴‍☠️ Triple Baka Pirata",
+      "color": "#2B2B2B",
+      "precio": 1000000,
+      "descripcion": "Copia pirata del rol Triple Baka: solo el nombre y el color en tu perfil, para siempre. No es la membresía de Ko-fi (no da videos ni monedas)."
+    },
+    {
+      "id": "insignia-ban-shaula",
+      "nombre": "Ban de Shaula (réplica)",
+      "emoji": "🚫",
+      "efecto": "objeto",
+      "objeto": "insignia-ban-shaula",
+      "precio": 4444,
+      "descripcion": "Insignia para tu tarjeta: réplica del primer ban del servidor. Shaula no lo pudo esquivar; tú lo llevas de adorno."
+    },
+    {
+      "id": "titulo-caos",
+      "nombre": "Título «Caos fue baneado, yo no»",
+      "emoji": "🌀",
+      "efecto": "objeto",
+      "objeto": "titulo-caos",
+      "precio": 6666,
+      "descripcion": "Título bajo tu nombre en la tarjeta, para presumir que sigues aquí."
+    },
+    {
+      "id": "titulo-lucho",
+      "nombre": "Título «Lucho no llegó tan lejos»",
+      "emoji": "🪦",
+      "efecto": "objeto",
+      "objeto": "titulo-lucho",
+      "precio": 5555,
+      "descripcion": "Título bajo tu nombre en la tarjeta. Lucho no lo pudo comprar: lo banearon antes."
+    }
+  ]
+}

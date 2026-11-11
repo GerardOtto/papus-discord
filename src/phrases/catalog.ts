@@ -16,7 +16,7 @@ const WEDDING_GROUPS = ["boda_adivinanza", "boda_acierto", "boda_desierta", "bod
 
 /** Grupos obligatorios por bot (PLAN §6 + los que usa el codigo). */
 const BASE_GROUPS: Record<BotId, string[]> = {
-  teto: ["bienvenida", "bienvenida_grupal", "cumpleanos", "ya_volvi", "vitrina_nuevo", "sube_rango", "papu_de_honor", "nivel_maximo", "prestigio", "ranking", "ruleta_premio", "ruleta_mision", "sorteo_ganador", "pelea_anuncio", "pelea_ganador", "monedas_llegaron", "sobre_legendario", "sobre_abierto", "trivia_racha", "trivia_racha_libre", "trivia_cero", "cuota_agotada", "cola_llena", "sin_api", ...PRIVATE_GROUPS, ...PRESENCE_GROUPS],
+  teto: ["bienvenida", "bienvenida_grupal", "cumpleanos", "ya_volvi", "vitrina_nuevo", "sube_rango", "papu_de_honor", "nivel_maximo", "prestigio", "ranking", "ruleta_premio", "ruleta_mision", "ruleta_regalo", "sorteo_ganador", "pelea_anuncio", "pelea_ganador", "monedas_llegaron", "sobre_legendario", "sobre_abierto", "trivia_racha", "trivia_racha_libre", "trivia_cero", "intercambio_hecho", "cuota_agotada", "cola_llena", "sin_api", ...PRIVATE_GROUPS, ...PRESENCE_GROUPS],
   miku: [
     "votacion_abierta",
     "vitrina_nueva",
@@ -51,6 +51,10 @@ const BASE_GROUPS: Record<BotId, string[]> = {
     "flood",
     "resumen_despertar",
     "apoyo",
+    "maltrato",
+    "exclusion",
+    "mercado_abre",
+    "machetazo_ficticio",
     "cuota_agotada",
     "cola_llena",
     "sin_api",
@@ -81,6 +85,7 @@ export const REQUIRED_FIELDS: Record<string, string[]> = {
   "teto.cumpleanos": ["papu"],
   "teto.ruleta_premio": ["papu", "premio"],
   "teto.ruleta_mision": ["papu", "mision"],
+  "teto.ruleta_regalo": ["papu", "de"],
   "teto.sorteo_ganador": ["papu", "premio"],
   "teto.pelea_anuncio": ["texto"],
   "teto.pelea_ganador": ["ganador"],
@@ -91,6 +96,7 @@ export const REQUIRED_FIELDS: Record<string, string[]> = {
   "teto.trivia_racha": ["papu", "racha", "xp"],
   "teto.trivia_racha_libre": ["papu", "racha"],
   "teto.trivia_cero": ["papu"],
+  "teto.intercambio_hecho": ["de", "papu"],
   "miku.votacion_abierta": ["tema"],
   "miku.vitrina_votacion": ["tema"],
   "teto.vitrina_nuevo": ["canal", "nivel"],
@@ -109,6 +115,10 @@ export const REQUIRED_FIELDS: Record<string, string[]> = {
   "neru.silencio_1440": ["papu"],
   "neru.resumen_despertar": ["n"],
   "neru.apoyo": ["papu"],
+  "neru.maltrato": ["papu"],
+  "neru.exclusion": ["papu"],
+  "neru.mercado_abre": ["cierra"],
+  "neru.machetazo_ficticio": ["papu", "de"],
   "teto.sube_rango": ["papu", "nivel", "rango"],
   "teto.papu_de_honor": ["papu"],
   "teto.nivel_maximo": ["papu"],

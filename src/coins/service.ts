@@ -3,8 +3,10 @@
 // Todo el estado vive en SQLite (migración 10). Sin Discord: src/discord/tienda.ts es el menú del canal.
 import { transaction, type Db } from "../db/database";
 import type { LevelChange } from "../levels/service";
+import { reinicioDe } from "../mercado/reinicios";
 import { dayKey } from "../time";
 import {
+  activityCoins,
   addDays,
   dayEarnings,
   ecosFor,
@@ -68,6 +70,8 @@ export interface SobreResult {
   ecos: number;
   gratis: boolean;
   tipo: TipoSobre;
+  /** Objetos de más por el Helado de Kaito (0 sin él). */
+  helado: number;
   wallet: Wallet;
 }
 
@@ -79,7 +83,9 @@ export interface CoinServiceDeps {
   catalog: Objeto[];
   timeZone: string;
   /** Misiones de la ruleta de ese día: cumplidas y en total (src/ruleta/rules.ts: missions); sin ruleta, 0 y 0. */
-  missions?: (stats: { vozMin: number; mensajes: number; subio: boolean; castigo: boolean }) => { done: number; total: number };
+  missions?: (stats: { vozMin: number; mensajes: number; subio: boolean; castigo: boolean }, userId: string, day: string) => { done: number; total: number };
+  /** Helado de Kaito del mercado negro: el próximo sobre trae `extra` objetos más (se gasta un uso al abrirlo). */
+  helado?: { extra: number; usos(userId: string): number; consume(userId: string): boolean };
   now?: () => number;
   rnd?: () => number;
 }
@@ -168,8 +174,20 @@ export class CoinService {
       if (!m) break;
       run++;
     }
-    const m = this.d.missions?.(stats) ?? { done: 0, total: 0 };
-    return { xp: x.xp, mensajes: x.mensajes, vozMin: x.voz_min, castigo: !!x.castigo, misiones: m.done, misionesTotal: m.total, bodas, racha: run > 0 && run % 7 === 0 };
+    const m = this.d.missions?.(stats, userId, day) ?? { done: 0, total: 0 };
+    // PC de Adachi Rei (mercado negro): el tope de actividad vuelve a empezar desde que lo usó.
+    const r = reinicioDe(this.d.db, userId, day);
+    return {
+      xp: x.xp,
+      mensajes: x.mensajes,
+      vozMin: x.voz_min,
+      castigo: !!x.castigo,
+      misiones: m.done,
+      misionesTotal: m.total,
+      bodas,
+      racha: run > 0 && run % 7 === 0,
+      ...(r.veces ? { reinicio: { xp: r.monedasXp, previa: r.monedasPrevia } } : {}),
+    };
   }
 
   /**
@@ -255,6 +273,35 @@ export class CoinService {
     });
   }
 
+  /** Conecta el Helado de Kaito (el mercado negro se crea despues de la tienda). */
+  useHelado(port: NonNullable<CoinServiceDeps["helado"]>): void {
+    this.d.helado = port;
+  }
+
+  /** Usos del Helado de Kaito que le quedan (0 sin mercado). */
+  heladoUsos(userId: string): number {
+    return this.d.helado?.usos(userId) ?? 0;
+  }
+
+  /** Monedas por actividad que lleva hoy (sin bonos) y la XP del día: lo que guarda el PC de Adachi Rei al reiniciar. */
+  activityToday(userId: string, t = this.now()): { xp: number; actividad: number } {
+    const day = this.day(t);
+    const a = this.activity(userId, day);
+    return { xp: a.xp, actividad: activityCoins(this.d.settings, a) };
+  }
+
+  /** Da un objeto (adornos del mercado negro). Devuelve false si ya lo tenía. */
+  grant(userId: string, objetoId: string, origen: string): boolean {
+    if (!this.byId.has(objetoId)) throw new Error(`objeto desconocido: ${objetoId}`);
+    return this.give(userId, objetoId, origen);
+  }
+
+  /** Doble helado de Kaito (mercado negro): un sobre común regalado pasa a ser raro. False si no tiene comunes. */
+  upgradeSobre(userId: string): boolean {
+    this.row(userId);
+    return this.d.db.prepare("UPDATE monedero SET gratis = gratis - 1, gratis_raro = gratis_raro + 1 WHERE user_id = ? AND gratis > 0").run(userId).changes > 0;
+  }
+
   /** Regala sobres gratis de una clase (casilla de la ruleta: comunes; premios de la trivia: raros y legendarios). */
   giveSobres(userId: string, tipo: TipoSobre, n = 1): void {
     if (n <= 0) return;
@@ -275,7 +322,9 @@ export class CoinService {
       const col = GRATIS_COL[tipo];
       if (gratis ? r[col] < 1 : r.ganadas < precio!) return { ok: false as const, motivo: gratis ? "No tienes sobres gratis." : "no_alcanza" };
       const pool = sobrePool(this.d.catalog, this.d.settings.temporada.id, this.day());
-      const rolled = rollSobre(this.d.settings, pool, { sinEpica: r.sin_epica, sinLegendaria: r.sin_leg }, this.rnd, tipo);
+      // Helado de Kaito: si le queda uno, este sobre trae objetos de más (y se gasta).
+      const helado = this.d.helado && this.d.helado.usos(userId) > 0 && this.d.helado.consume(userId) ? this.d.helado.extra : 0;
+      const rolled = rollSobre(this.d.settings, pool, { sinEpica: r.sin_epica, sinLegendaria: r.sin_leg }, this.rnd, tipo, helado);
       if (gratis) this.d.db.prepare(`UPDATE monedero SET ${col} = ${col} - 1 WHERE user_id = ?`).run(userId);
       else this.add(userId, "ganadas", -precio!, tipo === "comun" ? "sobre" : `sobre ${tipo}`);
       this.d.db.prepare("UPDATE monedero SET sobres = sobres + 1, sin_epica = ?, sin_leg = ? WHERE user_id = ?").run(rolled.pity.sinEpica, rolled.pity.sinLegendaria, userId);
@@ -287,7 +336,7 @@ export class CoinService {
         return { objeto, nuevo, ecos: e };
       });
       this.add(userId, "ecos", ecos, "repetidos");
-      return { objetos, ecos, gratis, tipo, wallet: this.wallet(userId) };
+      return { objetos, ecos, gratis, tipo, helado, wallet: this.wallet(userId) };
     });
   }
 
@@ -452,6 +501,46 @@ export class CoinService {
       if (this.row(userId).ganadas < cantidad) return null;
       this.add(userId, "ganadas", -cantidad, motivo);
       return this.wallet(userId);
+    });
+  }
+
+  // ───────────────────────── intercambios (src/intercambios/) ─────────────────────────
+
+  /** Pasa monedas de un bolsillo de un Papu al mismo bolsillo de otro. False si no le alcanzan (y no mueve nada). */
+  transfer(fromId: string, toId: string, bolsillo: "ganadas" | "compradas", cantidad: number, motivo: string): boolean {
+    if (cantidad <= 0) return true;
+    return transaction(this.d.db, () => {
+      if (this.row(fromId)[bolsillo] < cantidad) return false;
+      this.add(fromId, bolsillo, -cantidad, motivo);
+      this.add(toId, bolsillo, cantidad, motivo);
+      return true;
+    });
+  }
+
+  /** Sobres regalados por abrir de una clase. */
+  sobresGratis(userId: string, tipo: TipoSobre): number {
+    return this.row(userId)[GRATIS_COL[tipo]];
+  }
+
+  /** Pasa sobres regalados de un Papu a otro. False si no tiene tantos. */
+  transferSobres(fromId: string, toId: string, tipo: TipoSobre, n: number): boolean {
+    if (n <= 0) return true;
+    const col = GRATIS_COL[tipo];
+    return transaction(this.d.db, () => {
+      this.row(fromId);
+      if (!this.d.db.prepare(`UPDATE monedero SET ${col} = ${col} - ? WHERE user_id = ? AND ${col} >= ?`).run(n, fromId, n).changes) return false;
+      this.giveSobres(toId, tipo, n);
+      return true;
+    });
+  }
+
+  /** Pasa un objeto de la colección (se le desequipa al que lo entrega). False si no lo tiene o el otro ya lo tiene. */
+  transferObjeto(fromId: string, toId: string, objetoId: string, origen: string): boolean {
+    return transaction(this.d.db, () => {
+      if (!this.owned(fromId).has(objetoId) || this.owned(toId).has(objetoId)) return false;
+      this.d.db.prepare("DELETE FROM inventario WHERE user_id = ? AND objeto_id = ?").run(fromId, objetoId);
+      this.d.db.prepare("DELETE FROM equipado WHERE user_id = ? AND objeto_id = ?").run(fromId, objetoId);
+      return this.give(toId, objetoId, origen);
     });
   }
 

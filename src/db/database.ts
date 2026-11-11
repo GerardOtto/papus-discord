@@ -275,6 +275,58 @@ const MIGRATIONS: string[] = [
      premios    INTEGER NOT NULL DEFAULT 0,
      PRIMARY KEY (user_id, dificultad)
    );`,
+  // 16: mercado negro (src/mercado/, pedido de GyroP, 9 nov. 2026). consumibles = usos que le quedan a cada Papu de
+  // cada objeto (config/mercado.json); mercado_registro = cada compra y cada uso (accion 'compra' o 'uso'); reinicios =
+  // lo que llevaba en el dia cuando uso el PC de Adachi Rei, para contar desde ahi: tiradas de la ruleta y partidas y XP
+  // de la trivia ya usadas, y la XP del dia y las monedas por actividad ya ganadas (el tope de actividad vuelve a empezar).
+  // apuestas.seguro = la aseguro con el Seguro de Gakupo (si pierde, se le devuelve completa).
+  `CREATE TABLE consumibles (
+     user_id TEXT NOT NULL,
+     objeto  TEXT NOT NULL,
+     usos    INTEGER NOT NULL DEFAULT 0,
+     PRIMARY KEY (user_id, objeto)
+   );
+   CREATE TABLE mercado_registro (
+     id      INTEGER PRIMARY KEY AUTOINCREMENT,
+     user_id TEXT NOT NULL,
+     objeto  TEXT NOT NULL,
+     accion  TEXT NOT NULL,
+     precio  INTEGER NOT NULL DEFAULT 0,
+     detalle TEXT,
+     at      INTEGER NOT NULL
+   );
+   CREATE TABLE reinicios (
+     user_id         TEXT NOT NULL,
+     day             TEXT NOT NULL,
+     veces           INTEGER NOT NULL DEFAULT 0,
+     ruleta          INTEGER NOT NULL DEFAULT 0,
+     trivia_partidas INTEGER NOT NULL DEFAULT 0,
+     trivia_xp       INTEGER NOT NULL DEFAULT 0,
+     monedas_xp      INTEGER NOT NULL DEFAULT 0,
+     monedas_previa  INTEGER NOT NULL DEFAULT 0,
+     PRIMARY KEY (user_id, day)
+   );
+   ALTER TABLE apuestas ADD COLUMN seguro INTEGER NOT NULL DEFAULT 0;`,
+  // 17: intercambios entre Papus (src/intercambios/, pedido de GyroP, 10 nov. 2026). Una fila por oferta: quien la
+  // hace (de), a quien (para; null = abierta), lo que entrega y lo que pide (JSON), su estado (abierta, hecha,
+  // rechazada, cancelada, vencida, contraofertada), la oferta a la que contesta (padre), quien la aceptó (con) y el
+  // anuncio en #centro-de-comercio.
+  `CREATE TABLE intercambios (
+     id         INTEGER PRIMARY KEY AUTOINCREMENT,
+     de         TEXT NOT NULL,
+     para       TEXT,
+     da         TEXT NOT NULL,
+     pide       TEXT NOT NULL,
+     estado     TEXT NOT NULL DEFAULT 'abierta',
+     padre      INTEGER,
+     con        TEXT,
+     creado_at  INTEGER NOT NULL,
+     vence_at   INTEGER NOT NULL,
+     cerrado_at INTEGER,
+     canal      TEXT,
+     mensaje    TEXT
+   );
+   CREATE INDEX intercambios_estado ON intercambios (estado, vence_at);`,
 ];
 
 export type Db = DatabaseSync;

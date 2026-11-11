@@ -21,13 +21,16 @@ import { logError, type LogFn } from "../log";
 import type { Phrases } from "../phrases/catalog";
 import type { DeckStore } from "../phrases/deck";
 import type { MissionId, MissionStatus } from "../ruleta/rules";
-import type { RouletteService, RouletteStatus, SpinResult } from "../ruleta/service";
+import type { Pending, RouletteService, RouletteStatus, SpinResult } from "../ruleta/service";
 import { renderWheelGif } from "../ruleta/wheel";
 import { findTextChannel } from "./channels";
 import type { LevelContext, LevelsDiscord } from "./levels";
 
 const ASSETS = path.resolve(import.meta.dirname, "../../assets/bots");
 const SPIN_ID = "ruleta:girar";
+/** Atun de Luka: quedarse el giro sorteado, o descartarlo y girar otra vez. */
+const KEEP_ID = "ruleta:quedar";
+const REROLL_ID = "ruleta:atun";
 const ICON: Record<MissionId, string> = { voz: "🎙️", mensajes: "💬", nivel: "🆙" };
 const fmt = (n: number) => new Intl.NumberFormat("es-CL").format(n);
 
@@ -53,6 +56,10 @@ export interface RuletaContext extends LevelContext {
 export class RuletaDiscord {
   /** Los GIF se dibujan de a uno (el servidor es chico): cada giro espera al anterior. */
   private queue: Promise<unknown> = Promise.resolve();
+  /** Un giro en Discord (la ruleta grande de la plaza tambien lo muestra). Lo conecta el mundo de los Papus. */
+  alGirar: ((userId: string, name: string, res: SpinResult) => void) | null = null;
+  /** Misiones recien cumplidas (la plaza le avisa que tiene tirada). Lo conecta el mundo de los Papus. */
+  alCumplir: ((userId: string, misiones: MissionStatus[], left: number) => void) | null = null;
 
   constructor(private readonly d: RuletaDiscordDeps) {}
 
@@ -68,14 +75,21 @@ export class RuletaDiscord {
       ? "🚫 Neru te dio un machetazo: sin ruleta por ahora."
       : st.left > 0
         ? `Tienes **${st.left} ${st.left === 1 ? "tirada" : "tiradas"}** para hoy. ¡Gira!`
-        : st.used >= st.missions.length
+        : st.used >= st.missions.length + st.regaladas + st.guardadas
           ? "¡Ya giraste todas las de hoy! Vuelven mañana."
           : "Cumple una misión y gana una tirada.";
+    // Mercado negro: Micrófono de Meiko activo y tiradas regaladas con la Naranja y el plátano de Rin y Len.
+    const extras = [
+      st.vozReducida ? "🎤 Micrófono de Meiko activo: hoy la misión de voz pide menos." : "",
+      st.guardadas ? `💾 Disquete de Adachi Rei: **${st.guardadas} ${st.guardadas === 1 ? "tirada guardada" : "tiradas guardadas"}** de días anteriores.` : "",
+      st.regaladas ? `🍊🍌 Hoy te regalaron **${st.regaladas} ${st.regaladas === 1 ? "tirada" : "tiradas"}** (Rin y Len).` : "",
+    ].filter(Boolean);
     const content = [
       "🎰 **Ruleta de los Papus**",
       head,
       "",
       ...lines,
+      ...(extras.length ? ["", ...extras] : []),
       "",
       `-# Una tirada por misión, hasta ${st.missions.length} al día; se reinician a medianoche (hora de Chile). Premios: XP, mensajes extra con los Vocaloids por hoy (con tu cuota llena, se vuelven XP) y sobres. El resultado sale público.`,
     ].join("\n");
@@ -89,20 +103,61 @@ export class RuletaDiscord {
   }
 
   async ruleta(i: ChatInputCommandInteraction): Promise<void> {
-    await i.reply({ ...this.panel(this.r.status(i.user.id)), flags: MessageFlags.Ephemeral });
+    const p = this.panel(this.r.status(i.user.id));
+    const atun = this.r.atun?.usos(i.user.id) ?? 0;
+    if (atun > 0) p.content += `\n-# 🐟 Tienes el Atún de Luka (${atun} ${atun === 1 ? "uso" : "usos"}): al girar, verás el premio antes que nadie y podrás descartarlo.`;
+    await i.reply({ ...p, flags: MessageFlags.Ephemeral });
   }
 
   // ───────────────────────── giro ─────────────────────────
 
+  /**
+   * Atun de Luka (mercado negro): el giro sale primero solo para el Papu, que decide si se queda el premio o lo descarta
+   * y gira otra vez (hasta `giros` veces en ese giro; el primer giro extra gasta un uso). El GIF publico muestra solo el
+   * premio final.
+   */
+  private choice(userId: string, p: Pending, header = ""): { content: string; components: ActionRowBuilder<ButtonBuilder>[] } {
+    const prize = this.r.settings.premios[p.index]!;
+    const atun = this.r.atun!;
+    const usos = atun.usos(userId);
+    const left = atun.giros - p.giros;
+    const can = left > 0 && (p.atun || usos > 0);
+    const why = left <= 0 ? "Ya usaste los giros extra de este giro: este premio es el tuyo." : p.atun ? `Te ${left === 1 ? "queda **1 giro extra**" : `quedan **${left} giros extra**`} en este giro (ya gastaste el uso del Atún).` : usos > 0 ? `Descartarlo gasta **1 uso** del Atún de Luka (te quedan ${usos}) y te da hasta ${atun.giros} giros extra en este giro.` : "Ya no te quedan usos del Atún de Luka.";
+    const content = [header, `🎰 **Te salió: ${prize.icono} ${prize.nombre}**`, "", `🐟 ${why}`, "-# Solo tú ves esto. Al quedártelo, el giro sale público en el canal."].filter(Boolean).join("\n");
+    const keep = new ButtonBuilder().setCustomId(KEEP_ID).setLabel("Me lo quedo").setEmoji("✅").setStyle(ButtonStyle.Success);
+    const again = new ButtonBuilder().setCustomId(REROLL_ID).setLabel(left > 0 ? `Descartar y girar otra vez (${left})` : "Sin giros extra").setEmoji("🐟").setStyle(ButtonStyle.Primary).setDisabled(!can);
+    return { content, components: [new ActionRowBuilder<ButtonBuilder>().addComponents(keep, again)] };
+  }
+
   /** Botones de la ruleta. Devuelve false si el boton no es de aqui. */
   async button(i: ButtonInteraction): Promise<boolean> {
-    if (i.customId !== SPIN_ID) return false;
-    const res = this.r.spin(i.user.id);
+    if (![SPIN_ID, KEEP_ID, REROLL_ID].includes(i.customId)) return false;
+    const userId = i.user.id;
+    if (i.customId === REROLL_ID) {
+      const r = this.r.reroll(userId);
+      if (!r.ok) {
+        const p = this.r.pending(userId);
+        await i.update(p && this.r.atun ? this.choice(userId, p) : this.panel(this.r.status(userId)));
+        return true;
+      }
+      const before = this.r.settings.premios[r.pending.index]!;
+      this.d.log(`🐟 Ruleta: ${userId} descartó el premio con el Atún de Luka (giro extra ${r.pending.giros})`);
+      await i.update(this.choice(userId, r.pending, `🐟 *Luka se llevó tu premio anterior y la ruleta volvió a girar… ¡${before.icono}!*`));
+      return true;
+    }
+    // Con el Atun (o un giro ya sorteado que espera), primero se elige en privado.
+    if (i.customId === SPIN_ID && this.r.atun && (this.r.pending(userId) || this.r.atun.usos(userId) > 0)) {
+      const p = this.r.draw(userId);
+      await i.update(p ? this.choice(userId, p) : this.panel(this.r.status(userId)));
+      return true;
+    }
+    const res = i.customId === KEEP_ID ? this.r.claim(userId) : this.r.spin(userId);
     if (!res) {
       await i.update(this.panel(this.r.status(i.user.id)));
       return true;
     }
     await i.update({ content: "🎰 ¡Girando…! Mira el canal.", components: [] });
+    this.alGirar?.(i.user.id, stripNickTag((i.member && "displayName" in i.member ? i.member.displayName : null) ?? i.user.displayName), res);
     const channelId = i.channelId;
     const name = stripNickTag((i.member && "displayName" in i.member ? i.member.displayName : null) ?? i.user.displayName);
     const job = this.queue.then(() => this.publish(i.user.id, name, i.user.displayAvatarURL({ extension: "png", size: 128 }), channelId, res));
@@ -120,7 +175,7 @@ export class RuletaDiscord {
   }
 
   /** "**+312 XP**", "**2 mensajes extra** con los Vocaloids hoy"… (para la frase y el registro). */
-  private prizeText(res: SpinResult): string {
+  prizeText(res: SpinResult): string {
     const up = res.levelAfter > res.levelBefore ? ` (¡subió al nivel ${res.levelAfter}!)` : "";
     if (res.prize.tipo === "xp") return `**+${fmt(res.xp)} XP**${up}`;
     if (res.prize.tipo === "sobre") return `**${res.sobres === 1 ? "un sobre común gratis" : `${res.sobres} sobres comunes gratis`}** para abrir en la tienda (/tienda → Sobres)`;
@@ -131,7 +186,7 @@ export class RuletaDiscord {
     return res.messages ? `**la cuota del día llena otra vez** (+${res.messages} ${res.messages === 1 ? "mensaje" : "mensajes"})` : sobra;
   }
 
-  private gifText(res: SpinResult): { title: string; subtitle: string } {
+  gifText(res: SpinResult): { title: string; subtitle: string } {
     const nivel = res.levelAfter > res.levelBefore ? `Nivel ${res.levelBefore} → ${res.levelAfter} 🆙` : `Nivel ${res.levelAfter} · ¡a seguir!`;
     if (res.prize.tipo === "xp") return { title: `¡+${fmt(res.xp)} XP!`, subtitle: nivel };
     if (res.prize.tipo === "sobre") return { title: res.sobres === 1 ? "¡Un sobre común!" : `¡${res.sobres} sobres comunes!`, subtitle: "gratis, en la tienda de Shaula-coins" };
@@ -191,6 +246,7 @@ export class RuletaDiscord {
     if (this.r.settings.canalAvisos === null) return;
     const fresh = this.r.newlyCompleted(userId);
     if (!fresh.length) return;
+    this.alCumplir?.(userId, fresh, this.r.status(userId).left);
     const ch = await this.channelFor(ctx.channelId ?? ctx.voiceChannelId);
     if (!ch) return;
     const mision = fresh.map((m: MissionStatus) => `${ICON[m.id]} **${m.nombre}**`).join(" y ");

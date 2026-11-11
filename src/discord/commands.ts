@@ -82,7 +82,7 @@ export function commandsFor(
           .toJSON(),
         new SlashCommandBuilder()
           .setName("boda")
-          .setDescription("Una Vocaloid deja ya su adivinanza de boda en #general (no gasta las del día; solo GyroP)")
+          .setDescription("Una Vocaloid deja ya su adivinanza de boda en #general (no gasta las del día; GyroP y Mods)")
           .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
           .addStringOption((o) => o.setName("vocaloid").setDescription("Quién la deja (si lo dejas vacío, le toca a la siguiente)").addChoices(...BRIDE_CHOICES))
           .toJSON(),
@@ -139,6 +139,17 @@ export function commandsFor(
           .toJSON(),
         new SlashCommandBuilder().setName("tienda").setDescription("Tienda de Shaula-coins: monedas, sobres, tu colección y tu tarjeta (solo lo ves tú)").toJSON(),
         new SlashCommandBuilder()
+          .setName("consumibles")
+          .setDescription("Tus objetos del mercado negro: cuántos usos te quedan y el PC de Adachi Rei (solo lo ves tú)")
+          .addBooleanOption((o) => o.setName("abrir_mercado").setDescription("Abrir el mercado negro ahora (solo GyroP)"))
+          .addIntegerOption((o) => o.setName("minutos").setDescription("Cuánto rato lo abres (solo GyroP; si no, 60)").setMinValue(1).setMaxValue(240))
+          .toJSON(),
+        new SlashCommandBuilder()
+          .setName("intercambio")
+          .setDescription("Intercambia Shaula-coins, XP, niveles, cuota, sobres, objetos y consumibles con otros Papus")
+          .addUserOption((o) => o.setName("papu").setDescription("Ofrecerle un intercambio a este Papu (si no, ves tus ofertas)"))
+          .toJSON(),
+        new SlashCommandBuilder()
           .setName("monedas")
           .setDescription("Shaula-coins: compras del mes, dar o quitar monedas, límites y bloqueos (solo GyroP)")
           .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
@@ -187,7 +198,7 @@ export function commandsFor(
           .toJSON(),
         new SlashCommandBuilder()
           .setName("pelea")
-          .setDescription("1vs1 de Vocaloids con apuestas de Shaula-coins en este canal (solo GyroP)")
+          .setDescription("1vs1 de Vocaloids con apuestas de Shaula-coins en este canal (GyroP y Mods)")
           .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
           // Autocompletar: son más de 25 luchadores (Vocaloids e invitados), el tope de opciones fijas de Discord.
           .addStringOption((o) => o.setName("vocaloid1").setDescription("Primer luchador (vacío = al azar)").setAutocomplete(true))
@@ -398,6 +409,11 @@ export function commandsFor(
     case "neru":
       return [
         new SlashCommandBuilder()
+          .setName("machetear")
+          .setDescription("Machetazo de mentira a quien quieras (con el Machete de Neru del mercado negro; no cuenta)")
+          .addUserOption((o) => o.setName("papu").setDescription("A quién macheteas (de mentira)").setRequired(true))
+          .toJSON(),
+        new SlashCommandBuilder()
           .setName("machetazos")
           .setDescription("Machetazos y advertencias activos de un Papu (GyroP y Mods)")
           .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
@@ -405,7 +421,7 @@ export function commandsFor(
           .toJSON(),
         new SlashCommandBuilder()
           .setName("perdonar")
-          .setDescription("Borra machetazos y advertencias, devuelve la XP y quita el silencio (solo GyroP)")
+          .setDescription("Borra machetazos y advertencias, devuelve la XP y quita el silencio (GyroP y Mods)")
           .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
           .addUserOption((o) => o.setName("papu").setDescription("Papu").setRequired(true))
           .toJSON(),

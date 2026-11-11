@@ -17,7 +17,7 @@ const { applyPalette, GIFEncoder, quantize } = "quantize" in gifencModule && typ
 export const TIENDA_DIR = path.resolve(import.meta.dirname, "../../assets/tienda");
 const BOTS_DIR = path.resolve(import.meta.dirname, "../../assets/bots");
 const INK = "#3B2346";
-const OSCURO: Record<Rareza, string> = { comun: "#3B4250", rara: "#0C3D3A", epica: "#2E1250", legendaria: "#4A3200", mitica: "#3A0F27", fundador: "#3A2E10", membresia: "#4A1426" };
+const OSCURO: Record<Rareza, string> = { comun: "#3B4250", rara: "#0C3D3A", epica: "#2E1250", legendaria: "#4A3200", mitica: "#3A0F27", fundador: "#3A2E10", membresia: "#4A1426", contrabando: "#16300C" };
 const fmt = (n: number) => new Intl.NumberFormat("es-CL").format(n);
 const cache = new Map<string, Promise<Image | null>>();
 
@@ -133,7 +133,7 @@ async function carta(ctx: SKRSContext2D, o: Objeto, x: number, y: number, w: num
   pill(ctx, RAREZA_NOMBRE[o.rareza].toUpperCase(), cx, cy + chipH / 2, {
     size: 13, min: 9, maxW: inner, h: chipH,
     bg: o.rareza === "mitica" ? rainbowAt(ctx, x, w, 0) : color,
-    fg: o.rareza === "comun" || o.rareza === "legendaria" || o.rareza === "fundador" || o.rareza === "membresia" ? OSCURO[o.rareza] : "#ffffff",
+    fg: o.rareza === "comun" || o.rareza === "legendaria" || o.rareza === "fundador" || o.rareza === "membresia" || o.rareza === "contrabando" ? OSCURO[o.rareza] : "#ffffff",
   });
   cy += chipH + gap;
   ctx.font = `600 ${typeSize}px ${FONT}`;

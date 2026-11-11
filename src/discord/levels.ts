@@ -34,6 +34,10 @@ import { CHANNELS, channelKey, findTextChannel } from "./channels";
 
 const MAX_UPLOAD_BYTES = 8 * 1024 * 1024;
 const ASSETS = path.resolve(import.meta.dirname, "../../assets/bots");
+/** Ranking automático de cada día: canal y hora (de la zona de la cuota, Chile). */
+const RANKING_CANAL = "ranking";
+const RANKING_HORA = 12;
+const RANKING_DAY_KEY = "niveles:ranking_diario";
 
 export interface LevelsDiscordDeps {
   levels: LevelService;
@@ -42,6 +46,8 @@ export interface LevelsDiscordDeps {
   rules: RuleSet;
   db: Db;
   owners: ReadonlySet<string>;
+  /** GyroP o un Mod: aprueban o rechazan los fondos de tarjeta. Sin esto, solo GyroP. */
+  isStaff?: (userId: string) => Promise<boolean>;
   teto: Client;
   timeZone: string;
   /** Carpeta de datos (data/): aqui se guardan los fondos propios de las tarjetas (data/tarjetas/). */
@@ -75,6 +81,7 @@ export interface LevelContext {
 
 export class LevelsDiscord {
   private nickWarned = false;
+  private rankingWarned = false;
 
   constructor(private readonly d: LevelsDiscordDeps) {}
 
@@ -128,8 +135,10 @@ export class LevelsDiscord {
   }
 
   /** Anuncia y aplica un cambio de nivel: rol de honor, apodo y frase de Teto (o 🆙 en el mensaje). */
-  async handle(change: LevelChange, ctx: LevelContext, opts: { quiet?: boolean } = {}): Promise<void> {
-    if (change.to > change.from) {
+  async handle(change: LevelChange, ctx: LevelContext, opts: { quiet?: boolean; sinBono?: boolean } = {}): Promise<void> {
+    // sinBono: subida por un intercambio (src/intercambios/). Sin monedas por subir: si no, bajar y volver a subir con
+    // XP cambiada daría monedas cada vez.
+    if (change.to > change.from && !opts.sinBono) {
       try {
         this.d.onLevelUp?.(change);
       } catch (e) {
@@ -356,7 +365,7 @@ export class LevelsDiscord {
   // ───────────────────────── ranking ─────────────────────────
 
   /** Puestos entre quienes siguen en el servidor (la cache de miembros la refresca el repaso de cada hora). */
-  private standings(): Standing[] {
+  standings(): Standing[] {
     const members = this.d.guild().members.cache;
     return this.d.levels.standings((id) => {
       const mb = members.get(id);
@@ -413,12 +422,38 @@ export class LevelsDiscord {
     if (!png) return void (await i.editReply("Todavía nadie tiene nivel: no hay ranking que publicar."));
     const ch = i.channelId ? await this.d.sendable("teto", i.channelId).catch(() => null) : null;
     if (!ch) return void (await i.editReply("No puedo escribir en este canal."));
+    await this.sendRanking(ch, png);
+    await i.editReply("Listo, publiqué el ranking aquí. 🥖");
+  }
+
+  private async sendRanking(ch: SendableChannels, png: Buffer): Promise<void> {
     await ch.send({
       content: this.d.phrases.pick("teto", "ranking"),
       files: [new AttachmentBuilder(png, { name: "ranking.png" })],
       allowedMentions: { parse: [] },
     });
-    await i.editReply("Listo, publiqué el ranking aquí. 🥖");
+  }
+
+  /**
+   * Cada minuto: una vez al día, desde las RANKING_HORA (hora de la cuota), Teto publica el ranking en #ranking, como
+   * /publicar-ranking (pedido de GyroP, 10 nov. 2026). Si el canal no existe, no hace nada.
+   */
+  async publishDailyRanking(now = new Date()): Promise<void> {
+    const day = dayKey(now, this.d.timeZone);
+    if (kvGet(this.d.db, RANKING_DAY_KEY) === day) return;
+    const hour = Number(new Intl.DateTimeFormat("en-GB", { hour: "2-digit", hourCycle: "h23", timeZone: this.d.timeZone }).format(now));
+    if (hour < RANKING_HORA) return;
+    const canal = findTextChannel(this.d.guild(), RANKING_CANAL);
+    if (!canal) {
+      if (!this.rankingWarned) await this.d.report(`⚠️ No encuentro el canal #${RANKING_CANAL}: Teto no puede publicar el ranking del día.`).catch(() => {});
+      this.rankingWarned = true;
+      return;
+    }
+    kvSet(this.d.db, RANKING_DAY_KEY, day);
+    const png = await this.rankingImage(null, now);
+    if (!png) return;
+    await this.sendRanking(await this.d.sendable("teto", canal.id), png);
+    this.d.log(`🏆 Ranking del día publicado en #${canal.name}`);
   }
 
   /** /tarjeta: frase, color, fondo y la imagen propia (que GyroP aprueba antes de que se vea). */
@@ -525,7 +560,8 @@ export class LevelsDiscord {
       return true;
     }
     if (kind === "tarjeta" && (action === "ok" || action === "no") && userId) {
-      if (!this.d.owners.has(i.user.id)) return void (await i.reply({ content: "eso lo decide gyrop. 📱", flags: MessageFlags.Ephemeral })), true;
+      const staff = this.d.owners.has(i.user.id) || !!(await this.d.isStaff?.(i.user.id));
+      if (!staff) return void (await i.reply({ content: "eso lo deciden gyrop y los mods. 📱", flags: MessageFlags.Ephemeral })), true;
       const pending = path.join(this.cardsDir, `pendiente-${userId}.png`);
       if (!existsSync(pending)) return void (await i.update({ content: `${i.message.content}\n(ya no hay imagen pendiente)`, components: [] })), true;
       const original = path.join(this.cardsDir, `pendiente-${userId}.orig`);
@@ -538,7 +574,8 @@ export class LevelsDiscord {
         rmSync(pending, { force: true });
         rmSync(original, { force: true });
       }
-      await i.update({ content: `${i.message.content}\n${action === "ok" ? "✅ Aprobada: ya sale en su tarjeta." : "🚫 Rechazada."}`, components: [] });
+      const by = this.d.owners.has(i.user.id) ? "" : ` (por <@${i.user.id}>)`;
+      await i.update({ content: `${i.message.content}\n${action === "ok" ? "✅ Aprobada: ya sale en su tarjeta." : "🚫 Rechazada."}${by}`, components: [], allowedMentions: { parse: [] } });
       return true;
     }
     return false;

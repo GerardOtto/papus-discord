@@ -27,6 +27,15 @@ export interface Apuesta {
   lado: FighterId;
   cantidad: number;
   pago: number;
+  /** La aseguro con el Seguro de Gakupo (mercado negro): si pierde, se le devuelve completa. */
+  seguro: boolean;
+}
+
+/** El Seguro de Gakupo (src/mercado/): usos, gastar uno y devolverlo si la pelea se cancela. */
+export interface SeguroPort {
+  usos(userId: string): number;
+  consume(userId: string): boolean;
+  devolver(userId: string): void;
 }
 
 export interface Bando {
@@ -41,6 +50,7 @@ export interface Liquidacion {
   resultado: Resultado;
   /** Quien acerto (pago = lo que recibio, apuesta incluida), de mayor a menor pago. */
   ganadores: Apuesta[];
+  /** Quien fallo; las aseguradas ya recibieron su apuesta de vuelta (pago = lo devuelto). */
   perdedores: Apuesta[];
 }
 
@@ -48,6 +58,8 @@ export interface PeleaServiceDeps {
   db: Db;
   settings: PeleaSettings;
   coins: CoinService;
+  /** Seguro de Gakupo del mercado negro (sin mercado, no hay seguros). */
+  seguro?: SeguroPort;
   now?: () => number;
   rnd?: () => number;
 }
@@ -94,6 +106,33 @@ export class PeleaService {
 
   get settings(): PeleaSettings {
     return this.d.settings;
+  }
+
+  /** Conecta el Seguro de Gakupo (el mercado negro se crea despues). */
+  useSeguro(port: SeguroPort): void {
+    this.d.seguro = port;
+  }
+
+  /** Usos del Seguro de Gakupo que le quedan (0 sin mercado). */
+  seguroUsos(userId: string): number {
+    return this.d.seguro?.usos(userId) ?? 0;
+  }
+
+  /**
+   * Asegura su apuesta de una pelea abierta con el Seguro de Gakupo (gasta un uso). Cubre todo lo apostado, tambien lo
+   * que sume despues. Una vez por pelea.
+   */
+  insure(id: string, userId: string): { ok: true; usos: number } | { ok: false; motivo: string } {
+    const p = this.get(id);
+    if (!p || p.estado !== "abierta" || this.now() >= p.cierraAt) return { ok: false, motivo: "Las apuestas de esta pelea ya se cerraron. ⚔️" };
+    return transaction(this.d.db, () => {
+      const mine = this.betOf(id, userId);
+      if (!mine) return { ok: false as const, motivo: "Primero apuesta: el seguro cubre tu apuesta de esta pelea." };
+      if (mine.seguro) return { ok: false as const, motivo: "Tu apuesta ya está asegurada. 🍆" };
+      if (!this.d.seguro?.consume(userId)) return { ok: false as const, motivo: "No te quedan usos del Seguro de Gakupo (se compra en el mercado negro)." };
+      this.d.db.prepare("UPDATE apuestas SET seguro = 1 WHERE pelea = ? AND user_id = ?").run(id, userId);
+      return { ok: true as const, usos: this.seguroUsos(userId) };
+    });
   }
 
   /** Vocaloids que pelean (los de la config). */
@@ -173,11 +212,12 @@ export class PeleaService {
   }
 
   bets(id: string): Apuesta[] {
-    return (this.d.db.prepare("SELECT user_id, lado, cantidad, pago FROM apuestas WHERE pelea = ? ORDER BY at").all(id) as { user_id: string; lado: string; cantidad: number; pago: number }[]).map((r) => ({
+    return (this.d.db.prepare("SELECT user_id, lado, cantidad, pago, seguro FROM apuestas WHERE pelea = ? ORDER BY at").all(id) as { user_id: string; lado: string; cantidad: number; pago: number; seguro: number }[]).map((r) => ({
       userId: r.user_id,
       lado: r.lado as FighterId,
       cantidad: r.cantidad,
       pago: r.pago,
+      seguro: !!r.seguro,
     }));
   }
 
@@ -242,7 +282,12 @@ export class PeleaService {
     transaction(this.d.db, () => {
       for (const x of this.bets(id)) {
         if (x.lado !== p.ganador) {
-          perdedores.push(x);
+          // Seguro de Gakupo: se le devuelve completa.
+          if (x.seguro) {
+            this.d.coins.adjust(x.userId, "ganadas", x.cantidad, `pelea ${id} perdida (Seguro de Gakupo)`);
+            this.d.db.prepare("UPDATE apuestas SET pago = ? WHERE pelea = ? AND user_id = ?").run(x.cantidad, id, x.userId);
+            perdedores.push({ ...x, pago: x.cantidad });
+          } else perdedores.push(x);
           continue;
         }
         const pago = payout(x.cantidad, cuota);
@@ -267,7 +312,11 @@ export class PeleaService {
     return rows.map((row) =>
       transaction(this.d.db, () => {
         const devueltas = this.bets(row.id);
-        for (const x of devueltas) this.d.coins.adjust(x.userId, "ganadas", x.cantidad, `pelea ${row.id} cancelada (devolución)`);
+        for (const x of devueltas) {
+          this.d.coins.adjust(x.userId, "ganadas", x.cantidad, `pelea ${row.id} cancelada (devolución)`);
+          // El Seguro de Gakupo no se uso: vuelve su uso.
+          if (x.seguro) this.d.seguro?.devolver(x.userId);
+        }
         this.d.db.prepare("UPDATE peleas SET estado = 'devuelta', terminada_at = ? WHERE id = ?").run(this.now(), row.id);
         this.results.delete(row.id);
         return { pelea: toPelea({ ...row, estado: "devuelta" }), devueltas };

@@ -38,12 +38,14 @@ const P = "tienda:";
 const MENU_KEY = "tienda:menu";
 const MENU_VERSION = "3";
 const VITRINA_KEY = "tienda:vitrina_anunciada";
+/** El mensaje del último anuncio de vitrina (para borrarlo cuando sale la siguiente). */
+const VITRINA_MSG_KEY = "tienda:vitrina_mensaje";
 const fmt = (n: number) => new Intl.NumberFormat("es-CL").format(Math.round(n));
 const DIAS = ["el domingo", "el lunes", "el martes", "el miércoles", "el jueves", "el viernes", "el sábado"];
 const MESES = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
 /** "24 de noviembre" (día AAAA-MM-DD). */
 const fecha = (day: string) => `${Number(day.slice(8, 10))} de ${MESES[Number(day.slice(5, 7)) - 1]}`;
-const RAREZA_ICONO: Record<string, string> = { comun: "⬜", rara: "🟦", epica: "🟪", legendaria: "🟨", mitica: "🌈", fundador: "⭐", membresia: "💎" };
+const RAREZA_ICONO: Record<string, string> = { comun: "⬜", rara: "🟦", epica: "🟪", legendaria: "🟨", mitica: "🌈", fundador: "⭐", membresia: "💎", contrabando: "🕶️" };
 
 /** Kawaiimojis de los botones: emojis propios de la app de Teto (no ocupan lugares del servidor). Sin ellos, estos. */
 const ICONOS = ["moneda", "tienda", "sobre", "mochila", "tarjeta", "ayuda", "banco", "mundo", "volver", "probar", "ok", "monedero"] as const;
@@ -231,11 +233,38 @@ export class TiendaDiscord {
     const send = await this.d.sendable(bot, ch.id);
     const cartas = v.objetos.map((id) => this.c.byId.get(id)!).map((objeto) => ({ objeto, precio: priceOf(this.c.settings, objeto) ?? 0, propio: false }));
     const img = await this.serial(() => vitrinaImage(cartas, "Vitrina nueva", `Cambia ${this.nextChange(v.hasta)} · los fondos con Vocaloids se pagan con monedas ganadas`));
-    await send.send({
+    // La imagen de la vitrina anterior se borra: en el canal queda solo la de ahora (pedido de GyroP, 10 nov. 2026).
+    await this.deleteVitrinaAnterior().catch((e) => logError("borrar la vitrina anterior", e));
+    const msg = await send.send({
       content: this.d.phrases.pick(bot, "vitrina_nueva", { proxima: this.nextChange(v.hasta) }),
       files: [new AttachmentBuilder(img, { name: "vitrina.png" })],
       allowedMentions: { parse: [] },
     });
+    kvSet(this.d.db, VITRINA_MSG_KEY, JSON.stringify({ bot, channelId: ch.id, messageId: msg.id }));
+  }
+
+  /** Borra el anuncio de la vitrina anterior (si sigue ahí). */
+  private async deleteVitrinaAnterior(): Promise<void> {
+    const prev = JSON.parse(kvGet(this.d.db, VITRINA_MSG_KEY) ?? "null") as { bot: BotId; channelId: string; messageId: string } | null;
+    if (prev) {
+      const send = await this.d.sendable(prev.bot, prev.channelId).catch(() => null);
+      if (!send || !("messages" in send)) return;
+      await (await send.messages.fetch(prev.messageId).catch(() => null))?.delete();
+      return;
+    }
+    // Vitrinas de antes de guardar el mensaje: se buscan entre los últimos del canal (de Miku o Teto, con vitrina.png).
+    const ch = this.channel("tienda");
+    if (!ch) return;
+    for (const bot of ["miku", "teto"] as const) {
+      const me = this.d.clients[bot]?.user?.id;
+      if (!me || !this.d.online.includes(bot)) continue;
+      const send = await this.d.sendable(bot, ch.id).catch(() => null);
+      if (!send || !("messages" in send)) continue;
+      const recent = await send.messages.fetch({ limit: 50 }).catch(() => null);
+      for (const m of recent?.values() ?? []) {
+        if (m.author.id === me && m.attachments.some((a) => a.name === "vitrina.png")) await m.delete().catch(() => {});
+      }
+    }
   }
 
   /** "Temporada 1 «Lanzamiento»: sus objetos están hasta el 24 de noviembre." (corto: para las imágenes). */
@@ -739,7 +768,13 @@ export class TiendaDiscord {
         const gif = await this.serial(() => sobreGif(r.objetos, titulo));
         const lines = r.objetos.map((x) => `${RAREZA_ICONO[x.objeto.rareza]} **${x.objeto.nombre}** · ${TIPO_NOMBRE[x.objeto.tipo]}${x.nuevo ? " · ¡nuevo!" : ` · repetido (+${x.ecos} Ecos)`}`);
         await show({
-          content: [`## ${this.icon("sobre")} ${titulo}`, ...lines, this.header(user)].join("\n"),
+          content: [
+            `## ${this.icon("sobre")} ${titulo}`,
+            // Helado de Kaito (mercado negro): objetos de más en este sobre.
+            ...(r.helado ? [`🍦 *El Helado de Kaito le puso ${r.helado === 1 ? "un objeto más" : `${r.helado} objetos más`} a tu sobre (te quedan ${this.c.heladoUsos(user)}).*`] : []),
+            ...lines,
+            this.header(user),
+          ].join("\n"),
           files: [new AttachmentBuilder(gif, { name: "sobre.gif" })],
           components: [this.row(this.btn("n:sobres", "Abrir otro", { icon: "sobre", style: ButtonStyle.Primary }), this.btn("n:tarjeta", "Mi tarjeta", { icon: "tarjeta" }), this.btn("n:coleccion", "Mi colección", { icon: "mochila" }))],
         });

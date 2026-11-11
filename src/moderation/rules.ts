@@ -23,6 +23,13 @@ export interface ModerationSettings {
   autolesion?: string[];
   /** Línea que acompaña la frase de apoyo: teléfonos de ayuda por país. */
   lineasDeAyuda?: string;
+  /**
+   * Maltrato a otro Papu ("te aborte", "nadie te quiere"): advertencia automática de Neru, sin borrar, en todos los
+   * canales (también los libres). Parche del 11 nov. 2026.
+   */
+  maltrato?: string[];
+  /** Pedir que ignoren o saquen a un Papu ("ignorenlo", "no lo pelen"): solo un toque público de Neru, sin sanción. */
+  exclusion?: string[];
   estafas: string[];
   dominiosSospechosos: string[];
   enlacesPermitidos: string[];
@@ -46,7 +53,9 @@ export type ViolationKind =
   | "insulto"
   | "flood"
   | "enlace_cuenta_nueva"
-  | "mayusculas";
+  | "mayusculas"
+  | "maltrato"
+  | "exclusion";
 
 export interface Violation {
   kind: ViolationKind;
@@ -54,6 +63,8 @@ export interface Violation {
   remove: boolean;
   /** Machetazo (las mayusculas y los enlaces de cuentas nuevas no). */
   strike: boolean;
+  /** Advertencia automática, como /advertir (maltrato): 3 en 3 días = machetazo. */
+  warn?: boolean;
   detail: string;
 }
 
@@ -127,6 +138,8 @@ export class RuleSet {
   private readonly hate: WordList;
   private readonly scams: WordList;
   private readonly selfHarm: WordList;
+  private readonly abuse: WordList;
+  private readonly exclusion: WordList;
   private readonly secondPerson: string[];
   private readonly firstPerson: WordList;
 
@@ -138,6 +151,8 @@ export class RuleSet {
     this.hate = new WordList(settings.odio, 7);
     this.scams = new WordList(settings.estafas);
     this.selfHarm = new WordList(settings.autolesion ?? []);
+    this.abuse = new WordList(settings.maltrato ?? []);
+    this.exclusion = new WordList(settings.exclusion ?? []);
     this.secondPerson = settings.segundaPersona.map((s) => normalize(s));
     this.firstPerson = new WordList(settings.primeraPersona);
   }
@@ -170,6 +185,13 @@ export class RuleSet {
       const blocked = hosts.find((h) => !this.isAllowedHost(h));
       if (blocked) return { kind: "enlace_cuenta_nueva", remove: true, strike: false, detail: blocked };
     }
+
+    // Maltrato y exclusión: en todos los canales, también en los libres (en #general pasan las groserías, no el
+    // maltrato a otro Papu). Caso real del 10 nov. 2026: "voy a decirle a tu mamita que te ab0rte".
+    const abuse = this.abuse.matches(t)[0]?.word;
+    if (abuse) return { kind: "maltrato", remove: false, strike: false, warn: true, detail: `maltrato ("${abuse}")` };
+    const excluded = this.exclusion.matches(t)[0]?.word;
+    if (excluded) return { kind: "exclusion", remove: false, strike: false, detail: `pide ignorar o sacar a alguien ("${excluded}")` };
 
     const { mayusculasMinCaracteres: min, mayusculasPorcentaje: pct } = this.settings.limites;
     const plain = ctx.text.replace(/\s/g, "");

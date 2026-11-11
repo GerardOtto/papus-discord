@@ -57,8 +57,10 @@ export interface PeleasDiscordDeps {
   phrases: Phrases;
   db: Db;
   characters: Record<BotId, CharacterInfo>;
-  /** GyroP: el unico que lanza o cancela peleas a mano. */
+  /** GyroP: lanza o cancela peleas a mano. */
   owners: ReadonlySet<string>;
+  /** GyroP o un Mod: tambien lanzan o cancelan peleas (pedido de GyroP, 8 nov. 2026). Sin esto, solo GyroP. */
+  isStaff?: (userId: string) => Promise<boolean>;
   guild: () => Guild;
   sendable: (bot: BotId, channelId: string) => Promise<SendableChannels>;
   report: (text: string) => Promise<void>;
@@ -165,13 +167,14 @@ export class PeleasDiscord {
   }
 
   async pelea(i: ChatInputCommandInteraction): Promise<void> {
-    if (!this.d.owners.has(i.user.id)) return void (await i.reply({ content: "¡Eso solo lo usa GyroP! 🥖", flags: MessageFlags.Ephemeral }));
+    const owner = this.d.owners.has(i.user.id);
+    if (!owner && !(await this.d.isStaff?.(i.user.id))) return void (await i.reply({ content: "¡Eso solo lo usan GyroP y los Mods! 🥖", flags: MessageFlags.Ephemeral }));
     if (i.options.getBoolean("cancelar")) {
       const res = this.s.cancel();
       if (!res) return void (await i.reply({ content: "No hay ninguna pelea en curso.", flags: MessageFlags.Ephemeral }));
       this.stop();
       this.stopped = false;
-      await this.banner?.edit({ content: `${this.banner.content}\n\n🚫 GyroP canceló esta pelea: le devolví a cada Papu lo que apostó.`, components: [] }).catch(() => {});
+      await this.banner?.edit({ content: `${this.banner.content}\n\n🚫 ${owner ? "GyroP" : "Un Mod"} canceló esta pelea: le devolví a cada Papu lo que apostó.`, components: [] }).catch(() => {});
       this.banner = null;
       const total = res.devueltas.reduce((a, x) => a + x.cantidad, 0);
       return void (await i.reply({ content: `🚫 Pelea cancelada: devolví ${fmt(total)} Shaula-coins a ${res.devueltas.length} Papus.`, flags: MessageFlags.Ephemeral }));
@@ -311,9 +314,18 @@ export class PeleasDiscord {
       const text = !p
         ? "Esa pelea ya no existe."
         : mine
-          ? `🪙 Apostaste **${fmt(mine.cantidad)}** a **${this.name(mine.lado)}** (paga ${fmtOdds(mine.lado === p.a ? p.cuotas[0] : p.cuotas[1])}: si gana, cobras **${fmt(Math.floor(mine.cantidad * (mine.lado === p.a ? p.cuotas[0] : p.cuotas[1])))}**). Tienes ${fmt(ganadas)} Shaula-coins ganadas.`
+          ? `🪙 Apostaste **${fmt(mine.cantidad)}** a **${this.name(mine.lado)}** (paga ${fmtOdds(mine.lado === p.a ? p.cuotas[0] : p.cuotas[1])}: si gana, cobras **${fmt(Math.floor(mine.cantidad * (mine.lado === p.a ? p.cuotas[0] : p.cuotas[1])))}**). Tienes ${fmt(ganadas)} Shaula-coins ganadas.${mine.seguro ? "\n🍆 Asegurada con Gakupo: si pierde, te la devuelve completa." : ""}`
           : `Todavía no apuestas en esta pelea. Tienes ${fmt(ganadas)} Shaula-coins ganadas.`;
-      await i.reply({ content: text, flags: MessageFlags.Ephemeral });
+      await i.reply({ content: text, components: p && mine ? this.seguroRow(p, i.user.id) : [], flags: MessageFlags.Ephemeral });
+      return true;
+    }
+    // Seguro de Gakupo (mercado negro): asegura la apuesta de esta pelea.
+    if (action === "seg") {
+      const r = this.s.insure(id, i.user.id);
+      const content = r.ok
+        ? `🍆 **Apuesta asegurada.** Gakupo: *«Si tu Vocaloid cae, yo respondo por ti. Palabra de samurái.»* Si pierde, te devuelve todo lo apostado (también lo que sumes). Te quedan ${r.usos} ${r.usos === 1 ? "uso" : "usos"} del seguro.`
+        : `❌ ${r.motivo}`;
+      await i.update({ content, components: [] }).catch(() => i.reply({ content, flags: MessageFlags.Ephemeral }));
       return true;
     }
     if (action !== "a" || !lado) return false;
@@ -354,12 +366,26 @@ export class PeleasDiscord {
     const cantidad = /^\d+$/.test(raw) ? Number(raw) : NaN;
     const res = this.s.bet(id, i.user.id, lado, cantidad);
     if (!res.ok) return void (await i.reply({ content: `❌ ${res.motivo}`, flags: MessageFlags.Ephemeral })), true;
+    const p = this.s.get(id);
     await i.reply({
       content: `✅ Apostaste **${fmt(cantidad)}** a **${this.name(lado)}**${res.total !== cantidad ? ` (en total, ${fmt(res.total)})` : ""}. Paga ${fmtOdds(res.cuota)}: si gana, cobras **${fmt(Math.floor(res.total * res.cuota))}** Shaula-coins. Te quedan ${fmt(res.ganadas)} ganadas. 🍀`,
+      components: p ? this.seguroRow(p, i.user.id) : [],
       flags: MessageFlags.Ephemeral,
     });
     this.refreshTotals(id);
     return true;
+  }
+
+  /** Botón del Seguro de Gakupo (si tiene usos y su apuesta aún no está asegurada). */
+  private seguroRow(p: Pelea, userId: string): ActionRowBuilder<ButtonBuilder>[] {
+    const usos = this.s.seguroUsos(userId);
+    const mine = this.s.betOf(p.id, userId);
+    if (!usos || !mine || mine.seguro || p.estado !== "abierta") return [];
+    return [
+      new ActionRowBuilder<ButtonBuilder>().addComponents(
+        new ButtonBuilder().setCustomId(`${PREFIX}seg:${p.id}`).setLabel(`Asegurar con Gakupo (te quedan ${usos})`).setEmoji("🍆").setStyle(ButtonStyle.Primary),
+      ),
+    ];
   }
 
   // ───────────────────────── la pelea ─────────────────────────
@@ -432,10 +458,14 @@ export class PeleasDiscord {
       for (const x of shown) out.push(`• <@${x.userId}> gana **${fmt(x.pago)}** Shaula-coins (apostó ${fmt(x.cantidad)})`);
       if (liq.ganadores.length > shown.length) out.push(`…y ${liq.ganadores.length - shown.length} Papus más.`);
     } else if (liq.perdedores.length) out.push(`Nadie le apostó a ${this.name(winner)}. 😱`);
-    if (liq.perdedores.length) {
-      const lost = liq.perdedores.reduce((a, x) => a + x.cantidad, 0);
-      out.push(`💸 ${liq.perdedores.length} ${liq.perdedores.length === 1 ? "Papu perdió" : "Papus perdieron"} ${fmt(lost)} Shaula-coins apostando por ${this.name(loser)}.`);
+    const sinSeguro = liq.perdedores.filter((x) => !x.seguro);
+    const asegurados = liq.perdedores.filter((x) => x.seguro);
+    if (sinSeguro.length) {
+      const lost = sinSeguro.reduce((a, x) => a + x.cantidad, 0);
+      out.push(`💸 ${sinSeguro.length} ${sinSeguro.length === 1 ? "Papu perdió" : "Papus perdieron"} ${fmt(lost)} Shaula-coins apostando por ${this.name(loser)}.`);
     }
+    // Seguro de Gakupo (mercado negro): recuperaron su apuesta.
+    if (asegurados.length) out.push(`🍆 Gakupo le devolvió su apuesta a ${asegurados.map((x) => `<@${x.userId}> (${fmt(x.cantidad)})`).join(", ")}.`);
     // Cuando es la proxima pelea automatica (pedido de los Papus: "a veces no alcanzamos a llegar").
     const next = nextSlotAt(this.s.settings.horarios, this.zone, Date.now());
     if (next) {

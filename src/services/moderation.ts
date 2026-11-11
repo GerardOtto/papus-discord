@@ -47,6 +47,10 @@ export interface AutoModHit {
 }
 
 const CAPS_COOLDOWN_MS = 10 * 60_000;
+/** Toque por pedir que ignoren o saquen a alguien: uno cada 30 min por Papu (es un aviso, no una sanción). */
+const EXCLUSION_COOLDOWN_MS = 30 * 60_000;
+/** Advertencia automática por maltrato: una por minuto por Papu (una frase partida en varios mensajes cuenta una vez). */
+const ABUSE_COOLDOWN_MS = 60_000;
 /** Una frase de apoyo por Papu cada 6 h: si sigue hablando del tema, le responde el Vocaloid (con la guía de comun.md). */
 const SUPPORT_COOLDOWN_MS = 6 * 3_600_000;
 /** Infracciones con frase propia (explican la regla); la linea del machetazo dice la sancion. */
@@ -86,6 +90,8 @@ export function warningLine(warnings: number): string {
 export class ModerationService {
   private readonly flood: FloodTracker;
   private readonly capsWarned = new Map<string, number>();
+  private readonly exclusionWarned = new Map<string, number>();
+  private readonly abuseWarned = new Map<string, number>();
   private readonly supported = new Map<string, number>();
 
   constructor(
@@ -116,6 +122,29 @@ export class ModerationService {
       if (last !== undefined && t - last < CAPS_COOLDOWN_MS) return null;
       this.capsWarned.set(m.authorId, t);
       await this.port.say(m.channelId, this.phrases.pick("neru", "mayusculas", { papu }), m.authorId);
+      return v;
+    }
+
+    // Maltrato a otro Papu (parche del 11 nov. 2026): advertencia automática, como /advertir. Sin borrar.
+    if (v.kind === "maltrato") {
+      if (!this.cooldown(this.abuseWarned, m.authorId, ABUSE_COOLDOWN_MS, t)) return null;
+      await this.warn({ userId: m.authorId, channelId: m.channelId, messageId: m.messageId, excerpt: m.text, por: "Neru", grupo: "maltrato", razon: v.detail });
+      return v;
+    }
+
+    // Pedir que ignoren o saquen a alguien: un toque público, sin sanción; GyroP o un Mod deciden en #moderación.
+    if (v.kind === "exclusion") {
+      if (!this.cooldown(this.exclusionWarned, m.authorId, EXCLUSION_COOLDOWN_MS, t)) return null;
+      await this.port.say(m.channelId, this.phrases.pick("neru", "exclusion", { papu }), m.authorId, m.messageId).catch(() => {});
+      await this.port.log({
+        userId: m.authorId,
+        channelId: m.channelId,
+        kind: v.kind,
+        detail: v.detail,
+        excerpt: m.text,
+        action: "sin borrar · toque de Neru, sin sanción (si sigue: /advertir)",
+        activeStrikes: null,
+      });
       return v;
     }
 
@@ -208,11 +237,15 @@ export class ModerationService {
     excerpt?: string;
     motivo?: string;
     por?: string;
+    /** Grupo de frases de Neru ("aviso" por defecto; "maltrato" en la advertencia automática). */
+    grupo?: string;
+    /** Razón para el registro cuando no hay motivo público (advertencia automática). */
+    razon?: string;
   }): Promise<{ warnings: number; machetazo: Machetazo | null }> {
     const por = w.por ?? "GyroP";
     const motivo = w.motivo?.trim().replace(/\n/g, " ") ?? "";
     const r = this.strikes.warn(
-      { userId: w.userId, reason: `advertencia de ${por.toLowerCase()}: ${motivo || "a mano"}`, excerpt: w.excerpt || motivo, channelId: w.channelId },
+      { userId: w.userId, reason: `advertencia de ${por.toLowerCase()}: ${motivo || w.razon || "a mano"}`, excerpt: w.excerpt || motivo, channelId: w.channelId },
       this.now(),
     );
     let action: string;
@@ -221,7 +254,7 @@ export class ModerationService {
       const applied = await this.apply(w.userId, w.channelId, "manual", r.machetazo, "", { motivo, replyTo: removed ? undefined : w.messageId, por, fromWarnings: true });
       action = `${removed ? "borrado" : w.messageId ? "no se pudo borrar" : "sin mensaje"} · ${WARNINGS_PER_MACHETAZO} advertencias · ${applied}`;
     } else {
-      const lines = [this.phrases.pick("neru", "aviso", { papu: `<@${w.userId}>` })];
+      const lines = [this.phrases.pick("neru", w.grupo ?? "aviso", { papu: `<@${w.userId}>` })];
       if (motivo) lines.push(`> ${motivo}`);
       lines.push(warningLine(r.warnings));
       await this.port.say(w.channelId, lines.join("\n"), w.userId, w.messageId);
@@ -231,7 +264,7 @@ export class ModerationService {
       userId: w.userId,
       channelId: w.channelId,
       kind: `advertencia de ${por}`,
-      detail: motivo || `advertencia de ${por}`,
+      detail: motivo || w.razon || `advertencia de ${por}`,
       excerpt: w.excerpt ?? "",
       action,
       activeStrikes: r.machetazo?.active ?? this.strikes.active(w.userId, this.now()),
@@ -321,6 +354,14 @@ export class ModerationService {
     if (notifyOwner)
       await this.port.notifyOwner(`<@${userId}> llegó a ${hit.active} machetazos activos (último: ${reason}). Silencio de 24 h aplicado y sin ganar XP; revisa su caso.`);
     return `machetazo ${hit.active} · silencio ${minutes} min · sin la XP de hoy${blockXp ? " · sin ganar XP" : ""}`;
+  }
+
+  /** true (y anota la hora) si ya pasó la espera desde el último aviso a este Papu. */
+  private cooldown(map: Map<string, number>, userId: string, ms: number, t: number): boolean {
+    const last = map.get(userId);
+    if (last !== undefined && t - last < ms) return false;
+    map.set(userId, t);
+    return true;
   }
 
   /** Borra el mensaje; false si Discord no lo dejo (asi el registro no dice "borrado" cuando no lo esta). */

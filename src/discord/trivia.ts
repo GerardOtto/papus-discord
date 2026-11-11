@@ -8,6 +8,7 @@ import {
   ButtonStyle,
   MessageFlags,
   ModalBuilder,
+  StringSelectMenuBuilder,
   TextInputBuilder,
   TextInputStyle,
   type ButtonInteraction,
@@ -16,6 +17,7 @@ import {
   type Guild,
   type ModalSubmitInteraction,
   type SendableChannels,
+  type StringSelectMenuInteraction,
 } from "discord.js";
 import type { BotId } from "../config";
 import { logError, type LogFn } from "../log";
@@ -56,6 +58,21 @@ const CHEER: Record<BotId, string> = {
   adachirei: "🤖",
   ruko: "🌓",
 };
+/** Nombre de cada tema de la trivia (Zanahoria de Gumi). */
+const TEMAS: Record<string, string> = {
+  canciones: "🎵 Canciones",
+  personajes: "👤 Personajes",
+  historia: "📜 Historia",
+  titulos: "🔤 Títulos",
+  curiosidades: "💡 Curiosidades",
+  servidor: "🏠 El servidor",
+  imagenes: "🖼️ Imágenes",
+  audio: "🎧 Fragmentos de audio",
+  siluetas: "👥 Siluetas",
+  adivinanzas: "🧩 Adivinanzas",
+  emojis: "😀 Emojis",
+};
+const topicName = (t: string) => TEMAS[t] ?? t.charAt(0).toUpperCase() + t.slice(1);
 const PREMIO = { comun: "sobre común", raro: "sobre raro", legendario: "sobre legendario" } as const;
 const fmt = (n: number) => new Intl.NumberFormat("es-CL").format(n);
 const wait = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
@@ -136,14 +153,15 @@ export class TriviaDiscord {
     return { content, components: [new ActionRowBuilder<ButtonBuilder>().addComponents(...buttons)], files: [], attachments: [] };
   }
 
-  private async question(s: Shown, info: RunInfo, header: string[] = []): Promise<Payload> {
+  private async question(userId: string, s: Shown, info: RunInfo, header: string[] = []): Promise<Payload> {
     const q = s.question;
     const d = this.t.settings.dificultades[q.level];
     const files: AttachmentBuilder[] = [];
     if (q.image) files.push(new AttachmentBuilder(await renderFigure(q.image.bot, q.image.mode), { name: "trivia.png" }));
     if (q.picture) files.push(new AttachmentBuilder(q.picture, { name: "trivia.webp" }));
     if (q.audio) files.push(new AttachmentBuilder(q.audio, { name: "fragmento.mp3" }));
-    const streak = s.number - 1;
+    const streak = s.streak;
+    const ex = this.t.extras(userId);
     const content = [
       ...header,
       `🧠 **Trivia Vocaloid** · ${d.emoji} ${d.nombre} · Pregunta ${s.number}${streak > 0 ? ` · 🔥 Racha: ${streak}` : ""}`,
@@ -152,18 +170,85 @@ export class TriviaDiscord {
       q.kind === "texto" ? "-# Toca el botón y escribe tu respuesta." : "",
       `⏳ Tiempo: <t:${Math.ceil(s.deadline / 1000)}:R>`,
       this.limits(info),
+      // Mercado negro: Guitarra de flower sonando y tema de la siguiente elegido con la Zanahoria de Gumi.
+      ex.guitar ? "-# 🎸 La Guitarra de flower suena: tus aciertos de esta partida dan el doble de XP." : "",
+      ex.carrot ? `-# 🥕 La siguiente pregunta será de **${topicName(ex.carrot)}**.` : "",
     ]
       .filter((l, k, a) => l !== "" || (k > 0 && a[k - 1] !== ""))
       .join("\n");
     const rows =
       q.kind === "opciones"
-        ? s.options.map((o, k) =>
-            new ActionRowBuilder<ButtonBuilder>().addComponents(
-              new ButtonBuilder().setCustomId(`trivia:o:${s.nonce}:${k}`).setLabel(o.slice(0, 80)).setEmoji(LETTERS[k]!).setStyle(ButtonStyle.Secondary),
-            ),
-          )
+        ? s.options.map((o, k) => {
+            // Las que borró el Celular de Neru quedan tachadas y sin poder tocarse.
+            const gone = s.hidden?.includes(k);
+            return new ActionRowBuilder<ButtonBuilder>().addComponents(
+              new ButtonBuilder()
+                .setCustomId(`trivia:o:${s.nonce}:${k}`)
+                .setLabel(gone ? "📱 borrada por Neru" : o.slice(0, 80))
+                .setEmoji(LETTERS[k]!)
+                .setStyle(ButtonStyle.Secondary)
+                .setDisabled(!!gone),
+            );
+          })
         : [new ActionRowBuilder<ButtonBuilder>().addComponents(new ButtonBuilder().setCustomId(`trivia:t:${s.nonce}`).setLabel("Escribir respuesta").setEmoji("✍️").setStyle(ButtonStyle.Primary))];
+    // Consumibles del mercado negro, en una sola fila (Discord admite 5 filas: 4 opciones + esta).
+    const extras: ButtonBuilder[] = [];
+    // Celular de Neru: borra dos opciones incorrectas, una vez por pregunta.
+    if (ex.celular && q.kind === "opciones" && s.options.length >= 4 && !s.hidden?.length)
+      extras.push(new ButtonBuilder().setCustomId(`trivia:c:${s.nonce}`).setLabel(`Borrar 2 (${ex.celular})`).setEmoji("📱").setStyle(ButtonStyle.Primary));
+    // Guitarra de flower: doble XP el resto de la partida (solo en las partidas que dan XP).
+    if (ex.guitarra && !ex.guitar && info.withXp) extras.push(new ButtonBuilder().setCustomId(`trivia:g:${s.nonce}`).setLabel(`XP doble (${ex.guitarra})`).setEmoji("🎸").setStyle(ButtonStyle.Primary));
+    // Zanahoria de Gumi: elegir el tema de la siguiente pregunta.
+    if (ex.zanahoria && !ex.carrot && this.t.topics(userId).length)
+      extras.push(new ButtonBuilder().setCustomId(`trivia:zt:${s.nonce}`).setLabel(`Tema de la siguiente (${ex.zanahoria})`).setEmoji("🥕").setStyle(ButtonStyle.Primary));
+    if (extras.length) rows.push(new ActionRowBuilder<ButtonBuilder>().addComponents(...extras));
     return { content, components: rows, files, attachments: [] };
+  }
+
+  /** Zanahoria de Gumi: menú de temas que quedan en la partida (la pregunta sigue con su tiempo corriendo). */
+  private carrotMenu(userId: string, nonce: string): { components: ActionRowBuilder<StringSelectMenuBuilder | ButtonBuilder>[] } {
+    const menu = new StringSelectMenuBuilder()
+      .setCustomId(`trivia:z:${nonce}`)
+      .setPlaceholder("🥕 ¿De qué tema quieres la siguiente?")
+      .addOptions(this.t.topics(userId).slice(0, 25).map((t) => ({ label: topicName(t.topic), description: `${t.n} ${t.n === 1 ? "pregunta" : "preguntas"} en esta partida`, value: t.topic })));
+    const back = new ButtonBuilder().setCustomId(`trivia:zb:${nonce}`).setLabel("Volver a la pregunta").setEmoji("⬅️").setStyle(ButtonStyle.Secondary);
+    return { components: [new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(menu), new ActionRowBuilder<ButtonBuilder>().addComponents(back)] };
+  }
+
+  /** Tema elegido con la Zanahoria de Gumi. Devuelve false si el menú no es de aquí. */
+  async select(i: StringSelectMenuInteraction): Promise<boolean> {
+    const [kind, action, nonce] = i.customId.split(":");
+    if (kind !== "trivia" || action !== "z") return false;
+    const res = this.t.carrot(i.user.id, nonce!, i.values[0] ?? "");
+    if (!res.ok && res.motivo === "vieja") return void (await this.stale(i)), true;
+    await i.deferUpdate();
+    const info = this.t.runInfo(i.user.id);
+    const shown = this.t.active(i.user.id);
+    if (!shown || !info) return true;
+    const header = res.ok ? [`🥕 *Gumi: «¡Listo! La que sigue es de ${topicName(i.values[0]!)}.»*`, ""] : [res.motivo === "sin_usos" ? "🥕 Ya no te quedan Zanahorias de Gumi." : "🥕 Ese tema ya no tiene preguntas en esta partida.", ""];
+    await i.editReply(await this.question(i.user.id, shown, info, header));
+    return true;
+  }
+
+  /**
+   * Falló con la Baguette de Teto (mercado negro): ve la respuesta y decide si sigue la partida con su racha o la
+   * termina. Si no decide a tiempo, termina.
+   */
+  private salvageScreen(res: Extract<AnswerResult, { kind: "salvable" }>): Payload {
+    const q = res.question;
+    const usos = res.gasta ? ` Gastas **1 uso** (te quedan ${res.usos}); en esta partida podrás seguir ${res.vidas === 1 ? "esta última vez" : `hasta ${res.vidas} veces`}.` : ` Ya la usaste en esta partida: puedes seguir ${res.vidas === 1 ? "esta última vez" : `${res.vidas} veces más`} sin gastar otro uso.`;
+    const content = [
+      res.reason === "tiempo" ? `⌛ **¡Se acabó el tiempo!** Era **${q.answer}**.` : `❌ **Incorrecto.** Era **${q.answer}**.`,
+      q.fact ? `-# ${q.fact}` : "",
+      "",
+      `🥖 **¡Tienes la Baguette de Teto!** ¿Sigues la partida con tu racha de **${res.streak}**?${usos}`,
+      `⏳ Decide <t:${Math.ceil(res.deadline / 1000)}:R>; si no, la partida termina.`,
+    ]
+      .filter((l, k) => l !== "" || k > 1)
+      .join("\n");
+    const go = new ButtonBuilder().setCustomId(`trivia:b:${res.nonce}`).setLabel("Seguir con la Baguette").setEmoji("🥖").setStyle(ButtonStyle.Success);
+    const stop = new ButtonBuilder().setCustomId(`trivia:x:${res.nonce}`).setLabel("Terminar aquí").setEmoji("🏁").setStyle(ButtonStyle.Secondary);
+    return { content, components: [new ActionRowBuilder<ButtonBuilder>().addComponents(go, stop)], files: [], attachments: [] };
   }
 
   private endScreen(res: Extract<AnswerResult, { end: RunSummary | null }>, end: RunSummary): Payload {
@@ -196,7 +281,7 @@ export class TriviaDiscord {
 
   // ───────────────────────── temporizador ─────────────────────────
 
-  private arm(userId: string, i: Answerable, s: Shown): void {
+  private arm(userId: string, i: Answerable, s: { nonce: string; deadline: number }): void {
     this.disarm(userId);
     const timer = setTimeout(() => void this.expire(userId, s.nonce).catch((e) => logError("trivia (tiempo)", e)), Math.max(0, s.deadline - Date.now()) + GRACE_MS);
     timer.unref?.();
@@ -213,6 +298,14 @@ export class TriviaDiscord {
     const res = this.t.timeout(userId, nonce);
     if (!res || res.kind === "vieja") return;
     const l = this.live.get(userId);
+    // Se le acabó el tiempo pero tiene la Baguette de Teto: decide si sigue (con su propio temporizador).
+    if (res.kind === "salvable") {
+      if (l) {
+        this.arm(userId, l.i, res);
+        await l.i.editReply(this.salvageScreen(res)).catch(() => {});
+      }
+      return;
+    }
     this.disarm(userId);
     if (l) await l.i.editReply(this.endScreen(res, res.end!)).catch(() => {});
     await this.publish(res.end!);
@@ -248,7 +341,7 @@ export class TriviaDiscord {
     }
     // El temporizador va antes de mostrarla: si mostrarla falla, la pregunta igual vence y la partida se cierra.
     this.arm(i.user.id, i, shown);
-    await show(await this.question(shown, info));
+    await show(await this.question(i.user.id, shown, info));
     if (info.cost > 0) this.d.log(`🧠 Trivia: partida ${info.run} de ${i.user.id}, −${info.cost} XP`);
     // El cobro pudo bajarlo de nivel: apodo y rol de honor.
     if (change) await this.d.levelsDiscord.handle(change, { channelId: i.channelId ?? undefined }).catch((e) => logError("nivel por trivia", e));
@@ -304,7 +397,62 @@ export class TriviaDiscord {
       await this.handle(i, this.t.answerOption(i.user.id, nonce!, Number(k)));
       return true;
     }
+    // Baguette de Teto (mercado negro): seguir la partida tras fallar, o terminarla.
+    if (action === "b") {
+      await this.revive(i, nonce!);
+      return true;
+    }
+    if (action === "x") {
+      await this.handle(i, this.t.giveUp(i.user.id, nonce!));
+      return true;
+    }
+    // Guitarra de flower (mercado negro): doble XP el resto de la partida.
+    if (action === "g") {
+      const res = this.t.guitar(i.user.id, nonce!);
+      if (!res.ok) {
+        if (res.motivo === "vieja") return void (await this.stale(i)), true;
+        const text = res.motivo === "sin_usos" ? "🎸 Ya no te quedan usos de la Guitarra de flower." : "🎸 La guitarra ya está sonando en esta partida.";
+        return void (await i.reply({ content: text, flags: MessageFlags.Ephemeral }).catch(() => {})), true;
+      }
+      await i.deferUpdate();
+      await i.editReply(await this.question(i.user.id, res.shown, res.info, ["🎸 *flower conectó la guitarra: «¡Subamos el volumen!»* Desde ahora, tus aciertos dan el **doble de XP**.", ""]));
+      return true;
+    }
+    // Zanahoria de Gumi (mercado negro): menú de temas, o volver a la pregunta.
+    if (action === "zt" || action === "zb") {
+      const shown = this.t.active(i.user.id);
+      const info = this.t.runInfo(i.user.id);
+      if (!shown || !info || shown.nonce !== nonce) return void (await this.stale(i)), true;
+      if (action === "zt") return void (await i.update(this.carrotMenu(i.user.id, nonce!))), true;
+      await i.deferUpdate();
+      await i.editReply(await this.question(i.user.id, shown, info));
+      return true;
+    }
+    // Celular de Neru (mercado negro): borra dos opciones incorrectas de la pregunta en pantalla.
+    if (action === "c") {
+      const res = this.t.fiftyFifty(i.user.id, nonce!);
+      if (!res.ok) {
+        if (res.motivo === "vieja") return void (await this.stale(i)), true;
+        const text = res.motivo === "sin_usos" ? "📱 Ya no te quedan usos del Celular de Neru. Consigue otro en el mercado negro (/consumibles)." : "📱 El Celular de Neru no sirve en esta pregunta.";
+        return void (await i.reply({ content: text, flags: MessageFlags.Ephemeral }).catch(() => {})), true;
+      }
+      await i.deferUpdate();
+      await i.editReply(await this.question(i.user.id, res.shown, res.info, ["📱 *Neru te escribió por chat: «…no son esas dos. de nada.»*", ""]));
+      return true;
+    }
     return false;
+  }
+
+  /** Sigue la partida con la Baguette de Teto (o la termina, si ya no puede). */
+  private async revive(i: ButtonInteraction, nonce: string): Promise<void> {
+    const res = this.t.revive(i.user.id, nonce);
+    if (res.kind !== "sigue") return this.handle(i, res);
+    await i.deferUpdate();
+    this.arm(i.user.id, i, res.next);
+    const vidas = res.vidas > 0 ? `En esta partida puedes seguir ${res.vidas === 1 ? "1 vez más" : `${res.vidas} veces más`}.` : "Era tu última oportunidad en esta partida.";
+    const usos = res.gasto ? ` Gastaste 1 uso de la Baguette (te quedan ${this.t.baguetteUsos(i.user.id)}).` : "";
+    await i.editReply(await this.question(i.user.id, res.next, res.info, [`🥖 **¡Teto te salvó!** Sigues con tu racha de **${res.next.streak}**. ${vidas}${usos}`, ""]));
+    this.d.log(`🥖 Trivia: ${i.user.id} siguió con la Baguette de Teto (racha ${res.next.streak})`);
   }
 
   /** Respuesta escrita (cuadro de las preguntas de texto). Devuelve false si no es de aqui. */
@@ -324,7 +472,7 @@ export class TriviaDiscord {
     await this.publish(end).catch((e) => logError("trivia (partida colgada)", e));
   }
 
-  private async stale(i: ButtonInteraction | ModalSubmitInteraction): Promise<void> {
+  private async stale(i: ButtonInteraction | ModalSubmitInteraction | StringSelectMenuInteraction): Promise<void> {
     await i.reply({ content: "Esa pregunta ya pasó. Usa /trivia para jugar otra vez. 🧠", flags: MessageFlags.Ephemeral }).catch(() => {});
   }
 
@@ -336,10 +484,16 @@ export class TriviaDiscord {
     if (i.isButton() || i.isFromMessage()) await i.deferUpdate();
     else await i.deferReply({ flags: MessageFlags.Ephemeral });
     const update = (p: Payload) => i.editReply(p);
+    // Falló, pero tiene la Baguette de Teto: decide si sigue (con su propio temporizador).
+    if (res.kind === "salvable") {
+      this.arm(userId, i, res);
+      await update(this.salvageScreen(res));
+      return;
+    }
     if (res.kind === "acierto" && res.next) {
       // El temporizador va antes de mostrarla: si mostrarla falla, la pregunta igual vence y la partida se cierra.
       this.arm(userId, i, res.next);
-      await update(await this.question(res.next, res.info, this.correctHeader(res)));
+      await update(await this.question(userId, res.next, res.info, this.correctHeader(res)));
     } else {
       this.disarm(userId);
       await update(this.endScreen(res, res.end!));
@@ -353,6 +507,19 @@ export class TriviaDiscord {
     if (res.kind === "acierto" && res.milestone && i.channelId) await this.milestone(userId, res.milestone, i.channelId).catch((e) => logError("hito de la trivia", e));
     if (res.kind === "acierto" && res.secret && i.channelId) await this.secret(userId, i.channelId).catch((e) => logError("secreto de la trivia", e));
     if (res.end) await this.publish(res.end);
+  }
+
+  /**
+   * Premio ganado en la trivia multijugador (Actividad de Discord; src/trivia/actividad.ts): los mismos anuncios de /trivia
+   * en el canal de la Actividad. Sin canal, solo el rol del secreto y el aviso a GyroP.
+   */
+  async premioActividad(userId: string, p: { completed: Dificultad | null; secret: boolean; milestone: Milestone | null }, channelId: string | null): Promise<void> {
+    if (p.completed && channelId) await this.completed(userId, p.completed, channelId).catch((e) => logError("premio de la trivia (Actividad)", e));
+    if (p.milestone && channelId) await this.milestone(userId, p.milestone, channelId).catch((e) => logError("hito de la trivia (Actividad)", e));
+    if (p.secret) {
+      if (channelId) await this.secret(userId, channelId).catch((e) => logError("secreto de la trivia (Actividad)", e));
+      else await this.giveSecretRole(userId).catch((e) => logError("rol secreto de la trivia (Actividad)", e));
+    }
   }
 
   /** Teto anuncia que el Papu supero todas las preguntas de una dificultad (y se lleva su sobre). */

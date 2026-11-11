@@ -142,6 +142,22 @@ export class LevelStore {
     });
   }
 
+  /**
+   * Intercambio (src/intercambios/): pasa XP de un Papu a otro sin anotarla en el dia (no cuenta como actividad: no
+   * da monedas ni misiones, y un machetazo no la quita). Devuelve la XP antes y despues de cada uno, o null si no le alcanza.
+   */
+  moveXp(fromId: string, toId: string, amount: number): { from: { before: number; after: number }; to: { before: number; after: number } } | null {
+    return transaction(this.db, () => {
+      const fb = this.get(fromId).xp;
+      const tb = this.get(toId).xp;
+      if (amount <= 0 || fb < amount) return null;
+      this.ensure(toId);
+      this.db.prepare("UPDATE niveles SET xp = xp - ? WHERE user_id = ?").run(amount, fromId);
+      this.db.prepare("UPDATE niveles SET xp = xp + ? WHERE user_id = ?").run(amount, toId);
+      return { from: { before: fb, after: fb - amount }, to: { before: tb, after: tb + amount } };
+    });
+  }
+
   /** Sube la XP hasta `xp` si tenia menos (Papus de honor: empiezan en su nivel). */
   raiseTo(userId: string, xp: number): { before: number; after: number } {
     const before = this.get(userId).xp;

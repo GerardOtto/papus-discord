@@ -47,6 +47,12 @@ const channels = (await rest.teto.get(Routes.guildChannels(config.guildId))) as 
 const byKey = new Map(channels.filter((c) => c.type === 0).map((c) => [channelKey(c.name), c]));
 const link = (text: string) =>
   text.replace(/\{([a-z0-9-]+)\}/g, (m, k: string) => {
+    // {mundo}: enlace a la Plaza de los Papus en el navegador (MUNDO_URL en .env, p. ej. https://papus-bots.<sub>.workers.dev/mundo/).
+    if (k === "mundo") {
+      const url = process.env.MUNDO_URL?.trim();
+      if (!url) throw new Error("Falta MUNDO_URL en .env (enlace al mundo de los Papus, para la guía de #plaza-papus)");
+      return `**[abre la plaza](${url})**`;
+    }
     const ch = byKey.get(k);
     if (!ch) throw new Error(`Enlace a un canal que no existe: ${m}`);
     return `<#${ch.id}>`;

@@ -8,6 +8,8 @@ export const CHANNELS = {
   registro: "registro-bots",
   hablaVocaloids: "habla-con-los-vocaloids",
   reportes: "reportes-y-reclamos",
+  /** Registro del chat del mundo de los Papus (solo lectura). */
+  plaza: "plaza-papus",
 } as const;
 
 export function channelKey(name: string): string {

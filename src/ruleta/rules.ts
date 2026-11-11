@@ -78,10 +78,13 @@ export function missions(s: RouletteSettings, d: DayStats): MissionStatus[] {
   return out;
 }
 
-/** Tiradas del dia: una por mision cumplida, menos las usadas (0 si un strike la bloqueo). */
-export function spinsLeft(s: RouletteSettings, d: DayStats, used: number): number {
+/**
+ * Tiradas del dia: una por mision cumplida, mas las regaladas (Naranja y platano de Rin y Len, mercado negro), menos
+ * las usadas (0 si un strike la bloqueo).
+ */
+export function spinsLeft(s: RouletteSettings, d: DayStats, used: number, regaladas = 0): number {
   if (s.bloqueoPorStrike && d.castigo) return 0;
-  return Math.max(0, missions(s, d).filter((x) => x.done).length - used);
+  return Math.max(0, missions(s, d).filter((x) => x.done).length + regaladas - used);
 }
 
 /** Premio al azar segun los pesos (tambien los del sorteo). Devuelve el indice de la casilla. */

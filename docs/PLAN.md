@@ -73,6 +73,15 @@ Triple Baka sube a 25 USD para compensar el trabajo de los videos personalizados
     tenía llenos). **`/donar papu cantidad`** (Teto): un Papu le cede mensajes de su cuota de hoy a otro; los pierde él
     (cuentan como gastados y un reinicio no los devuelve) y al otro le llegan como extra del día, solo hasta llenar su
     cuota (así no sirve para pasar XP). Quien no tiene límite (Piña) no dona: su regalo es solo suyo.
+  - **Mercado negro (pedido de GyroP, 9 nov. 2026)**: el PC de Adachi Rei (§3.9) reinicia la cuota del día, la ruleta y la
+    trivia, y el Atún, la Baguette y el Celular ayudan en la ruleta y la trivia. Se compran **solo con Shaula-coins ganadas**
+    (participando), nunca con compradas ni con dinero; no suben la cuota diaria.
+  - **Intercambios (decisión de GyroP, 10 nov. 2026)**: los Papus se cambian entre ellos Shaula-coins (ganadas **y
+    compradas**), XP, niveles, cuota de hoy, sobres, objetos y consumibles (§3.11). GyroP aceptó que así **lo comprado
+    puede terminar en XP, niveles o cuota de otro Papu** (de forma indirecta: nadie le compra nada a los bots). Las
+    compradas siguen siendo compradas para quien las recibe (no abren sobres ni entran al mercado negro), pero un Papu sí
+    puede cambiar sus compradas por las ganadas de otro. La cuota pasa como `/donar` (solo hasta llenar la del otro) y
+    nadie sube su cuota diaria.
 - Un mensaje con varias menciones gasta **una unidad por cada @**. Si la cuota no alcanza, responden los primeros mencionados (en orden) y el resto da su frase de cuota agotada.
 - Sin prioridad en la cola por pagar.
 - GyroP asume el riesgo de licencias de los personajes (decisión tomada; no volver a plantearlo).
@@ -118,13 +127,14 @@ Calibrado con el historial real (13.241 mensajes del 16 al 20 oct.; propuesta vi
   LLM recibe el nombre sin la etiqueta. Al dueño del servidor Discord no deja cambiarle el apodo.
 - **Tarjeta** (`/nivel`, imagen): avatar, insignia del rango, barra de XP, puesto en el servidor, cuota del día y evento.
   Cada Papu la personaliza con `/tarjeta`: frase (máx. 60, revisada con las reglas de Neru), color y fondo (banner de un
-  Vocaloid, degradado o **imagen propia, que GyroP aprueba antes en #moderación**: en el servidor hay menores).
+  Vocaloid, degradado o **imagen propia, que GyroP o un Mod aprueba antes en #moderación**: en el servidor hay menores).
 - **Ranking** (`/ranking`, imagen; decisiones de GyroP, 21 oct. 2026): por **nivel total** (estrellas y después XP; los
   empates comparten puesto), solo Papus que siguen en el servidor. Escenario con podio del 1.º al 3.º presentado por tres
   Vocaloids que **rotan cada día** (los 15 pasan una vez cada 5 días, en orden barajado por ciclo; figuras en
   `assets/bots/<id>_figura.png`) y lista hasta el 10.º. `/ranking` lo ve solo quien lo pide (con su puesto abajo si no
   está en el top 10); **`/publicar-ranking` (solo GyroP)** hace que Teto lo publique en ese canal con una frase fija.
-  Sin mensaje fijo ni publicación automática por ahora. El puesto de la tarjeta usa la misma cuenta.
+  **Desde el 10 nov. 2026 (pedido de GyroP), Teto lo publica sola cada día a las 12:00 de Chile en #ranking**
+  (`publishDailyRanking`, una vez por día; si falta el canal, avisa en #registro-bots). El puesto de la tarjeta usa la misma cuenta.
 - **Gratis**: todo corre en el PC (sin bots externos de niveles como Arcane, que no pueden fijar la cuota de los bots).
 - GyroP sube de nivel como todos, solo para ver cómo avanza (desde el 22 oct. 2026): no sale en el ranking ni recibe el rol de honor. Discord no deja que ningún bot le cambie el apodo al dueño del servidor, así que Teto le avisa cada subida en #registro-bots. Datos en `data/papus.sqlite` (tablas `niveles`, `xp_dia`) y fondos en `data/tarjetas/`.
 
@@ -168,7 +178,7 @@ Para animar a jugar con las chicas. Todo en `config/bodas.json` y `content/bodas
   en #general (frase fija `boda_divorcio`) y deja **otra adivinanza** enseguida (o al cerrarse la que esté abierta), que
   no gasta las 3 del día. Su memoria se limpia: deja de saber que estaba casada con él y, durante 24 h, sabe que ya no
   lo está (el historial del canal todavía puede hablar de su ex); al casarse de nuevo solo recuerda al nuevo.
-- **`/boda [vocaloid]`** (solo GyroP): la chica elegida, o la siguiente del mazo, deja su adivinanza ya, sin horario y
+- **`/boda [vocaloid]`** (GyroP y los Mods): la chica elegida, o la siguiente del mazo, deja su adivinanza ya, sin horario y
   sin gastar las del día (no si está casada o si ya hay una adivinanza abierta).
 - **Límites**: quien está casado no juega hasta que termina su boda; no se repite esposa hasta 3 días después de la boda
   con ella; GyroP no juega. Las adivinanzas (10 por chica, sin repetir hasta agotarlas) salen de la ficha de cada una
@@ -276,6 +286,26 @@ y `src/discord/trivia.ts`.
 - Datos en `data/papus.sqlite`: `xp_dia.trivia` y `trivia_aciertos`, `trivia_vistas`, `trivia_partidas`,
   `trivia_superadas` y `trivia_premios` (migración 12).
 
+- **Trivia multijugador (Actividad de Discord de Teto, en prueba desde el 8 nov. 2026)**: se abre en un canal de voz
+  (🚀 Actividades). Todos ven la misma pregunta con su temporizador, con el formato de `/trivia` (encabezado, pregunta en
+  negrita, opciones 🇦🇧🇨🇩, dato curioso); en las de opciones se ve en vivo el avatar de quien eligió cada una (una sola
+  respuesta por pregunta). Si todos contestan, la pregunta termina al instante; si no, al acabarse el tiempo. Al revelar,
+  cada acierto da XP con la **misma regla de /trivia** (nivel, crecimiento, racha de esa partida) y el **mismo tope del
+  día** (`xp_dia.trivia`, regla 1: se gana jugando). Modos: **⚔️ eliminatoria** (quien falla cae; si fallan todos los que
+  quedan, nadie cae; gana el último en pie; solo, el primer fallo termina) y **🤝 cooperativo** (quien falla sigue
+  jugando; el equipo pierde cuando todos fallaron al menos una vez). El anfitrión (el primero en entrar) elige modo y
+  preguntas (mezcla o una dificultad). Quien llega tarde mira hasta la siguiente. Pool de prueba: 50 preguntas con al
+  menos una de cada tipo (opciones por tema, verdadero o falso, texto, audio, las 8 formas de imagen y las 3 de figura),
+  `npm run actividad` (`worker/src/actividad/pool.json`; archivos con nombres que no delatan la respuesta).
+  Arquitectura: página liviana y sala (Durable Object por instancia) en el worker de Cloudflare
+  (`worker/src/actividad/`, `worker/actividad/cliente/`); los aciertos van a D1 (`actividad_aciertos`) y Teto les da la
+  XP cada 8 s (`src/trivia/actividad.ts`), marcándolos antes para no darla dos veces; el perfil de XP de cada Papu lo deja
+  Teto en `actividad_perfiles` para que la sala muestre la XP. Solo entran miembros del servidor. **Comparte todas las estadísticas con `/trivia`** (decisión de GyroP, 8 nov. 2026):
+  cada partida multijugador cuenta como una partida del día (las mismas `partidasConXp` con XP, fin `actividad`), y cada
+  acierto cuenta como pregunta superada (sobre al completar una dificultad, secreto del Papu Lince), para los hitos y para
+  la mejor racha; Teto anuncia esos premios en el canal de la Actividad como en `/trivia`. El resultado de la partida no
+  se anuncia: se ve dentro de la Actividad. Desde el 8 nov. 2026 (probada en Discord por GyroP), pool completo (las ~5.730 de `/trivia`) y estética de las plantillas del canal (la respuesta se muestra **3 s** antes de la siguiente, con o sin dato curioso; pedido de GyroP, 9 nov. 2026, antes 4,5 s y 7 s con dato) (fondo vino a violeta marino con cuadrícula, Fredoka con contorno marino, franja de colores, logo de TetoCiencia, Teto nerd que reacciona, sticker «Dato curioso»; `scripts/actividad_arte.py`). Las tarjetas del Developer Portal (portada, fondo e ícono) las hace GyroP a mano en Canva.
+
 ### 3.5 Sorteo de los Papus (pedido de GyroP, 26 oct. 2026)
 
 Todo en `config/sorteo.json`; código en `src/sorteo/` y `src/discord/sorteo.ts`; reutiliza el GIF de la ruleta (§3.3).
@@ -316,7 +346,8 @@ de la tienda, `arte.ts` dibujos de arte propio) y `src/discord/tienda.ts`. Propu
   uno diario) y **1 cada lunes** a quien participó al menos 3 días la semana anterior. **Abrir un sobre es
   privado**, como la trivia: el GIF solo lo ve quien lo abre (27 oct. 2026: publicarlo en #🪙・tienda-shaula llenaba el
   canal; las frases `sobre_abierto` y `sobre_legendario` quedan listas por si se vuelve a anunciar). En el canal solo
-  quedan el menú fijado y el aviso de Miku de cada vitrina nueva.
+  quedan el menú fijado y el aviso de Miku de cada vitrina nueva (**al publicar una vitrina nueva, Miku borra la imagen
+  de la anterior**: pedido de GyroP, 10 nov. 2026).
 - **Imágenes fijas** (27 oct. 2026, para ahorrar uso del servidor): el menú, los paquetes, el sobre cerrado, la ayuda y la
   vitrina vigente (la misma para todos; lo que ya tienes va en el texto) se suben **una vez** a un hilo de staff
   («🖼️ Imágenes de la tienda», en #registro-bots) y las pantallas privadas las muestran desde ahí, sin volver a subirlas.
@@ -386,7 +417,7 @@ Todo en `config/peleas.json`; código en `src/peleas/` (`rules.ts` pelea y cuota
 
 - **Cuándo**: peleas automáticas a las **16:00 y 21:00 de México** (`zona` en `config/peleas.json`; desde el 8 nov. 2026,
   antes 14:00 y 21:00 de Chile, que en noviembre son 11:00 y 18:00 de México, en horario de clases) en **#⚔️・peleas** (si no existe, en #general), con
-  una pareja al azar que no repite la anterior, y **`/pelea [vocaloid1] [vocaloid2] [cancelar]`** de Teto (solo GyroP)
+  una pareja al azar que no repite la anterior, y **`/pelea [vocaloid1] [vocaloid2] [cancelar]`** de Teto (GyroP y los Mods)
   en el canal donde se usa (con 32 luchadores, `vocaloid1` y `vocaloid2` se eligen con autocompletar). Una pelea a la vez.
 - **Luchadores (28, desde el 8 nov. 2026, pedido de GyroP)**: los 15 Vocaloids del servidor; 8 **invitados de los
   videos** del canal (Ted, Nero, Lily, Defoko, KAFU, Momone Momo, Kanon y Anon; imágenes del motor, salvo Anon y Kanon,
@@ -435,11 +466,168 @@ tiene un **tercer menú**, de selección múltiple, que atiende el worker 24/7 (
 | Peleas 1vs1 | ⚔️ Ludópata | Teto, al abrir las apuestas (§3.7) |
 | Bodas | 💍 Rizzler | La Vocaloid de la adivinanza; si es del Coro (no puede etiquetar roles), Neru en un mensaje aparte (§3.2) |
 | Estrenos | 🎬 Estrenos | Miku, al empezar la XP multiplicada de un estreno (§3.1) |
+| Mercado negro | 🕶️ Traficante | Neru, al abrir el mercado negro (§3.9) |
 
 - Lo que el Papu deja marcado al cerrar el menú es lo que tiene (lo demás se quita); vacío = sin avisos.
 - Roles como los de los países: sin color ni permisos, no separados, al fondo de la lista, **no mencionables** (solo
   los bots con el rol Vocaloids, que pueden mencionar a todos; así ningún Papu los usa para hacer spam). Los crea
   `npm run servidor`. Si un rol no existe, el evento sale igual sin etiquetar. Solo adorno de avisos: nada de XP ni cuota.
+
+### 3.9 Mercado negro (pedido de GyroP, 9 nov. 2026)
+
+Todo en `config/mercado.json`; código en `src/mercado/` (`rules.ts` horario, `service.ts` inventario, compras y PC,
+`reinicios.ts` lo que guarda el PC) y `src/discord/mercado.ts`; los consumibles se usan dentro de `src/discord/ruleta.ts`
+y `src/discord/trivia.ts`.
+
+- **Cuándo**: abre **una hora al día**, a una **hora sorpresa** en punto entre las 12:00 y las 23:00 de México (sale de la
+  fecha y la `semilla` de la config: siempre la misma para ese día, distinta cada día). **Neru** lo anuncia en
+  #🪙・tienda-shaula con una frase fija (`neru.mercado_abre`, 30), la lista de precios, el botón **🕶️ Entrar al mercado
+  negro** y la etiqueta del rol **🕶️ Traficante** (avisos de #tus-roles, §3.8; Teto crea el rol si falta). Al cerrar, Neru
+  edita su mensaje («cerró, vuelve mañana»); **al abrir de nuevo, Neru borra el aviso de la apertura anterior** (pedido
+  de GyroP, 10 nov. 2026: en el canal queda solo el de hoy). GyroP lo abre cuando quiera con `/consumibles abrir_mercado:true [minutos]`.
+- **Solo Shaula-coins ganadas**: las compradas no entran. Varios objetos reinician la cuota o ayudan en la ruleta y la
+  trivia (que dan XP): con dinero real rompería la regla 1. **Excepción a la regla 1 como la ruleta y las bodas**: las
+  monedas ganadas se consiguen participando. Precios «ridículos» a propósito, según lo que gana un Papu (§3.6: ~125 al día
+  uno activo, 215-245 el 10 % más activo, ~1.000 el mejor día con apuestas).
+- **Vitrina rotativa (pedido de GyroP, 9 nov. 2026)**: cada apertura vende solo **5 objetos** (`vitrina` en la config),
+  que cambian cada día; en ceil(objetos / 5) días salen todos al menos una vez (ciclos barajados con la semilla,
+  `vitrinaDe`). Se ven en un **banner** (`src/mercado/banner.ts`): los objetos sobre podios con su nombre, precio y usos
+  debajo, cada bloque centrado en su columna y todos centrados en vertical. Debajo, **una fila de 5 botones iguales**
+  («¡Lo quiero!», sin emoji) en el mismo orden: las columnas del banner (214 px de 1100, que Discord muestra a 550)
+  siguen el paso de esos botones, así cada uno queda bajo su objeto en la computadora (en el celular Discord acomoda
+  los botones a su manera). Sale en el aviso de Neru y en la pantalla privada; el botón abre la ficha del objeto con
+  «Comprar por X». Lo que no está en la vitrina de hoy no se vende.
+- **Objetos** (ficha privada de cada uno, comprar; sin devoluciones):
+
+| Objeto | Precio | Usos | Qué hace |
+|---|---|---|---|
+| 🐟 Atún de Luka | 7.500 | 3 giros | En `/ruleta`, el giro sale primero solo para el Papu: **Me lo quedo** o **Descartar y girar otra vez**, hasta 2 veces en ese giro. El primer descarte gasta el uso; el GIF público muestra solo el premio final. El giro sorteado queda guardado (kv): volver a girar no lo cambia. |
+| 🥖 Baguette de Teto | 6.000 | 5 partidas | En `/trivia`, al fallar (o acabarse el tiempo) ve la respuesta y elige **Seguir con la Baguette** (sigue con su racha) o **Terminar aquí**; tiene 20 s para decidir. Hasta 2 veces por partida; el primer «seguir» de la partida gasta el uso. |
+| 📱 Celular de Neru | 3.000 | 10 preguntas | Botón en las preguntas de opciones de `/trivia`: borra dos incorrectas (una vez por pregunta; el tiempo sigue). Sugerencia de Claude. |
+| 🍆 Seguro de Gakupo | 4.000 | 5 peleas | En el 1vs1, botón **Asegurar con Gakupo** al apostar (o en «Mi apuesta»): si su Vocaloid pierde, se le devuelve **toda** la apuesta (también lo que sume después; decisión de GyroP, 9 nov. 2026). Si la pelea se cancela, vuelve el uso. Teto lo nombra en el resultado. |
+| 🍦 Helado de Kaito | 3.500 | 3 sobres | Solo: el próximo sobre que abra (de cualquier clase, gratis o comprado) trae 1 objeto más. |
+| 🎤 Micrófono de Meiko | 2.500 | 5 días | Desde `/consumibles`: ese día la misión de voz de `/ruleta` pide 1 h en vez de 2 (cuenta también para las monedas por misión y el sobre diario de las misiones). |
+| 🍊 Naranja y plátano de Rin y Len | 3.000 | 3 regalos | Desde `/consumibles`: le regala una tirada de la ruleta de hoy a otro Papu (no a sí mismo ni a quien tiene la ruleta bloqueada por un machetazo); Teto lo anuncia en el canal (`teto.ruleta_regalo`, 30 frases). |
+| 🌙 Luna de IA | 9.000 | 1 (2 semanas) | Desde `/consumibles`: por 14 días, los mensajes que le contesta un Vocaloid (su cuota) dan el **triple de XP** (el total de esa XP × 3; `LevelService.quotaBoost`). No se activa otra mientras dura. |
+| 🍶 Sake de Haku | 2.000 | 5 adivinanzas | Desde `/consumibles`, con una adivinanza de boda abierta: Haku le muestra en privado la forma de la respuesta (`▢▢▢▢▢   ▢▢▢▢▢▢`: palabras y letras). Volver a verla en la misma adivinanza no gasta otro. |
+| 🥕 Zanahoria de Gumi | 2.500 | 10 preguntas | Botón en `/trivia`: elige el tema de la siguiente pregunta (canciones, personajes, imágenes, audio…; los que queden en la partida). Una vez por pregunta. |
+| 🍨 Doble helado de Kaito | 4.500 | 3 sobres | Desde `/consumibles`: un sobre común regalado pasa a ser raro (Épica segura). |
+| 🎸 Guitarra de flower | 5.000 | 5 partidas | Botón en `/trivia` (solo en partidas con XP): desde que la toca, los aciertos de esa partida dan el doble de XP, siempre dentro del tope del día. |
+| 💻 PC de Adachi Rei | 30.000 | 3 | Desde `/consumibles`: devuelve la cuota del día (lo donado no vuelve), las tiradas de las misiones ya cumplidas, las partidas con XP y el tope de la trivia, y el tope de monedas por actividad. **No quita nada de lo ganado** (se guarda lo que llevaba en la tabla `reinicios` y todo cuenta desde ahí). El más caro. |
+| 💾 Disquete de Adachi Rei | 25.000 | para siempre | Las tiradas de la ruleta que no usa ya no se pierden a medianoche: se guardan para los días siguientes (guardadas de mañana = ganadas hoy + guardadas − usadas; un día con machetazo no las usa pero tampoco las pierde). Pedido de GyroP. |
+| 🔪 Machete de Neru | 15.000 | para siempre | `/machetear papu` (Neru): machetazo **de mentira**, con una frase fija (`neru.machetazo_ficticio`, 30) y la aclaración de que no cuenta. No es moderación: no da strike ni quita nada (regla 3). Uno cada 10 min por Papu. Pedido de GyroP. |
+| 🏴‍☠️ Rol Triple Baka Pirata | 1.000.000 | para siempre | Rol de adorno con color, **distinto** del rol 💥 Triple Baka de Ko-fi (ese da videos y el regalo mensual de monedas compradas; venderlo con monedas lo regalaría). |
+| 🚫 Ban de Shaula (réplica) | 4.444 | para siempre | Insignia de la tarjeta (burla a Shaula, la primera baneada). |
+| 🌀 «Caos fue baneado, yo no» | 6.666 | para siempre | Título de la tarjeta. |
+| 🪦 «Lucho no llegó tan lejos» | 5.555 | para siempre | Título de la tarjeta. |
+
+- Los adornos son rareza **Contrabando** (`config/objetos.json`, temporada `mercado`): no salen en vitrinas ni sobres, no se
+  fabrican con Ecos y se equipan como cualquier otro en /tienda → Mi tarjeta. Sus miniaturas: `npm run coleccion`.
+- **`/consumibles`** (Teto, privado): lo que tiene y cuántos usos le quedan, dónde se usa cada uno, el botón del PC (con
+  confirmación) y el del mercado si está abierto. Cada compra y cada uso quedan en #registro-bots.
+- Datos en `data/papus.sqlite` (migración 16): `consumibles`, `mercado_registro` y `reinicios`; en `kv`, el aviso de Neru
+  (`mercado:anuncio`), la apertura manual (`mercado:manual`) y el giro pendiente del Atún (`ruleta:pendiente:<id>`), el Micrófono activo (`ruleta:voz:<día>:<id>`) y las tiradas
+  regaladas (`ruleta:regalo:<día>:<id>`); `apuestas.seguro` marca las apuestas aseguradas.
+- Los cuatro de Gakupo, Kaito, Meiko y Rin y Len los sugirió Claude y GyroP los aprobó (9 nov. 2026); también la Luna
+  de IA (GyroP la cambió a XP triple de la cuota), el Sake, la Zanahoria, el Doble helado, la Guitarra, el Disquete
+  (GyroP: permanente) y el Machete (GyroP: machetazos de mentira). La Máscara de Ruko se descartó: las apuestas ya son
+  públicas. En `kv`: `mercado:luna:<id>`, `mercado:sake:<adivinanza>:<id>`, `mercado:machete:<id>` y
+  `ruleta:guardadas:<id>`.
+
+### 3.10 Plaza de los Papus: mundo 3D (pedido de GyroP, 9 nov. 2026; en construcción, no desplegado)
+- Mundo low-poly donde los Papus caminan, corren, andan en patineta, personalizan su Papu y platican con burbujas.
+  Animación a propósito de pocos cuadros (stop-motion). Código: `worker/src/mundo/` (sala) y `worker/mundo/cliente/`
+  (página con three.js); `npm run mundo` arma la página.
+- **Una sola plaza** para todos: desde el navegador ("Entrar con Discord", OAuth con la app de Teto; el token queda en
+  una cookie HttpOnly) y desde la Actividad de Discord. Solo Papus del servidor. Tope de 40 Papus por plaza.
+- **Hosting**: Durable Object de Cloudflare con WebSockets que hibernan, sin reloj propio; la pose se manda cada 200 ms
+  y solo al moverse. Se descartaron el PC (internet inestable) y la e2-micro (1 GB de salida al mes y RAM de los bots).
+- **Vocaloids**: solo **renders** (hojas de sprites de 8 direcciones × 7 cuadros, `npm run mundo:sprites -- tet`, con el
+  pipeline de `../Diva-a-Render`), nunca los modelos 3D: GUMI prohíbe redistribuir y los demás son extraídos del juego;
+  un reclamo tumbaría todo el worker. Hoy pasea Teto entre la Tienda Shaula y la fuente.
+- **@Teto** en el chat de la plaza: lo responde el bot con el mismo servicio de Discord (misma cuota diaria, cola, LLM y
+  XP; `src/mundo/puente.ts`, por la base D1 del worker cada 3 s). La plaza muestra el nivel y la cuota del día.
+- **Chat**: reglas fijas de Neru (regla 3); sin límite de mensajes por tiempo (solo se ignoran ráfagas de scripts, <0,25 s).
+  Enter abre la caja y Enter envía y la cierra (💬 en celular). Sobre la cabeza quedan los 3 últimos mensajes: cada uno
+  se va con su tiempo o, con uno nuevo, el más viejo (FIFO). Todo queda en **#plaza-papus** (solo lectura), con
+  el mapa (`npm run mundo:mapa`) y cómo entrar fijados (`{mundo}` = `MUNDO_URL` del `.env`).
+- **Foto del servidor** (lectura, hecha): cada minuto el bot deja en D1 la boda más reciente, la pelea abierta o la
+  última, si el mercado está abierto, los tres primeros del ranking y el último sorteo (`src/mundo/estado.ts`; solo si
+  cambió). La plaza la lee al entrar y cada 3 min (`/mundo/api/estado`): Vocaloid y Papu en el altar, luchadores en el
+  ring con sus cuotas, Neru en el mercado (sin las tablas de "Cerrado"), Papus en los podios y el ganador del sorteo.
+  El aspecto de cada Papu en la plaza queda en D1 (`mundo_aspectos`) para el altar y los podios. Sprites hechos: Teto,
+  Miku, Luka, Neru, Rin, Len, Kaito, Meiko y Haku (los demás, sin modelo, salen solo con su nombre).
+- Todas las zonas dan su frente al sur, hacia la cámara aérea (mirando a la fuente se veían de lado o de espaldas).
+- Cámara: aérea fija mirando al norte o en tercera persona a ras del suelo (V o 🎥; se gira con Q/E, arrastrando o con
+  un segundo dedo, y "adelante" es hacia donde mira). Rueda del ratón o pellizcar: zoom. Se recuerda en el navegador.
+- Sprites de las Vocaloids en dos hojas (`npm run mundo:sprites -- <codigo>`, render a 1024): `<char>.webp` con celdas
+  de 256 (la que carga siempre, ~16 MB de video) y `<char>-hd.webp` de 512 (~64 MB), solo para las 2 más cerca de la
+  cámara (a menos de 13 m) y se suelta al alejarse. Contorno suavizado (alphaToCoverage) y color corrido bajo lo
+  transparente para que no quede una línea oscura.
+- **Charla con los Vocaloids**: al hablarle a uno con @ se abre a la izquierda una ventana (solo para quien habló) con
+  su mensaje y debajo la respuesta, con el nombre y el color del Vocaloid (`subtitleColor` del motor) como borde.
+  Los siguientes siguen la lista hacia abajo (scroll); se minimiza y cuenta las respuestas sin leer. Los avisos
+  (cuota agotada) quedan como nota gris.
+- **Zonas** (decorado listo; las acciones vienen después): fuente y tablón (votaciones, noticias, tips, estrenos, calendario y
+  buzón de pedidos), arena del 1vs1, calle del comercio (Tienda Shaula y mercado negro, que fuera de su hora tiene un
+  cartel de "Cerrado" y al abrir llega Neru), ruleta grande (solo con ruletas disponibles), escuela de la trivia,
+  estanque, fogata (solo para sentarse: mismo chat de la plaza), altar (la boda vigente: la Vocaloid y el Papu con el
+  aspecto que usa en la plaza), salón de la fama y escenario del sorteo. El cine se descartó (YouTube en una Actividad
+  no es fiable y los videos de cualquiera son difíciles de moderar).
+- **Pesca** (pendiente): peces chico (70 %), mediano (25 %) y grande (5 %) que dan 0,5 %, 2 % y 8 % de lo que pide el
+  nivel del Papu, con tope diario y reacción al corcho; el bot decide el pez. Excepción por juego a la regla 1, como la
+  trivia: anotarla en CLAUDE.md al construirla.
+- El mundo no da XP por estar ni por caminar (sería subir de nivel AFK); solo lo que ya la da (un @ respondido).
+- **Acciones** (decisiones de GyroP, 9 nov. 2026; hecho el puente y la ruleta): comandos en el chat de la plaza
+  (`/ruleta`; no se publican) y también menús (botón "usar" en la ficha del lugar o tecla F), en una **ventana
+  centrada tipo tablero** con la estética de la trivia (`ventana.ts`). Puente: la sala deja cada acción en D1
+  (`mundo_acciones`), el bot la ejecuta con las mismas reglas que en Discord y deja el resultado
+  (`src/mundo/puente.ts`, `acciones`); la sala se lo entrega al Papu. Lo de Discord se ve en la plaza (`mundo_eventos`):
+  un giro de la ruleta en Discord también gira la ruleta grande, y "ya tienes una tirada" llega como aviso; lo de la
+  plaza queda solo en #plaza-papus. Con Papus conectados, la sala mira D1 cada 5 s (una consulta que dice qué hay
+  pendiente); el bot igual, cada 3 s.
+- **Ruleta grande**: `/ruleta` lleva frente a ella y abre la ventana (misiones con su avance, tiradas, casillas y
+  "Girar"). El premio lo decide el bot al girar (`RouletteService.spin`, como en Discord) y la rueda lo muestra: una
+  sola rueda para todos, con fila (`acciones.ts`: 8 s por giro; los de Discord entran a la fila y tienen tope de 12).
+  Al tocarle, la ventana se cierra para mirar la rueda; al parar, cartel con el premio. El Atún de Luka (descartar un
+  premio) solo en Discord. La HUD muestra las tiradas del día (🎰) y avisa al entrar si hay.
+
+### 3.11 Intercambios entre Papus (pedido de GyroP, 10 nov. 2026)
+
+Todo en `config/intercambios.json`; código en `src/intercambios/` (`rules.ts` el paquete de cada lado, `service.ts`
+ofertas, revisión y el cambio) y `src/discord/intercambios.ts`; tabla `intercambios` (migración 17); pruebas en
+`tests/intercambios.test.ts`.
+
+- **Como las ofertas de Steam**: con **`/intercambio [papu]`** (Teto) el Papu arma en una pantalla privada lo que
+  **entrega** y lo que **pide**. La oferta es **abierta** (cualquier Papu puede aceptarla) o **dirigida** a un Papu
+  (acepta, rechaza o hace una **contraoferta**: se abre la pantalla con los lados al revés para cambiar lo que quiera; la
+  original se cierra como «contraofertada» y la nueva le llega a quien ofreció). Una oferta abierta también admite
+  contraofertas (dirigidas a quien la hizo) y sigue abierta para los demás. Sin `papu`, `/intercambio` muestra tus ofertas
+  abiertas y las que te hicieron, con enlace.
+- **Qué se cambia**: Shaula-coins **ganadas** y **compradas** (cada una llega a su mismo bolsillo), **XP**, **niveles**
+  (se cuentan como su XP: quien entrega baja N niveles conservando lo que lleva del actual, y esa XP le llega al otro,
+  que puede subir más o menos de N; nadie baja del nivel 1 ni pasa del máximo; en las pantallas y el anuncio cada
+  oferta de niveles muestra entre paréntesis a cuánta XP corresponde según el nivel de quien los entrega, o «la XP
+  depende del nivel de quien los entregue» si aún no se sabe quién, y al cerrarse el trato, la XP que se movió), **mensajes de la cuota de hoy** (como
+  `/donar`, solo hasta llenar la del otro; Piña, sin límite, no los cambia), **sobres regalados** (comunes, raros,
+  legendarios), **objetos de la colección** (se desequipan al entregarlos; quien ya lo tiene no lo recibe; los de
+  fundador y de membresía no se cambian) y **usos de consumibles** del mercado negro (los permanentes, como el Disquete o
+  el Machete, no).
+- **La XP cambiada no es actividad del día**: no da Shaula-coins por actividad ni cuenta para las misiones, un machetazo
+  no la quita, y subir de nivel por un intercambio **no da el bono de monedas por nivel** (si no, bajar y volver a subir
+  daría monedas cada vez). Sí corrige el apodo y da el rol de honor.
+- **Nada se aparta al publicar**: al publicar se revisa que quien ofrece tenga lo suyo, y **al aceptar se revisa todo otra
+  vez** (los dos lados, y que el otro pueda recibir) y se cambia **todo de una vez o nada** (una sola transacción).
+  Aceptar pide confirmar en privado.
+- **Quién**: **nivel 5 (o prestigio) y 3 días en el servidor**, los dos (decisión de GyroP: freno contra cuentas falsas
+  para juntar cosas). Hasta **5 ofertas abiertas** por Papu. Una oferta vence a las **72 h**; si lleva cuota, al terminar
+  el día. Cada intercambio hecho queda en #registro-bots.
+- **#🤝・centro-de-comercio** (Charla): Teto anuncia cada oferta con botones (**Aceptar**, **Contraoferta**, **Rechazar**
+  si es dirigida, **Retirar** para quien la hizo o GyroP) y etiqueta al Papu de una dirigida. Al cerrarse, Teto edita el
+  anuncio (hecho, con una frase fija `teto.intercambio_hecho` (32); rechazada, retirada, vencida o contraofertada). Los
+  Papus escriben ahí solo avisos («Cambio 10.000 Shaula-coins por un fondo de Ruko») y reaccionan: **modo lento de 1 h**
+  para que no se llene de charla. Si el canal no existe, Teto lo crea en la categoría de #general y avisa en
+  #registro-bots; si existe, le ajusta el modo lento al de la config.
 
 ## 4. Los cuatro bots
 
@@ -524,7 +712,11 @@ Papus sin cuota y quién ganó más XP (sin GyroP). Los mensajes se cuentan desd
 AFK, den XP o no; `xp_dia.voz_total`, migración 13) y **su trivia**: partidas de hoy, aciertos, XP ganada y la cobrada por
 jugar de más, partidas gratis que le quedan, superadas de cada dificultad y su mejor racha. A GyroP, además, los minutos
 en voz de todos, las partidas de trivia del día (y de cuántos Papus), la XP cobrada por partidas de más y la mejor racha
-del día. No gasta cuota. Responderle sin @ no cuenta.
+del día. Desde el 10 nov. 2026 (GyroP) suma **sus Shaula-coins** (ganadas, compradas, Ecos y lo ganado hoy
+participando) y **sus apuestas del 1vs1 de hoy** (peleas terminadas hoy, lo ganado, lo perdido, el neto y lo que sigue en
+juego; con el Seguro de Gakupo lo devuelto no cuenta como perdido). A GyroP, además, las apuestas de todos (peleas,
+Papus, ganado, perdido y neto) y las Shaula-coins ganadas hoy y las que hay en los monederos. No gasta cuota. Responderle
+sin @ no cuenta.
 No habla en la charla de #general ni juega bodas o trivia; faltarle el respeto se modera como con los Vocaloids.
 Token opcional `DISCORD_TOKEN_MANGO9374`; frases y usuario en `config/mango.json`; código `src/services/mango.ts` y
 `src/discord/mango.ts`.
@@ -629,6 +821,14 @@ Reglas fijas, **nunca el LLM** (instantáneas, sin cuota, imposibles de engañar
   dirigidos" y "muy fuertes" eximen el canal). Siguen fuera en todos lados: odio, `graves` (amenazas sexuales e incitación
   al suicidio, regla de AutoMod propia), datos personales, estafas y spam. El acoso y el maltrato a Papus inocentes en
   #general los modera GyroP a mano una vez al día (`/advertir`, `/machetazo`, `/machetazos`).
+- **Neru más atenta: maltrato y exclusión** (parche del 11 nov. 2026, casos reales del 10 nov.: "voy a decirle a tu mamita
+  que te ab0rte" y hacerle el vacío a un Papu; GyroP tuvo que advertir a mano). Valen en todos los canales, también en
+  #general (las groserías siguen libres ahí; esto no es cotorreo). `maltrato` en `config/moderacion.json` (desearle a otro
+  que lo aborten o que no hubiera nacido, "nadie te quiere"): **advertencia automática** como `/advertir`, sin borrar, con
+  frase fija `neru.maltrato` (una por minuto por Papu; 3 en 3 días = machetazo). Hablar del aborto como tema no cuenta.
+  `exclusion` (pedir que ignoren o saquen a alguien: "ignórenlo", "no lo pelen"): **solo un toque público** (`neru.exclusion`,
+  uno cada 30 min por Papu), sin sanción, y queda en #moderación para que GyroP o un Mod decidan. "Mute a X" y "me ignoró"
+  no cuentan (bromas de todos los días).
 - **Bromas**: las absurdas del chat ("tocar", esposa, pensión) se permiten; los bots solo cortan lo sexual directo y el odio.
 - **Cuota**: el aviso de cuota agotada sale una vez al día por Papu (después, una 🌙); responder a un bot con solo "XD" o un
   emoji, sin @, no gasta cuota.
@@ -644,7 +844,7 @@ o a mano con `/machetazo`) es un machetazo; las advertencias a mano (`/advertir`
 | 3+ | 24 h de silencio + sin ganar XP + aviso a GyroP para revisar el caso |
 
 - Machetazos y advertencias **vencen a los 3 días**.
-- **`/perdonar` (solo GyroP) revierte**: borra machetazos y advertencias activos, **devuelve la XP que quitaron** (y la
+- **`/perdonar` (GyroP y, desde el 8 nov. 2026, los Mods, nunca a sí mismos) revierte**: borra machetazos y advertencias activos, **devuelve la XP que quitaron** (y la
   ruleta y las monedas de esos días) y levanta el silencio.
 - Se quitó la lista blanca `sinStrikes` (28 oct. 2026): todos los Papus siguen la misma escalera.
 - Los strikes de antes del cambio quedaron como `antiguo` en la base y no cuentan.
@@ -667,7 +867,7 @@ o a mano con `/machetazo`) es un machetazo; las advertencias a mano (`/advertir`
 |---|---|---|
 | 📢 Inicio | #bienvenida, #reglas, #anuncios, #novedades | Todos (solo lectura) |
 | 💎 Niveles y perfil | #niveles-ko-fi, #vitrina, #tus-roles, #salón-de-la-fama, #ranking, #🪙・tienda-shaula (menú de la tienda, §3.6) | Todos (solo lectura) |
-| 💬 Charla (antes Comunidad) | #general, #charla-vocaloid, #🎮・gaming (31 oct. 2026, guía de Neru), #habla-con-los-vocaloids, #mascotas, #proyectados | Todos |
+| 💬 Charla (antes Comunidad) | #general, #charla-vocaloid, #🎮・gaming (31 oct. 2026, guía de Neru), #habla-con-los-vocaloids, #🤝・centro-de-comercio (intercambios, §3.11; modo lento 1 h), #mascotas, #proyectados | Todos |
 | 🎨 Arte y música | #recomendaciones (solo enlaces), #fanart, #multimedia, #merch-y-colecciones, #instagram-de-los-papus, #memes | Todos |
 | 🎉 Eventos e ideas | #eventos, #ideas-y-opiniones, #reportes-y-reclamos | Todos |
 | 🤖 Bots | #comandos-de-bots, #nekotina (y #notas, oculto, de GyroP) | Todos |

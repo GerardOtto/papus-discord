@@ -42,7 +42,7 @@
       "color": "#E5484D",
       "separado": true,
       "mod": true,
-      "$comment": "Papus elegidos por GyroP (lo da a mano) que pueden dar machetazos y advertencias con Neru: /machetazo, /advertir, /machetazos y el clic derecho 'Machetazo (Neru)' / 'Advertir (Neru)' (decisión de GyroP, 21 oct. 2026; machetazos desde el 28 oct.). /perdonar sigue siendo solo de GyroP. Sin permisos propios de Discord: el silencio lo aplica siempre Neru y todo queda en #moderación con el nombre del Mod. Un Mod no puede sancionar a otro Mod ni a GyroP. npm run servidor lo deja justo debajo de Vocaloids (su grupo sale sobre los niveles) y siempre debajo de Neru. Para que vean los comandos: Ajustes del servidor → Integraciones → Neru → permitir el rol en /strike, /advertir, /strikes y los dos del clic derecho."
+      "$comment": "Papus elegidos por GyroP (lo da a mano) que pueden dar machetazos y advertencias con Neru: /machetazo, /advertir, /machetazos y el clic derecho 'Machetazo (Neru)' / 'Advertir (Neru)' (decisión de GyroP, 21 oct. 2026; machetazos desde el 28 oct.). Desde el 8 nov. 2026 también /perdonar (no a sí mismo), /pelea, /boda y aprobar fondos de tarjeta en #moderación. Sin permisos propios de Discord: el silencio lo aplica siempre Neru y todo queda en #moderación con el nombre del Mod. Un Mod no puede sancionar a otro Mod ni a GyroP. npm run servidor lo deja justo debajo de Vocaloids (su grupo sale sobre los niveles) y siempre debajo de Neru. Para que vean los comandos: Ajustes del servidor → Integraciones → Neru → permitir el rol en /strike, /advertir, /strikes y los dos del clic derecho."
     },
     {
       "rol": "⭐ Fundador",
@@ -211,11 +211,12 @@
   },
   "avisosPapu": {
     "canal": "tus-roles",
-    "$comment": "Avisos que cada Papu elige en #tus-roles (tercer menú de Miku, en el mismo mensaje que los colores y los países; lo atiende el worker 24/7). Idea de los Papus en #ideas-y-opiniones (Wicho, Nyrex, Piña; nov. 2026), nombres de GyroP (8 nov. 2026). Se pueden marcar varios: lo que quede marcado es lo que tiene (lo que no, se quita). El bot etiqueta el rol al empezar su evento: peleas = al abrir las apuestas del 1vs1 (Teto); bodas = al salir una adivinanza (la Vocaloid, o Neru si ella no puede etiquetar roles); estrenos = al empezar la XP multiplicada de un estreno (Miku). Como los países: sin color, sin permisos, no separados en la lista y al fondo de la lista de roles; no se pueden mencionar (solo los bots con el rol Vocaloids, que pueden mencionar a todos). Nunca se borran roles: si se quita uno de aquí, su rol queda en el servidor.",
+    "$comment": "Avisos que cada Papu elige en #tus-roles (tercer menú de Miku, en el mismo mensaje que los colores y los países; lo atiende el worker 24/7). Idea de los Papus en #ideas-y-opiniones (Wicho, Nyrex, Piña; nov. 2026), nombres de GyroP (8 nov. 2026). Se pueden marcar varios: lo que quede marcado es lo que tiene (lo que no, se quita). El bot etiqueta el rol al empezar su evento: peleas = al abrir las apuestas del 1vs1 (Teto); bodas = al salir una adivinanza (la Vocaloid, o Neru si ella no puede etiquetar roles); estrenos = al empezar la XP multiplicada de un estreno (Miku); mercado = al abrir el mercado negro (Neru, config/mercado.json; pedido de GyroP, 9 nov. 2026). Como los países: sin color, sin permisos, no separados en la lista y al fondo de la lista de roles; no se pueden mencionar (solo los bots con el rol Vocaloids, que pueden mencionar a todos). Nunca se borran roles: si se quita uno de aquí, su rol queda en el servidor.",
     "avisos": [
       { "id": "peleas", "rol": "⚔️ Ludópata", "nombre": "Peleas 1vs1", "descripcion": "Te etiqueto cuando abren las apuestas" },
       { "id": "bodas", "rol": "💍 Rizzler", "nombre": "Bodas", "descripcion": "Te etiqueto cuando sale una adivinanza" },
-      { "id": "estrenos", "rol": "🎬 Estrenos", "nombre": "Estrenos", "descripcion": "Te etiqueto cuando empieza la XP doble" }
+      { "id": "estrenos", "rol": "🎬 Estrenos", "nombre": "Estrenos", "descripcion": "Te etiqueto cuando empieza la XP doble" },
+      { "id": "mercado", "rol": "🕶️ Traficante", "nombre": "Mercado negro", "descripcion": "Te etiqueto cuando abre el mercado negro (1 h al día)" }
     ]
   },
   "paisesPapu": {
@@ -354,6 +355,17 @@
           "escriben": true,
           "lento": 3,
           "tema": "Menciona a @Teto, @Miku, @Luka, @Neru, @Gakupo, @Kaito, @flower, @IA, @Haku, @Gumi, @Rin, @Len, @Meiko, @Adachi Rei o @Ruko para platicar: mensajes al día según tu nivel (/nivel), compartidos entre todos (/cuota)."
+        },
+        {
+          "nombre": "🤝・centro-de-comercio",
+          "escriben": true,
+          "lento": 3600,
+          "tema": "Anuncios de intercambio: usa /intercambio para ofrecer (Shaula-coins, XP, niveles, cuota, sobres, objetos y consumibles). Aquí solo avisos y reacciones; el modo lento es largo para que no se pierdan las ofertas."
+        },
+        {
+          "nombre": "🌳・plaza-papus",
+          "escriben": false,
+          "tema": "Registro del chat de la Plaza de los Papus, el mundo 3D del servidor (solo lectura). Cómo entrar: en el mensaje fijado."
         }
       ]
     },

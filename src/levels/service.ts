@@ -75,6 +75,8 @@ export class LevelService {
   private launched: { title: string; at: number }[] = [];
   /** Despues de sumar XP (src/coins/: pone al dia las Shaula-coins del dia). */
   afterAward?: (userId: string, day: string) => void;
+  /** Cuantas veces vale la XP de un mensaje que contesta un Vocaloid (Luna de IA del mercado negro: 3; sin ella, 1). */
+  quotaBoost?: (userId: string, at: number) => number;
 
   constructor(private readonly d: LevelServiceDeps) {
     this.store = new LevelStore(d.db);
@@ -151,10 +153,14 @@ export class LevelService {
     return { base, change: this.award(userId, base, at) };
   }
 
-  /** Un Vocaloid le contesto: la XP de ese mensaje vale `multiplicadorBots` veces (se suma la diferencia). */
+  /**
+   * Un Vocaloid le contesto: la XP de ese mensaje vale `multiplicadorBots` veces (se suma la diferencia). Con la Luna de
+   * IA (mercado negro), el total vale el triple.
+   */
   onBotReply(userId: string, base: number, at = Date.now()): LevelChange | null {
     if (base <= 0) return null;
-    return this.award(userId, Math.round(base * (this.d.settings.multiplicadorBots - 1)), at);
+    const boost = this.quotaBoost?.(userId, at) ?? 1;
+    return this.award(userId, Math.round(base * (this.d.settings.multiplicadorBots * boost - 1)), at);
   }
 
   /**
@@ -325,5 +331,30 @@ export class LevelService {
   level(userId: string): { level: number; prestige: number } {
     const rec = this.store.get(userId);
     return { level: levelFor(this.d.settings, rec.xp), prestige: rec.prestige };
+  }
+
+  // ───────────────────────── intercambios (src/intercambios/) ─────────────────────────
+
+  /**
+   * XP que cuestan `n` niveles de un Papu desde donde está: la de sus `n` niveles de abajo (conserva lo que lleva del
+   * nivel actual). Null si bajaría del nivel 1.
+   */
+  xpOfLevels(userId: string, n: number): number | null {
+    if (n <= 0) return 0;
+    const { level } = this.level(userId);
+    if (level - n < 1) return null;
+    return xpToReach(this.d.settings, level) - xpToReach(this.d.settings, level - n);
+  }
+
+  /** XP que le cabe hasta el nivel máximo (lo que pase de ahí se perdería al prestigiar). */
+  xpRoom(userId: string): number {
+    return Math.max(0, xpToReach(this.d.settings, this.d.settings.curva.maximo) - this.store.get(userId).xp);
+  }
+
+  /** Intercambio: pasa XP sin contarla como actividad del día. Null si no le alcanza. */
+  transferXp(fromId: string, toId: string, amount: number): { from: LevelChange | null; to: LevelChange | null } | null {
+    const r = this.store.moveXp(fromId, toId, amount);
+    if (!r) return null;
+    return { from: this.change(fromId, r.from.before, r.from.after), to: this.change(toId, r.to.before, r.to.after) };
   }
 }

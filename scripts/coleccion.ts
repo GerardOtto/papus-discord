@@ -11,7 +11,7 @@ import { RAREZA_COLOR, loadCatalog, type Objeto, type Rareza } from "../src/coin
 import { CARD_H, CARD_W, FONT, gradient, rainbowAt, roundRect } from "../src/levels/card";
 
 const S = 256, INNER = S - 28;
-const OSCURO: Record<Rareza, string> = { comun: "#3B4250", rara: "#0C3D3A", epica: "#2E1250", legendaria: "#4A3200", mitica: "#3A0F27", fundador: "#3A2E10", membresia: "#4A1426" };
+const OSCURO: Record<Rareza, string> = { comun: "#3B4250", rara: "#0C3D3A", epica: "#2E1250", legendaria: "#4A3200", mitica: "#3A0F27", fundador: "#3A2E10", membresia: "#4A1426", contrabando: "#16300C" };
 const t = 0.15;
 
 function fitWrap(ctx: SKRSContext2D, text: string, maxW: number, maxH: number): { lines: string[]; size: number } {

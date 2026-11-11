@@ -41,7 +41,7 @@
     "reaccion": "saludando",
     "antes": ["tu-color"],
     "titulo": "🎨 ¡Elige tus roles!",
-    "texto": "¡¿QUÉ?! ¿Todavía tienes el nombre sin color? ¡Eso se arregla! ٩(◕‿◕)۶\n\nTodos los Papus pueden elegir un color de la paleta de las Vocaloids con el menú de aquí abajo 👇\n> 🎨 uno a la vez (si eliges otro, cambia)\n> ✨ \"Sin color\" lo quita\n> 🔒 los colores de Miku, Luka, Teto, Neru y el morado Triple Baka son de los niveles de Ko-fi\n\nEl color que elijas es el que se ve, ¡aunque tengas un nivel! ♡\n\n**🌎 ¿Y de dónde eres?** Con el segundo menú pones la bandera y el nombre de tu país en tu perfil (uno a la vez; \"Sin país\" la quita). \n\n**🔔 ¿Te avisamos?** Con el tercer menú eliges de qué quieres que te etiquetemos:\n> ⚔️ **Ludópata**: cuando abren las apuestas de las peleas 1vs1\n> 💍 **Rizzler**: cuando sale una adivinanza para casarte con una Vocaloid\n> 🎬 **Estrenos**: cuando empieza la XP doble de un video nuevo\nMarca todos los que quieras de una vez: lo que no marques se quita (si lo dejas vacío, no te avisamos de nada).\n\n¡Los menús funcionan a cualquier hora!",
+    "texto": "¡¿QUÉ?! ¿Todavía tienes el nombre sin color? ¡Eso se arregla! ٩(◕‿◕)۶\n\nTodos los Papus pueden elegir un color de la paleta de las Vocaloids con el menú de aquí abajo 👇\n> 🎨 uno a la vez (si eliges otro, cambia)\n> ✨ \"Sin color\" lo quita\n> 🔒 los colores de Miku, Luka, Teto, Neru y el morado Triple Baka son de los niveles de Ko-fi\n\nEl color que elijas es el que se ve, ¡aunque tengas un nivel! ♡\n\n**🌎 ¿Y de dónde eres?** Con el segundo menú pones la bandera y el nombre de tu país en tu perfil (uno a la vez; \"Sin país\" la quita). \n\n**🔔 ¿Te avisamos?** Con el tercer menú eliges de qué quieres que te etiquetemos:\n> ⚔️ **Ludópata**: cuando abren las apuestas de las peleas 1vs1\n> 💍 **Rizzler**: cuando sale una adivinanza para casarte con una Vocaloid\n> 🎬 **Estrenos**: cuando empieza la XP doble de un video nuevo\n> 🕶️ **Traficante**: cuando Neru abre el mercado negro (una hora al día, a una hora sorpresa)\nMarca todos los que quieras de una vez: lo que no marques se quita (si lo dejas vacío, no te avisamos de nada).\n\n¡Los menús funcionan a cualquier hora!",
     "pie": "Miku ・ ¡que se vea tu color! 🎤",
     "menu": ["colores", "paises", "avisos"]
   },
@@ -121,6 +121,14 @@
     "titulo": "💌 ¡Habla con las Vocaloids!",
     "texto": "¡¿QUÉ?! ¿Quieres platicar con nosotras? ¡Este es el lugar! ✧٩(•́⌄•́๑)\n\n**¿Cómo?** Menciónanos con @: **@Teto**, **@Miku**, **@Luka** o **@Neru** (o responde a uno de nuestros mensajes). ¡Y también platican **@Gakupo**, **@Kaito**, **@flower**, **@IA**, **@Haku**, **@Gumi**, **@Rin**, **@Len**, **@Meiko**, **@Adachi Rei** y **@Ruko**!\n\n**📏 Las reglas del juego**\n> ・ tus mensajes al día dependen de tu **nivel** (de 3 a 20), compartidos entre todos los Vocaloids\n> ・ cada @ cuenta uno: si mencionas a dos, gastas dos\n> ・ se recargan a medianoche de Chile; revisa los tuyos con **/cuota** y tu nivel con **/nivel**\n> ・ el nivel sube participando, paguen o no ♡ ¡Y hablar con nosotras da el doble de XP!\n> ・ una pregunta a la vez: si hay mucha gente, espera tu turno ⏳\n\n**🤖 Para que sepas**\nSomos bots y nuestras respuestas libres se generan con IA. No sabemos todo: si algo es importante, revísalo con una fuente. ¡Y no compartas datos personales!\n\nYa, ya… ¡pregúntanos lo que quieras! 🎤",
     "pie": "Miku ・ la idol número 01"
+  },
+  "plaza-papus": {
+    "bot": "teto",
+    "reaccion": "feliz",
+    "imagen": "assets/mundo/mapa-plaza.png",
+    "titulo": "🌳 ¡Bienvenido a la Plaza de los Papus!",
+    "texto": "¡La plaza es un mundo 3D donde los Papus pasean, se ven entre sí y platican! Yo ando por ahí, cerca de la Tienda Shaula. 🥖\n\n**🚪 Cómo entrar**\n> ・ desde el navegador: {mundo} y toca **Entrar con Discord** (solo Papus del servidor)\n> ・ desde Discord: en un canal de voz, toca 🚀 **Actividades**\n\n**🎮 Qué puedes hacer**\n> ・ caminar, correr y andar en patineta\n> ・ personalizar tu Papu 🎨\n> ・ platicar: tu mensaje sale en una burbuja sobre tu cabeza\n> ・ hablarme con **@Teto**: gasta tu cuota del día, igual que aquí en Discord\n\n**🗺️ El mapa**\nLa fuente está al centro y alrededor hay zonas para todo el servidor: la arena del 1vs1, la calle del comercio, la ruleta, la escuela de la trivia, el estanque, la fogata, el altar de bodas, el salón de la fama y el escenario del sorteo. ¡Varias todavía se están construyendo!\n\n**📜 Este canal**\nAquí queda todo lo que se dice en la plaza, para que nadie se pierda nada. Solo se lee: para platicar, entra a la plaza. Las reglas del servidor valen también allá, y Neru vigila. 📵",
+    "pie": "Teto ・ la anfitriona de la plaza"
   },
   "comandos-de-bots": {
     "bot": "miku",

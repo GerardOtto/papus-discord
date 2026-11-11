@@ -10,7 +10,7 @@ el 17 oct. 2026, sin prueba cerrada**; prueba de carga cuando esté lo mínimo (
 conversación con cuota y cola, LLM local (Ollama) + APIs con reparto, moderación de Neru + AutoMod, bienvenidas, servidor
 estructurado (`config/servidor.json`), guías fijadas, emojis de nivel, arranque con Windows (tarea "Papus Discord").
 Miku y Luka responden sus comandos 24/7 desde Cloudflare (`worker/`: pedidos, votaciones, calendario, estrenos, noticias,
-tips). Bodas con las Vocaloids por adivinanzas (PLAN §3.2). Ruleta diaria por misiones (PLAN §3.3). Trivia con rachas en fácil, media y difícil y sobres por hitos de aciertos, `/trivia` (PLAN §3.4; ~5.750 preguntas, 5.014 generadas con `npm run trivia:generar`). `/donar` cuota y cuota sobrante → XP (PLAN §3). Sorteo de GyroP, `/sorteo` (PLAN §3.5). Tienda de Shaula-coins con sobres y objetos para la tarjeta, `/tienda` (PLAN §3.6). 1vs1 de 28 luchadores (Vocaloids e invitados) con apuestas de Shaula-coins ganadas (10-400), `/pelea` y wiki en #peleas (PLAN §3.7). Avisos (⚔️ Ludópata, 💍 Rizzler, 🎬 Estrenos) en #tus-roles (PLAN §3.8). Niveles por participación (1-99 y prestigios, PLAN §3.1;
+tips). Bodas con las Vocaloids por adivinanzas (PLAN §3.2). Ruleta diaria por misiones (PLAN §3.3). Trivia con rachas en fácil, media y difícil y sobres por hitos de aciertos, `/trivia` (PLAN §3.4; ~5.750 preguntas, 5.014 generadas con `npm run trivia:generar`); trivia multijugador como Actividad de Discord de Teto en el worker (eliminatoria y cooperativa, pool de prueba de 50, `npm run actividad`; falta configurar el portal). `/donar` cuota y cuota sobrante → XP (PLAN §3). Sorteo de GyroP, `/sorteo` (PLAN §3.5). Tienda de Shaula-coins con sobres y objetos para la tarjeta, `/tienda` (PLAN §3.6). 1vs1 de 28 luchadores (Vocaloids e invitados) con apuestas de Shaula-coins ganadas (10-400), `/pelea` y wiki en #peleas (PLAN §3.7). Avisos (⚔️ Ludópata, 💍 Rizzler, 🎬 Estrenos, 🕶️ Traficante) en #tus-roles (PLAN §3.8). Mercado negro de Neru, 1 h al día a hora sorpresa, solo con monedas ganadas: Atún de Luka, Baguette de Teto, Celular de Neru, Seguro de Gakupo, Helado de Kaito, Micrófono de Meiko, regalo de Rin y Len, Luna de IA (XP triple de la cuota 2 semanas), Sake de Haku, Zanahoria de Gumi, Doble helado de Kaito, Guitarra de flower, PC de Adachi Rei, Disquete de Adachi Rei y Machete de Neru (permanentes), rol pirata y adornos de burla; `/consumibles` (PLAN §3.9). Intercambios entre Papus como las ofertas de Steam (abiertas o dirigidas, contraofertas), `/intercambio` y #centro-de-comercio con modo lento (PLAN §3.11). Teto publica el ranking cada día a las 12:00 en #ranking. Niveles por participación (1-99 y prestigios, PLAN §3.1;
 cálculo inicial con `npm run niveles`). Pendiente: `/cumple` de Teto, aviso automático de compras de Ko-fi, exportar votaciones y pedidos al motor.
 Uso y archivos editables: `README.md`.
 
@@ -28,6 +28,13 @@ Repo hermano: el motor de videos en `../Proyecto1` (fuente del lore, calendario 
    acierto (PLAN §3.4; se gana jugando) y el sorteo de GyroP puede dar XP, niveles y mensajes extra del día (PLAN §3.5; entran todos los Papus por igual).
    Las Shaula-coins solo adornan la tarjeta: no dan XP ni cuota (PLAN §3.6); las insignias de membresía también son solo adorno.
    Las apuestas del 1vs1 (PLAN §3.7) solo usan monedas ganadas, nunca compradas, y no dan XP ni cuota.
+   Excepción por juego: el mercado negro (PLAN §3.9) vende con monedas **ganadas** (nunca compradas) consumibles que
+   reinician la cuota del día (PC de Adachi Rei), triplican la XP de la cuota (Luna de IA) o ayudan en la ruleta y la
+   trivia; no suben la cuota diaria.
+   Excepción por decisión de GyroP (10 nov. 2026): los **intercambios** entre Papus (PLAN §3.11) cambian Shaula-coins
+   ganadas **y compradas**, XP, niveles, cuota de hoy, sobres, objetos y consumibles; así lo comprado puede llegar a ser
+   XP o cuota de otro Papu de forma indirecta (GyroP lo aceptó). Las compradas siguen en su bolsillo, la cuota pasa como
+   `/donar` y nadie sube su cuota diaria.
 2. Los bots son omnipresentes (todos los canales) y no se responden solos entre ellos. Única excepción: la charla de
    #general (PLAN §4), donde un Vocaloid le pregunta a otro con @ y este contesta una sola vez.
 3. La moderación es por reglas fijas + AutoMod de Discord, **nunca el LLM**. Neru no expulsa ni banea (solo GyroP).

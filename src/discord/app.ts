@@ -48,6 +48,10 @@ import { LevelsDiscord } from "./levels";
 import { BodasDiscord } from "./bodas";
 import { RuletaDiscord } from "./ruleta";
 import { SorteoDiscord } from "./sorteo";
+import { MercadoDiscord } from "./mercado";
+import { IntercambiosDiscord } from "./intercambios";
+import type { IntercambioService } from "../intercambios/service";
+import type { MercadoService } from "../mercado/service";
 import { PeleasDiscord } from "./peleas";
 import { TiendaDiscord } from "./tienda";
 import { toCardEquip } from "../coins/equip";
@@ -57,8 +61,12 @@ import { TriviaDiscord } from "./trivia";
 import { MangoDiscord } from "./mango";
 import { pardonedFromLog, type MangoService } from "../services/mango";
 import { DayStats, papuText, serverText } from "../services/estadisticas";
+import type { ActividadTrivia } from "../trivia/actividad";
+import { armarEstado } from "../mundo/estado";
+import { agruparLineas, lineasRegistro, type MundoPuente } from "../mundo/puente";
+import { accionesRuleta, giroPlaza } from "../mundo/ruleta";
 import type { TriviaService } from "../trivia/service";
-import type { RouletteService } from "../ruleta/service";
+import type { RouletteService, SpinResult } from "../ruleta/service";
 import type { SorteoService } from "../sorteo/service";
 import type { PeleaService } from "../peleas/service";
 import type { WeddingService } from "../bodas/service";
@@ -128,6 +136,10 @@ const HISTORY_LINES = 5;
 /** Bots cuyos comandos atiende este programa (Miku y Luka: Cloudflare). */
 const LOCAL_COMMAND_BOTS: CoreBotId[] = ["teto", "neru"];
 const HEARTBEAT_MS = 60_000;
+/** Cada cuanto Teto aplica la XP de la trivia multijugador (Actividad) y calcula los perfiles pedidos. */
+const ACTIVIDAD_MS = 8_000;
+/** El mundo se revisa mas seguido: un @ a un Vocaloid espera respuesta en vivo. */
+const MUNDO_MS = 3_000;
 const CALENDAR_EVERY_MS = 60 * 60_000;
 const ROLES_SWEEP_MS = 60 * 60_000;
 const CALENDAR_KEY = "calendario:mensaje";
@@ -177,12 +189,20 @@ export interface AppDeps {
   roulette?: RouletteService | null;
   /** Trivia de los Papus (src/trivia/; null = desactivada). */
   trivia?: TriviaService | null;
+  /** Trivia multijugador (Actividad de Discord): XP de los aciertos guardados en D1 (null = sin token de Cloudflare). */
+  actividad?: ActividadTrivia | null;
+  /** Mundo de los Papus (Actividad 3D): @ a los Vocaloids de la plaza y nivel/cuota de cada Papu (null = sin Cloudflare). */
+  mundo?: MundoPuente | null;
   /** Sorteo de GyroP (src/sorteo/; null = desactivado). */
   sorteo?: SorteoService | null;
   /** 1vs1 de los Vocaloids con apuestas de Shaula-coins (src/peleas/; null = desactivado). */
   peleas?: PeleaService | null;
   /** Shaula-coins: tienda, sobres y objetos de la tarjeta (src/coins/; null = desactivada). */
   coins?: CoinService | null;
+  /** Mercado negro: consumibles con monedas ganadas (src/mercado/; null = desactivado). */
+  mercado?: MercadoService | null;
+  /** Intercambios entre Papus (src/intercambios/; null = desactivados). */
+  intercambios?: IntercambioService | null;
   /** PayPal.me y cuenta en Chile de GyroP para vender monedas (del .env; null = no se ofrece). */
   pagos?: { paypalMe: string | null; banco: DatosBanco | null };
   /** Calendario automatico de #calendario (null = desactivado: falta el token de Cloudflare o la carpeta). */
@@ -199,6 +219,8 @@ export class PapusApp {
   private moderation!: ModerationService;
   private heartbeat: ReturnType<typeof setInterval> | null = null;
   private calendarTimer: ReturnType<typeof setInterval> | null = null;
+  private actividadTimer: ReturnType<typeof setInterval> | null = null;
+  private mundoTimer: ReturnType<typeof setInterval> | null = null;
   private rolesTimer: ReturnType<typeof setInterval> | null = null;
   private expiryTimer: ReturnType<typeof setTimeout> | null = null;
   private welcomeTimer: ReturnType<typeof setTimeout> | null = null;
@@ -209,6 +231,8 @@ export class PapusApp {
   private ruleta: RuletaDiscord | null = null;
   private trivia: TriviaDiscord | null = null;
   private sorteo: SorteoDiscord | null = null;
+  private mercado: MercadoDiscord | null = null;
+  private intercambios: IntercambiosDiscord | null = null;
   private peleas: PeleasDiscord | null = null;
   private tienda: TiendaDiscord | null = null;
   private readonly mango: MangoDiscord | null;
@@ -222,7 +246,7 @@ export class PapusApp {
     // nonce, Discord devuelve el mensaje que ya existe en vez de publicarlo dos veces (caso real del 21 oct. 2026: Miku
     // respondio dos veces lo mismo a los 8 @ de un Papu).
     this.clients = Object.fromEntries(d.config.activeBots.map((id) => [id, new Client({ intents: INTENTS[id], enforceNonce: true, allowedMentions: { parse: [...SAFE_MENTIONS.parse], repliedUser: SAFE_MENTIONS.repliedUser } })])) as Record<BotId, Client>;
-    this.dayStats = new DayStats({ db: d.db, quota: d.quota, levels: d.levels, timeZone: d.config.quotaTimeZone, roulette: d.roulette, weddings: d.weddings, trivia: d.trivia, owners: d.owners });
+    this.dayStats = new DayStats({ db: d.db, quota: d.quota, levels: d.levels, timeZone: d.config.quotaTimeZone, roulette: d.roulette, weddings: d.weddings, trivia: d.trivia, coins: d.coins, owners: d.owners });
     const names = Object.fromEntries(BOT_IDS.map((b) => [b, d.characters[b].displayName]));
     this.mango =
       d.mango && d.config.mangoToken
@@ -269,6 +293,7 @@ export class PapusApp {
       rules: new RuleSet(this.d.moderationSettings),
       db: this.d.db,
       owners: this.d.owners,
+      isStaff: (userId) => this.isStaff(userId),
       teto: this.clients.teto,
       timeZone: config.quotaTimeZone,
       dataDir: config.dataDir,
@@ -297,6 +322,7 @@ export class PapusApp {
         characters: this.d.characters,
         online: config.activeBots,
         owners: this.d.owners,
+        isStaff: (userId) => this.isStaff(userId),
         clients: this.clients,
         guild: () => this.guild,
         sendable: (bot, channelId) => this.sendable(bot, channelId),
@@ -354,6 +380,7 @@ export class PapusApp {
         db: this.d.db,
         characters: this.d.characters,
         owners: this.d.owners,
+        isStaff: (userId) => this.isStaff(userId),
         guild: () => this.guild,
         sendable: (bot, channelId) => this.sendable(bot, channelId),
         report: (text) => this.report(text),
@@ -371,6 +398,37 @@ export class PapusApp {
         clients: this.clients,
         online: config.activeBots,
         pagos: this.d.pagos ?? { paypalMe: null, banco: null },
+        guild: () => this.guild,
+        sendable: (bot, channelId) => this.sendable(bot, channelId),
+        report: (text) => this.report(text),
+        log: this.d.log,
+      });
+    }
+    if (this.d.mercado && this.d.coins) {
+      this.mercado = new MercadoDiscord({
+        mercado: this.d.mercado,
+        coins: this.d.coins,
+        phrases: this.d.phrases,
+        db: this.d.db,
+        owners: this.d.owners,
+        clients: this.clients,
+        online: config.activeBots,
+        guild: () => this.guild,
+        sendable: (bot, channelId) => this.sendable(bot, channelId),
+        report: (text) => this.report(text),
+        log: this.d.log,
+      });
+    }
+    if (this.d.intercambios && this.d.coins) {
+      this.intercambios = new IntercambiosDiscord({
+        svc: this.d.intercambios,
+        coins: this.d.coins,
+        levels: this.d.levels,
+        levelsDiscord: this.levels,
+        mercado: this.d.mercado ?? null,
+        phrases: this.d.phrases,
+        owners: this.d.owners,
+        clients: this.clients,
         guild: () => this.guild,
         sendable: (bot, channelId) => this.sendable(bot, channelId),
         report: (text) => this.report(text),
@@ -407,6 +465,103 @@ export class PapusApp {
     this.chatTimer = setInterval(() => {
       if (!this.stopping) void this.generalChat.tick().catch((e) => logError("charla en #general", e));
     }, GENERAL_CHAT_MS);
+    if (this.d.actividad) {
+      const actividad = this.d.actividad;
+      actividad.onChange = (change, channelId) => this.levels.handle(change, channelId ? { channelId } : {});
+      actividad.onPremio = async (userId, premio, channelId) => void (await this.trivia?.premioActividad(userId, premio, channelId));
+      let busy = false;
+      this.actividadTimer = setInterval(() => {
+        if (busy || this.stopping) return;
+        busy = true;
+        void actividad
+          .sync()
+          .then((n) => n && this.d.log(`🧠 Trivia multijugador: XP de ${n} acierto(s) aplicada`))
+          .catch((e) => logError("trivia multijugador", e))
+          .finally(() => (busy = false));
+      }, ACTIVIDAD_MS);
+    }
+    if (this.d.mundo) {
+      const mundo = this.d.mundo;
+      // Un @ respondido en la plaza da la misma XP que en Discord (la del mensaje y la de la respuesta del Vocaloid).
+      mundo.onAnswered = async (userId, text) => {
+        const base = await this.levels.onMessage(userId, text, {});
+        await this.levels.onBotReply(userId, base, {});
+      };
+      // Foto del servidor para las zonas de la plaza: la boda mas reciente, la pelea, el mercado, los podios y el sorteo.
+      mundo.estado = () =>
+        armarEstado({
+          ultimaBoda: () => {
+            const r = this.d.db.prepare("SELECT bot, user_id, nombre, inicio, fin, divorcio FROM bodas ORDER BY inicio DESC LIMIT 1").get() as
+              | { bot: string; user_id: string; nombre: string; inicio: number; fin: number; divorcio: number | null }
+              | undefined;
+            return r ? { bot: r.bot, userId: r.user_id, name: r.nombre, startedAt: r.inicio, endsAt: r.fin, divorcedAt: r.divorcio } : null;
+          },
+          pelea: () => {
+            if (!this.d.peleas) return null;
+            const p = this.d.peleas.active();
+            if (p) return { a: p.a, b: p.b, cuotas: p.cuotas, estado: p.estado, cierraAt: p.cierraAt, ganador: p.ganador };
+            const r = this.d.db.prepare("SELECT a, b, cuota_a, cuota_b, estado, cierra_at, ganador FROM peleas ORDER BY creada_at DESC LIMIT 1").get() as
+              | { a: string; b: string; cuota_a: number; cuota_b: number; estado: string; cierra_at: number; ganador: string | null }
+              | undefined;
+            return r ? { a: r.a, b: r.b, cuotas: [r.cuota_a, r.cuota_b], estado: r.estado, cierraAt: r.cierra_at, ganador: r.ganador } : null;
+          },
+          mercado: () => this.d.mercado?.estado() ?? { abierto: false, apertura: { abre: 0, cierra: 0 } },
+          ranking: () => this.levels.standings(),
+          ultimoSorteo: () =>
+            (this.d.db.prepare("SELECT user_id AS userId, detalle, at FROM sorteos ORDER BY at DESC LIMIT 1").get() as { userId: string; detalle: string; at: number } | undefined) ?? null,
+          nombre: (id) => {
+            const mb = this.guild?.members.cache.get(id);
+            return stripNickTag(mb?.displayName ?? mb?.user.username ?? "Papu");
+          },
+          luchador: (id) => this.d.characters[id as BotId]?.displayName ?? this.d.peleas?.settings.luchadores[id]?.nombre ?? id,
+          casillas: () => this.d.roulette?.settings.premios.map((p) => ({ icono: p.icono, etiqueta: p.etiqueta, color: p.color, nombre: p.nombre })) ?? [],
+        });
+      // Ruleta en la plaza (decisiones de GyroP, 9 nov. 2026): /ruleta y la ventana giran con las mismas reglas que en
+      // Discord; los giros de Discord tambien giran la ruleta grande, y la plaza avisa al Papu cuando gana una tirada.
+      const ruleta = this.ruleta;
+      if (ruleta && this.d.roulette) {
+        const roulette = this.d.roulette;
+        const textos = (res: SpinResult) => {
+          const g = ruleta.gifText(res);
+          return { titulo: g.title, subtitulo: g.subtitle, premio: ruleta.prizeText(res) };
+        };
+        Object.assign(
+          mundo.acciones,
+          accionesRuleta({
+            roulette,
+            textos,
+            despues: async (userId, res) => {
+              if (res.change) await this.levels.handle(res.change, {}, { quiet: true }).catch((e) => logError("nivel por ruleta (plaza)", e));
+              await ruleta.onActivity(userId, {}).catch((e) => logError("misiones de ruleta (plaza)", e));
+            },
+          }),
+        );
+        ruleta.alGirar = (userId, name, res) => void mundo.evento("ruleta", giroPlaza({ id: userId, nombre: name }, res, textos(res), "discord").giro);
+        ruleta.alCumplir = (userId, misiones, left) => {
+          const cuales = misiones.map((m) => m.nombre).join(" y ");
+          const texto = `🎡 ¡Cumpliste ${cuales}! Tienes ${left} ${left === 1 ? "tirada" : "tiradas"} en la ruleta grande: escribe /ruleta.`;
+          void mundo.evento("aviso", { texto }, userId);
+        };
+      }
+      // Registro del chat de la plaza en #plaza-papus (solo lectura), en mensajes agrupados y sin avisar a nadie.
+      mundo.onChat = async (lineas) => {
+        const ch = this.guild ? findTextChannel(this.guild, CHANNELS.plaza) : null;
+        if (!ch) return;
+        for (const parte of agruparLineas(lineasRegistro(lineas, (bot) => this.d.characters[bot as BotId]?.displayName ?? bot), 1900)) {
+          await ch.send({ content: parte, allowedMentions: { parse: [] } });
+        }
+      };
+      let busy = false;
+      this.mundoTimer = setInterval(() => {
+        if (busy || this.stopping) return;
+        busy = true;
+        void mundo
+          .sync()
+          .then((n) => n && this.d.log(`🌳 Mundo: ${n} @ a los Vocaloids`))
+          .catch((e) => logError("mundo de los Papus", e))
+          .finally(() => (busy = false));
+      }, MUNDO_MS);
+    }
     if (this.d.calendar) {
       void this.updateCalendar().catch((e) => logError("calendario", e));
       this.calendarTimer = setInterval(() => void this.updateCalendar().catch((e) => logError("calendario", e)), CALENDAR_EVERY_MS);
@@ -416,6 +571,10 @@ export class PapusApp {
     void this.tienda?.start().catch((e) => logError("tienda", e));
     // 1vs1: lo apostado en una pelea que quedo a medias (reinicio) se devuelve.
     void this.peleas?.start().catch((e) => logError("peleas", e));
+    // Mercado negro: rol del aviso y el mensaje de Neru (abre una hora al dia, a una hora sorpresa).
+    void this.mercado?.start().catch((e) => logError("mercado negro", e));
+    // Intercambios: el canal #centro-de-comercio (con su modo lento) y las ofertas vencidas.
+    void this.intercambios?.start().catch((e) => logError("intercambios", e));
     // Bodas: la adivinanza inaugural sale apenas arrancan los bots con el parche (y lo vencido se cierra).
     void this.bodas?.tick().catch((e) => logError("bodas", e));
   }
@@ -429,6 +588,8 @@ export class PapusApp {
     this.stopping = true;
     if (this.heartbeat) clearInterval(this.heartbeat);
     if (this.calendarTimer) clearInterval(this.calendarTimer);
+    if (this.actividadTimer) clearInterval(this.actividadTimer);
+    if (this.mundoTimer) clearInterval(this.mundoTimer);
     if (this.rolesTimer) clearInterval(this.rolesTimer);
     if (this.expiryTimer) clearTimeout(this.expiryTimer);
     if (this.welcomeTimer) clearTimeout(this.welcomeTimer);
@@ -540,6 +701,9 @@ export class PapusApp {
     if (!this.stopping) void this.bodas?.tick().catch((e) => logError("bodas", e));
     if (!this.stopping) void this.tienda?.tick().catch((e) => logError("tienda", e));
     if (!this.stopping) void this.peleas?.tick().catch((e) => logError("pelea automática", e));
+    if (!this.stopping) void this.mercado?.tick().catch((e) => logError("mercado negro", e));
+    if (!this.stopping) void this.intercambios?.tick().catch((e) => logError("intercambios", e));
+    if (!this.stopping) void this.levels.publishDailyRanking().catch((e) => logError("ranking del día", e));
     if (gap < HEARTBEAT_MS * 3) return;
     this.d.log(`El PC despertó tras ${Math.round(gap / 60_000)} min de suspensión`);
     void (async () => {
@@ -581,10 +745,10 @@ export class PapusApp {
         if (i.isChatInputCommand()) void this.onCommand(id, i).catch((e) => logError(`comando /${i.commandName}`, e));
         else if (i.isAutocomplete() && i.commandName === "pelea") void this.peleas?.autocomplete(i).catch((e) => logError("autocompletar /pelea", e));
         else if (i.isButton())
-          void (async () => (await this.trivia?.button(i)) || (await this.bodas?.button(i)) || (await this.ruleta?.button(i)) || (await this.sorteo?.button(i)) || (await this.peleas?.button(i)) || (await this.tienda?.button(i)) || (await this.levels.button(i)))().catch((e) => logError(`botón ${i.customId}`, e));
-        else if (i.isUserSelectMenu()) void this.sorteo?.userSelect(i).catch((e) => logError(`menú ${i.customId}`, e));
-        else if (i.isStringSelectMenu()) void this.tienda?.select(i).catch((e) => logError(`menú ${i.customId}`, e));
-        else if (i.isModalSubmit()) void (async () => (await this.peleas?.modal(i)) || (await this.trivia?.modal(i)))().catch((e) => logError(`formulario ${i.customId}`, e));
+          void (async () => (await this.trivia?.button(i)) || (await this.bodas?.button(i)) || (await this.ruleta?.button(i)) || (await this.sorteo?.button(i)) || (await this.peleas?.button(i)) || (await this.mercado?.button(i)) || (await this.intercambios?.button(i)) || (await this.tienda?.button(i)) || (await this.levels.button(i)))().catch((e) => logError(`botón ${i.customId}`, e));
+        else if (i.isUserSelectMenu()) void (async () => (await this.sorteo?.userSelect(i)) || (await this.mercado?.userSelect(i)) || (await this.intercambios?.userSelect(i)))().catch((e) => logError(`menú ${i.customId}`, e));
+        else if (i.isStringSelectMenu()) void (async () => (await this.mercado?.select(i)) || (await this.intercambios?.select(i)) || (await this.trivia?.select(i)) || (await this.tienda?.select(i)))().catch((e) => logError(`menú ${i.customId}`, e));
+        else if (i.isModalSubmit()) void (async () => (await this.peleas?.modal(i)) || (await this.trivia?.modal(i)) || (await this.intercambios?.modal(i)))().catch((e) => logError(`formulario ${i.customId}`, e));
         else if (id === "neru" && i.isMessageContextMenuCommand() && i.commandName === WARN_MENU)
           void this.warnFromMenu(i).catch((e) => logError("advertir (menú)", e));
         else if (id === "neru" && i.isMessageContextMenuCommand() && i.commandName === STRIKE_MENU)
@@ -786,6 +950,14 @@ export class PapusApp {
       if (!this.sorteo) return void (await i.reply({ content: "El sorteo está apagado por ahora. 🥖", flags: MessageFlags.Ephemeral }));
       return this.sorteo.sorteo(i);
     }
+    if (bot === "teto" && i.commandName === "consumibles") {
+      if (!this.mercado) return void (await i.reply({ content: "El mercado negro está cerrado por ahora. 🕶️", flags: MessageFlags.Ephemeral }));
+      return this.mercado.consumibles(i);
+    }
+    if (bot === "teto" && i.commandName === "intercambio") {
+      if (!this.intercambios) return void (await i.reply({ content: "Los intercambios están apagados por ahora. 🥖", flags: MessageFlags.Ephemeral }));
+      return this.intercambios.intercambio(i);
+    }
     if (bot === "teto" && i.commandName === "trivia") {
       if (!this.trivia) return void (await i.reply({ content: "La trivia está apagada por ahora. 🥖", flags: MessageFlags.Ephemeral }));
       return this.trivia.trivia(i);
@@ -840,16 +1012,26 @@ export class PapusApp {
       const target = i.options.getUser("papu", true);
       return this.manualStrike(i, target.id, target.bot, i.channelId, { motivo: i.options.getString("motivo") ?? undefined });
     }
+    if (bot === "neru" && i.commandName === "machetear") {
+      if (!this.mercado) return void (await i.reply({ content: "…el mercado negro está cerrado por ahora. 📱", flags: MessageFlags.Ephemeral }));
+      return this.mercado.machetear(i);
+    }
     if (bot === "neru" && i.commandName === "reporte") return this.openTicket(i);
     if (bot === "neru" && i.commandName === "cerrar-ticket") return this.closeTicket(i);
     if (bot === "neru" && (i.commandName === "machetazos" || i.commandName === "perdonar")) {
-      // Consultar machetazos: GyroP y los Mods. Perdonar: solo GyroP (los machetazos merecidos se quedan).
-      const allowed = this.d.owners.has(i.user.id) || (i.commandName === "machetazos" && (await this.isMod(i.user.id)));
-      if (!allowed) {
-        await i.reply({ content: i.commandName === "machetazos" ? "eso solo lo usan gyrop y los mods. 📱" : "eso solo lo usa GyroP. 📱", flags: MessageFlags.Ephemeral });
+      // Consultar machetazos y perdonar: GyroP y los Mods (perdonar a Mods desde el 8 nov. 2026, pedido de GyroP).
+      const owner = this.d.owners.has(i.user.id);
+      if (!owner && !(await this.isMod(i.user.id))) {
+        await i.reply({ content: "eso solo lo usan gyrop y los mods. 📱", flags: MessageFlags.Ephemeral });
         return;
       }
       const target = i.options.getUser("papu", true);
+      // Un Mod no se perdona a si mismo (lo decide GyroP u otro Mod).
+      if (i.commandName === "perdonar" && !owner && target.id === i.user.id) {
+        await i.reply({ content: "a ti mismo no. pídeselo a gyrop o a otro mod. 📱", flags: MessageFlags.Ephemeral });
+        return;
+      }
+      const por = owner ? "GyroP" : `Mod <@${i.user.id}>`;
       if (i.commandName === "machetazos") {
         const m = this.d.strikes.active(target.id);
         const w = this.d.strikes.warnings(target.id);
@@ -866,7 +1048,7 @@ export class PapusApp {
         let unsilenced = false;
         if (silenced && member) {
           if (member.moderatable) {
-            await member.timeout(null, "Perdonado por GyroP (/perdonar)");
+            await member.timeout(null, `Perdonado por ${owner ? "GyroP" : `Mod ${i.user.username}`} (/perdonar)`);
             unsilenced = true;
           } else {
             await this.modLog(`⚠️ No pude quitarle el silencio a ${target}: el rol de Neru debe estar más arriba que el suyo.`);
@@ -879,7 +1061,7 @@ export class PapusApp {
           await i.reply({ content, flags: MessageFlags.Ephemeral, allowedMentions: { parse: [] } });
           return;
         }
-        // En publico, en el canal donde GyroP lo usa: que todos vean que el castigo se levanto (decision de GyroP, 18 oct. 2026).
+        // En publico, en el canal donde GyroP (o el Mod) lo usa: que todos vean que el castigo se levanto (decision de GyroP, 18 oct. 2026).
         await i.reply({ content: this.d.phrases.pick("neru", "perdon", { papu: `<@${target.id}>` }), allowedMentions: { users: [target.id] } });
         const what = [
           cleared.machetazos ? `${cleared.machetazos} ${cleared.machetazos === 1 ? "machetazo" : "machetazos"}` : "",
@@ -887,7 +1069,7 @@ export class PapusApp {
           unsilenced ? "el silencio" : "",
         ].filter(Boolean);
         const list = what.length > 1 ? `${what.slice(0, -1).join(", ")} y ${what.at(-1)}` : what[0];
-        await this.modLog(`🧽 GyroP perdonó ${list} de ${target}${xpBack > 0 ? ` (le devolví ${xpBack} XP)` : ""}.`);
+        await this.modLog(`🧽 ${por} perdonó ${list} de ${target}${xpBack > 0 ? ` (le devolví ${xpBack} XP)` : ""}.`);
         // Sobrevivio a un machetazo: rol de adorno para siempre (decision de GyroP, 28 oct. 2026).
         if (cleared.machetazos) await this.grantSurvivor(target.id).catch((e) => logError("rol Sobreviviente", e));
       }
@@ -965,6 +1147,11 @@ export class PapusApp {
       return null;
     }
     return owner ? "GyroP" : `Mod <@${i.user.id}>`;
+  }
+
+  /** GyroP o un Mod: lanzan peleas y bodas, perdonan y aprueban fondos de tarjeta (pedido de GyroP, 8 nov. 2026). */
+  private async isStaff(userId: string): Promise<boolean> {
+    return this.d.owners.has(userId) || (await this.isMod(userId));
   }
 
   /** Tiene el rol Mod (config/servidor.json, `mod`). Lo da GyroP a mano. */

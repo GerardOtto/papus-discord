@@ -3,6 +3,8 @@ import { loadConfig } from "../src/config";
 import { loadLayout } from "../src/setup/layout";
 import { loadRiddles, loadWeddingSettings } from "../src/bodas/rules";
 import { WeddingService } from "../src/bodas/service";
+import { loadCatalog, loadCoinSettings } from "../src/coins/rules";
+import { CoinService } from "../src/coins/service";
 import { loadLevelSettings } from "../src/levels/rules";
 import { LevelService } from "../src/levels/service";
 import { DeckStore } from "../src/phrases/deck";
@@ -135,6 +137,46 @@ describe("números del día de Mango (GyroP, 31 oct. 2026)", () => {
     const text = serverText(t);
     expect(text).toContain("Mensajes de Papus: **2** · de Vocaloids: **1**");
     expect(text).toContain("<@ana>");
+  });
+});
+
+describe("Shaula-coins y apuestas en los números de Mango (GyroP, 10 nov. 2026)", () => {
+  const TZ = "America/Santiago";
+  const NOON = Date.parse("2026-11-10T12:00:00-03:00");
+
+  it("a un Papu: su monedero y lo ganado y perdido hoy en apuestas; a GyroP, los totales", () => {
+    const db = memDb();
+    const levels = new LevelService({ db, settings: loadLevelSettings(), timeZone: TZ });
+    const quota = new Quota(db, (id, d) => levels.limitFor(id, d), TZ);
+    const coins = new CoinService({ db, settings: loadCoinSettings(), catalog: loadCatalog(), timeZone: TZ, now: () => NOON });
+    const stats = new DayStats({ db, quota, levels, timeZone: TZ, coins, owners: new Set(["gyrop"]) });
+    coins.adjust("ana", "ganadas", 500, "t");
+    coins.adjust("ana", "compradas", 1200, "t");
+    const pelea = (id: string, estado: string, terminada: number | null) =>
+      db.prepare("INSERT INTO peleas (id, a, b, cuota_a, cuota_b, estado, creada_at, cierra_at, terminada_at) VALUES (?, 'teto', 'miku', 2, 2, ?, ?, ?, ?)").run(id, estado, NOON - 3_600_000, NOON, terminada);
+    const apuesta = (p: string, u: string, cantidad: number, pago: number) => db.prepare("INSERT INTO apuestas (pelea, user_id, lado, cantidad, pago, at) VALUES (?, ?, 'teto', ?, ?, ?)").run(p, u, cantidad, pago, NOON - 3_600_000);
+    pelea("p1", "terminada", NOON - 60_000);
+    pelea("p2", "terminada", NOON - 30_000);
+    pelea("ayer", "terminada", NOON - 86_400_000);
+    pelea("p3", "abierta", null);
+    apuesta("p1", "ana", 100, 250); // ganó 150
+    apuesta("p2", "ana", 80, 0); // perdió 80
+    apuesta("ayer", "ana", 999, 0); // otro día: no cuenta
+    apuesta("p3", "ana", 40, 0); // en juego
+    apuesta("p1", "beto", 50, 0); // perdió 50
+    const p = stats.papu("ana", new Date(NOON));
+    expect(p.coins).toMatchObject({ ganadas: 500, compradas: 1200, ecos: 0 });
+    expect(p.bets).toEqual({ peleas: 2, ganado: 150, perdido: 80, enJuego: 40 });
+    const text = papuText(p, {});
+    expect(text).toContain("🪙 Shaula-coins: **500** ganadas · **1.200** compradas");
+    expect(text).toContain("⚔️ Apuestas hoy: **2** peleas · ganado **+150** · perdido **−80** · vas **+70** · en juego: **40**");
+    expect(papuText(stats.papu("carla", new Date(NOON)), {})).not.toContain("Apuestas hoy");
+    const t = stats.server(new Date(NOON));
+    expect(t.bets).toEqual({ peleas: 2, ganado: 150, perdido: 130, enJuego: 40, papus: 2 });
+    expect(t.coins).toMatchObject({ ganadas: 500, compradas: 1200 });
+    const st = serverText(t);
+    expect(st).toContain("⚔️ Apuestas hoy: **2** peleas · 2 Papus · ganado **+150** · perdido **−130** · los Papus van **+20**");
+    expect(st).toContain("en los monederos: **500** ganadas, **1.200** compradas");
   });
 });
 

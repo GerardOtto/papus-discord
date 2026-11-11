@@ -23,7 +23,8 @@ import { LevelService } from "./levels/service";
 import { loadLevelSettings } from "./levels/rules";
 import { loadLayout } from "./setup/layout";
 import { GeneralChat } from "./services/charla";
-import { ConversationService } from "./services/conversation";
+import { ConversationService, type ChatPort } from "./services/conversation";
+import { mundoFromEnv } from "./mundo/puente";
 import { buildCalendar } from "./calendar/setup";
 import { channelKey } from "./discord/channels";
 import { Especiales, loadEspeciales } from "./services/especiales";
@@ -34,7 +35,6 @@ import { loadPrivacySettings, PrivacyGuard } from "./services/privacy";
 import { loadRiddles, loadWeddingSettings } from "./bodas/rules";
 import { loadRouletteSettings } from "./ruleta/rules";
 import { RouletteService } from "./ruleta/service";
-import { missions } from "./ruleta/rules";
 import { loadCatalog, loadCoinSettings } from "./coins/rules";
 import { CoinService } from "./coins/service";
 import type { DatosBanco } from "./coins/images";
@@ -44,7 +44,12 @@ import { loadPeleaSettings } from "./peleas/rules";
 import { PeleaService } from "./peleas/service";
 import { WeddingService } from "./bodas/service";
 import { loadQuestions, loadTriviaSettings } from "./trivia/rules";
+import { actividadFromEnv } from "./trivia/actividad";
 import { TriviaService } from "./trivia/service";
+import { loadMercadoSettings } from "./mercado/rules";
+import { MercadoService } from "./mercado/service";
+import { loadIntercambioSettings } from "./intercambios/rules";
+import { IntercambioService } from "./intercambios/service";
 import { loadMangoSettings, MangoService } from "./services/mango";
 
 const QUEUE_CONCURRENCY = 4;
@@ -112,8 +117,9 @@ async function main(): Promise<void> {
         settings: coinSettings,
         catalog: loadCatalog(),
         timeZone: config.quotaTimeZone,
-        missions: (st) => {
-          const list = missions(roulette.settings, st);
+        // Con el Micrófono de Meiko (mercado negro), la misión de voz de ese Papu ese día pide menos.
+        missions: (st, userId, day) => {
+          const list = roulette.missionsFor(userId, day, st);
           return { done: list.filter((m) => m.done).length, total: list.length };
         },
       })
@@ -131,6 +137,31 @@ async function main(): Promise<void> {
   log(`Trivia: ${trivia.total} preguntas`);
   // Hitos de aciertos (7 nov. 2026): una sola vez, quienes ya tenian avance reciben los sobres de los hitos que pasaron.
   for (const h of trivia.seedMilestones()) log(`🎁 Trivia: hitos iniciales de ${h.userId} en ${h.level}: ${h.aciertos} aciertos → ${h.sobres} sobre(s)`);
+  // Mercado negro (config/mercado.json, PLAN §3.9): una hora al dia; consumibles para la ruleta y la trivia y el PC de
+  // Adachi Rei, solo con Shaula-coins ganadas (sin tienda, no hay mercado).
+  const mercadoSettings = loadMercadoSettings();
+  const mercado = coins && mercadoSettings.activo ? new MercadoService({ db, settings: mercadoSettings, coins, quota, roulette, trivia, weddings, timeZone: config.quotaTimeZone }) : null;
+  if (mercado) {
+    const atun = mercado.byEfecto("atun");
+    const baguette = mercado.byEfecto("baguette");
+    if (atun) roulette.useAtun({ giros: atun.giros!, ...mercado.port("atun") });
+    const helado = mercado.byEfecto("helado");
+    if (helado) coins!.useHelado({ extra: helado.extra!, ...mercado.port("helado") });
+    if (peleas && mercado.byEfecto("seguro")) peleas.useSeguro({ ...mercado.port("seguro"), devolver: (id) => mercado.devolver(id, "seguro") });
+    trivia.useConsumables({
+      baguette: baguette ? { vidas: baguette.vidas!, espera: baguette.espera!, ...mercado.port("baguette") } : undefined,
+      celular: mercado.byEfecto("celular") ? mercado.port("celular") : undefined,
+      guitarra: mercado.byEfecto("guitarra") ? mercado.port("guitarra") : undefined,
+      zanahoria: mercado.byEfecto("zanahoria") ? mercado.port("zanahoria") : undefined,
+    });
+    // Disquete de Adachi Rei (tiradas guardadas) y Luna de IA (XP triple de los mensajes que contesta un Vocaloid).
+    roulette.useDisquete((id) => mercado.tieneEfecto(id, "disquete"));
+    levels.quotaBoost = (id, at) => mercado.quotaBoost(id, at);
+  }
+  // Intercambios entre Papus (config/intercambios.json, PLAN §3.10): Shaula-coins, XP, niveles, cuota, sobres, objetos
+  // y consumibles, como las ofertas de Steam (sin tienda, no hay intercambios).
+  const intercambioSettings = loadIntercambioSettings();
+  const intercambios = coins && intercambioSettings.activo ? new IntercambioService({ db, settings: intercambioSettings, coins, levels, quota, mercado, timeZone: config.quotaTimeZone }) : null;
   const queue = new RequestQueue({ concurrency: QUEUE_CONCURRENCY, maxWaitMs: MAX_WAIT_MS });
 
   let app: PapusApp | null = null;
@@ -168,6 +199,52 @@ async function main(): Promise<void> {
   const llmOpts = { maxTokens: llmSettings.maxTokens, temperature: llmSettings.temperature };
 
   const layout = loadLayout();
+  // Conversaciones con los Vocaloids: la misma cuota, cola y LLM en Discord y en el mundo de los Papus (src/mundo/).
+  const makeConversation = (port: ChatPort) =>
+    new ConversationService({
+      quota,
+      queue,
+      chain,
+      phrases,
+      personas,
+      characters,
+      port,
+      llm: llmOpts,
+      videos: (text) => videos.relevantTo(text),
+      culture: personas.culture(),
+      privacy,
+      // Lo que saben los bots: el trato especial de GyroP y las bodas vigentes (con quien y hasta cuando).
+      notesFor: (id, bots) => {
+        const a = especiales.notesFor(id, bots);
+        const b = weddings.notesFor(id, bots, until);
+        return Object.fromEntries(bots.flatMap((bot) => {
+          const n = [a[bot], b[bot]].filter(Boolean).join(" ");
+          return n ? [[bot, n]] : [];
+        }));
+      },
+      log,
+      today,
+    });
+  // Mundo de los Papus (Actividad 3D): un @ a un Vocaloid de la plaza se responde como en Discord; la plaza muestra
+  // el nivel y la cuota del dia de cada Papu.
+  const mundo = mundoFromEnv(process.env, {
+    makeConversation,
+    bots: config.activeBots,
+    owners,
+    stats: (id) => {
+      const { level, prestige } = levels.level(id);
+      const restante = quota.remaining(id);
+      const limite = quota.limitFor(id);
+      return {
+        nivel: level,
+        prestigio: prestige,
+        restante: Number.isFinite(restante) ? restante : null,
+        limite: Number.isFinite(limite) ? limite : null,
+        ruletas: roulette.status(id).left,
+      };
+    },
+    log,
+  });
   app = new PapusApp({
     config,
     db,
@@ -199,37 +276,18 @@ async function main(): Promise<void> {
     weddings,
     roulette,
     trivia,
+    // Trivia multijugador (Actividad de Discord): Teto aplica la XP de sus aciertos desde la base D1 del worker.
+    actividad: actividadFromEnv(process.env, trivia),
+    mundo,
     sorteo,
     peleas,
     coins,
+    mercado,
+    intercambios,
     pagos: pagosFromEnv(process.env),
     calendar: buildCalendar({ db, env: process.env, deliveryDir: config.deliveryDir, engineDir: config.engineDir }),
     log,
-    makeConversation: (port) =>
-      new ConversationService({
-        quota,
-        queue,
-        chain,
-        phrases,
-        personas,
-        characters,
-        port,
-        llm: llmOpts,
-        videos: (text) => videos.relevantTo(text),
-        culture: personas.culture(),
-        privacy,
-        // Lo que saben los bots: el trato especial de GyroP y las bodas vigentes (con quien y hasta cuando).
-        notesFor: (id, bots) => {
-          const a = especiales.notesFor(id, bots);
-          const b = weddings.notesFor(id, bots, until);
-          return Object.fromEntries(bots.flatMap((bot) => {
-            const n = [a[bot], b[bot]].filter(Boolean).join(" ");
-            return n ? [[bot, n]] : [];
-          }));
-        },
-        log,
-        today,
-      }),
+    makeConversation,
     makeModeration: (port, exempt) => new ModerationService(new RuleSet(moderationSettings), strikes, phrases, port, exempt),
     makeGeneralChat: (port) =>
       new GeneralChat({
