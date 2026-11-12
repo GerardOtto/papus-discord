@@ -62,8 +62,8 @@ No usar `npm run worker:deploy`: ese script registra comandos y cambia los endpo
 
 ## Tarjetas de nivel en el preview
 
-La Plaza puede mostrar la misma tarjeta que genera `/nivel`, sin incluir la cuota diaria ni las tiradas privadas. El panel de la ruleta también muestra el avance real de las misiones, pero en preview es de solo lectura y no permite girar ni aplicar premios.
-La generación se ejecuta bajo demanda en el proceso Node del bot y almacena temporalmente la imagen en el D1 aislado del preview.
+La Plaza puede mostrar la misma tarjeta que genera `/nivel`, sin incluir la cuota diaria ni las tiradas privadas. El panel de la ruleta muestra el avance de las misiones consultadas desde SQLite de solo lectura, pero permite girar en el ledger sandbox: las tiradas, premios de XP, sobres y cuota simulada persisten en D1 preview y no afectan recursos reales.
+La generación se ejecuta bajo demanda en el proceso Node del puente preview y almacena temporalmente la imagen en el D1 aislado del preview.
 
 Para habilitar el puente en el equipo donde se ejecuta el bot, agrega al `.env`:
 
@@ -94,7 +94,7 @@ PAPUS_ENV_FILE=../papus-discord/.env PLAZA_DATA_DIR=<carpeta con papus.sqlite> P
 En la VM (servicio `papus-plaza-preview`, plantilla en `nube/plaza-preview.service`): código en
 `~/papus/plaza-preview` (enlace a `~/papus/app/node_modules`), variables en `~/papus/plaza-preview/preview.env`
 (`PLAZA_PREVIEW_D1_DATABASE_ID`, `PLAZA_DATA_DIR=/home/papus/papus/app/data`, `PAPUS_ENV_FILE=/home/papus/papus/app/.env`).
-Limitado a 220 MB y 50 % de CPU, sin escritura en `~/papus/app` y sin arranque automático.
+Limitado a 260 MB y 50 % de CPU, sin escritura en `~/papus/app` y sin arranque automático. Si el proceso se acerca de nuevo al límite, optimizar memoria antes de solicitar otro aumento.
 
 El workflow de GitHub actualiza el Worker Cloudflare, pero no reemplaza el código del proceso systemd de la VM. Después de actualizar esta rama, sincroniza el código de `feature/plaza-beta` en `~/papus/plaza-preview` y reinicia únicamente el puente aislado:
 
@@ -103,7 +103,7 @@ sudo systemctl restart papus-plaza-preview
 journalctl -u papus-plaza-preview -n 80 --no-pager
 ```
 
-Comprueba que el log indique `mundoPreview listo` y que no haya errores al inicializar `mundo_sandbox`. No reinicies `papus`, no cambies `~/papus/app` y no ejecutes el despliegue del Worker de producción. El puente lee las misiones con `LevelService`, `StrikeStore` y `RouletteService` sobre SQLite de solo lectura; la ruleta permite giros visuales DEMO con cooldown, sin consumir tiradas ni conceder premios.
+Comprueba que el log indique `mundoPreview listo` y que no haya errores al inicializar `mundo_sandbox`. No reinicies `papus`, no cambies `~/papus/app` y no ejecutes el despliegue del Worker de producción. El puente lee las misiones y restricciones con `LevelService`, `StrikeStore` y `RouletteService` sobre SQLite de solo lectura. Las acciones de ruleta y pesca se resuelven mediante `EconomiaPlazaPreview`: consumen tiradas sandbox, aplican premios al progreso de prueba y respetan bloqueos/cooldowns; las compras de tienda y mercado también se guardan en el ledger aislado. No se ejecutan efectos externos de Discord/Vocaloids ni se modifica el estado real.
 
 ```
 sudo install -m 644 ~/papus/plaza-preview/nube/plaza-preview.service /etc/systemd/system/papus-plaza-preview.service
