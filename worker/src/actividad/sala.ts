@@ -59,14 +59,14 @@ export class SalaTrivia implements DurableObject {
     this.sockets.set(server, null);
     const token = leerCookie(request.headers.get("Cookie"), COOKIE_TOKEN);
     if (token) this.tokens.set(server, token);
-    server.addEventListener("message", (e) => void this.mensaje(server, String(e.data)).catch((err) => this.enviar(server, { error: String(err?.message ?? err) })));
+    server.addEventListener("message", (e) => void this.mensaje(server, String(e.data)).catch((err) => { this.enviar(server, { error: String(err?.message ?? err) }); this.programarReintentoAciertos(); }));
     const cerrar = () => {
       const id = this.sockets.get(server);
       this.sockets.delete(server);
       this.tokens.delete(server);
       // Si el mismo Papu sigue conectado desde otra pestaña, no sale.
       if (id && ![...this.sockets.values()].includes(id)) this.sala.salir(id);
-      void this.despues().catch((e) => console.error("actividad: al salir", e));
+      void this.despues().catch((e) => { console.error("actividad: al salir", e); this.programarReintentoAciertos(); });
     };
     server.addEventListener("close", cerrar);
     server.addEventListener("error", cerrar);
@@ -190,7 +190,7 @@ export class SalaTrivia implements DurableObject {
     const delay = Math.min(30_000, 1_000 * 2 ** Math.min(this.persistAttempts++, 5));
     this.persistTimer = setTimeout(() => {
       this.persistTimer = null;
-      void this.despues().catch((e) => console.error("actividad: reintento de aciertos", e));
+      void this.despues().catch((e) => { console.error("actividad: reintento de sala", e); this.programarReintentoAciertos(); });
     }, delay);
   }
 
@@ -229,7 +229,7 @@ export class SalaTrivia implements DurableObject {
       this.timer = setTimeout(() => {
         this.timer = null;
         this.sala.tick();
-        void this.despues().catch((e) => console.error("actividad: temporizador", e));
+        void this.despues().catch((e) => { console.error("actividad: temporizador", e); this.programarReintentoAciertos(); });
       }, Math.max(0, at - Date.now()) + 20);
     }
   }
