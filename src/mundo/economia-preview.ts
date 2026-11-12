@@ -237,7 +237,7 @@ export class EconomiaPlazaPreview {
       let pendientes: Record<string, { para: string; day: string }> = {};
       try { pendientes = (JSON.parse(row.estado) as EstadoSandbox).regalosPendientes ?? {}; } catch { continue; }
       for (const [id, regalo] of Object.entries(pendientes)) {
-        if (!/^\\d{5,25}$/.test(regalo.para) || regalo.para === row.papu_id) continue;
+        if (!/^\d{5,25}$/.test(regalo.para) || regalo.para === row.papu_id) continue;
         await this.cambiar(regalo.para, (destino) => {
           destino.regalosRecibidos ??= [];
           if (destino.regalosRecibidos.includes(id)) return { result: undefined, changed: false };
