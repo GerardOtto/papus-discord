@@ -919,7 +919,7 @@ export class EconomiaPlazaPreview {
       if (!this.d.levels.canEarn(userId, now)) return { result: error("Neru te bloqueó la ruleta: no puedes obtener recompensas. 🚫"), changed: false };
       if (real.blocked) return { result: error("🚫 Neru te dio un machetazo: sin ruleta por ahora."), changed: false };
       if (s.ruletaDia !== day) { s.ruletaDia = day; s.ruletaUsadas = 0; }
-      const disponibles = this.tiradasDisponibles(s, userId, now, day, real);
+      const disponibles = this.tiradasDisponibles(s, userId, day, real);
       if (disponibles <= 0) return { result: error("No te quedan tiradas disponibles. Cumple una misión y vuelve a intentarlo."), changed: false };
       const index = pickPrize({ premios: this.d.roulette.settings.premios.map((p) => p.tipo === "sobre" && !this.d.coins ? { ...p, peso: 0 } : p) }, this.rnd);
       const atun = this.d.mercado?.byId.get("atun-luka");
@@ -931,7 +931,7 @@ export class EconomiaPlazaPreview {
       const aplicado = this.aplicarPremio(s, userId, day, now, index);
       if (!aplicado) return { result: error("La ruleta no tiene premios configurados."), changed: false };
       s.ruletaUsadas++;
-      return { result: ok({ giro: { papu: userId, nombre, index, titulo: `🧪 ${aplicado.titulo}`, subtitulo: aplicado.subtitulo, origen: "plaza" }, texto: aplicado.texto, tiradas: this.tiradasDisponibles(s, userId, now, day, real), sandbox: true }) };
+      return { result: ok({ giro: { papu: userId, nombre, index, titulo: `🧪 ${aplicado.titulo}`, subtitulo: aplicado.subtitulo, origen: "plaza" }, texto: aplicado.texto, tiradas: this.tiradasDisponibles(s, userId, day, real), sandbox: true }) };
     });
   }
 
@@ -984,7 +984,7 @@ export class EconomiaPlazaPreview {
       const giros = pending.giros + 1;
       s.atunPendiente = { day, index, giros, gastoUso: true, aplicado: false };
       return { result: ok({
-        ...this.giroPendiente(userId, nombre, index, Math.max(0, maxGiros - giros), usos, this.tiradasDisponibles(s, userId, now, day, real)),
+        ...this.giroPendiente(userId, nombre, index, Math.max(0, maxGiros - giros), usos, this.tiradasDisponibles(s, userId, day, real)),
         texto: `🐟 Premio descartado. ${this.d.roulette.settings.premios[index]?.etiqueta ?? "Nuevo premio"} reservado para aceptar.`,
       }) };
     });
