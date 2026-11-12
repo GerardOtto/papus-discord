@@ -13,7 +13,7 @@ import { abierta, aperturaHoy, proximaApertura } from "../mercado/rules";
 import type { Quota } from "../quota/quota";
 import type { RouletteService } from "../ruleta/service";
 import { pickPrize, prizeXp } from "../ruleta/rules";
-import { progress } from "../levels/rules";
+import { progress, quotaWithTransition } from "../levels/rules";
 import { answerXp, dailyCap, type Dificultad, type TriviaSettings } from "../trivia/rules";
 import { dayKey } from "../time";
 import { reinicioDe } from "../mercado/reinicios";
@@ -294,6 +294,17 @@ export class EconomiaPlazaPreview {
     }
   }
 
+  /** Límite calculado con el nivel sandbox, conservando las excepciones de transición del perfil real. */
+  cuotaLimite(userId: string): number | null | undefined {
+    const state = this.cache.get(userId);
+    if (!state) return undefined;
+    const date = new Date(this.now());
+    const record = this.d.levels.store.get(userId);
+    const level = progress(this.d.levels.settings, state.xp).level;
+    const limit = quotaWithTransition(this.d.levels.settings, level, record.prestige, record.veteran, date);
+    return Number.isFinite(limit) ? limit : null;
+  }
+
   /** Cuota visible del preview, incluyendo reinicios y extras del ledger sin modificar quota_usage real. */
   cuotaRestante(userId: string): number | null | undefined {
     const state = this.cache.get(userId);
@@ -301,8 +312,8 @@ export class EconomiaPlazaPreview {
     const now = this.now();
     const date = new Date(now);
     const day = dayKey(date, this.d.timeZone);
-    const limit = this.d.quota.limitFor(userId, date);
-    if (!Number.isFinite(limit)) return null;
+    const limit = this.cuotaLimite(userId);
+    if (limit === null || limit === undefined) return limit;
     const extraBase = this.d.quota.extra(userId, date);
     const usedBase = this.d.quota.used(userId, date);
     const resetBase = state.cuotaResetDia === day ? state.cuotaResetBase ?? 0 : 0;
@@ -722,7 +733,7 @@ export class EconomiaPlazaPreview {
       xp = prizeXp(this.d.roulette.settings, this.d.levels.settings, premio, state.xp, this.d.levels.multiplier(new Date(now)));
       state.xp += xp;
     } else if (premio.tipo === "cuota" || premio.tipo === "cuota_llena") {
-      const limit = this.d.quota.limitFor(userId, new Date(now));
+      const limit = this.cuotaLimite(userId) ?? this.d.quota.limitFor(userId, new Date(now));
       const extraBase = this.d.quota.extra(userId, new Date(now));
       const usedBase = this.d.quota.used(userId, new Date(now));
       const usedEffective = Math.max(0, usedBase - (state.cuotaResetDia === day ? state.cuotaResetBase ?? 0 : 0));
