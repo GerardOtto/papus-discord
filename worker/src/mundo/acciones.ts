@@ -4,7 +4,7 @@
 // ruleta de la plaza muestra los giros de a uno, para todos, en el orden en que llegaron (de la plaza o de Discord).
 // Funciones puras: las comparten la sala, la pagina y las pruebas.
 
-/** Acciones que la plaza le puede pedir al bot. En preview solo se registran handlers de lectura/sandbox. */
+/** Acciones que la plaza le puede pedir al bot. En preview solo se registran handlers de lectura o simulación sin recompensas reales. */
 export const ACCIONES = ["ruleta.estado", "ruleta.girar", "pesca.capturar", "tienda.estado", "tienda.comprar", "mercado.estado", "mercado.comprar"] as const;
 export type Accion = (typeof ACCIONES)[number];
 export const esAccion = (a: unknown): a is Accion => typeof a === "string" && (ACCIONES as readonly string[]).includes(a);
