@@ -62,7 +62,7 @@ No usar `npm run worker:deploy`: ese script registra comandos y cambia los endpo
 
 ## Tarjetas de nivel en el preview
 
-La Plaza puede mostrar la misma tarjeta que genera `/nivel`, sin incluir la cuota diaria ni las tiradas privadas.
+La Plaza puede mostrar la misma tarjeta que genera `/nivel`, sin incluir la cuota diaria ni las tiradas privadas. El panel de la ruleta también muestra el avance real de las misiones, pero en preview es de solo lectura y no permite girar ni aplicar premios.
 La generación se ejecuta bajo demanda en el proceso Node del bot y almacena temporalmente la imagen en el D1 aislado del preview.
 
 Para habilitar el puente en el equipo donde se ejecuta el bot, agrega al `.env`:
@@ -83,7 +83,7 @@ Mientras la beta no se fusione, las tarjetas las genera un proceso aparte (`scri
 - Lee `papus.sqlite` en **solo lectura** (`readOnly` + `PRAGMA query_only`): no migra ni escribe.
 - Lee nombres y avatares de Discord solo por REST con el token de Teto (sin segunda sesión de gateway).
 - Escribe únicamente en el D1 `PLAZA_PREVIEW_D1_DATABASE_ID`; se niega a arrancar sin él o si es el de producción.
-- No responde menciones, no ejecuta acciones de la plaza ni publica chat.
+- No responde menciones ni publica chat. Solo atiende `ruleta.estado` para mostrar el progreso real de las misiones; no expone `ruleta.girar` ni ninguna acción que consuma tiradas, XP, monedas u objetos.
 
 Prueba sin D1 (dibuja una tarjeta a un archivo):
 
@@ -94,7 +94,7 @@ PAPUS_ENV_FILE=../papus-discord/.env PLAZA_DATA_DIR=<carpeta con papus.sqlite> P
 En la VM (servicio `papus-plaza-preview`, plantilla en `nube/plaza-preview.service`): código en
 `~/papus/plaza-preview` (enlace a `~/papus/app/node_modules`), variables en `~/papus/plaza-preview/preview.env`
 (`PLAZA_PREVIEW_D1_DATABASE_ID`, `PLAZA_DATA_DIR=/home/papus/papus/app/data`, `PAPUS_ENV_FILE=/home/papus/papus/app/.env`).
-Limitado a 220 MB y 50 % de CPU, sin escritura en `~/papus/app` y sin arranque automático.
+Limitado a 220 MB y 50 % de CPU, sin escritura en `~/papus/app` y sin arranque automático. El puente lee las misiones con `LevelService`, `StrikeStore` y `RouletteService` sobre SQLite de solo lectura; la ruleta queda deshabilitada en preview.
 
 ```
 sudo install -m 644 ~/papus/plaza-preview/nube/plaza-preview.service /etc/systemd/system/papus-plaza-preview.service
