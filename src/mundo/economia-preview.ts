@@ -145,6 +145,7 @@ export class EconomiaPlazaPreview {
 
   /** Acredita o revierte en el ledger la parte de monedas ganadas por XP de actividad sandbox. */
   private recalcularMonedasActividad(state: EstadoSandbox, userId: string, day: string, deltaXp = 0): number {
+    state.xpSandboxDia = Math.max(0, (state.xpSandboxDia ?? 0) + deltaXp);
     if (!this.d.coins) return 0;
     const now = this.now();
     const real = this.d.coins.activityToday(userId, now);
@@ -163,7 +164,6 @@ export class EconomiaPlazaPreview {
       const earned = this.d.db.prepare("SELECT ganadas FROM monedas_dia WHERE user_id = ? AND day = ?").get(userId, day) as { ganadas: number } | undefined;
       state.wallet.hoy = earned?.ganadas ?? 0;
     }
-    state.xpSandboxDia = Math.max(0, (state.xpSandboxDia ?? 0) + deltaXp);
     const reset = state.monedasResetDia === day
       ? { xp: state.monedasResetXp ?? state.monedasXpBase ?? real.xp, previa: state.monedasResetPrevia ?? state.monedasActividadDia ?? real.actividad }
       : state.monedasResetBaseDia === day ? { xp: state.monedasResetBaseXp ?? 0, previa: state.monedasResetBasePrevia ?? 0 } : undefined;
@@ -1059,8 +1059,14 @@ export class EconomiaPlazaPreview {
       const maxGiros = objeto.giros ?? 0;
       if (pending.giros >= maxGiros) return { result: error("Ya usaste todos los descartes de este giro."), changed: false };
       if (pending.aplicado !== false) {
-        s.xp = Math.max(0, s.xp - (pending.xp ?? 0));
-        this.recalcularMonedasActividad(s, userId, day, -(pending.xp ?? 0));
+        const xpRevertida = pending.xp ?? 0;
+        s.xp = Math.max(0, s.xp - xpRevertida);
+        this.recalcularMonedasActividad(s, userId, day, -xpRevertida);
+        if (s.xpSandboxNoTriviaDiaKey === day) {
+          s.xpSandboxNoTriviaDia = Math.max(0, (s.xpSandboxNoTriviaDia ?? 0) - xpRevertida);
+        } else if (s.xpSandboxNoTriviaHistorial?.[day] !== undefined) {
+          s.xpSandboxNoTriviaHistorial[day] = Math.max(0, s.xpSandboxNoTriviaHistorial[day]! - xpRevertida);
+        }
         if (pending.bonoNivel) s.wallet.ganadas = Math.max(0, s.wallet.ganadas - pending.bonoNivel);
         if (s.cuotaExtraDia === day) s.cuotaExtra = Math.max(0, s.cuotaExtra - (pending.mensajes ?? 0));
         s.wallet.gratis = Math.max(0, s.wallet.gratis - (pending.sobres ?? 0));
