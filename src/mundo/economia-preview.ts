@@ -622,6 +622,7 @@ export class EconomiaPlazaPreview {
       const spins=this.d.roulette.status(userId,now).used;
       const quotaUsed=Math.max(0,this.d.quota.used(userId,new Date(now))-this.d.quota.donated(userId,new Date(now)));
       const result=await this.cambiar(userId,(s)=>{
+        if(s.atunPendiente?.day===this.d.roulette.dayOf(now))return {result:error("Acepta o descarta primero el premio pendiente del Atún de Luka."),changed:false};
         const usos=s.consumibles[id]??0;
         if(usos<=0)return {result:error("No te quedan usos del PC de Adachi Rei."),changed:false};
         s.consumibles[id]=usos-1;
@@ -647,6 +648,7 @@ export class EconomiaPlazaPreview {
       if (!miembro.length) return error("Ese Papu debe haber entrado a la Plaza al menos una vez para recibir una tirada de prueba.");
       if (this.d.roulette.status(para, this.now()).blocked) return error("Ese Papu tiene la ruleta bloqueada y perdería el regalo.");
       const reserva = await this.cambiar(userId, (s) => {
+        if (s.atunPendiente?.day === this.d.roulette.dayOf(this.now())) return { result: error("Acepta o descarta primero el premio pendiente del Atún de Luka."), changed: false };
         const usos = s.consumibles[id] ?? 0;
         if (usos <= 0) return { result: error("No te quedan regalos de Rin y Len."), changed: false };
         s.regalosSecuencia = (s.regalosSecuencia ?? 0) + 1;
@@ -668,6 +670,7 @@ export class EconomiaPlazaPreview {
     if (!objeto || objeto.efecto !== "microfono" || !objeto.vozMinutos) return error("El Micrófono de Meiko no está configurado.");
     return this.cambiar(userId, (s) => {
       const day = this.d.roulette.dayOf(this.now());
+      if (s.atunPendiente?.day === day) return { result: error("Acepta o descarta primero el premio pendiente del Atún de Luka."), changed: false };
       if (s.microfonoDia === day) return { result: error("El Micrófono de Meiko ya está activo por hoy."), changed: false };
       const usos = s.consumibles[id] ?? 0;
       if (usos <= 0) return { result: error("No te quedan usos del Micrófono de Meiko."), changed: false };
