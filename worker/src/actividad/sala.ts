@@ -146,24 +146,36 @@ export class SalaTrivia implements DurableObject {
   /** Pide a Teto la XP base y el tope del dia del Papu (los calcula el bot y los deja en D1). */
   private async pedirPerfil(papu: string): Promise<void> {
     const now = Date.now();
-    await this.env.DB.prepare(
-      "INSERT INTO actividad_perfiles (papu_id, pedido_at) VALUES (?, ?) ON CONFLICT(papu_id) DO UPDATE SET pedido_at = excluded.pedido_at",
-    )
-      .bind(papu, now + 2)
-      .run();
+    if (this.env.MUNDO_PREVIEW === "1") {
+      await this.env.DB.prepare("INSERT INTO actividad_perfiles_preview (papu_id, partida, pedido_at) VALUES (?, ?, ?) ON CONFLICT(papu_id, partida) DO UPDATE SET pedido_at = excluded.pedido_at")
+        .bind(papu, this.partida, now + 2)
+        .run();
+    } else {
+      await this.env.DB.prepare("INSERT INTO actividad_perfiles (papu_id, pedido_at) VALUES (?, ?) ON CONFLICT(papu_id) DO UPDATE SET pedido_at = excluded.pedido_at")
+        .bind(papu, now + 2)
+        .run();
+    }
     await this.leerPerfiles([papu]);
   }
 
   /** Lee de D1 los perfiles que Teto ya calculo (solo los mas nuevos que los que tiene la sala). */
   private async leerPerfiles(ids: string[]): Promise<void> {
     if (!ids.length) return;
-    const rows = await this.env.DB.prepare(`SELECT papu_id, xp_base, tope, actualizado_at FROM actividad_perfiles WHERE actualizado_at > 0 AND papu_id IN (${ids.map(() => "?").join(",")})`)
-      .bind(...ids)
-      .all<{ papu_id: string; xp_base: number; tope: number; actualizado_at: number }>();
+    const preview = this.env.MUNDO_PREVIEW === "1";
+    const sql = preview
+      ? `SELECT papu_id, xp_base, tope, actualizado_at, partida FROM actividad_perfiles_preview WHERE actualizado_at > 0 AND papu_id IN (${ids.map(() => "?").join(",")}) AND partida IN (?, ?) ORDER BY CASE WHEN partida = ? THEN 0 ELSE 1 END, actualizado_at DESC`
+      : `SELECT papu_id, xp_base, tope, actualizado_at FROM actividad_perfiles WHERE actualizado_at > 0 AND papu_id IN (${ids.map(() => "?").join(",")})`;
+    const stmt = this.env.DB.prepare(sql);
+    const rows = preview
+      ? await stmt.bind(...ids, this.partida, "", this.partida).all<{ papu_id: string; xp_base: number; tope: number; actualizado_at: number; partida: string }>()
+      : await stmt.bind(...ids).all<{ papu_id: string; xp_base: number; tope: number; actualizado_at: number }>();
+    const vistos = new Set<string>();
     for (const r of rows.results) {
+      if (vistos.has(r.papu_id)) continue;
+      vistos.add(r.papu_id);
       const prev = this.perfiles.get(r.papu_id);
       if (!prev || r.actualizado_at > prev.at) this.perfiles.set(r.papu_id, { base: r.xp_base, tope: r.tope, at: r.actualizado_at });
-      if (this.env.MUNDO_PREVIEW === "1") this.sala.setConsumibles(r.papu_id, await this.estadoConsumibles(r.papu_id));
+      if (preview) this.sala.setConsumibles(r.papu_id, await this.estadoConsumibles(r.papu_id));
     }
   }
 
@@ -198,8 +210,14 @@ export class SalaTrivia implements DurableObject {
   private async despues(): Promise<void> {
     if (this.env.MUNDO_PREVIEW === "1" && this.sala.fase === "revelar") await this.rescatarConBaguette();
     const fase = this.sala.fase;
-    if (fase === "pregunta" && this.faseAnterior !== "pregunta" && this.faseAnterior !== "revelar") this.partida = `${Date.now().toString(36)}-${this.state.id.toString().slice(0, 8)}`;
-    // Al empezar cada pregunta se refrescan los perfiles (Teto pudo recalcularlos al aplicar la XP).
+    if (fase === "sala" && this.faseAnterior !== "sala") this.partida = "";
+    if (fase === "pregunta" && this.faseAnterior !== "pregunta" && this.faseAnterior !== "revelar") {
+      this.partida = `${Date.now().toString(36)}-${this.state.id.toString().slice(0, 8)}`;
+      if (this.env.MUNDO_PREVIEW === "1") {
+        this.state.waitUntil(Promise.all(this.sala.ids().map((id) => this.pedirPerfil(id))).then(() => undefined).catch((e) => console.error("actividad preview: perfiles al iniciar", e)));
+      }
+    }
+    // Al empezar cada pregunta se refrescan los perfiles; el puente actualiza XP y topes tras cada acierto.
     if (fase === "pregunta" && this.faseAnterior !== "pregunta") this.state.waitUntil(this.leerPerfiles(this.sala.ids()).catch(() => {}));
     this.faseAnterior = fase;
     const aciertos = this.sala.sacarAciertos();
