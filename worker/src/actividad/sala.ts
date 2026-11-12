@@ -36,10 +36,10 @@ export class SalaTrivia implements DurableObject {
   ) {
     this.sala = new Sala({
       pool: POOL.preguntas,
-      xp: (papu, racha) => {
+      xp: (papu, racha, factor) => {
         const p = this.perfiles.get(papu);
         if (!p) return null;
-        const xp = xpDeAcierto(p, racha, POOL.racha);
+        const xp = xpDeAcierto(p, racha, POOL.racha, factor);
         p.tope -= xp;
         return xp;
       },
@@ -97,9 +97,45 @@ export class SalaTrivia implements DurableObject {
     if (m.t === "configurar") this.sala.configurar(id, m);
     else if (m.t === "empezar") aviso = this.sala.empezar(id).motivo;
     else if (m.t === "responder") this.sala.responder(id, m.nonce, m);
-    else if (m.t === "otra") this.sala.otra(id);
+    else if (m.t === "otra") this.sala.otra(id);\n    else if (m.t === "consumible") await this.usarConsumible(id,m,ws);
     if (aviso) this.enviar(ws, { aviso });
     this.despues();
+  }
+
+
+  private async estadoConsumibles(papu: string): Promise<{celular:number;guitarra:number;zanahoria:number;baguette:number}> {
+    const row=await this.env.DB.prepare("SELECT estado FROM mundo_sandbox WHERE papu_id = ?").bind(papu).first<{estado:string}>();
+    const usos=(JSON.parse(row?.estado??"{}") as {consumibles?:Record<string,number>}).consumibles??{};
+    return {celular:usos["celular-neru"]??0,guitarra:usos["guitarra-flower"]??0,zanahoria:usos["zanahoria-gumi"]??0,baguette:usos["baguette-teto"]??0};
+  }
+
+  private async modificarUso(papu:string,objeto:string,delta:number):Promise<boolean>{
+    for(let i=0;i<6;i++){
+      const row=await this.env.DB.prepare("SELECT estado,revision FROM mundo_sandbox WHERE papu_id = ?").bind(papu).first<{estado:string;revision:number}>();
+      if(!row)return false;
+      const state=JSON.parse(row.estado) as {version:number;consumibles?:Record<string,number>};
+      if(state.version!==1)return false;
+      state.consumibles??={};
+      const usos=state.consumibles[objeto]??0;
+      if(delta<0&&usos<=0)return false;
+      state.consumibles[objeto]=usos+delta;
+      const result=await this.env.DB.prepare("UPDATE mundo_sandbox SET estado = ?, revision = revision + 1, actualizado_at = ? WHERE papu_id = ? AND revision = ? RETURNING revision")
+        .bind(JSON.stringify(state),Date.now(),papu,row.revision).first<{revision:number}>();
+      if(result)return true;
+    }
+    return false;
+  }
+
+  private async usarConsumible(papu:string,m:Extract<Pedido,{t:"consumible"}>,ws:WebSocket):Promise<void>{
+    if(this.env.MUNDO_PREVIEW!=="1")return this.enviar(ws,{aviso:"Los consumibles de trivia solo se habilitan en el preview sandbox."});
+    const objeto=m.objeto==="celular"?"celular-neru":m.objeto==="guitarra"?"guitarra-flower":"zanahoria-gumi";
+    const valido=m.objeto==="celular"?this.sala.puedeCelular(papu,m.nonce):m.objeto==="guitarra"?this.sala.puedeGuitarra(papu,m.nonce):!!m.tema&&this.sala.puedeZanahoria(papu,m.nonce,m.tema);
+    if(!valido)return this.enviar(ws,{aviso:"Ese consumible no se puede usar en esta pregunta."});
+    if(!await this.modificarUso(papu,objeto,-1))return this.enviar(ws,{aviso:"No te quedan usos de ese consumible en tu inventario de prueba."});
+    const aplicado=m.objeto==="celular"?this.sala.usarCelular(papu,m.nonce):m.objeto==="guitarra"?this.sala.usarGuitarra(papu,m.nonce):this.sala.usarZanahoria(papu,m.nonce,m.tema!);
+    if(!aplicado){await this.modificarUso(papu,objeto,1);return this.enviar(ws,{aviso:"La pregunta cambió mientras activabas el objeto; no se consumió el uso."});}
+    this.sala.setConsumibles(papu,await this.estadoConsumibles(papu));
+    this.enviar(ws,{aviso:m.objeto==="celular"?"📱 Neru eliminó dos opciones incorrectas solo para ti.":m.objeto==="guitarra"?"🎸 ¡Guitarra de flower activada! Tus aciertos de esta partida dan el doble de XP, respetando el tope.":`🥕 Gumi eligió el tema ${m.tema} para la siguiente pregunta de todo el equipo.`});
   }
 
   /** Pide a Teto la XP base y el tope del dia del Papu (los calcula el bot y los deja en D1). */
