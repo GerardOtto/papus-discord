@@ -649,4 +649,61 @@ describe("EconomiaPlazaPreview", () => {
     const after = preview.prepare("SELECT estado FROM mundo_sandbox WHERE papu_id = ?").get(user) as { estado: string };
     expect((JSON.parse(after.estado) as { atunPendiente?: unknown }).atunPendiente).toBeUndefined();
   });
+
+  it("continues Disquete catch-up in bounded batches without skipping days", async () => {
+    const source = openDb(":memory:");
+    const preview = openDb(":memory:");
+    abiertos.push(source, preview);
+    preview.exec("CREATE TABLE mundo_sandbox (papu_id TEXT PRIMARY KEY, estado TEXT NOT NULL, revision INTEGER NOT NULL DEFAULT 0, actualizado_at INTEGER NOT NULL)");
+    const query: D1Query = async <T>(sql: string, ...params: unknown[]): Promise<T[]> => {
+      const statement = preview.prepare(sql);
+      if (/RETURNING/i.test(sql) || /^\s*SELECT/i.test(sql)) return statement.all(...(params as never[])) as unknown as T[];
+      statement.run(...(params as never[]));
+      return [];
+    };
+    const user = "123456789012345678";
+    const start = "2025-09-01";
+    const today = "2026-11-12";
+    const now = Date.parse("2026-11-12T12:00:00-03:00");
+    const days = Math.round((Date.parse(`${today}T00:00:00Z`) - Date.parse(`${start}T00:00:00Z`)) / 86_400_000);
+    const dayOf = (at: number) => new Intl.DateTimeFormat("en-CA", { timeZone: "America/Santiago", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date(at));
+    let historicalStatuses = 0;
+    const roulette = {
+      dayOf,
+      status: (_id: string, at: number) => {
+        if (dayOf(at) !== today) historicalStatuses++;
+        return { left: 1, used: 0, blocked: false, missions: [] };
+      },
+    } as unknown as RouletteService;
+    const levels = new LevelService({ db: source, settings: loadLevelSettings(), timeZone: "America/Santiago" });
+    const state = {
+      version: 1, xp: 0,
+      wallet: { ganadas: 0, compradas: 0, ecos: 0, gratis: 0, gratisRaro: 0, gratisLeg: 0, sobres: 0, sinEpica: 0, sinLegendaria: 0, hoy: 0 },
+      inventario: [], consumibles: {}, comprasMercado: ["disquete-adachi-rei"],
+      ruletaDia: start, ruletaUsadas: 0, pescaAt: 0, cuotaExtraDia: today, cuotaExtra: 0, cuotaUsada: 0,
+      disqueteProcesadoDia: start, ruletaGuardadas: 0,
+    };
+    preview.prepare("INSERT INTO mundo_sandbox (papu_id,estado,revision,actualizado_at) VALUES (?,?,0,?)").run(user, JSON.stringify(state), now);
+    const economy = new EconomiaPlazaPreview({
+      query, db: source, levels, coins: null, mercado: null, roulette, quota: {} as Quota,
+      now: () => now, trivia: loadTriviaSettings(), questionLevels: {},
+      questionTotals: { facil: 0, medio: 0, dificil: 0 }, timeZone: "America/Santiago",
+    });
+    const update = (economy as unknown as { actualizarDisquete: (id: string) => Promise<void> }).actualizarDisquete.bind(economy);
+    await update(user);
+    let saved = preview.prepare("SELECT estado FROM mundo_sandbox WHERE papu_id = ?").get(user) as { estado: string };
+    let next = JSON.parse(saved.estado) as { ruletaGuardadas: number; disqueteProcesadoDia: string };
+    expect(historicalStatuses).toBe(400);
+    expect(next.ruletaGuardadas).toBe(400);
+    expect(next.disqueteProcesadoDia).not.toBe(today);
+
+    historicalStatuses = 0;
+    await update(user);
+    saved = preview.prepare("SELECT estado FROM mundo_sandbox WHERE papu_id = ?").get(user) as { estado: string };
+    next = JSON.parse(saved.estado) as { ruletaGuardadas: number; disqueteProcesadoDia: string };
+    expect(historicalStatuses).toBe(days - 400);
+    expect(next.ruletaGuardadas).toBe(days);
+    expect(next.disqueteProcesadoDia).toBe(today);
+  });
+
 });
