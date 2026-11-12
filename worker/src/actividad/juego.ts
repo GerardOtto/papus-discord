@@ -337,6 +337,11 @@ export class Sala {
     return a;
   }
 
+  /** Devuelve al buffer los aciertos si D1 no confirmó su escritura. */
+  devolverAciertos(aciertos: readonly Acierto[]): void {
+    if (aciertos.length) this.aciertos = [...aciertos, ...this.aciertos];
+  }
+
   /** Ids de quienes juegan la partida en curso. */
   ids(): string[] {
     return [...this.jugadores.values()].filter((j) => j.conectado).map((j) => j.id);
