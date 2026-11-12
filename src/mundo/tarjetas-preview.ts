@@ -142,7 +142,7 @@ const sinConversacion = (): ConversationService =>
     },
   }) as unknown as ConversationService;
 
-/** Puente al D1 del preview, sin Vocaloids, chat ni foto del servidor; el caller puede añadir acciones explícitamente de solo lectura. */
+/** Puente al D1 del preview, sin Vocaloids, chat ni foto del servidor; el caller añade acciones sandbox persistentes, sin escribir en la base original. */
 export function crearPuentePreview(o: {
   env: NodeJS.ProcessEnv;
   root: string;
