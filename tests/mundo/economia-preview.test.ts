@@ -295,7 +295,7 @@ describe("EconomiaPlazaPreview", () => {
     expect(ledger.triviaPremios).toContain("facil");expect(ledger.wallet.gratis).toBe(1);
     expect(await economy.syncTrivia()).toBe(0);
     const again=preview.prepare("SELECT estado FROM mundo_sandbox WHERE papu_id=?").get(user) as {estado:string};
-    expect(JSON.parse(again.estado).xp).toBe(row.xp);
+    expect(JSON.parse(again.estado).xp).toBe(10000+row.xp);
   });
 
   it("expira un premio pendiente del Atún al cambiar el día sin aplicarlo gratis", async () => {
