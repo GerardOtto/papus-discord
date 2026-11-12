@@ -1085,6 +1085,7 @@ function pintarCatalogo(tipo: TipoCatalogo, datos: Record<string, unknown>): str
   const objetos = Array.isArray(datos.objetos) ? datos.objetos as { id: string; nombre: string; descripcion: string; rareza?: string; emoji?: string; precio: number | null; usos?: number | null; owned: boolean; activable?: boolean; activo?: boolean }[] : [];
   const soloLectura = datos.soloLectura === true;
   const sandbox = datos.sandbox === true;
+  const premioPendiente = datos.premioPendiente === true;
   const abierto = tipo === "mercado" ? datos.abierto : datos.abierta;
   const wallet = datos.wallet && typeof datos.wallet === "object" ? datos.wallet as { ganadas?: number; compradas?: number } : null;
   const proxima = datos.proximaApertura && typeof datos.proximaApertura === "object" ? (datos.proximaApertura as { abre?: number }).abre : undefined;
@@ -1099,7 +1100,9 @@ function pintarCatalogo(tipo: TipoCatalogo, datos: Record<string, unknown>): str
     const icono = o.emoji ?? (["legendaria","legendario","mitica"].includes(rareza) ? "✨" : ["raro","epico","epica"].includes(rareza) ? "💎" : "🎁");
     const precio = o.precio === null ? "Precio no disponible" : `${o.precio.toLocaleString("es-CL")} Shaula-coins`;
     const extra = o.usos ? `<span class="v-producto-usos">${o.usos} usos</span>` : "";
-    const accion = o.activable ? `<button class="v-boton" data-usar-consumible="${esc(o.id)}">${o.id === "pc-adachi-rei" ? "💻 Reiniciar día de prueba" : o.id === "regalo-rin-len" ? "🎁 Regalar una tirada" : "🎤 Activar por hoy"}</button>`
+    const accion = premioPendiente && (o.activable || !o.owned)
+      ? '<span class="v-chip">Acepta primero el premio pendiente de la ruleta</span>'
+      : o.activable ? `<button class="v-boton" data-usar-consumible="${esc(o.id)}">${o.id === "pc-adachi-rei" ? "💻 Reiniciar día de prueba" : o.id === "regalo-rin-len" ? "🎁 Regalar una tirada" : "🎤 Activar por hoy"}</button>`
       : o.activo ? '<span class="v-chip verde">✓ Activo hoy</span>'
       : o.owned ? '<span class="v-chip verde">✓ En tu colección</span>'
       : soloLectura ? '<span class="v-chip">Solo lectura</span>'
