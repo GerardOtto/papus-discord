@@ -484,6 +484,8 @@ export class PapusApp {
     }
     if (this.d.mundo) {
       const mundo = this.d.mundo;
+      // Las tarjetas públicas reutilizan el render de /nivel y ocultan datos privados (cuota); D1 solo cachea el PNG.
+      mundo.tarjetaPublica = (userId) => this.tarjetaPublica(userId);
       // Un @ respondido en la plaza da la misma XP que en Discord (la del mensaje y la de la respuesta del Vocaloid).
       mundo.onAnswered = async (userId, text) => {
         const base = await this.levels.onMessage(userId, text, {});
