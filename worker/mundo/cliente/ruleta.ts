@@ -176,7 +176,7 @@ export function htmlRuleta(v: VistaRuleta): string {
               ? `<p class="v-error">${esc(mio.motivo)}</p>`
               : "";
   const ocupada = v.ahora ? `<p class="v-nota">🎡 Girando ahora: <b>${esc(v.ahora.nombre)}</b>${v.ahora.origen === "discord" ? " (desde Discord)" : ""}${v.fila ? ` · ${v.fila} en la fila` : ""}</p>` : "";
-  const puede = !e.bloqueada && mio?.fase !== "pidiendo" && (simulacion || (!soloLectura && e.tiradas > 0));
+  const puede = !e.bloqueada && !["pidiendo", "fila", "girando"].includes(mio?.fase ?? "") && (simulacion || (!soloLectura && e.tiradas > 0));
   const premios = soloLectura && !simulacion ? "" : `<h3 class="v-seccion">Premios</h3><ul class="v-casillas">${casillas}</ul>`;
   const controles = soloLectura && !simulacion ? "" : `${estadoGiro}${ocupada}
     <button class="v-boton" data-accion="girar" ${puede ? "" : "disabled"}>🎰 ${simulacion ? "Probar giro" : puede ? `Girar (${e.tiradas})` : "Sin tiradas"}</button>`;
