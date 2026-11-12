@@ -1056,6 +1056,7 @@ export class EconomiaPlazaPreview {
   private async descartarAtun(userId: string, nombre: string): Promise<Resultado> {
     const now = this.now();
     const day = this.d.roulette.dayOf(now);
+    await this.actualizarDisquete(userId);
     const real = this.d.roulette.status(userId, now);
     return this.cambiar(userId, (s) => {
       const pending = s.atunPendiente;
