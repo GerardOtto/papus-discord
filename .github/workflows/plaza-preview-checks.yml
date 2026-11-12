@@ -1,0 +1,52 @@
+name: Plaza preview checks
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "worker/**"
+      - "src/mundo/**"
+      - "src/trivia/**"
+      - "src/mercado/**"
+      - "src/bodas/**"
+      - "src/coins/**"
+      - "src/ruleta/**"
+      - "src/pesca/**"
+      - "tests/**"
+      - "config/trivia.json"
+      - "config/mercado.json"
+      - "package.json"
+      - "package-lock.json"
+      - "tsconfig*.json"
+      - ".github/workflows/plaza-preview-checks.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: plaza-preview-checks-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout PR
+        uses: actions/checkout@v4
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - name: Install dependencies
+        run: npm ci
+      - name: Typecheck bot and shared services
+        run: npm run typecheck
+      - name: Typecheck Worker, trivia and plaza
+        run: npm run worker:typecheck
+      - name: Test all rules and services
+        run: npm test
+      - name: Build trivia and plaza
+        run: |
+          npm run actividad
+          npm run mundo
