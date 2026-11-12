@@ -1,5 +1,6 @@
 // Worker exclusivo de preview de la plaza. No importa el worker de produccion,
 // no expone /interactions de Miku/Luka y no ejecuta tareas programadas.
+import { actividad } from "./actividad/api";
 import { mundo, type MundoApiEnv } from "./mundo/api";
 
 export { SalaMundo } from "./mundo/sala";
@@ -14,6 +15,10 @@ export default {
       return new Response("Papus Plaza Preview · entorno aislado", {
         headers: { "Content-Type": "text/plain; charset=utf-8", "Cache-Control": "no-store" },
       });
+    }
+    if (url.pathname.startsWith("/actividad/api/")) {
+      const response = await actividad(request, env);
+      return response ?? new Response("No encontrado", { status: 404 });
     }
     const response = await mundo(request, env);
     return response ?? new Response("No encontrado", { status: 404 });
