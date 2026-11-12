@@ -6,6 +6,8 @@ export interface Perfil {
   base: number;
   tope: number;
   at: number;
+  /** Preview: perfil asociado a una partida concreta o vacío para el lobby. */
+  partida?: string;
 }
 
 /** XP de un acierto como la calcula Teto (answerXp: base del Papu por el bono de racha), recortada a su tope del dia. */
