@@ -976,6 +976,7 @@ kbd {
   pointer-events: none;
   filter: drop-shadow(0 5px 12px rgba(0,0,0,.55));
 }
+.tarjeta-cabeza[hidden] { display: none; }
 .tarjeta-cabeza.mostrar { animation: tarjeta-aparece .22s ease-out forwards; }
 @keyframes tarjeta-aparece { to { opacity: 1; transform: translate(-50%, 0) scale(1); } }
 .tarjeta-completa {
