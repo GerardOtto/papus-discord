@@ -145,17 +145,25 @@ export class SalaTrivia implements DurableObject {
 
   /** Pide a Teto la XP base y el tope del dia del Papu (los calcula el bot y los deja en D1). */
   private async pedirPerfil(papu: string): Promise<void> {
-    const now = Date.now();
+    const pedidoAt = Date.now() + 2;
     if (this.env.MUNDO_PREVIEW === "1") {
       await this.env.DB.prepare("INSERT INTO actividad_perfiles_preview (papu_id, partida, pedido_at) VALUES (?, ?, ?) ON CONFLICT(papu_id, partida) DO UPDATE SET pedido_at = excluded.pedido_at")
-        .bind(papu, this.partida, now + 2)
+        .bind(papu, this.partida, pedidoAt)
         .run();
+      // El puente Node actualiza el perfil cada pocos segundos. Esperar brevemente evita que un Papu
+      // reconectado durante una partida reciba una XP visible calculada con el perfil genérico del lobby.
+      for (let intento = 0; intento < 8; intento++) {
+        await this.leerPerfiles([papu]);
+        const perfil = this.perfiles.get(papu);
+        if (perfil?.partida === this.partida && perfil.at >= pedidoAt) break;
+        await new Promise<void>((resolve) => setTimeout(resolve, 500));
+      }
     } else {
       await this.env.DB.prepare("INSERT INTO actividad_perfiles (papu_id, pedido_at) VALUES (?, ?) ON CONFLICT(papu_id) DO UPDATE SET pedido_at = excluded.pedido_at")
-        .bind(papu, now + 2)
+        .bind(papu, pedidoAt)
         .run();
+      await this.leerPerfiles([papu]);
     }
-    await this.leerPerfiles([papu]);
   }
 
   /** Lee de D1 los perfiles que Teto ya calculo (solo los mas nuevos que los que tiene la sala). */
