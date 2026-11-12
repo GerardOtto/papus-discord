@@ -1097,12 +1097,14 @@ function pintarCatalogo(tipo: TipoCatalogo, datos: Record<string, unknown>): str
   const sandbox = datos.sandbox === true;
   const premioPendiente = datos.premioPendiente === true;
   const abierto = tipo === "mercado" ? datos.abierto : datos.abierta;
-  const wallet = datos.wallet && typeof datos.wallet === "object" ? datos.wallet as { ganadas?: number; compradas?: number } : null;
+  const wallet = datos.wallet && typeof datos.wallet === "object" ? datos.wallet as { ganadas?: number; compradas?: number; gratis?: number; gratisRaro?: number; gratisLeg?: number } : null;
   const proxima = datos.proximaApertura && typeof datos.proximaApertura === "object" ? (datos.proximaApertura as { abre?: number }).abre : undefined;
   const estado = tipo === "mercado"
     ? abierto === null ? "Estado del mercado no disponible" : abierto ? "Neru está atendiendo" : proxima ? `Neru mantiene el mercado cerrado · abre ${new Date(proxima).toLocaleString("es-CL")}` : "Neru mantiene el mercado cerrado"
     : abierto ? "Vitrina disponible" : "No hay una vitrina activa";
-  const saldo = wallet ? `<div class="v-monedero"><span>🪙 <small>Ganadas</small><b>${wallet.ganadas ?? 0}</b></span><span>💳 <small>Compradas</small><b>${wallet.compradas ?? 0}</b></span></div>` : "";
+  const cantidadSobres = (wallet?.gratis ?? 0) + (wallet?.gratisRaro ?? 0) + (wallet?.gratisLeg ?? 0);
+  const sobres = cantidadSobres ? `<div class="v-sobres-sandbox"><span>🎁 Sobres gratis de prueba</span><b>${wallet?.gratis ?? 0} comunes · ${wallet?.gratisRaro ?? 0} raros · ${wallet?.gratisLeg ?? 0} legendarios</b></div>` : "";
+  const saldo = wallet ? `<div class="v-monedero"><span>🪙 <small>Ganadas</small><b>${wallet.ganadas ?? 0}</b></span><span>💳 <small>Compradas</small><b>${wallet.compradas ?? 0}</b></span></div>${sobres}` : "";
   const nombres: Record<string, string> = { comun:"Común", raro:"Raro", epico:"Épico", epica:"Épica", legendario:"Legendario", legendaria:"Legendaria", mitica:"Mítica", fundador:"Fundador", membresia:"Membresía", contrabando:"Contrabando" };
   const filas = objetos.map((o) => {
     const rareza = (o.rareza ?? "especial").toLowerCase();
