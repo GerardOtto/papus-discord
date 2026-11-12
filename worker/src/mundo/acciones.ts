@@ -36,7 +36,7 @@ export interface Casilla {
 export interface RuletaEstado {
   /** El preview muestra el progreso real y puede habilitar giros de demostración sin recompensas. */
   soloLectura?: boolean;
-  /** Permite probar la animación con giros ficticios, sin tiradas ni recompensas. */
+  /** Solo preview: permite probar la animación con giros ficticios, sin tiradas ni recompensas. */
   simulacion?: boolean;
   tiradas: number;
   usadas: number;
