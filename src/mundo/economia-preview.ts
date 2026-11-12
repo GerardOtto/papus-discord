@@ -42,7 +42,6 @@ const ceroWallet = (): WalletSandbox => ({ ganadas: 0, compradas: 0, ecos: 0, gr
 const clone = <T>(x: T): T => JSON.parse(JSON.stringify(x)) as T;
 const error = (motivo: string): Resultado => ({ ok: false, motivo });
 const ok = (datos: unknown): Resultado => ({ ok: true, datos });
-const moneda = (n: number) => n.toLocaleString("es-CL");
 
 export interface EconomiaPlazaPreviewDeps {
   query: D1Query;
@@ -338,7 +337,6 @@ export class EconomiaPlazaPreview {
         const limit = this.d.quota.limitFor(userId, new Date(now));
         const extraBase = this.d.quota.extra(userId, new Date(now));
         const usedBase = this.d.quota.used(userId, new Date(now));
-        const donated = this.d.quota.donated(userId, new Date(now));
         const extraSandbox = s.cuotaExtraDia === day ? s.cuotaExtra : 0;
         const roomActual = Number.isFinite(limit)
           ? Math.max(0, limit - Math.max(0, limit + extraBase + extraSandbox - usedBase - s.cuotaUsada))
@@ -378,7 +376,7 @@ export class EconomiaPlazaPreview {
         : `${sobres} sobre(s) añadidos al monedero de prueba.`;
       return {
         result: ok({
-          giro: { papu: userId, nombre, index, titulo: `🧪 ${premio.etiqueta}`, subtitulo, origen: "plaza" },
+          giro: { papu: userId, nombre, index, titulo: `🧪 ${titulo}`, subtitulo, origen: "plaza" },
           texto, tiradas: Math.max(0, real.left - s.ruletaUsadas), sandbox: true,
         }),
       };
