@@ -63,6 +63,7 @@ import { MangoDiscord } from "./mango";
 import { pardonedFromLog, type MangoService } from "../services/mango";
 import { DayStats, papuText, serverText } from "../services/estadisticas";
 import type { ActividadTrivia } from "../trivia/actividad";
+import type { EconomiaPlazaPreview } from "../mundo/economia-preview";
 import { armarEstado } from "../mundo/estado";
 import { agruparLineas, lineasRegistro, type MundoPuente } from "../mundo/puente";
 import { accionesRuleta, giroPlaza, ruletaEstado } from "../mundo/ruleta";
@@ -198,6 +199,8 @@ export interface AppDeps {
   mundo?: MundoPuente | null;
   /** Puente opcional y aislado para tarjetas del preview; nunca comparte el D1 de producción. */
   mundoPreview?: MundoPuente | null;
+  /** Ledger D1 exclusivo para compras, progresión, pesca, ruleta y trivia de la Plaza preview. */
+  economiaPreview?: EconomiaPlazaPreview | null;
   /** Sorteo de GyroP (src/sorteo/; null = desactivado). */
   sorteo?: SorteoService | null;
   /** 1vs1 de los Vocaloids con apuestas de Shaula-coins (src/peleas/; null = desactivado). */
@@ -709,12 +712,20 @@ export class PapusApp {
         preview.acciones["mercado.estado"] = () => ({ ok: true, datos: { abierto: null, soloLectura: true, objetos: [] } });
       }
       preview.acciones["mercado.comprar"] = () => ({ ok: false, motivo: "El mercado negro del preview es de solo lectura: no se descuentan monedas ni se modifica el inventario." });
+      // El ledger reemplaza los manejadores de solo lectura con operaciones persistentes y aisladas.
+      if (this.d.economiaPreview) {
+        await this.d.economiaPreview.preload();
+        Object.assign(preview.acciones, this.d.economiaPreview.acciones());
+      }
       let previewBusy = false;
       this.mundoPreviewTimer = setInterval(() => {
         if (previewBusy || this.stopping) return;
         previewBusy = true;
-        void this.d.mundoPreview!.sync()
-          .catch((e) => logError("tarjetas de la Plaza preview", e))
+        void (async () => {
+          await this.d.economiaPreview?.syncTrivia();
+          await this.d.mundoPreview!.sync();
+        })()
+          .catch((e) => logError("sincronización de Plaza preview", e))
           .finally(() => (previewBusy = false));
       }, MUNDO_MS);
     }
