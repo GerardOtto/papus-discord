@@ -306,7 +306,7 @@ describe("EconomiaPlazaPreview", () => {
       st.run(...(params as never[]));return [];
     };
     const user="123456789012345678",now=Date.parse("2026-11-12T12:00:00-03:00"),day="2026-11-12";
-    const state={version:1,xp:0,wallet:{ganadas:0,compradas:0,ecos:0,gratis:0,gratisRaro:0,gratisLeg:0,sobres:0,sinEpica:0,sinLegendaria:0,hoy:0},inventario:[],consumibles:{},comprasMercado:[],ruletaDia:day,ruletaUsadas:0,pescaAt:0,cuotaExtraDia:day,cuotaExtra:0,cuotaUsada:0,monedasDia:"2026-11-11",xpSandboxNoTriviaDia:10000,xpSandboxNoTriviaDiaKey:"2026-11-11",xpSandboxNoTriviaHistorial:{},triviaDia:"2026-11-11",triviaXpDia:0,triviaPartidasDia:[]};
+    const state={version:1,xp:10000,wallet:{ganadas:0,compradas:0,ecos:0,gratis:0,gratisRaro:0,gratisLeg:0,sobres:0,sinEpica:0,sinLegendaria:0,hoy:0},inventario:[],consumibles:{},comprasMercado:[],ruletaDia:day,ruletaUsadas:0,pescaAt:0,cuotaExtraDia:day,cuotaExtra:0,cuotaUsada:0,monedasDia:"2026-11-11",xpSandboxNoTriviaDia:10000,xpSandboxNoTriviaDiaKey:"2026-11-11",xpSandboxNoTriviaHistorial:{},triviaDia:"2026-11-11",triviaXpDia:0,triviaPartidasDia:[]};
     preview.prepare("INSERT INTO mundo_sandbox (papu_id,estado,revision,actualizado_at) VALUES (?,?,0,?)").run(user,JSON.stringify(state),now);
     preview.prepare("INSERT INTO actividad_aciertos_preview (partida,papu_id,pregunta,dificultad,racha,creado_at,multiplicador) VALUES (?,?,?,?,?,?,1)").run("partida-dia-actual",user,"pregunta-promedio","facil",1,now);
     const levels=new LevelService({db:source,settings:loadLevelSettings(),timeZone:"America/Santiago"});
