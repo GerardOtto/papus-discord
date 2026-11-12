@@ -858,10 +858,17 @@ export class EconomiaPlazaPreview {
 
   private async estadoRuleta(userId: string): Promise<Resultado> {
     await this.actualizarDisquete(userId);
-    const loaded = await this.cargar(userId);
-    const state = loaded.state;
     const now = this.now();
     const day = this.d.roulette.dayOf(now);
+    await this.cambiar(userId, (s) => {
+      if (s.atunPendiente && s.atunPendiente.day !== day) {
+        s.atunPendiente = undefined;
+        return { result: null };
+      }
+      return { result: null, changed: false };
+    }, false);
+    const loaded = await this.cargar(userId);
+    const state = loaded.state;
     const used = state.ruletaDia === day ? state.ruletaUsadas : 0;
     const real = this.d.roulette.status(userId, now);
     const estado = ruletaEstado(this.d.roulette, userId, real);
@@ -983,7 +990,8 @@ export class EconomiaPlazaPreview {
     const real = this.d.roulette.status(userId, now);
     return this.cambiar(userId, (s) => {
       const pending = s.atunPendiente;
-      if (pending?.aplicado === false) {
+      if (pending && pending.day !== day) s.atunPendiente = undefined;
+      if (pending?.day === day && pending.aplicado === false) {
         const aplicado = this.aplicarPremio(s, userId, day, now, pending.index);
         if (!aplicado) return { result: error("El premio pendiente ya no está configurado."), changed: false };
         if (s.ruletaDia === pending.day) s.ruletaUsadas++;
@@ -1019,6 +1027,10 @@ export class EconomiaPlazaPreview {
     return this.cambiar(userId, (s) => {
       const pending = s.atunPendiente;
       if (!pending) return { result: error("No tienes un premio pendiente que aceptar."), changed: false };
+      if (pending.day !== day) {
+        s.atunPendiente = undefined;
+        return { result: error("El premio pendiente del Atún de Luka expiró al cambiar el día. No se consumió una tirada."), changed: true };
+      }
       if (pending.aplicado === false) {
         const aplicado = this.aplicarPremio(s, userId, day, now, pending.index);
         if (!aplicado) return { result: error("El premio pendiente ya no está configurado."), changed: false };
@@ -1039,7 +1051,11 @@ export class EconomiaPlazaPreview {
     return this.cambiar(userId, (s) => {
       const pending = s.atunPendiente;
       const objeto = this.d.mercado?.byId.get("atun-luka");
-      if (!pending || pending.day !== day || objeto?.efecto !== "atun") return { result: error("No tienes un giro pendiente que puedas descartar hoy."), changed: false };
+      if (pending && pending.day !== day) {
+        s.atunPendiente = undefined;
+        return { result: error("El premio pendiente del Atún de Luka expiró al cambiar el día. No se consumió una tirada."), changed: true };
+      }
+      if (!pending || objeto?.efecto !== "atun") return { result: error("No tienes un giro pendiente que puedas descartar hoy."), changed: false };
       const maxGiros = objeto.giros ?? 0;
       if (pending.giros >= maxGiros) return { result: error("Ya usaste todos los descartes de este giro."), changed: false };
       if (pending.aplicado !== false) {
