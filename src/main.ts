@@ -20,13 +20,11 @@ import { Phrases } from "./phrases/catalog";
 import { DeckStore } from "./phrases/deck";
 import { Quota } from "./quota/quota";
 import { LevelService } from "./levels/service";
-import { loadLevelSettings, progress } from "./levels/rules";
+import { loadLevelSettings } from "./levels/rules";
 import { loadLayout } from "./setup/layout";
 import { GeneralChat } from "./services/charla";
 import { ConversationService, type ChatPort } from "./services/conversation";
 import { mundoFromEnv } from "./mundo/puente";
-import { d1Client, workerDatabaseId } from "./cloud/d1";
-import { EconomiaPlazaPreview } from "./mundo/economia-preview";
 import { buildCalendar } from "./calendar/setup";
 import { channelKey } from "./discord/channels";
 import { Especiales, loadEspeciales } from "./services/especiales";
@@ -251,52 +249,6 @@ async function main(): Promise<void> {
     log,
   });
 
-  // Base D1 separada para el preview público. Solo se conecta si el operador configura explícitamente
-  // PLAZA_PREVIEW_D1_DATABASE_ID; jamás reutiliza el ID de worker/wrangler.toml (producción).
-  const previewDatabaseId = process.env.PLAZA_PREVIEW_D1_DATABASE_ID?.trim();
-  let economiaPreview: EconomiaPlazaPreview | null = null;
-  const mundoPreview = previewDatabaseId
-    ? mundoFromEnv(process.env, {
-        makeConversation,
-        bots: [],
-        owners,
-        stats: (id) => {
-          const real = levels.level(id);
-          const sandboxXp = economiaPreview?.xp(id);
-          const nivel = sandboxXp === null || sandboxXp === undefined ? real.level : progress(levels.settings, sandboxXp).level;
-          const restanteSandbox = economiaPreview?.cuotaRestante(id);
-          const restante = restanteSandbox === undefined ? quota.remaining(id) : restanteSandbox;
-          const limiteSandbox = economiaPreview?.cuotaLimite(id);
-          const limite = limiteSandbox === undefined ? quota.limitFor(id) : limiteSandbox;
-          return {
-            nivel,
-            prestigio: real.prestige,
-            restante: restante === null || Number.isFinite(restante) ? restante : null,
-            limite: Number.isFinite(limite) ? limite : null,
-            ruletas: economiaPreview?.ruletasDisponibles(id) ?? roulette.status(id).left,
-          };
-        },
-        tarjetaPublica: async (id) => app?.tarjetaPublica(id) ?? null,
-        log,
-      }, undefined, previewDatabaseId)
-    : null;
-  // Economía del preview: las lecturas parten del estado local, pero toda escritura se dirige al D1 aislado.
-  const previewToken = process.env.CLOUDFLARE_DEPLOY_TOKEN?.trim();
-  const previewAccountId = process.env.CLOUDFLARE_ACCOUNT_ID?.trim();
-  const productionD1Id = workerDatabaseId(path.resolve(import.meta.dirname, ".."));
-  economiaPreview = mundoPreview && previewDatabaseId && previewDatabaseId !== productionD1Id && previewToken && previewAccountId
-    ? new EconomiaPlazaPreview({
-        query: d1Client({ accountId: previewAccountId, token: previewToken, databaseId: previewDatabaseId }),
-        db, levels, coins, mercado, roulette, quota, trivia: triviaSettings,
-        questionLevels: Object.fromEntries(triviaQuestions.map((q) => [q.id, q.level])),
-        questionTotals: {
-          facil: triviaQuestions.filter((q) => q.level === "facil").length,
-          medio: triviaQuestions.filter((q) => q.level === "medio").length,
-          dificil: triviaQuestions.filter((q) => q.level === "dificil").length,
-        },
-        timeZone: config.quotaTimeZone,
-      })
-    : null;
   app = new PapusApp({
     config,
     db,
@@ -331,8 +283,6 @@ async function main(): Promise<void> {
     // Trivia multijugador (Actividad de Discord): Teto aplica la XP de sus aciertos desde la base D1 del worker.
     actividad: actividadFromEnv(process.env, trivia),
     mundo,
-    mundoPreview,
-    economiaPreview,
     sorteo,
     peleas,
     coins,
