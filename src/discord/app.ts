@@ -57,6 +57,7 @@ import { TiendaDiscord } from "./tienda";
 import { toCardEquip } from "../coins/equip";
 import type { DatosBanco } from "../coins/images";
 import type { CoinService } from "../coins/service";
+import { priceOf } from "../coins/rules";
 import { TriviaDiscord } from "./trivia";
 import { MangoDiscord } from "./mango";
 import { pardonedFromLog, type MangoService } from "../services/mango";
@@ -555,6 +556,70 @@ export class PapusApp {
         Math.random,
         async (change) => this.levels.handle(change, {}, { quiet: true }),
       );
+      // Tienda Shaula: usa el mismo monedero, vitrina y compra que el sistema de Discord.
+      if (this.d.coins) {
+        const coins = this.d.coins;
+        mundo.acciones["tienda.estado"] = (papu) => {
+          const vitrina = coins.vitrina();
+          const owned = coins.owned(papu.id);
+          return {
+            ok: true,
+            datos: {
+              abierta: !!vitrina,
+              wallet: coins.wallet(papu.id),
+              objetos: (vitrina?.objetos ?? []).flatMap((id) => {
+                const o = coins.byId.get(id);
+                return o ? [{ id: o.id, nombre: o.nombre, descripcion: o.descripcion, rareza: o.rareza, precio: priceOf(coins.settings, o), owned: owned.has(o.id) }] : [];
+              }),
+            },
+          };
+        };
+        mundo.acciones["tienda.comprar"] = (papu, datos) => {
+          const id = datos && typeof datos === "object" && "id" in datos && typeof (datos as { id?: unknown }).id === "string" ? (datos as { id: string }).id : "";
+          if (!id) return { ok: false, motivo: "Elige un objeto válido de la vitrina." };
+          const compra = coins.buy(papu.id, id);
+          if (!compra.ok) return { ok: false, motivo: compra.motivo };
+          return { ok: true, datos: { mensaje: `¡Compraste ${coins.byId.get(id)?.nombre ?? id}!`, wallet: compra.wallet } };
+        };
+      }
+
+      // Mercado negro de Neru: respeta su horario, vitrina diaria y pago exclusivo con monedas ganadas.
+      if (this.d.mercado) {
+        const mercado = this.d.mercado;
+        mundo.acciones["mercado.estado"] = (papu) => {
+          const estado = mercado.estado();
+          const objetos = mercado.vitrina().map((o) => ({
+            id: o.id, nombre: o.nombre, emoji: o.emoji, descripcion: o.descripcion,
+            precio: o.precio, usos: o.usos ?? null, owned: mercado.tiene(papu.id, o),
+          }));
+          return { ok: true, datos: { ...estado, objetos, wallet: this.d.coins?.wallet(papu.id) ?? null } };
+        };
+        mundo.acciones["mercado.comprar"] = async (papu, datos) => {
+          const id = datos && typeof datos === "object" && "id" in datos && typeof (datos as { id?: unknown }).id === "string" ? (datos as { id: string }).id : "";
+          if (!id) return { ok: false, motivo: "Elige un objeto válido del mercado." };
+          const compra = mercado.comprar(papu.id, id);
+          if (!compra.ok) {
+            const motivos: Record<string, string> = {
+              cerrado: "El mercado negro está cerrado.",
+              no_existe: "Ese objeto no existe.",
+              no_esta: "Ese objeto no está en la vitrina de hoy.",
+              ya_lo_tienes: "Ya tienes ese objeto.",
+              no_alcanza: "No tienes suficientes Shaula-coins ganadas.",
+            };
+            return { ok: false, motivo: motivos[compra.motivo] ?? "No se pudo completar la compra." };
+          }
+          let rol = "El objeto quedó en tu inventario.";
+          if (compra.rol) {
+            try {
+              await this.grantRole(papu.id, compra.rol, "Compra en el mercado negro desde la Plaza");
+              rol = `También recibiste el rol ${compra.rol}.`;
+            } catch {
+              rol = "La compra se guardó; el rol se asignará cuando Discord vuelva a estar disponible.";
+            }
+          }
+          return { ok: true, datos: { mensaje: `¡Compraste ${compra.objeto.nombre}! ${rol}`, wallet: compra.wallet } };
+        };
+      }
       // Registro del chat de la plaza en #plaza-papus (solo lectura), en mensajes agrupados y sin avisar a nadie.
       mundo.onChat = async (lineas) => {
         const ch = this.guild ? findTextChannel(this.guild, CHANNELS.plaza) : null;
