@@ -42,6 +42,7 @@ export function accionPesca(
     }
 
     const antes = levels.store.get(papu.id).xp;
+    const nivelAntes = levels.snapshot(papu.id).level;
     const tamano = elegir(rnd);
     const recompensa = recompensaPesca(levels.settings, antes, tamano);
     if (!recompensa) return { ok: false, motivo: "No pude calcular la captura. Inténtalo de nuevo." };
@@ -57,10 +58,9 @@ export function accionPesca(
         xp: recompensa.xp,
         porcentaje: Math.round(recompensa.porcentaje * 100),
         texto: textoRecompensaPesca(recompensa),
-        nivelAntes: cambio?.from ?? levels.snapshot(papu.id).level,
-        nivelDespues: cambio?.to ?? levels.snapshot(papu.id).level,
+        nivelAntes,
+        nivelDespues: levels.snapshot(papu.id).level,
         xpTotal: despues,
-        cambio,
         cooldownMs: COOLDOWN_MS,
       },
     };
