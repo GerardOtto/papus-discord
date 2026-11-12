@@ -187,7 +187,7 @@ function mostrarTarjetaCabeza(o: Otro, src: string): void {
   o.tarjeta.classList.remove("mostrar");
   void o.tarjeta.offsetWidth;
   o.tarjeta.classList.add("mostrar");
-  o.tarjetaHasta = performance.now() + 5000;
+  o.tarjetaHasta = performance.now() + 3000;
 }
 
 function mostrarTarjetaVentana(o: Otro, id: string, src: string): void {
