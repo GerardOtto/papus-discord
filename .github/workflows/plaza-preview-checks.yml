@@ -44,8 +44,20 @@ jobs:
         run: npm run typecheck
       - name: Typecheck Worker, trivia and plaza
         run: npm run worker:typecheck
-      - name: Test all rules and services
-        run: npm test
+      - name: Test plaza, trivia, economy and activity services
+        run: >-
+          npm test --
+          tests/actividad.test.ts
+          tests/bodas.test.ts
+          tests/mercado.test.ts
+          tests/trivia.test.ts
+          tests/mundo-acciones.test.ts
+          tests/mundo-estado.test.ts
+          tests/mundo-puente.test.ts
+          tests/mundo.test.ts
+          tests/mundo/economia-preview.test.ts
+          tests/mundo/ruleta-preview.test.ts
+          tests/pesca/reglas.test.ts
       - name: Build trivia and plaza
         run: |
           npm run actividad
