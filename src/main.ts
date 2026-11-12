@@ -20,7 +20,7 @@ import { Phrases } from "./phrases/catalog";
 import { DeckStore } from "./phrases/deck";
 import { Quota } from "./quota/quota";
 import { LevelService } from "./levels/service";
-import { loadLevelSettings } from "./levels/rules";
+import { loadLevelSettings, progress } from "./levels/rules";
 import { loadLayout } from "./setup/layout";
 import { GeneralChat } from "./services/charla";
 import { ConversationService, type ChatPort } from "./services/conversation";
@@ -252,21 +252,25 @@ async function main(): Promise<void> {
   // Base D1 separada para el preview público. Solo se conecta si el operador configura explícitamente
   // PLAZA_PREVIEW_D1_DATABASE_ID; jamás reutiliza el ID de worker/wrangler.toml (producción).
   const previewDatabaseId = process.env.PLAZA_PREVIEW_D1_DATABASE_ID?.trim();
+  let economiaPreview: EconomiaPlazaPreview | null = null;
   const mundoPreview = previewDatabaseId
     ? mundoFromEnv(process.env, {
         makeConversation,
         bots: [],
         owners,
         stats: (id) => {
-          const { level, prestige } = levels.level(id);
-          const restante = quota.remaining(id);
+          const real = levels.level(id);
+          const sandboxXp = economiaPreview?.xp(id);
+          const nivel = sandboxXp === null || sandboxXp === undefined ? real.level : progress(levels.settings, sandboxXp).level;
+          const restanteSandbox = economiaPreview?.cuotaRestante(id);
+          const restante = restanteSandbox === undefined ? quota.remaining(id) : restanteSandbox;
           const limite = quota.limitFor(id);
           return {
-            nivel: level,
-            prestigio: prestige,
-            restante: Number.isFinite(restante) ? restante : null,
+            nivel,
+            prestigio: real.prestige,
+            restante: restante === null || Number.isFinite(restante) ? restante : null,
             limite: Number.isFinite(limite) ? limite : null,
-            ruletas: roulette.status(id).left,
+            ruletas: economiaPreview?.ruletasDisponibles(id) ?? roulette.status(id).left,
           };
         },
         tarjetaPublica: async (id) => app?.tarjetaPublica(id) ?? null,
@@ -277,7 +281,7 @@ async function main(): Promise<void> {
   const previewToken = process.env.CLOUDFLARE_DEPLOY_TOKEN?.trim();
   const previewAccountId = process.env.CLOUDFLARE_ACCOUNT_ID?.trim();
   const productionD1Id = workerDatabaseId(path.resolve(import.meta.dirname, ".."));
-  const economiaPreview = mundoPreview && previewDatabaseId && previewDatabaseId !== productionD1Id && previewToken && previewAccountId
+  economiaPreview = mundoPreview && previewDatabaseId && previewDatabaseId !== productionD1Id && previewToken && previewAccountId
     ? new EconomiaPlazaPreview({
         query: d1Client({ accountId: previewAccountId, token: previewToken, databaseId: previewDatabaseId }),
         db, levels, coins, mercado, roulette, quota, trivia: triviaSettings,
