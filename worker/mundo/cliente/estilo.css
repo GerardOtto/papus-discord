@@ -959,3 +959,30 @@ kbd {
   font-size: 13px;
   text-align: right;
 }
+
+
+/* Tarjetas originales de nivel sobre el Papu y en su ficha ampliada. */
+.tarjeta-cabeza {
+  display: block;
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 8px);
+  width: min(240px, 64vw);
+  height: auto;
+  max-height: 100px;
+  object-fit: contain;
+  opacity: 0;
+  transform: translate(-50%, 8px) scale(.94);
+  pointer-events: none;
+  filter: drop-shadow(0 5px 12px rgba(0,0,0,.55));
+}
+.tarjeta-cabeza.mostrar { animation: tarjeta-aparece .22s ease-out forwards; }
+@keyframes tarjeta-aparece { to { opacity: 1; transform: translate(-50%, 0) scale(1); } }
+.tarjeta-completa {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: 12px;
+  box-shadow: 0 8px 28px rgba(0,0,0,.35);
+}
+.tarjeta-cargando { padding: 22px 12px; text-align: center; font-weight: 700; }
