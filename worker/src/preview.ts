@@ -14,7 +14,7 @@ export default {
     // La interfaz 3D se publica como asset estático en /mundo/.
     // No responder aquí con texto: eso interceptaba "/" antes de llegar a los assets.
     if (request.method === "GET" && url.pathname === "/") {
-      return Response.redirect(new URL("/mundo/", url.origin), 302);
+      return Response.redirect(`${url.origin}/mundo/`, 302);
     }
     if (url.pathname.startsWith("/actividad/api/")) {
       const response = await actividad(request, env);
