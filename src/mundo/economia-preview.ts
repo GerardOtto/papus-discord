@@ -62,6 +62,9 @@ const clone = <T>(x: T): T => JSON.parse(JSON.stringify(x)) as T;
 const error = (motivo: string): Resultado => ({ ok: false, motivo });
 const ok = (datos: unknown): Resultado => ({ ok: true, datos });
 
+// Efectos con traducción funcional y aislada en la Plaza. Los demás dependen de sobres, bodas, arena o Discord.
+const EFECTOS_MERCADO_PREVIEW = new Set(["atun", "baguette", "celular", "microfono", "regalo", "zanahoria", "guitarra", "pc", "disquete"]);
+
 export interface EconomiaPlazaPreviewDeps {
   query: D1Query;
   db: Db;
@@ -498,6 +501,7 @@ export class EconomiaPlazaPreview {
       }
       const o = this.d.mercado!.byId.get(id);
       if (!o) return { result: error("Ese artículo no existe."), changed: false };
+      if (!EFECTOS_MERCADO_PREVIEW.has(o.efecto)) return { result: error("Ese artículo depende de una actividad externa aún no habilitada en la Plaza; no se puede comprar en el sandbox."), changed: false };
       if (!this.d.mercado!.vitrina(now).some((x) => x.id === id)) return { result: error("Ese artículo no está en la selección de hoy."), changed: false };
       if (o.efecto === "objeto" && s.inventario.includes(o.objeto!)) return { result: error("Ya tienes ese objeto."), changed: false };
       if ((o.efecto === "rol" || o.efecto === "disquete" || o.efecto === "machete") && s.comprasMercado.includes(id)) {
