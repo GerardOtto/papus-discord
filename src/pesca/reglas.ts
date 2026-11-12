@@ -54,7 +54,8 @@ export function recompensaPesca(
 /** Convierte una captura a un mensaje legible sin duplicar la logica de calculo. */
 export function textoRecompensaPesca(r: RecompensaPesca): string {
   const porcentaje = Math.round(r.porcentaje * 100);
+  const nombre = r.tamano === "pequeno" ? "pequeño" : r.tamano;
   return r.xp > 0
-    ? `🐟 Pez ${r.tamano}: +${r.xp} XP (${porcentaje}% de tu barra)`
-    : `🐟 Pez ${r.tamano}: ya alcanzaste el nivel máximo; no se suma XP`;
+    ? `🐟 Pez ${nombre}: +${r.xp} XP (${porcentaje}% de tu barra)`
+    : `🐟 Pez ${nombre}: ya alcanzaste el nivel máximo; no se suma XP`;
 }
