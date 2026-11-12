@@ -64,8 +64,9 @@ import { DayStats, papuText, serverText } from "../services/estadisticas";
 import type { ActividadTrivia } from "../trivia/actividad";
 import { armarEstado } from "../mundo/estado";
 import { agruparLineas, lineasRegistro, type MundoPuente } from "../mundo/puente";
-import { accionesRuleta, giroPlaza } from "../mundo/ruleta";
+import { accionesRuleta, giroPlaza, ruletaEstado } from "../mundo/ruleta";
 import { accionPesca } from "../mundo/pesca";
+import { recompensaPesca, textoRecompensaPesca, type TamanoPez } from "../pesca/reglas";
 import type { TriviaService } from "../trivia/service";
 import type { RouletteService, SpinResult } from "../ruleta/service";
 import type { SorteoService } from "../sorteo/service";
@@ -574,6 +575,27 @@ export class PapusApp {
       }, MUNDO_MS);
     }
     if (this.d.mundoPreview) {
+      const preview = this.d.mundoPreview;
+      // Las acciones de preview se calculan con datos reales en SOLO LECTURA: nunca gastan tiradas ni conceden XP.
+      if (this.d.roulette) {
+        preview.acciones["ruleta.estado"] = (papu) => {
+          const estado = ruletaEstado(this.d.roulette!, papu.id);
+          return { ok: true, datos: { ...estado, tiradas: 0, usadas: 0, extras: [], casillas: [], soloLectura: true } };
+        };
+      }
+      const ultimoLancePreview = new Map<string, number>();
+      preview.acciones["pesca.capturar"] = (papu) => {
+        const ahora = Date.now();
+        const ultimo = ultimoLancePreview.get(papu.id) ?? 0;
+        if (ahora - ultimo < 30_000) return { ok: false, motivo: `La caña necesita descansar ${Math.ceil((30_000 - (ahora - ultimo)) / 1000)} s. 🎣` };
+        if (!this.d.levels.canEarn(papu.id, ahora)) return { ok: false, motivo: "Neru te bloqueó temporalmente la XP. 🚫" };
+        const n = Math.random();
+        const tamano: TamanoPez = n < 0.55 ? "pequeno" : n < 0.87 ? "mediano" : "grande";
+        const recompensa = recompensaPesca(this.d.levels.settings, this.d.levels.store.get(papu.id).xp, tamano);
+        if (!recompensa) return { ok: false, motivo: "No pude calcular la captura." };
+        ultimoLancePreview.set(papu.id, ahora);
+        return { ok: true, datos: { tamano, xp: recompensa.xp, porcentaje: Math.round(recompensa.porcentaje * 100), texto: textoRecompensaPesca(recompensa), soloLectura: true } };
+      };
       let previewBusy = false;
       this.mundoPreviewTimer = setInterval(() => {
         if (previewBusy || this.stopping) return;
