@@ -705,7 +705,7 @@ export class EconomiaPlazaPreview {
         s.cuotaResetDia=day;s.cuotaResetBase=quotaUsed;s.cuotaUsada=0;
         return {result:ok({mensaje:"💻 Día reiniciado en tu progreso de prueba: partidas, topes de XP, monedas por actividad, tiradas y cuota sandbox vuelven a contar desde cero. Lo que ya ganaste se conserva.",usos:s.consumibles[id],sandbox:true})};
       });
-      if(result.ok) await this.d.query("UPDATE actividad_perfiles SET pedido_at = ? WHERE papu_id = ?",now+2,userId);
+      if(result.ok) await this.d.query("UPDATE actividad_perfiles_preview SET pedido_at = ? WHERE papu_id = ?",now+2,userId);
       return result;
     }
     if (id === "regalo-rin-len") {
