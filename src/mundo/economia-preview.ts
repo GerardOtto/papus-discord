@@ -36,6 +36,7 @@ interface EstadoSandbox {
   cuotaExtraDia: string;
   cuotaExtra: number;
   cuotaUsada: number;
+  subioDia?: string;
 }
 interface FilaSandbox { papu_id: string; estado: string; revision: number }
 const ceroWallet = (): WalletSandbox => ({ ganadas: 0, compradas: 0, ecos: 0, gratis: 0, gratisRaro: 0, gratisLeg: 0, sobres: 0, sinEpica: 0, sinLegendaria: 0, hoy: 0 });
@@ -75,7 +76,7 @@ export class EconomiaPlazaPreview {
     for (const row of rows) {
       try {
         const state = JSON.parse(row.estado) as EstadoSandbox;
-        if (state.version === 1) this.cache.set(row.papu_id, state);
+        if (state.version === 1) { state.subioDia ??= ""; this.cache.set(row.papu_id, state); }
       } catch { /* un registro dañado no bloquea el resto de la Plaza */ }
     }
   }
@@ -86,6 +87,17 @@ export class EconomiaPlazaPreview {
     const state = this.cache.get(userId);
     if (!state || state.ruletaDia !== this.d.roulette.dayOf(this.now())) return 0;
     return state.ruletaUsadas;
+  }
+
+  ruletasDisponibles(userId: string): number {
+    const now = this.now();
+    const day = this.d.roulette.dayOf(now);
+    const state = this.cache.get(userId);
+    const used = state?.ruletaDia === day ? state.ruletaUsadas : 0;
+    const real = this.d.roulette.status(userId, now);
+    const nivelYaContado = real.missions.some((m) => m.id === "nivel" && m.done);
+    const extra = state?.subioDia === day && !nivelYaContado ? 1 : 0;
+    return Math.max(0, real.left + extra - used);
   }
 
   private inicial(userId: string): EstadoSandbox {
@@ -130,6 +142,7 @@ export class EconomiaPlazaPreview {
       cuotaExtraDia: this.d.roulette.dayOf(this.now()),
       cuotaExtra: 0,
       cuotaUsada: 0,
+      subioDia: "",
     };
   }
 
@@ -142,6 +155,7 @@ export class EconomiaPlazaPreview {
       if (row) {
         const state = JSON.parse(row.estado) as EstadoSandbox;
         if (state.version !== 1) throw new Error("La versión del progreso de prueba no es compatible.");
+        state.subioDia ??= "";
         this.cache.set(userId, state);
         return { state, revision: row.revision };
       }
@@ -285,6 +299,7 @@ export class EconomiaPlazaPreview {
       s.xp += recompensa.xp;
       s.pescaAt = now;
       const xpDespues = s.xp;
+      if (progress(this.d.levels.settings, xpDespues).level > nivelAntes) s.subioDia = this.d.roulette.dayOf(now);
       return {
         result: ok({
           tamano, xp: recompensa.xp, porcentaje: Math.round(recompensa.porcentaje * 100),
@@ -304,9 +319,13 @@ export class EconomiaPlazaPreview {
     const used = state.ruletaDia === day ? state.ruletaUsadas : 0;
     const real = this.d.roulette.status(userId, now);
     const estado = ruletaEstado(this.d.roulette, userId, real);
+    const nivelYaContado = real.missions.some((m) => m.id === "nivel" && m.done);
+    const misionNivelSandbox = state.subioDia === day && !nivelYaContado;
+    const misiones = estado.misiones.map((m) => m.id === "nivel" && misionNivelSandbox ? { ...m, hecha: true, actual: m.meta } : m);
     return ok({
       ...estado,
-      tiradas: Math.max(0, real.left - used),
+      misiones,
+      tiradas: Math.max(0, real.left + (misionNivelSandbox ? 1 : 0) - used),
       usadas: real.used + used,
       sandbox: true,
       soloLectura: false,
@@ -323,7 +342,10 @@ export class EconomiaPlazaPreview {
     if (real.blocked) return error("🚫 Neru te dio un machetazo: sin ruleta por ahora.");
     return this.cambiar(userId, (s) => {
       if (s.ruletaDia !== day) { s.ruletaDia = day; s.ruletaUsadas = 0; }
-      if (s.ruletaUsadas >= real.left) return { result: error("No te quedan tiradas disponibles. Cumple una misión y vuelve a intentarlo."), changed: false };
+      const nivelYaContado = real.missions.some((m) => m.id === "nivel" && m.done);
+      const misionNivelSandbox = s.subioDia === day && !nivelYaContado;
+      const disponibles = real.left + (misionNivelSandbox ? 1 : 0);
+      if (s.ruletaUsadas >= disponibles) return { result: error("No te quedan tiradas disponibles. Cumple una misión y vuelve a intentarlo."), changed: false };
       const premios = this.d.roulette.settings.premios.map((p) => p.tipo === "sobre" && !this.d.coins ? { ...p, peso: 0 } : p);
       const index = pickPrize({ premios }, this.rnd);
       const premio = this.d.roulette.settings.premios[index];
@@ -364,6 +386,7 @@ export class EconomiaPlazaPreview {
       }
       s.ruletaUsadas++;
       const levelAfter = progress(this.d.levels.settings, s.xp).level;
+      if (levelAfter > levelBefore) s.subioDia = day;
       const titulo = premio.tipo === "xp" ? `¡+${xp} XP!`
         : premio.tipo === "cuota" ? `¡+${mensajes} mensajes!`
         : premio.tipo === "cuota_llena" ? (mensajes ? `¡Recuperaste ${mensajes} mensajes!` : "¡Mensaje extra!")
@@ -377,7 +400,7 @@ export class EconomiaPlazaPreview {
       return {
         result: ok({
           giro: { papu: userId, nombre, index, titulo: `🧪 ${titulo}`, subtitulo, origen: "plaza" },
-          texto, tiradas: Math.max(0, real.left - s.ruletaUsadas), sandbox: true,
+          texto, tiradas: Math.max(0, disponibles - s.ruletaUsadas), sandbox: true,
         }),
       };
     });
