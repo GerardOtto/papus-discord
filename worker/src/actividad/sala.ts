@@ -147,7 +147,7 @@ export class SalaTrivia implements DurableObject {
   private async pedirPerfil(papu: string): Promise<void> {
     const pedidoAt = Date.now() + 2;
     if (this.env.MUNDO_PREVIEW === "1") {
-      await this.env.DB.prepare("INSERT INTO actividad_perfiles_preview (papu_id, partida, pedido_at) VALUES (?, ?, ?) ON CONFLICT(papu_id, partida) DO UPDATE SET pedido_at = excluded.pedido_at")
+      await this.env.DB.prepare("INSERT INTO actividad_perfiles_preview (papu_id, partida, pedido_at) VALUES (?, ?, ?) ON CONFLICT(papu_id, partida) DO UPDATE SET pedido_at = MAX(excluded.pedido_at, actividad_perfiles_preview.actualizado_at + 1)")
         .bind(papu, this.partida, pedidoAt)
         .run();
       // El puente Node actualiza el perfil cada pocos segundos. Esperar brevemente evita que un Papu
