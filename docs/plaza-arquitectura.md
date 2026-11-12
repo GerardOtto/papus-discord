@@ -1,54 +1,47 @@
-# Arquitectura objetivo de la Plaza
+# Arquitectura de la Plaza
 
 ## Principio
 
-La Plaza 3D es una segunda interfaz del servidor de Discord, no un servidor paralelo. Discord y la Plaza deben consultar y ejecutar las mismas reglas de negocio. El backend central es la fuente de verdad para identidad, XP, nivel, cuota, monedas, inventario, ruleta, pesca y mercado.
+La Plaza 3D es una segunda interfaz del servidor de Discord. Discord y la Plaza leen y modifican el mismo estado canónico de Papus. La base D1 configurada en `worker/wrangler.toml` es el transporte y estado compartido de la Plaza; los servicios del bot y su SQLite siguen siendo la autoridad para XP, niveles, cuota, monedas, inventario, ruleta, pesca y mercado.
 
-El aislamiento de ramas, previews y despliegues es una medida de seguridad operativa. No define el modelo funcional del producto.
+## Conexión efectiva
 
-## Estado actual en `feature/plaza-beta`
+- El Worker principal y el Worker de interfaz de Plaza usan el mismo identificador D1 canónico.
+- El Worker de Plaza no contiene una economía ni un ledger de usuario alternativo.
+- El bot principal crea `MundoPuente` contra el D1 canónico y consulta la cola de acciones cada pocos segundos.
+- Los handlers de `MundoPuente` ejecutan `LevelService`, `RouletteService`, `CoinService` y `MercadoService`, es decir, los mismos servicios que atienden Discord.
+- Después de una acción confirmada, el puente vuelve a publicar el perfil canónico. Los eventos de Discord se entregan a los clientes conectados.
+- La separación del Worker de interfaz mantiene aislados el despliegue, el dominio y los Durable Objects; no separa los datos de Papus.
 
-Hay dos puentes deliberadamente distintos:
+## Flujo de una acción
 
-- `mundo`: conecta el Worker principal con los servicios reales de Discord. Sus handlers usan `LevelService`, `RouletteService`, `CoinService` y `MercadoService`.
-- `mundoPreview`: conecta el Worker de preview con un D1 separado. Las lecturas iniciales parten de SQLite en modo solo lectura y las acciones escriben en `EconomiaPlazaPreview`, un ledger sandbox con CAS.
+1. El cliente se autentica con Discord y envía un comando tipado al Durable Object.
+2. El Worker valida identidad, allowlist, tamaño y frecuencia; escribe una solicitud en `mundo_acciones` del D1 canónico.
+3. El bot principal reclama la solicitud y ejecuta el handler contra los servicios reales de Papus.
+4. El bot persiste el resultado y actualiza el perfil; el Durable Object entrega la respuesta al usuario.
+5. La interfaz vuelve a leer los perfiles/eventos compartidos. Un refresco periódico de perfiles activos recoge también cambios originados en Discord.
 
-Esto permite probar mecánicas sin afectar saldos reales, pero no constituye la arquitectura final de sincronización. En particular, un ledger que conserva una copia inicial no puede garantizar que cada cambio posterior hecho desde Discord se refleje inmediatamente en ese ledger.
+## Consistencia
 
-## Arquitectura objetivo
+- La Plaza no calcula XP, niveles ni saldos.
+- El Worker no concede recompensas ni descuenta monedas.
+- El backend revalida usuario, datos, permisos, cooldowns y reglas.
+- La respuesta de éxito se entrega después de la operación del servicio canónico.
+- Los perfiles son snapshots derivados del backend; nunca se usan como fuente de verdad.
+- La presencia y las poses pueden ser efímeras. La economía y la progresión permanecen en los servicios de Papus.
+- Los endpoints de estado no deben almacenar respuestas en caché, para evitar mostrar snapshots vencidos.
 
-1. **Una sola autoridad de negocio.** Los servicios del bot conservan las reglas y los datos canónicos. La interfaz 3D no calcula ni mantiene una segunda economía.
-2. **Acciones compartidas.** Cada interacción de la Plaza se convierte en un comando tipado con usuario, acción, datos validados e identificador idempotente. El backend ejecuta la misma operación que usaría Discord.
-3. **Eventos de salida.** Los cambios confirmados emiten eventos persistentes (XP, nivel, monedas, inventario, tiradas, premios, estado de actividades). La Plaza consume esos eventos y actualiza su representación.
-4. **Lecturas actuales.** Los perfiles, saldos y estados de las zonas se obtienen del estado canónico; los snapshots son una optimización con versión/fecha, no una fuente de verdad alternativa.
-5. **Recuperación segura.** Las acciones deben tener idempotencia de extremo a extremo. Si el proceso cae entre el commit de negocio y la respuesta al navegador, la repetición del mismo identificador devuelve el resultado original sin volver a cobrar ni conceder recompensas.
-6. **Tiempo real con degradación controlada.** WebSocket distribuye presencia, posiciones y eventos a los clientes conectados. Si se pierde conexión, el cliente vuelve a solicitar un snapshot/versionado y continúa desde el último cursor confirmado.
+## Despliegue y seguridad
 
-## Reglas de consistencia
-
-- La Plaza nunca modifica directamente la base de datos de negocio desde el navegador.
-- El Worker valida identidad, permisos, forma y tamaño del comando; el backend de Discord valida de nuevo y ejecuta la regla de negocio.
-- Una respuesta visual de éxito solo se envía después de confirmar la transacción.
-- La cola de eventos es durable, ordenada por cursor y deduplicable.
-- Los eventos de presencia/movimiento pueden ser efímeros; los eventos económicos y de progresión no.
-- Las compras, premios, consumibles, regalos y capturas deben ser atómicos respecto de sus efectos y del registro de idempotencia.
-- No se sincronizan secretos, tokens de OAuth, cuotas privadas de otros usuarios ni datos no públicos.
-
-## Migración sin duplicar sistemas
-
-1. Mantener el preview actual para validar interfaz, sesiones, movimiento y concurrencia sin tocar producción.
-2. Extraer contratos de comandos/eventos compartidos y añadir pruebas de contrato para ambos transportes.
-3. Sustituir progresivamente los handlers económicos sandbox por llamadas al mismo servicio de aplicación que usa Discord; no copiar reglas a Worker.
-4. Añadir idempotencia persistente a las operaciones de negocio antes de habilitar escrituras reales desde la Plaza.
-5. Conectar snapshots/eventos de la Plaza al estado canónico y comprobar convergencia tras reconexiones y reinicios.
-6. Habilitar el modo integrado solo mediante configuración explícita y despliegue revisado. No reutilizar automáticamente el D1 de producción ni desplegarlo desde el flujo de preview.
+- `papus-plaza-preview` es un Worker separado y su despliegue no publica ni reemplaza `papus-bots`.
+- Su binding `DB` se resuelve desde el identificador de `worker/wrangler.toml`; no se acepta una base aislada como sustituto del estado del servidor.
+- El workflow no ejecuta migraciones ni crea tablas en D1. El esquema canónico debe estar instalado por el despliegue normal del backend.
+- No ejecutar `worker:deploy`, no fusionar este PR y no modificar el despliegue del bot principal desde el workflow de Plaza.
 
 ## Criterios de aceptación
 
-- Una acción iniciada en Discord se refleja en la Plaza sin recargar la página.
-- Una acción iniciada en la Plaza produce el mismo resultado y las mismas reglas que su equivalente de Discord.
-- Dos acciones simultáneas no duplican compras, XP, premios ni consumibles.
-- Una respuesta perdida o un reinicio no duplican efectos al reintentar.
-- Tras desconectar y reconectar, el cliente converge al estado canónico.
-- Los datos privados solo se entregan al propio usuario.
-- Los tests y el preview no escriben en producción.
+- Un cambio de XP, nivel, cuota o ruleta realizado en Discord aparece en los perfiles de la Plaza tras el siguiente ciclo de refresco.
+- Una acción iniciada en la Plaza se procesa mediante los mismos servicios y reglas que Discord.
+- Dos acciones concurrentes no pueden sobrepasar los límites que imponen los servicios canónicos.
+- La reconexión recupera perfiles y eventos actuales desde D1 y los servicios centrales.
+- Ninguna recompensa, saldo o inventario se mantiene en un ledger paralelo.
