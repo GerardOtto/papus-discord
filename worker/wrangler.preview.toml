@@ -1,5 +1,6 @@
-# Entorno aislado para probar la plaza. NUNCA usar worker:deploy con este archivo.
-# Antes del primer deploy: crear papus-plaza-preview en D1 y sustituir database_id.
+# Worker de interfaz de Plaza. Su namespace y URL son independientes,
+# pero DB apunta deliberadamente al mismo D1 canónico que usa el bot Papus.
+# No crear una base de datos ni ejecutar migraciones desde este archivo.
 name = "papus-plaza-preview"
 main = "src/preview.ts"
 compatibility_date = "2026-10-01"
@@ -10,15 +11,13 @@ directory = "public"
 
 [[d1_databases]]
 binding = "DB"
-database_name = "papus-plaza-preview"
-database_id = "REEMPLAZAR_CON_EL_ID_DE_LA_BASE_PREVIEW"
+database_name = "papus"
+database_id = "REEMPLAZAR_CON_EL_ID_DE_LA_BASE_PAPUS"
 
 [vars]
-# Sustituir ambos valores antes del despliegue. El secreto va aparte.
 GUILD_ID = "REEMPLAZAR_CON_ID_DEL_SERVIDOR"
 TETO_CLIENT_ID = "REEMPLAZAR_CON_CLIENT_ID_DE_TETO"
 ACTIVIDAD_PRUEBA = "0"
-MUNDO_PREVIEW = "1"
 
 [[durable_objects.bindings]]
 name = "SALAS"
