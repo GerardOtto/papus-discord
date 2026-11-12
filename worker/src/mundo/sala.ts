@@ -23,7 +23,7 @@ export interface MundoEnv {
   GUILD_ID: string;
   ACTIVIDAD_PRUEBA?: string;
   /** Habilita la entrega de tarjetas públicas en la interfaz de preview; nunca cambia la fuente de datos. */
-  MUNDO_PREVIEW?: string;
+  MUNDO_TARJETAS?: string;
 }
 
 /** Lo que guarda cada socket. `id` null = aun no dijo quien es. */
@@ -128,7 +128,7 @@ export class SalaMundo implements DurableObject {
     }
 
     if (m.t === "tarjeta") {
-      if (this.env.MUNDO_PREVIEW !== "1") return this.enviar(ws, { t: "tarjeta", ref: m.ref, papu: m.papu, estado: "error", motivo: "Las tarjetas estarán disponibles en el preview." });
+      if (this.env.MUNDO_TARJETAS !== "1") return this.enviar(ws, { t: "tarjeta", ref: m.ref, papu: m.papu, estado: "error", motivo: "Las tarjetas públicas no están habilitadas." });
       if (!Number.isSafeInteger(m.ref) || m.ref < 1 || !/^[0-9]{5,25}$/.test(m.papu)) return;
       const compartir = m.compartir === true;
       if (compartir && m.papu !== papu.id) return this.enviar(ws, { t: "tarjeta", ref: m.ref, papu: m.papu, estado: "error", motivo: "Solo puedes compartir tu propia tarjeta." });
@@ -166,8 +166,7 @@ export class SalaMundo implements DurableObject {
       const datos = JSON.stringify(m.datos ?? null);
       if (datos.length > 500) return;
       const sala = await this.sala();
-      // En wrangler dev se mantienen los datos ficticios de ACTIVIDAD_PRUEBA. En el preview público,
-      // todas las acciones pasan por el puente aislado, que persiste el ledger sandbox en su D1 propio.
+      // Las acciones siempre se procesan en el D1 canónico; wrangler dev usa datos ficticios solo con ACTIVIDAD_PRUEBA.
       const simulado = this.env.ACTIVIDAD_PRUEBA === "1" && papu.id.startsWith("prueba-")
         ? JSON.stringify(simular(m.accion, papu))
         : null;
