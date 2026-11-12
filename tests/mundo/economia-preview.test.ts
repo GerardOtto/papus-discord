@@ -13,6 +13,7 @@ import { LevelService } from "../../src/levels/service";
 import { EconomiaPlazaPreview } from "../../src/mundo/economia-preview";
 
 describe("EconomiaPlazaPreview", () => {
+  // Los efectos del mercado se ejercitan exclusivamente sobre el ledger sandbox.
   const abiertos: ReturnType<typeof openDb>[] = [];
   afterEach(() => {
     for (const db of abiertos.splice(0)) db.close();
