@@ -834,7 +834,7 @@ export class EconomiaPlazaPreview {
       const usedBase = this.d.quota.used(userId, new Date(now));
       const usedEffective = Math.max(0, usedBase - (state.cuotaResetDia === day ? state.cuotaResetBase ?? 0 : 0));
       const extraSandbox = state.cuotaExtraDia === day ? state.cuotaExtra : 0;
-      const roomActual = Number.isFinite(limit)
+      const roomActual = limit !== null && Number.isFinite(limit)
         ? Math.max(0, limit - Math.max(0, limit + extraBase + extraSandbox - usedEffective - state.cuotaUsada))
         : 0;
       if (premio.tipo === "cuota_llena") {
