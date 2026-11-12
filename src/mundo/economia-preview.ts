@@ -295,7 +295,10 @@ export class EconomiaPlazaPreview {
       touched.set(row.papu_id, partidas);
       applied++;
     }
-    for (const [papu, partidas] of touched) for (const partida of partidas) await this.guardarPerfilTrivia(papu, partida);
+    for (const [papu, partidas] of touched) for (const partida of partidas) {
+      await this.d.query("UPDATE actividad_perfiles_preview SET pedido_at = ? WHERE papu_id = ? AND partida = ?", this.now() + 2, papu, partida);
+      await this.guardarPerfilTrivia(papu, partida);
+    }
     await this.entregarRegalos();
     await this.syncTriviaProfiles();
     return applied;
