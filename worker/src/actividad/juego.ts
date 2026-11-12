@@ -122,6 +122,7 @@ export class Sala {
   puedeZanahoria(id:string,nonce:string,tema:string):boolean {const j=this.jugadores.get(id);return !!this.ronda&&this.fase==="pregunta"&&this.ronda.nonce===nonce&&!!j?.juega&&(this.modo==="cooperativo"||j.vivo)&&this.zanahorias.get(id)!==nonce&&(this.extras.get(id)?.zanahoria??0)>0&&this.orden.some(q=>(q.tema??q.categoria)===tema);}
   usarZanahoria(id:string,nonce:string,tema:string):boolean {if(!this.puedeZanahoria(id,nonce,tema))return false;const i=this.orden.findIndex(q=>(q.tema??q.categoria)===tema);const [q]=this.orden.splice(i,1);this.orden.unshift(q!);this.zanahorias.set(id,nonce);return true;}
   pendientesRescateBaguette(): string[] { if(this.fase!=="revelar"||!this.ronda?.resultados)return [];return Object.entries(this.ronda.resultados).filter(([id,r])=>!r.ok&&!r.salvado&&(this.jugadores.get(id)?.rescatesBaguette??2)<2).map(([id])=>id); }
+  baguetteActiva(id:string):boolean {return !!this.jugadores.get(id)?.baguetteActiva;}
   activarBaguette(id:string):void {const j=this.jugadores.get(id);if(j)j.baguetteActiva=true;}
   rescatarBaguette(id:string):boolean {const j=this.jugadores.get(id),r=this.ronda?.resultados?.[id];if(this.fase!=="revelar"||!j||!r||r.ok||r.salvado||!j.baguetteActiva||j.rescatesBaguette>=2)return false;j.rescatesBaguette++;j.racha=j.rachaFallida;j.vivo=true;j.fallo=false;r.salvado=true;if(this.ronda?.caen)this.ronda.caen=this.ronda.caen.filter(x=>x!==id);return true;}
   /** Entra (o vuelve) un Papu. Si la partida ya empezo y no jugaba, mira hasta la siguiente. */
