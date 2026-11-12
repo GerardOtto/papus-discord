@@ -132,6 +132,9 @@ export class EconomiaPlazaPreview {
       "SELECT day, xp - trivia AS xp FROM xp_dia WHERE user_id = ? AND day >= ? AND day < ? AND xp - trivia > 0",
     ).all(userId, from, today) as { day: string; xp: number }[];
     const totals = new Map(rows.map((row) => [row.day, row.xp]));
+    if (state.monedasDia && state.monedasDia >= from && state.monedasDia < today && (state.xpSandboxNoTriviaDia ?? 0) > 0) {
+      totals.set(state.monedasDia, (totals.get(state.monedasDia) ?? 0) + state.xpSandboxNoTriviaDia!);
+    }
     for (const [day, xp] of Object.entries(state.xpSandboxNoTriviaHistorial ?? {})) {
       if (day >= from && day < today && xp > 0) totals.set(day, (totals.get(day) ?? 0) + xp);
     }
