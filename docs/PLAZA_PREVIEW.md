@@ -11,9 +11,24 @@ Este entorno existe para probar la plaza sin desplegar ni modificar el Worker de
 - No contiene tokens de Miku/Luka ni ejecuta el puente Node que aplica recompensas o responde menciones.
 - La plaza conserva el OAuth de Discord de Teto para identificar miembros; el secreto se guarda como secreto de Cloudflare, nunca en el repositorio.
 
-## Preparación manual (no ejecutar en producción)
+## Despliegue reproducible del preview
 
-1. Crear una base D1 nueva llamada exactamente `papus-plaza-preview` en la cuenta Cloudflare.
+Hay un workflow manual en `.github/workflows/plaza-preview.yml`, que solo despliega `papus-plaza-preview` desde `feature/plaza-beta`. Para habilitarlo, crear el entorno GitHub Actions `plaza-preview` y configurar estos **Environment secrets**:
+
+- `CLOUDFLARE_API_TOKEN`: token limitado a Workers Scripts y D1 de la cuenta de preview.
+- `CLOUDFLARE_ACCOUNT_ID`: cuenta Cloudflare donde vivirá el preview.
+- `PREVIEW_D1_DATABASE_ID`: UUID de la base D1 nueva `papus-plaza-preview`.
+- `PREVIEW_GUILD_ID`: ID del servidor de Discord.
+- `PREVIEW_TETO_CLIENT_ID`: ID de la aplicación OAuth de Teto.
+- `PREVIEW_TETO_CLIENT_SECRET`: secreto OAuth de esa aplicación.
+
+El workflow construye ambos clientes (`npm run actividad` y `npm run mundo`), configura el TOML solo durante el job, aplica el esquema a la D1 indicada, carga el secreto y despliega con el archivo exclusivo de preview. No despliega `papus-bots`. Se ejecuta desde Actions → Deploy isolated Plaza preview → Run workflow.
+
+Antes de ejecutar el workflow, la D1 debe existir con el nombre `papus-plaza-preview` y el UUID guardado en `PREVIEW_D1_DATABASE_ID`. El token Cloudflare debe estar limitado a la cuenta correcta. La URL workers.dev la informa Wrangler al finalizar el job.
+
+## Preparación manual (alternativa)
+
+1. Crear una base D1 nueva llamada exactamente `papus-plaza-preview` en la cuenta Cloudflare. Si usas el workflow, guarda su UUID como `PREVIEW_D1_DATABASE_ID` en el entorno GitHub `plaza-preview`.
 2. Copiar su UUID en `worker/wrangler.preview.toml`, en `database_id`. No copiar el UUID de `papus`.
 3. Aplicar el esquema inicial a esa base nueva desde `worker/schema.preview.sql`:
    `npx wrangler d1 execute papus-plaza-preview --remote --file=worker/schema.preview.sql --config=worker/wrangler.preview.toml`.
