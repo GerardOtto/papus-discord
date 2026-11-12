@@ -7,7 +7,7 @@ describe("accionesRuletaPreview", () => {
     let spins = 0;
     let now = 1_000;
     const roulette = {
-      status: () => ({ blocked: false }),
+      status: () => ({ blocked: false, missions: [], left: 0, used: 0, regaladas: 0, guardadas: 0, vozReducida: false }),
       settings: { premios: [{ nombre: "Premio de prueba", etiqueta: "XP", color: "#cc3344", icono: "⭐" }] },
       spin: () => { spins++; throw new Error("preview must never call RouletteService.spin"); },
     } as unknown as RouletteService;
@@ -38,7 +38,7 @@ describe("accionesRuletaPreview", () => {
 
   it("respects a roulette block even in preview", async () => {
     const roulette = {
-      status: () => ({ blocked: true }),
+      status: () => ({ blocked: true, missions: [], left: 0, used: 0, regaladas: 0, guardadas: 0, vozReducida: false }),
       settings: { premios: [{ nombre: "Premio", etiqueta: "XP", color: "#cc3344", icono: "⭐" }] },
     } as unknown as RouletteService;
     const action = accionesRuletaPreview(roulette)["ruleta.girar"];
