@@ -93,6 +93,7 @@ for (const q of picked) {
     tipo: q.kind,
     dificultad: q.level,
     categoria: categoria(q),
+    tema: q.topic,
     texto: q.text,
     respuesta: q.answer,
     otras: q.wrong,
