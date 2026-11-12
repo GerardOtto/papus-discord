@@ -94,7 +94,7 @@ PAPUS_ENV_FILE=../papus-discord/.env PLAZA_DATA_DIR=<carpeta con papus.sqlite> P
 En la VM (servicio `papus-plaza-preview`, plantilla en `nube/plaza-preview.service`): código en
 `~/papus/plaza-preview` (enlace a `~/papus/app/node_modules`), variables en `~/papus/plaza-preview/preview.env`
 (`PLAZA_PREVIEW_D1_DATABASE_ID`, `PLAZA_DATA_DIR=/home/papus/papus/app/data`, `PAPUS_ENV_FILE=/home/papus/papus/app/.env`).
-Limitado a 220 MB y 50 % de CPU, sin escritura en `~/papus/app` y sin arranque automático. El puente lee las misiones con `LevelService`, `StrikeStore` y `RouletteService` sobre SQLite de solo lectura; la ruleta queda deshabilitada en preview.
+Limitado a 220 MB y 50 % de CPU, sin escritura en `~/papus/app` y sin arranque automático. El puente lee las misiones con `LevelService`, `StrikeStore` y `RouletteService` sobre SQLite de solo lectura; la ruleta permite giros visuales DEMO con cooldown, sin consumir tiradas ni conceder premios.
 
 ```
 sudo install -m 644 ~/papus/plaza-preview/nube/plaza-preview.service /etc/systemd/system/papus-plaza-preview.service
