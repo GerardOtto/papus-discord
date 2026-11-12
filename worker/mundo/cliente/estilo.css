@@ -995,6 +995,7 @@ kbd {
 .v-monedero{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:12px 0}
 .v-monedero>span{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:7px;padding:9px 12px;border-radius:13px;background:rgba(14,12,28,.55);border:1px solid var(--borde-v);font-weight:700}
 .v-monedero small{color:var(--suave);font-size:11px;font-weight:500}
+.v-sobres-sandbox{display:flex;flex-wrap:wrap;justify-content:space-between;gap:5px 12px;margin:-3px 0 12px;padding:9px 12px;border:1px solid var(--borde-v);border-radius:12px;background:rgba(14,12,28,.38);font-size:12px}.v-sobres-sandbox span{color:var(--suave)}.v-sobres-sandbox b{font-size:12px}
 .v-vitrina{list-style:none;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:0;padding:0}
 .v-producto{min-width:0;display:flex;flex-direction:column;overflow:hidden;border:1px solid var(--borde-v);border-radius:16px;background:rgba(17,13,31,.72)}
 .v-producto-arte{min-height:86px;display:grid;place-items:center;background:radial-gradient(circle at 50% 65%,rgba(255,255,255,.14),transparent 64%),linear-gradient(135deg,rgba(255,255,255,.08),rgba(0,0,0,.12));border-bottom:1px solid var(--borde-v)}
