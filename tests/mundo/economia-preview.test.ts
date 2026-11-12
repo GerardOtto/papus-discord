@@ -221,23 +221,36 @@ describe("EconomiaPlazaPreview", () => {
     const estadoRecargado = await reloaded.acciones()["ruleta.estado"]!(papu, null);
     expect(estadoRecargado.ok).toBe(true);
     if (estadoRecargado.ok) expect((estadoRecargado.datos as { atunPendiente?: { girosRestantes: number } }).atunPendiente?.girosRestantes).toBe(2);
+    const antesDeAceptar = await query<{ estado: string }>("SELECT estado FROM mundo_sandbox WHERE papu_id = ?", userId);
+    expect(JSON.parse(antesDeAceptar[0]!.estado).xp).toBe(0);
     const giroConPremioPendiente = await reloaded.acciones()["ruleta.girar"]!(papu, null);
     expect(giroConPremioPendiente.ok).toBe(true);
     const siguePendiente = await reloaded.acciones()["ruleta.estado"]!(papu, null);
-    if (siguePendiente.ok) expect((siguePendiente.datos as { atunPendiente?: { girosRestantes: number } }).atunPendiente?.girosRestantes).toBe(2);
+    if (siguePendiente.ok) expect((siguePendiente.datos as { atunPendiente?: unknown }).atunPendiente).toBeUndefined();
+
+    // El siguiente giro reserva otro premio; los descartes no aplican XP ni recompensas hasta aceptar.
+    const segundoGiro = await reloaded.acciones()["ruleta.girar"]!(papu, null);
+    expect(segundoGiro.ok).toBe(true);
+    if (!segundoGiro.ok) return;
+    const segundoIndex = (segundoGiro.datos as { giro: { index: number } }).giro.index;
     const descartarRecargado = reloaded.acciones()["ruleta.descartar"]!;
     const primerDescarte = await descartarRecargado(papu, null);
     expect(primerDescarte.ok).toBe(true);
     if (!primerDescarte.ok) return;
-    expect((primerDescarte.datos as { giro: { index: number }; atun: { girosRestantes: number } }).giro.index).not.toBe(primerIndex);
+    expect((primerDescarte.datos as { giro: { index: number }; atun: { girosRestantes: number } }).giro.index).not.toBe(segundoIndex);
     expect((primerDescarte.datos as { atun: { girosRestantes: number } }).atun.girosRestantes).toBe(1);
     const segundoDescarte = await descartarRecargado(papu, null);
     expect(segundoDescarte.ok).toBe(true);
     if (segundoDescarte.ok) expect((segundoDescarte.datos as { atun: { girosRestantes: number } }).atun.girosRestantes).toBe(0);
     const tercerDescarte = await descartarRecargado(papu, null);
     expect(tercerDescarte.ok).toBe(false);
+    const aceptar = await reloaded.acciones()["ruleta.aceptar"]!(papu, null);
+    expect(aceptar.ok).toBe(true);
     const ledgerFinal = await query<{ estado: string }>("SELECT estado FROM mundo_sandbox WHERE papu_id = ?", userId);
-    expect(JSON.parse(ledgerFinal[0]!.estado).consumibles["atun-luka"]).toBe(0);
+    const final = JSON.parse(ledgerFinal[0]!.estado) as { consumibles: Record<string, number>; atunPendiente?: unknown; ruletaUsadas: number };
+    expect(final.consumibles["atun-luka"]).toBe(0);
+    expect(final.atunPendiente).toBeUndefined();
+    expect(final.ruletaUsadas).toBe(2);
   });
 
 
