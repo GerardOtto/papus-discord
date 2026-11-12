@@ -1031,6 +1031,18 @@ function abrirRuleta(): void {
   });
 }
 
+async function descartarAtun(): Promise<void> {
+  if (vistaRuleta.mio?.fase === "pidiendo" || miGiro) return;
+  const r = await pedir("ruleta.descartar");
+  if (!r.ok) {
+    aviso(r.motivo);
+    return;
+  }
+  miGiro = r.datos as RuletaGiro;
+  vistaRuleta.mio = { fase: "pidiendo" };
+  faseMia();
+}
+
 async function girarRuleta(): Promise<void> {
   if (vistaRuleta.mio?.fase === "pidiendo" || miGiro) return;
   vistaRuleta.mio = { fase: "pidiendo" };
@@ -1231,6 +1243,12 @@ ventana.cuerpo.addEventListener("click", (e) => {
     const [tipo, id] = compra.dataset.compra.split(":", 2);
     if ((tipo === "tienda" || tipo === "mercado") && id) void comprarObjeto(tipo, id);
   }
+});
+$("premio").addEventListener("click", (e) => {
+  const b = (e.target as HTMLElement).closest<HTMLButtonElement>("button[data-descartar-atun]");
+  if (!b) return;
+  $("premio").hidden = true;
+  void descartarAtun();
 });
 for (const id of ["stand", "premio"]) {
   $(id).addEventListener("click", (e) => {
