@@ -245,6 +245,31 @@ async function main(): Promise<void> {
     },
     log,
   });
+
+  // Base D1 separada para el preview público. Solo se conecta si el operador configura explícitamente
+  // PLAZA_PREVIEW_D1_DATABASE_ID; jamás reutiliza el ID de worker/wrangler.toml (producción).
+  const previewDatabaseId = process.env.PLAZA_PREVIEW_D1_DATABASE_ID?.trim();
+  const mundoPreview = previewDatabaseId
+    ? mundoFromEnv(process.env, {
+        makeConversation,
+        bots: [],
+        owners,
+        stats: (id) => {
+          const { level, prestige } = levels.level(id);
+          const restante = quota.remaining(id);
+          const limite = quota.limitFor(id);
+          return {
+            nivel: level,
+            prestigio: prestige,
+            restante: Number.isFinite(restante) ? restante : null,
+            limite: Number.isFinite(limite) ? limite : null,
+            ruletas: roulette.status(id).left,
+          };
+        },
+        tarjetaPublica: async (id) => app?.tarjetaPublica(id) ?? null,
+        log,
+      }, undefined, previewDatabaseId)
+    : null;
   app = new PapusApp({
     config,
     db,
@@ -279,6 +304,7 @@ async function main(): Promise<void> {
     // Trivia multijugador (Actividad de Discord): Teto aplica la XP de sus aciertos desde la base D1 del worker.
     actividad: actividadFromEnv(process.env, trivia),
     mundo,
+    mundoPreview,
     sorteo,
     peleas,
     coins,
