@@ -269,6 +269,7 @@ describe("EconomiaPlazaPreview", () => {
   it("PC de Adachi reinicia topes y contadores solo en el ledger sandbox", async () => {
     const source=openDb(":memory:"), preview=openDb(":memory:"); abiertos.push(source,preview);
     preview.exec("CREATE TABLE mundo_sandbox (papu_id TEXT PRIMARY KEY, estado TEXT NOT NULL, revision INTEGER NOT NULL DEFAULT 0, actualizado_at INTEGER NOT NULL)");
+    preview.exec("CREATE TABLE actividad_perfiles (papu_id TEXT PRIMARY KEY, xp_base INTEGER NOT NULL DEFAULT 0, tope INTEGER NOT NULL DEFAULT 0, pedido_at INTEGER NOT NULL DEFAULT 0, actualizado_at INTEGER NOT NULL DEFAULT 0)");
     const query:D1Query=async <T>(sql:string,...params:unknown[]):Promise<T[]>=>{
       const st=preview.prepare(sql);
       if(/RETURNING/i.test(sql)||/^\\s*SELECT/i.test(sql))return st.all(...(params as never[])) as unknown as T[];
