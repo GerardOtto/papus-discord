@@ -25,6 +25,8 @@ import { loadLayout } from "./setup/layout";
 import { GeneralChat } from "./services/charla";
 import { ConversationService, type ChatPort } from "./services/conversation";
 import { mundoFromEnv } from "./mundo/puente";
+import { d1Client, workerDatabaseId } from "./cloud/d1";
+import { EconomiaPlazaPreview } from "./mundo/economia-preview";
 import { buildCalendar } from "./calendar/setup";
 import { channelKey } from "./discord/channels";
 import { Especiales, loadEspeciales } from "./services/especiales";
@@ -132,8 +134,9 @@ async function main(): Promise<void> {
   const peleas = coins && peleaSettings.activo ? new PeleaService({ db, settings: peleaSettings, coins }) : null;
   // Trivia de los Papus (config/trivia.json, PLAN §3.4): preguntas fijas revisadas por el codigo; XP por acierto.
   const triviaSettings = loadTriviaSettings();
+  const triviaQuestions = loadQuestions(triviaSettings);
   // Superar todas las preguntas de una dificultad da su sobre de la tienda (comun, raro o legendario).
-  const trivia = new TriviaService({ db, settings: triviaSettings, questions: loadQuestions(triviaSettings), levels, giveSobre: coins ? (id, tipo, n) => coins.giveSobres(id, tipo, n) : undefined, timeZone: config.quotaTimeZone });
+  const trivia = new TriviaService({ db, settings: triviaSettings, questions: triviaQuestions, levels, giveSobre: coins ? (id, tipo, n) => coins.giveSobres(id, tipo, n) : undefined, timeZone: config.quotaTimeZone });
   log(`Trivia: ${trivia.total} preguntas`);
   // Hitos de aciertos (7 nov. 2026): una sola vez, quienes ya tenian avance reciben los sobres de los hitos que pasaron.
   for (const h of trivia.seedMilestones()) log(`🎁 Trivia: hitos iniciales de ${h.userId} en ${h.level}: ${h.aciertos} aciertos → ${h.sobres} sobre(s)`);
@@ -270,6 +273,23 @@ async function main(): Promise<void> {
         log,
       }, undefined, previewDatabaseId)
     : null;
+  // Economía del preview: las lecturas parten del estado local, pero toda escritura se dirige al D1 aislado.
+  const previewToken = process.env.CLOUDFLARE_DEPLOY_TOKEN?.trim();
+  const previewAccountId = process.env.CLOUDFLARE_ACCOUNT_ID?.trim();
+  const productionD1Id = workerDatabaseId(path.resolve(import.meta.dirname, ".."));
+  const economiaPreview = mundoPreview && previewDatabaseId && previewDatabaseId !== productionD1Id && previewToken && previewAccountId
+    ? new EconomiaPlazaPreview({
+        query: d1Client({ accountId: previewAccountId, token: previewToken, databaseId: previewDatabaseId }),
+        db, levels, coins, mercado, roulette, quota, trivia: triviaSettings,
+        questionLevels: Object.fromEntries(triviaQuestions.map((q) => [q.id, q.level])),
+        questionTotals: {
+          facil: triviaQuestions.filter((q) => q.level === "facil").length,
+          medio: triviaQuestions.filter((q) => q.level === "medio").length,
+          dificil: triviaQuestions.filter((q) => q.level === "dificil").length,
+        },
+        timeZone: config.quotaTimeZone,
+      })
+    : null;
   app = new PapusApp({
     config,
     db,
@@ -305,6 +325,7 @@ async function main(): Promise<void> {
     actividad: actividadFromEnv(process.env, trivia),
     mundo,
     mundoPreview,
+    economiaPreview,
     sorteo,
     peleas,
     coins,
