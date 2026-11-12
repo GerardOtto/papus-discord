@@ -63,12 +63,10 @@ import { MangoDiscord } from "./mango";
 import { pardonedFromLog, type MangoService } from "../services/mango";
 import { DayStats, papuText, serverText } from "../services/estadisticas";
 import type { ActividadTrivia } from "../trivia/actividad";
-import type { EconomiaPlazaPreview } from "../mundo/economia-preview";
 import { armarEstado } from "../mundo/estado";
 import { agruparLineas, lineasRegistro, type MundoPuente } from "../mundo/puente";
-import { accionesRuleta, giroPlaza, ruletaEstado } from "../mundo/ruleta";
+import { accionesRuleta, giroPlaza } from "../mundo/ruleta";
 import { accionPesca } from "../mundo/pesca";
-import { recompensaPesca, textoRecompensaPesca, type TamanoPez } from "../pesca/reglas";
 import type { TriviaService } from "../trivia/service";
 import type { RouletteService, SpinResult } from "../ruleta/service";
 import type { SorteoService } from "../sorteo/service";
@@ -197,10 +195,6 @@ export interface AppDeps {
   actividad?: ActividadTrivia | null;
   /** Mundo de los Papus (Actividad 3D): @ a los Vocaloids de la plaza y nivel/cuota de cada Papu (null = sin Cloudflare). */
   mundo?: MundoPuente | null;
-  /** Puente opcional y aislado para tarjetas del preview; nunca comparte el D1 de producción. */
-  mundoPreview?: MundoPuente | null;
-  /** Ledger D1 exclusivo para compras, progresión, pesca, ruleta y trivia de la Plaza preview. */
-  economiaPreview?: EconomiaPlazaPreview | null;
   /** Sorteo de GyroP (src/sorteo/; null = desactivado). */
   sorteo?: SorteoService | null;
   /** 1vs1 de los Vocaloids con apuestas de Shaula-coins (src/peleas/; null = desactivado). */
@@ -229,7 +223,6 @@ export class PapusApp {
   private calendarTimer: ReturnType<typeof setInterval> | null = null;
   private actividadTimer: ReturnType<typeof setInterval> | null = null;
   private mundoTimer: ReturnType<typeof setInterval> | null = null;
-  private mundoPreviewTimer: ReturnType<typeof setInterval> | null = null;
   private rolesTimer: ReturnType<typeof setInterval> | null = null;
   private expiryTimer: ReturnType<typeof setTimeout> | null = null;
   private welcomeTimer: ReturnType<typeof setTimeout> | null = null;
@@ -655,84 +648,6 @@ export class PapusApp {
           .finally(() => (busy = false));
       }, MUNDO_MS);
     }
-    if (this.d.mundoPreview) {
-      const preview = this.d.mundoPreview;
-      // Las acciones de preview se calculan con datos reales en SOLO LECTURA: nunca gastan tiradas ni conceden XP.
-      if (this.d.roulette) {
-        preview.acciones["ruleta.estado"] = (papu) => {
-          const estado = ruletaEstado(this.d.roulette!, papu.id);
-          return { ok: true, datos: { ...estado, tiradas: 0, usadas: 0, extras: [], soloLectura: true, simulacion: true } };
-        };
-      }
-      const ultimoLancePreview = new Map<string, number>();
-      preview.acciones["pesca.capturar"] = (papu) => {
-        const ahora = Date.now();
-        const ultimo = ultimoLancePreview.get(papu.id) ?? 0;
-        if (ahora - ultimo < 30_000) return { ok: false, motivo: `La caña necesita descansar ${Math.ceil((30_000 - (ahora - ultimo)) / 1000)} s. 🎣` };
-        if (!this.d.levels.canEarn(papu.id, ahora)) return { ok: false, motivo: "Neru te bloqueó temporalmente la XP. 🚫" };
-        const n = Math.random();
-        const tamano: TamanoPez = n < 0.55 ? "pequeno" : n < 0.87 ? "mediano" : "grande";
-        const recompensa = recompensaPesca(this.d.levels.settings, this.d.levels.store.get(papu.id).xp, tamano);
-        if (!recompensa) return { ok: false, motivo: "No pude calcular la captura." };
-        ultimoLancePreview.set(papu.id, ahora);
-        return { ok: true, datos: { tamano, xp: recompensa.xp, porcentaje: Math.round(recompensa.porcentaje * 100), texto: textoRecompensaPesca(recompensa), soloLectura: true } };
-      };
-      if (this.d.coins) {
-        const coins = this.d.coins;
-        preview.acciones["tienda.estado"] = (papu) => {
-          const vitrina = coins.vitrina();
-          const owned = coins.owned(papu.id);
-          return {
-            ok: true,
-            datos: {
-              abierta: !!vitrina,
-              soloLectura: true,
-              objetos: (vitrina?.objetos ?? []).flatMap((id) => {
-                const o = coins.byId.get(id);
-                return o ? [{ id: o.id, nombre: o.nombre, descripcion: o.descripcion, rareza: o.rareza, precio: priceOf(coins.settings, o), owned: owned.has(o.id) }] : [];
-              }),
-            },
-          };
-        };
-      } else {
-        preview.acciones["tienda.estado"] = () => ({ ok: true, datos: { abierta: false, soloLectura: true, objetos: [] } });
-      }
-      preview.acciones["tienda.comprar"] = () => ({ ok: false, motivo: "La tienda del preview es de solo lectura: no se descuentan monedas ni se modifica el inventario." });
-      if (this.d.mercado) {
-        const mercado = this.d.mercado;
-        preview.acciones["mercado.estado"] = (papu) => ({
-          ok: true,
-          datos: {
-            abierto: null,
-            soloLectura: true,
-            objetos: mercado.vitrina().map((o) => ({ id: o.id, nombre: o.nombre, emoji: o.emoji, descripcion: o.descripcion, precio: o.precio, usos: o.usos ?? null, owned: mercado.tiene(papu.id, o) })),
-          },
-        });
-      } else {
-        preview.acciones["mercado.estado"] = () => ({ ok: true, datos: { abierto: null, soloLectura: true, objetos: [] } });
-      }
-      preview.acciones["mercado.comprar"] = () => ({ ok: false, motivo: "El mercado negro del preview es de solo lectura: no se descuentan monedas ni se modifica el inventario." });
-      // El ledger reemplaza los manejadores de solo lectura con operaciones persistentes y aisladas.
-      if (this.d.economiaPreview) {
-        try {
-          await this.d.economiaPreview.preload();
-          Object.assign(preview.acciones, this.d.economiaPreview.acciones());
-        } catch (e) {
-          logError("precarga de economía sandbox", e);
-        }
-      }
-      let previewBusy = false;
-      this.mundoPreviewTimer = setInterval(() => {
-        if (previewBusy || this.stopping) return;
-        previewBusy = true;
-        void (async () => {
-          await this.d.economiaPreview?.syncTrivia();
-          await this.d.mundoPreview!.sync();
-        })()
-          .catch((e) => logError("sincronización de Plaza preview", e))
-          .finally(() => (previewBusy = false));
-      }, MUNDO_MS);
-    }
     if (this.d.calendar) {
       void this.updateCalendar().catch((e) => logError("calendario", e));
       this.calendarTimer = setInterval(() => void this.updateCalendar().catch((e) => logError("calendario", e)), CALENDAR_EVERY_MS);
@@ -767,7 +682,6 @@ export class PapusApp {
     if (this.calendarTimer) clearInterval(this.calendarTimer);
     if (this.actividadTimer) clearInterval(this.actividadTimer);
     if (this.mundoTimer) clearInterval(this.mundoTimer);
-    if (this.mundoPreviewTimer) clearInterval(this.mundoPreviewTimer);
     if (this.rolesTimer) clearInterval(this.rolesTimer);
     if (this.expiryTimer) clearTimeout(this.expiryTimer);
     if (this.welcomeTimer) clearTimeout(this.welcomeTimer);
