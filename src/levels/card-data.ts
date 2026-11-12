@@ -1,5 +1,4 @@
-// Datos de la tarjeta de /nivel sin Discord: los usan /nivel (src/discord/levels.ts) y el puente aislado de tarjetas
-// de la Plaza preview (src/mundo/tarjetas-preview.ts), para que las dos dibujen exactamente lo mismo.
+// Datos compartidos para construir la tarjeta de /nivel sin depender directamente de discord.js.
 import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 import type { CardData } from "./card";
