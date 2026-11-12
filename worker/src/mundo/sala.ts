@@ -22,7 +22,7 @@ export interface MundoEnv {
   DB: D1Database;
   GUILD_ID: string;
   ACTIVIDAD_PRUEBA?: string;
-  /** Preview aislado: no encola menciones ni acciones que requieren el puente de bots. */
+  /** Preview aislado: no encola menciones; las acciones permitidas se atienden en el puente preview de solo lectura. */
   MUNDO_PREVIEW?: string;
 }
 
