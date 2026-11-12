@@ -22,7 +22,7 @@ export interface MundoEnv {
   DB: D1Database;
   GUILD_ID: string;
   ACTIVIDAD_PRUEBA?: string;
-  /** Preview aislado: no encola menciones; el puente procesa acciones en un ledger sandbox de D1, sin escribir recursos reales. */
+  /** Habilita la entrega de tarjetas públicas en la interfaz de preview; nunca cambia la fuente de datos. */
   MUNDO_PREVIEW?: string;
 }
 
@@ -47,6 +47,8 @@ interface Ficha {
 
 /** Cada cuanto revisa D1 la alarma mientras espera respuestas o perfiles. */
 const REVISION_MS = 2000;
+/** Refresca perfiles conectados desde el backend para reflejar también cambios originados en Discord. */
+const PROFILE_REFRESH_MS = 10_000;
 /** Despues de esto deja de esperar una mencion (el bot la descarta igual a los 2 min). */
 const ESPERA_MS = 120_000;
 /** Con Papus conectados y nada pendiente: cada cuanto mira si paso algo en Discord. */
@@ -120,9 +122,7 @@ export class SalaMundo implements DurableObject {
       await this.registrar(papu.id, papu.nombre, null, texto);
       const historial = ((await this.state.storage.get<{ author: string; text: string }[]>("historial")) ?? []).slice(-HISTORIAL);
       const bots = mencionados(texto);
-      if (bots.length && this.env.MUNDO_PREVIEW === "1") {
-        this.enviar(ws, { t: "aviso", texto: "Los Vocaloids todavía no están conectados en esta versión de pruebas. El chat entre Papus sí funciona. 🌱" });
-      } else if (bots.length) await this.mencionar(papu, texto, bots, historial);
+      if (bots.length) await this.mencionar(papu, texto, bots, historial);
       await this.state.storage.put("historial", [...historial, { author: papu.nombre, text: texto }].slice(-HISTORIAL));
       return;
     }
@@ -332,12 +332,30 @@ export class SalaMundo implements DurableObject {
       : null;
     if (tarjetas?.cantidad) await this.entregarTarjetas(sala);
     await this.moverRuleta();
+    await this.solicitarRefrescoPerfiles(ahora);
     const perfiles = await this.entregarPerfiles();
     const pendiente = (hay?.menciones ?? 0) + (hay?.acciones ?? 0) + (tarjetas?.cantidad ?? 0) + perfiles > 0;
     const cuando = [pendiente ? ahora + REVISION_MS : null, this.conectados().length ? ahora + LATIDO_MS : null, proximoCambio(await this.ruleta())].filter(
       (x): x is number => x !== null,
     );
     if (cuando.length) await this.state.storage.setAlarm(Math.max(ahora + 250, Math.min(...cuando)));
+  }
+
+  /**
+   * Pide al bot una foto reciente de cada usuario conectado. Así, los cambios hechos desde Discord
+   * (XP, cuota, nivel y tiradas) llegan a la Plaza aunque el usuario no ejecute una acción aquí.
+   */
+  private async solicitarRefrescoPerfiles(ahora: number): Promise<void> {
+    if (ahora - (await this.state.storage.get<number>("perfilesAt") ?? 0) < PROFILE_REFRESH_MS) return;
+    const conectados = this.conectados();
+    if (!conectados.length) return;
+    const unicos = [...new Set(conectados.map((c) => c.ficha.papu!.id))];
+    for (const id of unicos) {
+      await this.env.DB.prepare(
+        "INSERT INTO mundo_perfiles (papu_id, pedido_at) VALUES (?, ?) ON CONFLICT(papu_id) DO UPDATE SET pedido_at = excluded.pedido_at",
+      ).bind(id, ahora).run();
+    }
+    await this.state.storage.put("perfilesAt", ahora);
   }
 
   /** Respuestas de los Vocaloids a los @. */
