@@ -16,6 +16,7 @@ import { pickPrize, prizeXp } from "../ruleta/rules";
 import { progress } from "../levels/rules";
 import { answerXp, dailyCap, type Dificultad, type TriviaSettings } from "../trivia/rules";
 import { dayKey } from "../time";
+import { reinicioDe } from "../mercado/reinicios";
 import { recompensaPesca, textoRecompensaPesca, type TamanoPez } from "../pesca/reglas";
 import { ruletaEstado } from "./ruleta";
 import type { Accion, Resultado } from "../../worker/src/mundo/acciones";
@@ -104,7 +105,7 @@ export class EconomiaPlazaPreview {
       const gained = await this.cambiar(row.papu_id, (s) => {
         s.triviaAciertosAplicados ??= [];
         if (s.triviaAciertosAplicados.includes(row.id)) return { result: undefined, changed: false };
-        const now = this.now(), day = this.d.roulette.dayOf(now);
+        const now = this.now(), day = dayKey(new Date(now), this.d.timeZone);
         if (s.triviaDia !== day) { s.triviaDia = day; s.triviaXpDia = 0; s.triviaPartidasDia = []; }
         s.triviaPartidasDia ??= []; s.triviaSuperadas ??= []; s.triviaPremios ??= []; s.triviaHitos ??= {};
         const runKey = `${row.partida}:${row.papu_id}`;
@@ -163,7 +164,7 @@ export class EconomiaPlazaPreview {
   private async syncTriviaProfiles(): Promise<void> {
     const rows=await this.d.query<{papu_id:string}>("SELECT papu_id FROM actividad_perfiles WHERE pedido_at >= actualizado_at LIMIT 50");
     for(const {papu_id} of rows) {
-      const {state}=await this.cargar(papu_id), now=this.now(), day=this.d.roulette.dayOf(now);
+      const {state}=await this.cargar(papu_id), now=this.now(), day=dayKey(new Date(now), this.d.timeZone);
       if(state.triviaDia!==day){state.triviaDia=day;state.triviaXpDia=0;state.triviaPartidasDia=[];}
       const runs=state.triviaPartidasDia?.length??0, withXp=runs<this.d.trivia.limites.partidasConXp;
       const from=dayKey(new Date(now-this.d.trivia.xp.dias*86400000),this.d.timeZone);
@@ -197,6 +198,10 @@ export class EconomiaPlazaPreview {
   }
 
   private inicial(userId: string): EstadoSandbox {
+    const triviaDay = dayKey(new Date(this.now()), this.d.timeZone);
+    const reinicio = reinicioDe(this.d.db, userId, triviaDay);
+    const triviaXpReal = (this.d.db.prepare("SELECT trivia FROM xp_dia WHERE user_id = ? AND day = ?").get(userId, triviaDay) as { trivia: number } | undefined)?.trivia ?? 0;
+    const partidasTrivia = this.d.db.prepare("SELECT id FROM trivia_partidas WHERE user_id = ? AND day = ? ORDER BY id").all(userId, triviaDay) as { id: number }[];
     const raw = this.d.db.prepare(
       "SELECT ganadas, compradas, ecos, gratis, gratis_raro, gratis_leg, sobres, sin_epica, sin_leg FROM monedero WHERE user_id = ?",
     ).get(userId) as Partial<{
@@ -242,9 +247,9 @@ export class EconomiaPlazaPreview {
       disqueteProcesadoDia: "",
       ruletaGuardadas: 0,
       // Foto inicial de la progresión de trivia, siempre leída desde SQLite en solo lectura.
-      triviaDia: this.d.roulette.dayOf(this.now()),
-      triviaXpDia: (this.d.db.prepare("SELECT trivia FROM xp_dia WHERE user_id = ? AND day = ?").get(userId, this.d.roulette.dayOf(this.now())) as { trivia: number } | undefined)?.trivia ?? 0,
-      triviaPartidasDia: (this.d.db.prepare("SELECT id FROM trivia_partidas WHERE user_id = ? AND day = ?").all(userId, this.d.roulette.dayOf(this.now())) as { id: number }[]).map((x) => `legacy:${x.id}`),
+      triviaDia: triviaDay,
+      triviaXpDia: Math.max(0, triviaXpReal - reinicio.triviaXp),
+      triviaPartidasDia: partidasTrivia.slice(reinicio.triviaPartidas).map((x) => `legacy:${x.id}`),
       triviaSuperadas: (this.d.db.prepare("SELECT pregunta FROM trivia_superadas WHERE user_id = ?").all(userId) as { pregunta: string }[]).map((x) => x.pregunta),
       triviaPremios: (this.d.db.prepare("SELECT dificultad FROM trivia_premios WHERE user_id = ?").all(userId) as { dificultad: string }[]).map((x) => x.dificultad),
       triviaHitos: Object.fromEntries((this.d.db.prepare("SELECT dificultad, aciertos, premios FROM trivia_hitos WHERE user_id = ?").all(userId) as { dificultad: Dificultad; aciertos: number; premios: number }[]).map((x) => [x.dificultad, { aciertos: x.aciertos, premios: x.premios }])),
