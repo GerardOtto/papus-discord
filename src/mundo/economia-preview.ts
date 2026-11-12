@@ -521,6 +521,7 @@ export class EconomiaPlazaPreview {
   private async descartarAtun(userId: string, nombre: string): Promise<Resultado> {
     const now = this.now();
     const day = this.d.roulette.dayOf(now);
+    const real = this.d.roulette.status(userId, now);
     return this.cambiar(userId, (s) => {
       const pending = s.atunPendiente;
       const objeto = this.d.mercado?.byId.get("atun-luka");
@@ -545,11 +546,17 @@ export class EconomiaPlazaPreview {
       const gastoUso = true;
       s.atunPendiente = { day, index, giros, gastoUso, xp: aplicado.xp, mensajes: aplicado.mensajes, sobres: aplicado.sobres, subioAntes: pending.subioAntes };
       const usos = s.consumibles["atun-luka"] ?? 0;
+      const nivelYaContado = real.missions.some((m) => m.id === "nivel" && m.done);
+      const misionNivelSandbox = s.subioDia === day && !nivelYaContado;
+      const voz = real.missions.find((m) => m.id === "voz");
+      const vozActual = this.d.levels.store.dayStats(userId, day).vozMin;
+      const misionVozSandbox = s.microfonoDia === day && !!s.microfonoMinutos && !!voz && !voz.done && vozActual >= s.microfonoMinutos;
+      const disponibles = real.left + (misionNivelSandbox ? 1 : 0) + (misionVozSandbox ? 1 : 0) + (s.ruletaGuardadas ?? 0);
       return {
         result: ok({
           giro: { papu: userId, nombre, index, titulo: `🧪 ${aplicado.titulo}`, subtitulo: aplicado.subtitulo, origen: "plaza" },
           texto: `Atún de Luka: premio descartado. ${aplicado.texto}`,
-          tiradas: 0, sandbox: true,
+          tiradas: Math.max(0, disponibles - s.ruletaUsadas), sandbox: true,
           atun: { girosRestantes: Math.max(0, maxGiros - giros), usos },
         }),
       };
