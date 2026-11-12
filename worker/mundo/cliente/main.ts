@@ -1055,30 +1055,30 @@ function pintarCatalogo(tipo: TipoCatalogo, datos: Record<string, unknown>): str
   const estado = tipo === "mercado"
     ? abierto === null ? "Vista previa de solo lectura" : abierto ? "Neru está atendiendo" : "Neru mantiene el mercado cerrado"
     : abierto ? "Vitrina disponible" : "No hay una vitrina activa";
-  const saldo = wallet ? `<div class="v-monedero"><span>🪙 <small>Ganadas</small><b>${{wallet.ganadas ?? 0}</b></span><span>💳 <small>Compradas</small><b>${{wallet.compradas ?? 0}</b></span></div>` : "";
+  const saldo = wallet ? `<div class="v-monedero"><span>🪙 <small>Ganadas</small><b>${wallet.ganadas ?? 0}</b></span><span>💳 <small>Compradas</small><b>${wallet.compradas ?? 0}</b></span></div>` : "";
   const nombres: Record<string, string> = { comun:"Común", raro:"Raro", epico:"Épico", epica:"Épica", legendario:"Legendario", legendaria:"Legendaria", mitica:"Mítica", fundador:"Fundador", membresia:"Membresía", contrabando:"Contrabando" };
   const filas = objetos.map((o) => {
     const rareza = (o.rareza ?? "especial").toLowerCase();
     const clase = ["comun","raro","epico","epica","legendario","legendaria","mitica","fundador","membresia","contrabando"].includes(rareza) ? rareza : "especial";
     const icono = o.emoji ?? (["legendaria","legendario","mitica"].includes(rareza) ? "✨" : ["raro","epico","epica"].includes(rareza) ? "💎" : "🎁");
-    const precio = o.precio === null ? "Precio no disponible" : `${{o.precio.toLocaleString("es-CL")} Shaula-coins`;
-    const extra = o.usos ? `<span class="v-producto-usos">${{o.usos} usos</span>` : "";
+    const precio = o.precio === null ? "Precio no disponible" : `${o.precio.toLocaleString("es-CL")} Shaula-coins`;
+    const extra = o.usos ? `<span class="v-producto-usos">${o.usos} usos</span>` : "";
     const accion = o.owned ? '<span class="v-chip verde">✓ En tu colección</span>'
       : soloLectura ? '<span class="v-chip">Solo lectura</span>'
       : abierto === false ? '<span class="v-chip">Cerrado</span>'
-      : `<button class="v-boton v-comprar" data-compra="${{tipo}:${{esc(o.id)}">Comprar</button>`;
-    return `<li class="v-producto rareza-${{clase}">
-      <div class="v-producto-arte"><span>${{esc(icono)}</span></div>
-      <div class="v-producto-info"><span class="v-producto-rareza">${{esc(nombres[rareza] ?? "Artículo")}</span>
-        <b>${{esc(o.nombre)}</b><small>${{esc(o.descripcion)}</small>
-        <div class="v-producto-pie"><strong>🪙 ${{esc(precio)}</strong>${{extra}</div>${{accion}
+      : `<button class="v-boton v-comprar" data-compra="${tipo}:${esc(o.id)}">Comprar</button>`;
+    return `<li class="v-producto rareza-${clase}">
+      <div class="v-producto-arte"><span>${esc(icono)}</span></div>
+      <div class="v-producto-info"><span class="v-producto-rareza">${esc(nombres[rareza] ?? "Artículo")}</span>
+        <b>${esc(o.nombre)}</b><small>${esc(o.descripcion)}</small>
+        <div class="v-producto-pie"><strong>🪙 ${esc(precio)}</strong>${extra}</div>${accion}
       </div>
     </li>`;
   }).join("");
-  const cabecera = `<div class="v-vitrina-cabeza"><div><span class="v-eyebrow">${{tipo === "tienda" ? "COLECCIÓN SHAULA" : "PUESTO DE NERU"}</span><p class="v-nota">${{esc(estado)}</p></div>${{soloLectura ? '<span class="v-chip">Preview</span>' : abierto ? '<span class="v-chip verde">Abierto</span>' : '<span class="v-chip rojo">Cerrado</span>'}</div>`;
-  return `${{cabecera}${{saldo}<h3 class="v-seccion">${{tipo === "tienda" ? "Vitrina de temporada" : "Selección de hoy"}</h3>
-    ${{filas ? `<ul class="v-vitrina">${{filas}</ul>` : '<div class="v-vacia"><span>🛍️</span><b>La vitrina está vacía</b><small>Vuelve más tarde para descubrir nuevos artículos.</small></div>'}
-    ${{soloLectura ? '<p class="v-pie">Este entorno permite explorar y consultar el monedero, pero no realiza compras ni modifica el inventario.</p>' : ""}`;
+  const cabecera = `<div class="v-vitrina-cabeza"><div><span class="v-eyebrow">${tipo === "tienda" ? "COLECCIÓN SHAULA" : "PUESTO DE NERU"}</span><p class="v-nota">${esc(estado)}</p></div>${soloLectura ? '<span class="v-chip">Preview</span>' : abierto ? '<span class="v-chip verde">Abierto</span>' : '<span class="v-chip rojo">Cerrado</span>'}</div>`;
+  return `${cabecera}${saldo}<h3 class="v-seccion">${tipo === "tienda" ? "Vitrina de temporada" : "Selección de hoy"}</h3>
+    ${filas ? `<ul class="v-vitrina">${filas}</ul>` : '<div class="v-vacia"><span>🛍️</span><b>La vitrina está vacía</b><small>Vuelve más tarde para descubrir nuevos artículos.</small></div>'}
+    ${soloLectura ? '<p class="v-pie">Este entorno permite explorar y consultar el monedero, pero no realiza compras ni modifica el inventario.</p>' : ""}`;
 }
 
 async function abrirCatalogo(tipo: TipoCatalogo): Promise<void> {
@@ -1121,21 +1121,21 @@ async function pescar(): Promise<void> {
   ventana.poner("pesca", `<div class="v-pesca-espera"><span>🎣</span><b>La boya está en el agua…</b><small>Esperando una captura</small><div class="v-pesca-onda"></div></div>`);
   const r = await pedir("pesca.capturar");
   if (!r.ok) {
-    ventana.poner("pesca", `<p class="v-error">${{esc(r.motivo)}</p><button class="v-boton" data-accion="pescar">Volver a intentar</button>`);
+    ventana.poner("pesca", `<p class="v-error">${esc(r.motivo)}</p><button class="v-boton" data-accion="pescar">Volver a intentar</button>`);
     return;
   }
   const d = r.datos as { tamano: string; xp: number; porcentaje: number; texto: string; nivelAntes?: number; nivelDespues?: number; soloLectura?: boolean };
   const grande = d.tamano === "grande", mediano = d.tamano === "mediano";
   const emoji = grande ? "🦈" : mediano ? "🐠" : "🐟";
   const nombre = grande ? "Pez grande" : mediano ? "Pez mediano" : "Pez pequeño";
-  const subida = d.nivelAntes !== undefined && d.nivelDespues !== undefined && d.nivelDespues > d.nivelAntes ? `<p class="v-premio-sub">🎉 ¡Subiste al nivel ${{d.nivelDespues}!</p>` : "";
-  ventana.poner("pesca", `<div class="v-captura ${{grande ? "grande" : mediano ? "mediana" : "pequena"}">
-    <span class="v-captura-pez">${{emoji}</span><span class="v-eyebrow">CAPTURA REGISTRADA</span><h3>${{nombre}</h3>
-    <strong class="v-captura-xp">+${{d.xp.toLocaleString("es-CL")} XP</strong>
-    <div class="v-captura-barra"><span style="width:${{d.porcentaje}%"></span></div>
-    <small>${{d.porcentaje}% de la barra del nivel</small><p>${{esc(d.texto)}</p>${{subida}
+  const subida = d.nivelAntes !== undefined && d.nivelDespues !== undefined && d.nivelDespues > d.nivelAntes ? `<p class="v-premio-sub">🎉 ¡Subiste al nivel ${d.nivelDespues}!</p>` : "";
+  ventana.poner("pesca", `<div class="v-captura ${grande ? "grande" : mediano ? "mediana" : "pequena"}">
+    <span class="v-captura-pez">${emoji}</span><span class="v-eyebrow">CAPTURA REGISTRADA</span><h3>${nombre}</h3>
+    <strong class="v-captura-xp">+${d.xp.toLocaleString("es-CL")} XP</strong>
+    <div class="v-captura-barra"><span style="width:${d.porcentaje}%"></span></div>
+    <small>${d.porcentaje}% de la barra del nivel</small><p>${esc(d.texto)}</p>${subida}
   </div>
-  ${{d.soloLectura ? '<p class="v-nota">Preview: la captura se calculó con tu progreso real, pero no modificó tu XP.</p>' : '<p class="v-pie">La XP ya se sumó a tu nivel.</p>'}
+  ${d.soloLectura ? '<p class="v-nota">Preview: la captura se calculó con tu progreso real, pero no modificó tu XP.</p>' : '<p class="v-pie">La XP ya se sumó a tu nivel.</p>'}
   <button class="v-boton" data-accion="pescar">🎣 Volver a pescar</button>`);
 }
 
