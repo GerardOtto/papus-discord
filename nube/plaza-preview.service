@@ -18,8 +18,8 @@ EnvironmentFile=/home/papus/papus/plaza-preview/preview.env
 ExecStart=/usr/local/bin/node --disable-warning=ExperimentalWarning --import tsx scripts/plaza-tarjetas.ts
 Restart=on-failure
 RestartSec=30
-# Producción primero: poca memoria y CPU, y nada de escribir en la carpeta de los bots.
-MemoryMax=220M
+# Producción primero: límite de 260 MB medido en preview; optimizar antes de volver a ampliarlo.
+MemoryMax=260M
 MemorySwapMax=0
 CPUQuota=50%
 Nice=10
