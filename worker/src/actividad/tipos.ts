@@ -78,7 +78,7 @@ export interface Vista {
     n: number;
     nonce: string;
     dificultad: Dificultad;
-    tema: string;
+    tema?: string;
     tipo: "opciones" | "texto";
     texto: string;
     opciones: string[];
