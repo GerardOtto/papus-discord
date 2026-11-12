@@ -229,8 +229,8 @@ const FICHAS: Record<ZonaId, string> = {
   tablon: "📌 <b>Tablón</b><br>Próximamente: votaciones, noticias, tips, estrenos y el buzón de pedidos de video.",
   arena: "⚔️ <b>Arena del 1vs1</b><br>Próximamente: aquí pelean los luchadores y se apuesta con monedas ganadas.",
   comercio: "🛍️ <b>Calle del comercio</b><br>La Tienda Shaula y el mercado negro de Neru.",
-  tienda: "🛍️ <b>Tienda Shaula</b><br>Próximamente: sobres y objetos para tu tarjeta.",
-  mercado: "🕶️ <b>Mercado negro</b> · Cerrado<br>Abre una hora al día, a hora sorpresa. Neru llega cuando abre.",
+  tienda: "🛍️ <b>Tienda Shaula</b><br>Consulta la vitrina de hoy y compra objetos para tu colección.",
+  mercado: "🕶️ <b>Mercado negro</b><br>Consulta los consumibles y adornos que Neru tiene en su vitrina diaria.",
   ruleta: "🎰 <b>Ruleta grande</b><br>Gírala con las tiradas de tus misiones del día (las mismas que en Discord).",
   escuela: "🏫 <b>Escuela de la trivia</b><br>Abre una partida multijugador con los Papus que entren a la misma sala.",
   estanque: "🎣 <b>Estanque</b><br>Lanza la caña, pesca un pez y gana XP según su tamaño: 5%, 10% o 20% de tu barra.",
@@ -242,6 +242,8 @@ const FICHAS: Record<ZonaId, string> = {
 /** Lugares que se pueden usar desde su ficha (boton o tecla F). */
 const USAR: Partial<Record<ZonaId, { texto: string; abrir: () => void }>> = {
   ruleta: { texto: "🎰 Abrir la ruleta", abrir: () => abrirRuleta() },\n  estanque: { texto: "🎣 Pescar", abrir: () => abrirPesca() },
+  tienda: { texto: "🛍️ Abrir Tienda Shaula", abrir: () => abrirCatalogo("tienda") },
+  mercado: { texto: "🕶️ Ver mercado negro", abrir: () => abrirCatalogo("mercado") },
   fogata: { texto: "🔥 Sentarse", abrir: () => alternarFogata() },
   escuela: {
     texto: "🧠 Jugar trivia multijugador",
@@ -1040,6 +1042,48 @@ async function girarRuleta(): Promise<void> {
   faseMia();
 }
 
+type TipoCatalogo = "tienda" | "mercado";
+
+function pintarCatalogo(tipo: TipoCatalogo, datos: Record<string, unknown>): string {
+  const objetos = Array.isArray(datos.objetos) ? datos.objetos as { id: string; nombre: string; descripcion: string; rareza?: string; emoji?: string; precio: number | null; usos?: number | null; owned: boolean }[] : [];
+  const soloLectura = datos.soloLectura === true;
+  const abierto = datos.abierta;
+  const estado = tipo === "mercado"
+    ? abierto === null ? "Vista previa de solo lectura" : abierto ? "Neru está atendiendo" : "Neru mantiene el mercado cerrado"
+    : abierto ? "Vitrina disponible" : "No hay una vitrina activa";
+  const filas = objetos.map((o) => {
+    const precio = o.precio === null ? "Precio no disponible" : `🪙 ${o.precio} Shaula-coins`;
+    const extra = o.usos ? ` · ${o.usos} usos` : "";
+    const accion = o.owned ? '<span class="v-chip verde">Ya lo tienes</span>'
+      : soloLectura ? '<span class="v-chip">Solo lectura</span>'
+      : abierto === false ? '<span class="v-chip">Cerrado</span>'
+      : `<button class="v-boton" data-compra="${tipo}:${esc(o.id)}">Comprar</button>`;
+    return `<li class="v-mision"><span class="v-mision-texto"><b>${esc(o.emoji ? `${o.emoji} ${o.nombre}` : o.nombre)}</b><small>${esc(o.descripcion)} · ${esc(precio)}${extra}</small></span>${accion}</li>`;
+  }).join("");
+  return `<p class="v-nota">${esc(estado)}</p>${filas ? `<ul class="v-misiones">${filas}</ul>` : '<p>No hay objetos en esta vitrina.</p>'}
+    ${soloLectura ? '<p class="v-pie">El catálogo se consulta sin modificar monedas ni inventario. Las compras se habilitarán en el entorno de producción.</p>' : ""}`;
+}
+
+async function abrirCatalogo(tipo: TipoCatalogo): Promise<void> {
+  const titulo = tipo === "tienda" ? "🛍️ Tienda Shaula" : "🕶️ Mercado negro";
+  ventana.abrir(tipo, titulo, '<p class="v-cargando">Consultando la vitrina…</p>');
+  const r = await pedir(`${tipo}.estado`);
+  if (!r.ok) return ventana.poner(tipo, `<p class="v-error">${esc(r.motivo)}</p>`);
+  ventana.poner(tipo, pintarCatalogo(tipo, r.datos as Record<string, unknown>));
+}
+
+async function comprarObjeto(tipo: TipoCatalogo, id: string): Promise<void> {
+  ventana.poner(tipo, '<p class="v-cargando">Procesando la compra…</p>');
+  const r = await pedir(`${tipo}.comprar`, { id });
+  if (!r.ok) {
+    aviso(r.motivo);
+    return abrirCatalogo(tipo);
+  }
+  const d = r.datos as { mensaje?: string };
+  aviso(d.mensaje ?? "Compra completada.");
+  await abrirCatalogo(tipo);
+}
+
 /** Ventana de pesca: el bot decide tamaño y XP; el cliente solo presenta el resultado. */
 function abrirPesca(): void {
   ventana.abrir(
@@ -1138,6 +1182,11 @@ function comando(texto: string): void {
 ventana.cuerpo.addEventListener("click", (e) => {
   const b = (e.target as HTMLElement).closest<HTMLButtonElement>("button[data-accion]");
   if (b?.dataset.accion === "girar" && !b.disabled) void girarRuleta();\n  if (b?.dataset.accion === "pescar" && !b.disabled) void pescar();
+  const compra = (e.target as HTMLElement).closest<HTMLButtonElement>("button[data-compra]");
+  if (compra?.dataset.compra) {
+    const [tipo, id] = compra.dataset.compra.split(":", 2);
+    if ((tipo === "tienda" || tipo === "mercado") && id) void comprarObjeto(tipo, id);
+  }
 });
 for (const id of ["stand", "premio"]) {
   $(id).addEventListener("click", (e) => {
