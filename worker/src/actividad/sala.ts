@@ -214,13 +214,13 @@ export class SalaTrivia implements DurableObject {
         await this.env.DB.batch(aciertos.map((a) => preview
           ? stmt.bind(this.partida, a.papu, a.pregunta, a.dificultad, a.racha, a.xp, this.canal, now, a.factor ?? 1)
           : stmt.bind(this.partida, a.papu, a.pregunta, a.dificultad, a.racha, a.xp, this.canal, now)));
+        if (this.persistTimer) { clearTimeout(this.persistTimer); this.persistTimer = null; }
+        this.persistAttempts = 0;
       } catch (error) {
         this.sala.devolverAciertos(aciertos);
         console.error("actividad: no se pudieron persistir los aciertos; se reintentará", error);
         this.programarReintentoAciertos();
       }
-      if (this.persistTimer) { clearTimeout(this.persistTimer); this.persistTimer = null; }
-      this.persistAttempts = 0;
     }
     for (const [ws, id] of this.sockets) if (id) this.enviar(ws, { vista: this.sala.vista(id) });
     if (this.timer) clearTimeout(this.timer);
