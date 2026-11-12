@@ -372,4 +372,48 @@ describe("XP de la trivia multijugador", () => {
     expect(perfil.tope).toBe(0);
     expect(perfil.actualizado_at).toBeGreaterThan(NOON - 5);
   });
+  it("aplica Celular por jugador, Guitarra al doble y Zanahoria a la siguiente pregunta compartida", () => {
+    const t=setup([op("a",{tema:"actual"}),op("b",{tema:"personajes"}),op("c",{tema:"audio"})],(_p,_r,f)=>f??1);
+    t.unir("ana","beto");
+    t.sala.setConsumibles("ana",{celular:1,guitarra:1,zanahoria:1,baguette:0});
+    t.sala.empezar("ana");
+    const o=t.opciones();
+    expect(t.sala.usarCelular("ana",o.nonce)).toBe(true);
+    expect(t.sala.vista("ana").pregunta!.ocultas).toHaveLength(2);
+    expect(t.sala.vista("beto").pregunta!.ocultas).toEqual([]);
+    expect(t.sala.usarGuitarra("ana",o.nonce)).toBe(true);
+    expect(t.sala.usarZanahoria("ana",o.nonce,"personajes")).toBe(true);
+    t.sala.responder("ana",o.nonce,{opcion:o.bien});
+    t.sala.responder("beto",o.nonce,{opcion:o.bien});
+    expect(t.sala.sacarAciertos().find(a=>a.papu==="ana")?.factor).toBe(2);
+    siguiente(t);
+    expect(t.sala.vista("ana").pregunta!.texto).toBe("¿b?");
+  });
+
+  it("la Baguette rescata hasta dos fallos conservando la racha en una partida compartida", () => {
+    const t=setup([op("a"),op("b"),op("c")]);
+    t.unir("ana");
+    t.sala.setConsumibles("ana",{celular:0,guitarra:0,zanahoria:0,baguette:1});
+    t.sala.empezar("ana");
+    let o=t.opciones();
+    t.sala.responder("ana",o.nonce,{opcion:o.bien});
+    siguiente(t);
+    o=t.opciones();
+    t.sala.responder("ana",o.nonce,{opcion:o.mal});
+    expect(t.sala.pendientesRescateBaguette()).toEqual(["ana"]);
+    t.sala.activarBaguette("ana");
+    expect(t.sala.rescatarBaguette("ana")).toBe(true);
+    expect(t.sala.vista("ana").revelar!.resultados.ana).toMatchObject({ok:false,salvado:true});
+    expect(t.sala.vista("ana").jugadores[0]).toMatchObject({vivo:true,racha:1});
+    siguiente(t);
+    o=t.opciones();
+    t.sala.responder("ana",o.nonce,{opcion:o.mal});
+    expect(t.sala.rescatarBaguette("ana")).toBe(true);
+    expect(t.sala.vista("ana").jugadores[0]).toMatchObject({vivo:true,racha:1});
+    siguiente(t);
+    o=t.opciones();
+    t.sala.responder("ana",o.nonce,{opcion:o.mal});
+    expect(t.sala.pendientesRescateBaguette()).toEqual([]);
+  });
+
 });
