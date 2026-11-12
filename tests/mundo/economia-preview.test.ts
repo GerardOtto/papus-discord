@@ -388,4 +388,23 @@ describe("EconomiaPlazaPreview", () => {
     expect(result.wallet.gratis).toBe(1);
   });
 
+  it("transfers a gifted roulette spin only between sandbox ledgers", async () => {
+    const source=openDb(":memory:"),preview=openDb(":memory:");abiertos.push(source,preview);
+    preview.exec("CREATE TABLE mundo_sandbox (papu_id TEXT PRIMARY KEY, estado TEXT NOT NULL, revision INTEGER NOT NULL DEFAULT 0, actualizado_at INTEGER NOT NULL)");
+    const query:D1Query=async <T>(sql:string,...params:unknown[]):Promise<T[]>=>{const st=preview.prepare(sql);if(/RETURNING/i.test(sql)||/^\\s*SELECT/i.test(sql))return st.all(...(params as never[])) as unknown as T[];st.run(...(params as never[]));return [];};
+    const sender="123456789012345678",recipient="223456789012345678",now=Date.parse("2026-11-12T12:00:00-03:00"),day="2026-11-12";
+    const state=(uses:number)=>({version:1,xp:100,wallet:{ganadas:0,compradas:0,ecos:0,gratis:0,gratisRaro:0,gratisLeg:0,sobres:0,sinEpica:0,sinLegendaria:0,hoy:0},inventario:[],consumibles:{"regalo-rin-len":uses},comprasMercado:[],ruletaDia:day,ruletaUsadas:0,pescaAt:0,cuotaExtraDia:day,cuotaExtra:0,cuotaUsada:0});
+    preview.prepare("INSERT INTO mundo_sandbox (papu_id,estado,revision,actualizado_at) VALUES (?,?,0,?)").run(sender,JSON.stringify(state(1)),now);
+    preview.prepare("INSERT INTO mundo_sandbox (papu_id,estado,revision,actualizado_at) VALUES (?,?,0,?)").run(recipient,JSON.stringify(state(0)),now);
+    const levels=new LevelService({db:source,settings:loadLevelSettings(),timeZone:"America/Santiago"});
+    const roulette={dayOf:()=>day,status:()=>({used:0,left:0,blocked:false,missions:[]})} as unknown as RouletteService;
+    const economy=new EconomiaPlazaPreview({query,db:source,levels,coins:null,mercado:{byId:new Map()} as unknown as MercadoService,roulette,quota:{} as Quota,now:()=>now,
+      trivia:loadTriviaSettings(),questionLevels:{},questionTotals:{facil:0,medio:0,dificil:0},timeZone:"America/Santiago"});
+    const result=await economy.acciones()["mercado.usar"]!({id:sender,nombre:"Remitente"},{id:"regalo-rin-len",para:recipient});
+    expect(result.ok).toBe(true);
+    const from=JSON.parse((preview.prepare("SELECT estado FROM mundo_sandbox WHERE papu_id=?").get(sender) as {estado:string}).estado);
+    const to=JSON.parse((preview.prepare("SELECT estado FROM mundo_sandbox WHERE papu_id=?").get(recipient) as {estado:string}).estado);
+    expect(from.consumibles["regalo-rin-len"]).toBe(0);expect(to.ruletaRegalos).toBe(1);expect(to.ruletaRegaloDia).toBe(day);
+  });
+
 });
