@@ -43,7 +43,7 @@ La Plaza 3D es una segunda interfaz del servidor de Discord. Discord y la Plaza 
 
 - `papus-plaza-preview` es un Worker separado y su despliegue no publica ni reemplaza `papus-bots`.
 - Su binding `DB` se resuelve desde el identificador de `worker/wrangler.toml`; no se acepta una base aislada como sustituto del estado del servidor.
-- El workflow no ejecuta migraciones ni crea tablas en D1. El esquema canónico debe estar instalado por el despliegue normal del backend.
+- El workflow aplica solo la migración aditiva de caché de tarjetas públicas; no crea bases D1 ni modifica tablas de economía/progresión.
 - No ejecutar `worker:deploy`, no fusionar este PR y no modificar el despliegue del bot principal desde el workflow de Plaza.
 
 ## Criterios de aceptación
