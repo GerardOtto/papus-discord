@@ -174,9 +174,10 @@ export class SalaTrivia implements DurableObject {
       ? `SELECT papu_id, xp_base, tope, actualizado_at, partida FROM actividad_perfiles_preview WHERE actualizado_at > 0 AND papu_id IN (${ids.map(() => "?").join(",")}) AND partida IN (?, ?) ORDER BY CASE WHEN partida = ? THEN 0 ELSE 1 END, actualizado_at DESC`
       : `SELECT papu_id, xp_base, tope, actualizado_at FROM actividad_perfiles WHERE actualizado_at > 0 AND papu_id IN (${ids.map(() => "?").join(",")})`;
     const stmt = this.env.DB.prepare(sql);
-    const rows = preview
-      ? await stmt.bind(...ids, this.partida, "", this.partida).all<{ papu_id: string; xp_base: number; tope: number; actualizado_at: number; partida: string }>()
-      : await stmt.bind(...ids).all<{ papu_id: string; xp_base: number; tope: number; actualizado_at: number }>();
+    type PerfilRow = { papu_id: string; xp_base: number; tope: number; actualizado_at: number; partida?: string };
+    const rows: { results: PerfilRow[] } = preview
+      ? await stmt.bind(...ids, this.partida, "", this.partida).all<PerfilRow>()
+      : await stmt.bind(...ids).all<PerfilRow>();
     const vistos = new Set<string>();
     for (const r of rows.results) {
       if (vistos.has(r.papu_id)) continue;
