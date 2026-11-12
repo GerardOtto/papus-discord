@@ -255,12 +255,19 @@ export class EconomiaPlazaPreview {
           const avg = this.promedioDiarioTrivia(row.papu_id, s, from, day);
           const multiplier = this.d.levels.multiplier(new Date(now));
           const factor = Math.max(1, Math.min(2, Math.floor(row.multiplicador ?? 1)));
-          const full = answerXp(this.d.trivia, this.d.levels.settings, {
+          // Replica xpDeAcierto del Worker: Teto redondea la base con racha 1 y la sala
+          // aplica después el bono de racha y el multiplicador individual de Guitarra.
+          const base = answerXp(this.d.trivia, this.d.levels.settings, {
             xp: s.xp,
             dailyAvg: avg,
-            streak: Math.max(1, row.racha),
+            streak: 1,
             multiplier,
-          }) * factor;
+          });
+          const rachaFactor = 1 + this.d.trivia.racha.bono * Math.min(
+            Math.max(0, row.racha - 1),
+            this.d.trivia.racha.tope,
+          );
+          const full = Math.round(base * rachaFactor * factor);
           const cap = dailyCap(this.d.trivia, this.d.levels.settings, s.xp, multiplier);
           earned = Math.max(0, Math.min(full, cap - (s.triviaXpDia ?? 0)));
           const before = progress(this.d.levels.settings, s.xp).level;
