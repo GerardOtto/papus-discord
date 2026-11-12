@@ -1,24 +1,8 @@
 name: Deploy isolated Plaza preview
 
+# Despliegue manual: no ejecutar un deploy por cada commit del PR.
+# Así se evitan cancelaciones en cascada y correos de fallos transitorios.
 on:
-  pull_request:
-    branches: [main]
-    types: [opened, synchronize, reopened]
-    paths:
-      - 'worker/**'
-      - 'scripts/actividad.ts'
-      - 'scripts/mundo.ts'
-      - 'src/mundo/**'
-      - 'src/pesca/**'
-      - 'src/coins/**'
-      - 'src/mercado/**'
-      - 'src/ruleta/**'
-      - 'src/levels/**'
-      - 'src/quota/**'
-      - 'scripts/plaza-tarjetas.ts'
-      - 'tests/mundo/**'
-      - 'tests/pesca/**'
-      - '.github/workflows/plaza-preview.yml'
   workflow_dispatch:
 
 permissions:
