@@ -73,7 +73,7 @@ describe("sala de la trivia multijugador", () => {
     expect(v.revelar!.correcta).toBe(bien);
     expect(v.revelar!.resultados.ana).toMatchObject({ ok: true, xp: 10 });
     expect(v.revelar!.resultados.beto).toMatchObject({ ok: false, xp: 0 });
-    const aciertos = [{ papu: "ana", pregunta: v.pregunta!.texto.slice(1, -1), dificultad: "facil", racha: 1, xp: 10 }];
+    const aciertos = [{ papu: "ana", pregunta: v.pregunta!.texto.slice(1, -1), dificultad: "facil" as const, racha: 1, xp: 10 }];
     expect(t.sala.sacarAciertos()).toEqual(aciertos);
     // Si D1 rechaza el batch, el Durable Object puede devolver los registros al buffer sin perderlos.
     t.sala.devolverAciertos(aciertos);
