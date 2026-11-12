@@ -36,6 +36,8 @@ export interface Casilla {
 export interface RuletaEstado {
   /** El preview muestra el progreso real de misiones, pero no permite consumir tiradas ni premios. */
   soloLectura?: boolean;
+  /** Permite probar la animación con giros ficticios, sin tiradas ni recompensas. */
+  simulacion?: boolean;
   tiradas: number;
   usadas: number;
   bloqueada: boolean;
@@ -63,6 +65,8 @@ export interface RuletaGiro {
   /** "+312 XP (¡subió al nivel 13!)" */
   texto: string;
   tiradas: number;
+  /** Resultado de demostración: no consumió una tirada ni concedió un premio. */
+  simulado?: boolean;
 }
 
 /** Resultado de una accion: lo que devuelve el bot, o un motivo si no se pudo. */
