@@ -57,6 +57,10 @@ interface EstadoSandbox {
   monedasDia?: string;
   xpSandboxDia?: number;
   monedasActividadDia?: number;
+  monedasXpBase?: number;
+  monedasResetBaseDia?: string;
+  monedasResetBaseXp?: number;
+  monedasResetBasePrevia?: number;
   monedasResetDia?: string;
   monedasResetXp?: number;
   monedasResetPrevia?: number;
@@ -123,6 +127,11 @@ export class EconomiaPlazaPreview {
       state.monedasDia = day;
       state.xpSandboxDia = 0;
       state.monedasActividadDia = real.actividad;
+      state.monedasXpBase = real.xp;
+      const reinicioBase = reinicioDe(this.d.db, userId, day);
+      state.monedasResetBaseDia = reinicioBase.veces ? day : undefined;
+      state.monedasResetBaseXp = reinicioBase.monedasXp;
+      state.monedasResetBasePrevia = reinicioBase.monedasPrevia;
       state.monedasResetDia = undefined;
       state.monedasResetXp = undefined;
       state.monedasResetPrevia = undefined;
@@ -130,12 +139,11 @@ export class EconomiaPlazaPreview {
       state.wallet.hoy = earned?.ganadas ?? 0;
     }
     state.xpSandboxDia = Math.max(0, (state.xpSandboxDia ?? 0) + deltaXp);
-    const original = reinicioDe(this.d.db, userId, day);
     const reset = state.monedasResetDia === day
-      ? { xp: state.monedasResetXp ?? real.xp, previa: state.monedasResetPrevia ?? state.monedasActividadDia ?? real.actividad }
-      : original.veces ? { xp: original.monedasXp, previa: original.monedasPrevia } : undefined;
+      ? { xp: state.monedasResetXp ?? state.monedasXpBase ?? real.xp, previa: state.monedasResetPrevia ?? state.monedasActividadDia ?? real.actividad }
+      : state.monedasResetBaseDia === day ? { xp: state.monedasResetBaseXp ?? 0, previa: state.monedasResetBasePrevia ?? 0 } : undefined;
     const objetivo = activityCoins(this.d.coins.settings, {
-      xp: real.xp + state.xpSandboxDia,
+      xp: (state.monedasXpBase ?? real.xp) + state.xpSandboxDia,
       ...(reset ? { reinicio: reset } : {}),
     });
     const anterior = state.monedasActividadDia ?? real.actividad;
@@ -467,6 +475,10 @@ export class EconomiaPlazaPreview {
       monedasDia: hoy,
       xpSandboxDia: 0,
       monedasActividadDia: this.d.coins?.activityToday(userId, this.now()).actividad ?? 0,
+      monedasXpBase: this.d.coins?.activityToday(userId, this.now()).xp ?? 0,
+      monedasResetBaseDia: reinicio.veces && hoy ? hoy : undefined,
+      monedasResetBaseXp: reinicio.monedasXp,
+      monedasResetBasePrevia: reinicio.monedasPrevia,
     };
   }
 
@@ -641,7 +653,7 @@ export class EconomiaPlazaPreview {
         this.recalcularMonedasActividad(s,userId,day,0);
         const monedas = this.d.coins?.activityToday(userId,now);
         s.monedasResetDia=day;
-        s.monedasResetXp=(monedas?.xp??0)+(s.xpSandboxDia??0);
+        s.monedasResetXp=(s.monedasXpBase??monedas?.xp??0)+(s.xpSandboxDia??0);
         s.monedasResetPrevia=s.monedasActividadDia??monedas?.actividad??0;
         s.triviaDia=day;s.triviaXpDia=0;s.triviaPartidasDia=[];
         s.ruletaDia=day;s.ruletaUsadas=0;s.ruletaResetDia=day;s.ruletaResetUsadas=spins;
