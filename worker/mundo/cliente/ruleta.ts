@@ -142,10 +142,13 @@ export function htmlRuleta(v: VistaRuleta): string {
   if (!e) return `<p class="v-cargando">Preguntándole a Teto por tus misiones… 🎰</p>`;
   const soloLectura = e.soloLectura === true;
   const simulacion = e.simulacion === true;
+  const sandbox = e.sandbox === true;
   const cabeza = e.bloqueada
     ? `<span class="v-chip rojo">🚫 Neru te dio un machetazo: sin ruleta por ahora</span>`
-    : simulacion
-      ? `<span class="v-chip">🧪 Simulación · sin premios reales</span>`
+    : sandbox
+      ? `<span class="v-chip">🧪 Progreso aislado · no afecta Discord</span>`
+      : simulacion
+        ? `<span class="v-chip">🧪 Simulación · sin premios reales</span>`
       : soloLectura
         ? `<span class="v-chip">📋 Progreso real · vista previa</span>`
       : e.tiradas > 0
@@ -177,11 +180,13 @@ export function htmlRuleta(v: VistaRuleta): string {
               : "";
   const ocupada = v.ahora ? `<p class="v-nota">🎡 Girando ahora: <b>${esc(v.ahora.nombre)}</b>${v.ahora.origen === "discord" ? " (desde Discord)" : ""}${v.fila ? ` · ${v.fila} en la fila` : ""}</p>` : "";
   const puede = !e.bloqueada && !["pidiendo", "fila", "girando"].includes(mio?.fase ?? "") && (simulacion || (!soloLectura && e.tiradas > 0));
-  const premios = soloLectura && !simulacion ? "" : `<h3 class="v-seccion">${simulacion ? "Casillas de demostración" : "Premios"}</h3><ul class="v-casillas">${casillas}</ul>`;
+  const premios = soloLectura && !simulacion ? "" : `<h3 class="v-seccion">${sandbox ? "Premios del entorno de prueba" : simulacion ? "Casillas de demostración" : "Premios"}</h3><ul class="v-casillas">${casillas}</ul>`;
   const controles = soloLectura && !simulacion ? "" : `${estadoGiro}${ocupada}
     <button class="v-boton" data-accion="girar" ${puede ? "" : "disabled"}>🎰 ${simulacion ? "Probar giro" : puede ? `Girar (${e.tiradas})` : "Sin tiradas"}</button>`;
-  const pie = simulacion
-    ? "Puedes probar la animación con premios de demostración. No se consume una tirada, no se entrega el premio y no cambia tu progreso."
+  const pie = sandbox
+    ? "Las tiradas consumen las misiones disponibles y aplican XP, sobres o cuota al progreso aislado de la Plaza. Los cambios persisten en el preview, pero nunca modifican tu cuenta de Discord."
+    : simulacion
+      ? "Puedes probar la animación con premios de demostración. No se consume una tirada, no se entrega el premio y no cambia tu progreso."
     : soloLectura
       ? "El avance se consulta desde la base original. Esta vista previa es de solo lectura: no consume tiradas ni modifica XP o recompensas."
     : `Una tirada por misión, hasta ${e.misiones.length} al día; se reinician a medianoche (hora de Chile). Premios: XP, mensajes extra con los Vocaloids por hoy (con tu cuota llena, se vuelven XP) y sobres. Si alguien más está girando, tu giro espera su turno.`;
