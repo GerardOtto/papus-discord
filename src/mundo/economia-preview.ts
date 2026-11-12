@@ -849,7 +849,10 @@ export class EconomiaPlazaPreview {
         cursor = this.siguienteDia(cursor);
       }
       s.ruletaGuardadas = guardadas;
-      s.disqueteProcesadoDia = day;
+      // El límite evita bloquear una operación tras una ausencia muy larga. Guarda el
+      // siguiente día pendiente, no el día actual: así las siguientes llamadas continúan
+      // el lote sin saltarse días ni volver a acreditar los ya procesados.
+      s.disqueteProcesadoDia = cursor;
       return { result: undefined };
     });
   }
