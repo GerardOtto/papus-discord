@@ -285,18 +285,19 @@ export class EconomiaPlazaPreview {
         s.triviaAciertosAplicados.push(row.id);
         s.triviaAciertosResultados[key] = earned;
         return { result: earned };
-      });
+      }, false);
       // Si el proceso se cae después del CAS, el resultado guardado permite reintentar sin duplicar XP ni sobres.
       await this.d.query("UPDATE actividad_aciertos_preview SET aplicado = 1, xp = ? WHERE id = ? AND aplicado = 0", Number(gained), row.id);
-      if (Number(gained) > 0) await this.d.query("UPDATE mundo_perfiles SET pedido_at = ? WHERE papu_id = ?", this.now() + 2, row.papu_id).catch(() => {});
       const partidas = touched.get(row.papu_id) ?? new Set<string>();
       partidas.add(row.partida);
       touched.set(row.papu_id, partidas);
       applied++;
     }
-    for (const [papu, partidas] of touched) for (const partida of partidas) {
-      await this.d.query("UPDATE actividad_perfiles_preview SET pedido_at = ? WHERE papu_id = ? AND partida = ?", this.now() + 2, papu, partida);
-      await this.guardarPerfilTrivia(papu, partida);
+    for (const [papu, partidas] of touched) {
+      const pedido = this.now() + 2;
+      await this.d.query("UPDATE actividad_perfiles_preview SET pedido_at = ? WHERE papu_id = ?", pedido, papu).catch(() => {});
+      await this.d.query("UPDATE mundo_perfiles SET pedido_at = ? WHERE papu_id = ?", pedido, papu).catch(() => {});
+      for (const partida of partidas) await this.guardarPerfilTrivia(papu, partida);
     }
     await this.entregarRegalos();
     await this.syncTriviaProfiles();
@@ -540,6 +541,7 @@ export class EconomiaPlazaPreview {
   private async cambiar<T>(
     userId: string,
     operar: (state: EstadoSandbox) => { result: T; changed?: boolean },
+    refrescar = true,
   ): Promise<T> {
     for (let intento = 0; intento < 8; intento++) {
       const { state: original, revision } = await this.cargar(userId);
@@ -555,7 +557,7 @@ export class EconomiaPlazaPreview {
         const refrescarPerfiles = state.xp !== original.xp || state.triviaDia !== original.triviaDia ||
           state.triviaXpDia !== original.triviaXpDia ||
           JSON.stringify(state.triviaPartidasDia ?? []) !== JSON.stringify(original.triviaPartidasDia ?? []);
-        if (refrescarPerfiles) {
+        if (refrescar && refrescarPerfiles) {
           const pedido = this.now() + 2;
           await this.d.query("UPDATE actividad_perfiles_preview SET pedido_at = ? WHERE papu_id = ?", pedido, userId).catch(() => {});
           await this.d.query("UPDATE mundo_perfiles SET pedido_at = ? WHERE papu_id = ?", pedido, userId).catch(() => {});
