@@ -33,6 +33,8 @@ export type Pedido =
   | ({ t: "mov" } & Pose)
   | { t: "chat"; texto: string }
   | { t: "aspecto"; aspecto: Aspecto }
+  /** Se sienta o se levanta junto a la fogata. */
+  | { t: "sentarse"; sentado: boolean }
   /** Le pide al bot algo de un comando (ruleta…); `ref` vuelve con el resultado. */
   | { t: "accion"; accion: Accion; datos?: unknown; ref: number }
   /** Solicita la tarjeta pública de un Papu conectado. */
@@ -52,6 +54,8 @@ export type Aviso =
   | ({ t: "mov"; id: string; s?: 1 } & Pose)
   | { t: "chat"; id: string; texto: string }
   | { t: "aspecto"; id: string; aspecto: Aspecto }
+  /** Estado social de cada Papu en la fogata. */
+  | { t: "fogata"; id: string; sentado: boolean }
   /** Movimiento rechazado (muy rapido o fuera del mapa): la pagina vuelve a esta pose. */
   | ({ t: "corrige" } & Pose)
   | { t: "aviso"; texto: string }
