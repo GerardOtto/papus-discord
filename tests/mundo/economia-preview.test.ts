@@ -284,7 +284,7 @@ describe("EconomiaPlazaPreview", () => {
     const economy=new EconomiaPlazaPreview({query,db:source,levels,coins:null,mercado:{byId:new Map()} as unknown as MercadoService,roulette,quota,now:()=>now,
       trivia:loadTriviaSettings(),questionLevels:{},questionTotals:{facil:0,medio:0,dificil:0},timeZone:"America/Santiago"});
     const result=await economy.acciones()["mercado.usar"]!({id:user,nombre:"Papu"},{id:"pc-adachi-rei"});
-    expect(result.ok).toBe(true);
+    expect(result.ok, JSON.stringify(result)).toBe(true);
     const saved=preview.prepare("SELECT estado FROM mundo_sandbox WHERE papu_id=?").get(user) as {estado:string};
     const next=JSON.parse(saved.estado) as typeof state & {ruletaResetUsadas:number;cuotaResetBase:number};
     expect(next.xp).toBe(900);expect(next.triviaXpDia).toBe(0);expect(next.triviaPartidasDia).toEqual([]);
