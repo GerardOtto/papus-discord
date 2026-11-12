@@ -195,6 +195,7 @@ export class SalaMundo implements DurableObject {
         return this.enviar(ws, { t: "aviso", texto: "Acércate a la fogata para sentarte junto a los demás. 🔥" });
       }
       if (m.sentado) {
+        if (ficha.sentado) return;
         const ocupados = new Set(this.conectados().flatMap((c) => c.ficha.asiento === undefined ? [] : [c.ficha.asiento]));
         const asiento = Array.from({ length: 6 }, (_, i) => i).find((i) => !ocupados.has(i));
         if (asiento === undefined) return this.enviar(ws, { t: "aviso", texto: "Todos los troncos están ocupados. Espera a que alguien se levante. 🔥" });
@@ -211,6 +212,7 @@ export class SalaMundo implements DurableObject {
         this.enviar(ws, { t: "corrige", x: papu.x, z: papu.z, r: papu.r, a: 0, m: 0 });
         this.todos({ t: "mov", id: papu.id, x: papu.x, z: papu.z, r: papu.r, a: 0, m: 0 }, ws);
       } else {
+        if (!ficha.sentado) return;
         ficha.sentado = false;
         delete ficha.asiento;
         ws.serializeAttachment(ficha);
