@@ -41,7 +41,7 @@ export class SalaTrivia implements DurableObject {
       pool: POOL.preguntas,
       xp: (papu, racha, factor) => {
         const p = this.perfiles.get(papu);
-        if (!p) return null;
+        if (!p || (this.env.MUNDO_PREVIEW === "1" && p.partida !== this.partida)) return null;
         const xp = xpDeAcierto(p, racha, POOL.racha, factor);
         p.tope -= xp;
         return xp;
@@ -152,7 +152,7 @@ export class SalaTrivia implements DurableObject {
         .run();
       // El puente Node actualiza el perfil cada pocos segundos. Esperar brevemente evita que un Papu
       // reconectado durante una partida reciba una XP visible calculada con el perfil genérico del lobby.
-      for (let intento = 0; intento < 8; intento++) {
+      for (let intento = 0; intento < 12; intento++) {
         await this.leerPerfiles([papu]);
         const perfil = this.perfiles.get(papu);
         if (perfil?.partida === this.partida && perfil.at >= pedidoAt) break;
