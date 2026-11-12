@@ -42,7 +42,7 @@ export interface RuletaEstado {
   sandbox?: boolean;
   tiradas: number;
   usadas: number;
-  atunPendiente?: { girosRestantes: number };
+  atunPendiente?: { girosRestantes: number; premio?: string; aplicado?: boolean };
   bloqueada: boolean;
   misiones: Mision[];
   /** Notas del mercado negro (Micrófono de Meiko, Disquete, regalos de Rin y Len, Atún de Luka). */
