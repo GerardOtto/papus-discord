@@ -163,18 +163,32 @@ export class MundoPuente {
    * plano), acciones, perfiles pedidos y chat para #plaza-papus. Ademas la foto del servidor cada minuto.
    */
   async sync(): Promise<number> {
+    const corteAcciones = this.now() - ACCION_VENCE_MS;
     const [hay] = await this.d.query<{
       menciones: number;
       acciones: number;
+      accionesInterrumpidas: number;
       perfiles: number;
       chat: number;
     }>(
       `SELECT
         (SELECT COUNT(*) FROM mundo_menciones WHERE tomado = 0) AS menciones,
         (SELECT COUNT(*) FROM mundo_acciones WHERE tomado = 0) AS acciones,
+        (SELECT COUNT(*) FROM mundo_acciones WHERE tomado = 1 AND creado_at <= ?) AS accionesInterrumpidas,
         (SELECT COUNT(*) FROM mundo_perfiles WHERE pedido_at >= actualizado_at) AS perfiles,
         (SELECT COUNT(*) FROM mundo_chat WHERE publicado = 0) AS chat`,
+      corteAcciones,
     );
+    // Si el proceso se reinició después de reclamar una acción, no puede quedar
+    // pendiente para siempre. No se reejecuta a ciegas: el ledger pudo confirmarla
+    // antes de la caída, así que se devuelve un resultado de recuperación explícito.
+    if (hay?.accionesInterrumpidas) {
+      await this.d.query(
+        "UPDATE mundo_acciones SET tomado = 2, resultado = ? WHERE tomado = 1 AND creado_at <= ?",
+        JSON.stringify({ ok: false, motivo: "La acción se interrumpió antes de confirmar su respuesta. Revisa tu progreso antes de repetirla." }),
+        corteAcciones,
+      );
+    }
     let rows: Mencion[] = [];
     if (hay?.menciones) {
       rows = await this.d.query<Mencion>(
