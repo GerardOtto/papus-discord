@@ -101,7 +101,7 @@ export class EconomiaPlazaPreview {
     );
     let applied = 0;
     for (const row of rows) {
-      await this.cambiar(row.papu_id, (s) => {
+      const gained = await this.cambiar(row.papu_id, (s) => {
         s.triviaAciertosAplicados ??= [];
         if (s.triviaAciertosAplicados.includes(row.id)) return { result: undefined, changed: false };
         const now = this.now(), day = this.d.roulette.dayOf(now);
@@ -153,7 +153,7 @@ export class EconomiaPlazaPreview {
         if(s.triviaAciertosAplicados.length>1000)s.triviaAciertosAplicados=s.triviaAciertosAplicados.slice(-800);
         return {result:gained};
       });
-      await this.d.query("UPDATE actividad_aciertos SET aplicado = 1, xp = COALESCE(xp_mostrada, 0) WHERE id = ?",row.id);
+      await this.d.query("UPDATE actividad_aciertos SET aplicado = 1, xp = ? WHERE id = ?", Number(gained ?? 0), row.id);
       applied++;
     }
     await this.syncTriviaProfiles();
