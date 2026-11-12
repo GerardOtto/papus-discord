@@ -50,6 +50,9 @@ interface EstadoSandbox {
   cuotaResetBase?: number;
   ruletaRegaloDia?: string;
   ruletaRegalos?: number;
+  regalosSecuencia?: number;
+  regalosPendientes?: Record<string, { para: string; day: string }>;
+  regalosRecibidos?: string[];
   atunPendiente?: { day: string; index: number; giros: number; gastoUso: boolean; xp: number; mensajes: number; sobres: number; subioAntes?: string; nivelAntes: number };
   triviaDia?: string; triviaXpDia?: number; triviaPartidasDia?: string[]; triviaSuperadas?: string[]; triviaPremios?: string[]; triviaHitos?: Partial<Record<Dificultad, { aciertos: number; premios: number }>>; triviaAciertosAplicados?: number[]; triviaAciertosResultados?: Record<string, number>; triviaRuns?: Record<string, { day: string; withXp: boolean }>;
 }
@@ -529,6 +532,28 @@ export class EconomiaPlazaPreview {
       });
       if(result.ok) await this.d.query("UPDATE actividad_perfiles SET pedido_at = ? WHERE papu_id = ?",now+2,userId);
       return result;
+    }
+    if (id === "regalo-rin-len") {
+      const para = datos && typeof datos === "object" ? (datos as { para?: unknown }).para : null;
+      if (typeof para !== "string" || !/^\\d{5,25}$/.test(para)) return error("Indica el ID de Discord válido del Papu que recibirá la tirada.");
+      if (para === userId) return error("Rin y Len no te dejan regalarte una tirada a ti mismo. 🍊🍌");
+      if (this.d.roulette.status(para, this.now()).blocked) return error("Ese Papu tiene la ruleta bloqueada y perdería el regalo.");
+      const reserva = await this.cambiar(userId, (s) => {
+        const usos = s.consumibles[id] ?? 0;
+        if (usos <= 0) return { result: error("No te quedan regalos de Rin y Len."), changed: false };
+        s.regalosSecuencia = (s.regalosSecuencia ?? 0) + 1;
+        const regaloId = String(userId) + ":" + String(this.now()) + ":" + String(s.regalosSecuencia);
+        s.consumibles[id] = usos - 1;
+        s.regalosPendientes ??= {};
+        s.regalosPendientes[regaloId] = { para, day: this.d.roulette.dayOf(this.now()) };
+        return { result: ok({ regaloId, usos: s.consumibles[id] }) };
+      });
+      if (!reserva.ok) return reserva;
+      // El pendiente permanece en el ledger del remitente si falla la entrega y se reintenta en el siguiente ciclo.
+      await this.entregarRegalos(userId);
+      const pendientes = await this.cargar(userId);
+      const quedan = Object.keys(pendientes.state.regalosPendientes ?? {}).length;
+      return ok({ mensaje: quedan ? "🍊🍌 El regalo quedó registrado y se entregará al completar la sincronización." : "🍊🍌 ¡Regalo enviado! Se añadió una tirada sandbox a " + para + ".", usos: reserva.datos.usos, sandbox: true });
     }
     if (id !== "microfono-meiko") return error("Ese consumible todavía no tiene una acción disponible en la Plaza.");
     const objeto = this.d.mercado.byId.get(id);
