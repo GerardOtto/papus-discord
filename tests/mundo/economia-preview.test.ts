@@ -263,7 +263,7 @@ describe("EconomiaPlazaPreview", () => {
   it("applies multiplayer trivia XP and completion rewards once in the isolated ledger", async () => {
     const source=openDb(":memory:"), preview=openDb(":memory:"); abiertos.push(source,preview);
     preview.exec(`CREATE TABLE mundo_sandbox (papu_id TEXT PRIMARY KEY, estado TEXT NOT NULL, revision INTEGER NOT NULL DEFAULT 0, actualizado_at INTEGER NOT NULL);
-      CREATE TABLE actividad_perfiles (papu_id TEXT PRIMARY KEY, xp_base INTEGER NOT NULL DEFAULT 0, tope INTEGER NOT NULL DEFAULT 0, pedido_at INTEGER NOT NULL DEFAULT 0, actualizado_at INTEGER NOT NULL DEFAULT 0);
+      CREATE TABLE actividad_perfiles_preview (papu_id TEXT NOT NULL, partida TEXT NOT NULL DEFAULT '', xp_base INTEGER NOT NULL DEFAULT 0, tope INTEGER NOT NULL DEFAULT 0, pedido_at INTEGER NOT NULL DEFAULT 0, actualizado_at INTEGER NOT NULL DEFAULT 0, PRIMARY KEY (papu_id, partida));
       CREATE TABLE actividad_aciertos_preview (id INTEGER PRIMARY KEY AUTOINCREMENT, partida TEXT NOT NULL, papu_id TEXT NOT NULL, pregunta TEXT NOT NULL, dificultad TEXT NOT NULL, racha INTEGER NOT NULL, xp_mostrada INTEGER, canal TEXT, creado_at INTEGER NOT NULL, aplicado INTEGER NOT NULL DEFAULT 0, xp INTEGER, multiplicador INTEGER NOT NULL DEFAULT 1);`);
     const query:D1Query=async <T>(sql:string,...params:unknown[]):Promise<T[]>=>{
       const st=preview.prepare(sql);
@@ -274,7 +274,7 @@ describe("EconomiaPlazaPreview", () => {
     const levels=new LevelService({db:source,settings:loadLevelSettings(),timeZone:"America/Santiago"});
     const roulette={dayOf:()=>"2026-11-12"} as unknown as RouletteService;
     preview.prepare("INSERT INTO actividad_aciertos_preview (partida,papu_id,pregunta,dificultad,racha,creado_at,multiplicador) VALUES (?,?,?,?,?,?,?)").run("partida-1",user,"pregunta-1","facil",1,now,2);
-    preview.prepare("INSERT INTO actividad_perfiles (papu_id,pedido_at,actualizado_at) VALUES (?,?,0)").run(user,now);
+    preview.prepare("INSERT INTO actividad_perfiles_preview (papu_id,pedido_at,actualizado_at) VALUES (?,?,0)").run(user,now);
     const economy=new EconomiaPlazaPreview({query,db:source,levels,coins:null,mercado:null,roulette,quota:{} as Quota,now:()=>now,
       trivia:loadTriviaSettings(),questionLevels:{"pregunta-1":"facil"},questionTotals:{facil:1,medio:0,dificil:0},timeZone:"America/Santiago"});
     expect(await economy.syncTrivia()).toBe(1);
@@ -292,7 +292,7 @@ describe("EconomiaPlazaPreview", () => {
   it("PC de Adachi reinicia topes y contadores solo en el ledger sandbox", async () => {
     const source=openDb(":memory:"), preview=openDb(":memory:"); abiertos.push(source,preview);
     preview.exec("CREATE TABLE mundo_sandbox (papu_id TEXT PRIMARY KEY, estado TEXT NOT NULL, revision INTEGER NOT NULL DEFAULT 0, actualizado_at INTEGER NOT NULL); CREATE TABLE mundo_perfiles (papu_id TEXT PRIMARY KEY, pedido_at INTEGER NOT NULL DEFAULT 0)");
-    preview.exec("CREATE TABLE actividad_perfiles (papu_id TEXT PRIMARY KEY, xp_base INTEGER NOT NULL DEFAULT 0, tope INTEGER NOT NULL DEFAULT 0, pedido_at INTEGER NOT NULL DEFAULT 0, actualizado_at INTEGER NOT NULL DEFAULT 0)");
+    preview.exec("CREATE TABLE actividad_perfiles_preview (papu_id TEXT NOT NULL, partida TEXT NOT NULL DEFAULT '', xp_base INTEGER NOT NULL DEFAULT 0, tope INTEGER NOT NULL DEFAULT 0, pedido_at INTEGER NOT NULL DEFAULT 0, actualizado_at INTEGER NOT NULL DEFAULT 0, PRIMARY KEY (papu_id, partida))");
     const query:D1Query=async <T>(sql:string,...params:unknown[]):Promise<T[]>=>{
       const st=preview.prepare(sql);
       if(/RETURNING/i.test(sql)||/^\s*SELECT/i.test(sql))return st.all(...(params as never[])) as unknown as T[];
@@ -320,7 +320,7 @@ describe("EconomiaPlazaPreview", () => {
     const source = openDb(":memory:");
     const preview = openDb(":memory:");
     abiertos.push(source, preview);
-    preview.exec("CREATE TABLE mundo_sandbox (papu_id TEXT PRIMARY KEY, estado TEXT NOT NULL, revision INTEGER NOT NULL DEFAULT 0, actualizado_at INTEGER NOT NULL); CREATE TABLE actividad_perfiles (papu_id TEXT PRIMARY KEY, xp_base INTEGER NOT NULL DEFAULT 0, tope INTEGER NOT NULL DEFAULT 0, pedido_at INTEGER NOT NULL DEFAULT 0, actualizado_at INTEGER NOT NULL DEFAULT 0)");
+    preview.exec("CREATE TABLE mundo_sandbox (papu_id TEXT PRIMARY KEY, estado TEXT NOT NULL, revision INTEGER NOT NULL DEFAULT 0, actualizado_at INTEGER NOT NULL); CREATE TABLE actividad_perfiles_preview (papu_id TEXT NOT NULL, partida TEXT NOT NULL DEFAULT '', xp_base INTEGER NOT NULL DEFAULT 0, tope INTEGER NOT NULL DEFAULT 0, pedido_at INTEGER NOT NULL DEFAULT 0, actualizado_at INTEGER NOT NULL DEFAULT 0, PRIMARY KEY (papu_id, partida))");
     const query: D1Query = async <T>(sql: string, ...params: unknown[]): Promise<T[]> => {
       const statement = preview.prepare(sql);
       if (/RETURNING/i.test(sql) || /^\s*SELECT/i.test(sql)) return statement.all(...(params as never[])) as unknown as T[];
@@ -374,7 +374,7 @@ describe("EconomiaPlazaPreview", () => {
     preview.exec(`
       CREATE TABLE mundo_sandbox (papu_id TEXT PRIMARY KEY, estado TEXT NOT NULL, revision INTEGER NOT NULL DEFAULT 0, actualizado_at INTEGER NOT NULL);
       CREATE TABLE mundo_perfiles (papu_id TEXT PRIMARY KEY, pedido_at INTEGER NOT NULL DEFAULT 0);
-      CREATE TABLE actividad_perfiles (papu_id TEXT PRIMARY KEY, xp_base INTEGER NOT NULL DEFAULT 0, tope INTEGER NOT NULL DEFAULT 0, pedido_at INTEGER NOT NULL DEFAULT 0, actualizado_at INTEGER NOT NULL DEFAULT 0);
+      CREATE TABLE actividad_perfiles_preview (papu_id TEXT NOT NULL, partida TEXT NOT NULL DEFAULT '', xp_base INTEGER NOT NULL DEFAULT 0, tope INTEGER NOT NULL DEFAULT 0, pedido_at INTEGER NOT NULL DEFAULT 0, actualizado_at INTEGER NOT NULL DEFAULT 0, PRIMARY KEY (papu_id, partida));
       CREATE TABLE actividad_aciertos_preview (id INTEGER PRIMARY KEY AUTOINCREMENT, partida TEXT NOT NULL, papu_id TEXT NOT NULL, pregunta TEXT NOT NULL, dificultad TEXT NOT NULL, racha INTEGER NOT NULL, xp_mostrada INTEGER, canal TEXT, creado_at INTEGER NOT NULL, aplicado INTEGER NOT NULL DEFAULT 0, xp INTEGER, multiplicador INTEGER NOT NULL DEFAULT 1);
     `);
     let failMark = true;
@@ -421,7 +421,7 @@ describe("EconomiaPlazaPreview", () => {
     preview.exec(`
       CREATE TABLE mundo_sandbox (papu_id TEXT PRIMARY KEY, estado TEXT NOT NULL, revision INTEGER NOT NULL DEFAULT 0, actualizado_at INTEGER NOT NULL);
       CREATE TABLE mundo_perfiles (papu_id TEXT PRIMARY KEY, pedido_at INTEGER NOT NULL DEFAULT 0);
-      CREATE TABLE actividad_perfiles (papu_id TEXT PRIMARY KEY, xp_base INTEGER NOT NULL DEFAULT 0, tope INTEGER NOT NULL DEFAULT 0, pedido_at INTEGER NOT NULL DEFAULT 0, actualizado_at INTEGER NOT NULL DEFAULT 0);
+      CREATE TABLE actividad_perfiles_preview (papu_id TEXT NOT NULL, partida TEXT NOT NULL DEFAULT '', xp_base INTEGER NOT NULL DEFAULT 0, tope INTEGER NOT NULL DEFAULT 0, pedido_at INTEGER NOT NULL DEFAULT 0, actualizado_at INTEGER NOT NULL DEFAULT 0, PRIMARY KEY (papu_id, partida));
       CREATE TABLE actividad_aciertos_preview (id INTEGER PRIMARY KEY AUTOINCREMENT, partida TEXT NOT NULL, papu_id TEXT NOT NULL, pregunta TEXT NOT NULL, dificultad TEXT NOT NULL, racha INTEGER NOT NULL, xp_mostrada INTEGER, canal TEXT, creado_at INTEGER NOT NULL, aplicado INTEGER NOT NULL DEFAULT 0, xp INTEGER, multiplicador INTEGER NOT NULL DEFAULT 1);
     `);
     const query: D1Query = async <T>(sql: string, ...params: unknown[]): Promise<T[]> => {
@@ -468,7 +468,7 @@ describe("EconomiaPlazaPreview", () => {
   it("transfers a gifted roulette spin only between sandbox ledgers", async () => {
     const source=openDb(":memory:"),preview=openDb(":memory:");abiertos.push(source,preview);
     preview.exec("CREATE TABLE mundo_sandbox (papu_id TEXT PRIMARY KEY, estado TEXT NOT NULL, revision INTEGER NOT NULL DEFAULT 0, actualizado_at INTEGER NOT NULL); CREATE TABLE mundo_perfiles (papu_id TEXT PRIMARY KEY, pedido_at INTEGER NOT NULL DEFAULT 0)");
-    preview.exec("CREATE TABLE actividad_perfiles (papu_id TEXT PRIMARY KEY, xp_base INTEGER NOT NULL DEFAULT 0, tope INTEGER NOT NULL DEFAULT 0, pedido_at INTEGER NOT NULL DEFAULT 0, actualizado_at INTEGER NOT NULL DEFAULT 0)");
+    preview.exec("CREATE TABLE actividad_perfiles_preview (papu_id TEXT NOT NULL, partida TEXT NOT NULL DEFAULT '', xp_base INTEGER NOT NULL DEFAULT 0, tope INTEGER NOT NULL DEFAULT 0, pedido_at INTEGER NOT NULL DEFAULT 0, actualizado_at INTEGER NOT NULL DEFAULT 0, PRIMARY KEY (papu_id, partida))");
     const query:D1Query=async <T>(sql:string,...params:unknown[]):Promise<T[]>=>{const st=preview.prepare(sql);if(/RETURNING/i.test(sql)||/^\s*SELECT/i.test(sql))return st.all(...(params as never[])) as unknown as T[];st.run(...(params as never[]));return [];};
     const sender="123456789012345678",recipient="223456789012345678",now=Date.parse("2026-11-12T12:00:00-03:00"),day="2026-11-12";
     const state=(uses:number)=>({version:1,xp:100,wallet:{ganadas:0,compradas:0,ecos:0,gratis:0,gratisRaro:0,gratisLeg:0,sobres:0,sinEpica:0,sinLegendaria:0,hoy:0},inventario:[],consumibles:{"regalo-rin-len":uses},comprasMercado:[],ruletaDia:day,ruletaUsadas:0,pescaAt:0,cuotaExtraDia:day,cuotaExtra:0,cuotaUsada:0});
@@ -493,7 +493,7 @@ describe("EconomiaPlazaPreview", () => {
     preview.exec(`
       CREATE TABLE mundo_sandbox (papu_id TEXT PRIMARY KEY, estado TEXT NOT NULL, revision INTEGER NOT NULL DEFAULT 0, actualizado_at INTEGER NOT NULL);
       CREATE TABLE mundo_perfiles (papu_id TEXT PRIMARY KEY, pedido_at INTEGER NOT NULL DEFAULT 0);
-      CREATE TABLE actividad_perfiles (papu_id TEXT PRIMARY KEY, xp_base INTEGER NOT NULL DEFAULT 0, tope INTEGER NOT NULL DEFAULT 0, pedido_at INTEGER NOT NULL DEFAULT 0, actualizado_at INTEGER NOT NULL DEFAULT 0);
+      CREATE TABLE actividad_perfiles_preview (papu_id TEXT NOT NULL, partida TEXT NOT NULL DEFAULT '', xp_base INTEGER NOT NULL DEFAULT 0, tope INTEGER NOT NULL DEFAULT 0, pedido_at INTEGER NOT NULL DEFAULT 0, actualizado_at INTEGER NOT NULL DEFAULT 0, PRIMARY KEY (papu_id, partida));
       CREATE TABLE actividad_aciertos_preview (id INTEGER PRIMARY KEY AUTOINCREMENT, partida TEXT NOT NULL, papu_id TEXT NOT NULL, pregunta TEXT NOT NULL, dificultad TEXT NOT NULL, racha INTEGER NOT NULL, xp_mostrada INTEGER, canal TEXT, creado_at INTEGER NOT NULL, aplicado INTEGER NOT NULL DEFAULT 0, xp INTEGER, multiplicador INTEGER NOT NULL DEFAULT 1);
     `);
     const query: D1Query = async <T>(sql: string, ...params: unknown[]): Promise<T[]> => {
