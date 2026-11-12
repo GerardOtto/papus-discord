@@ -1,7 +1,7 @@
 name: Deploy Plaza preview against live Papus data
 
 # Despliegue manual: publica solo el Worker de la Plaza, usando el D1 canónico
-# que ya comparte el bot principal. No crea ni migra bases de datos.
+# que ya comparte el bot principal. Aplica solo la migración aditiva de caché de tarjetas.
 on:
   workflow_dispatch:
 
