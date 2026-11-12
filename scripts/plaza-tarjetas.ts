@@ -13,6 +13,8 @@ import { CORE_BOT_IDS, loadConfig, loadDotEnv } from "../src/config";
 import { toCardEquip } from "../src/coins/equip";
 import { loadCatalog, loadCoinSettings } from "../src/coins/rules";
 import { CoinService } from "../src/coins/service";
+import { loadMercadoSettings } from "../src/mercado/rules";
+import { MercadoService } from "../src/mercado/service";
 import { EngineReader } from "../src/engine/reader";
 import { loadLevelSettings } from "../src/levels/rules";
 import { LevelService } from "../src/levels/service";
@@ -61,6 +63,10 @@ function main(): void {
   const coinSettings = loadCoinSettings();
   const coins = coinSettings.activo
     ? new CoinService({ db, settings: coinSettings, catalog: loadCatalog(), timeZone: config.quotaTimeZone })
+    : null;
+
+  const mercado = coins
+    ? new MercadoService({ db, settings: loadMercadoSettings(), coins, quota, roulette, timeZone: config.quotaTimeZone })
     : null;
 
   // Solo consulta misiones reales. No se conecta la acción de girar: este proceso abre SQLite en solo lectura.
@@ -154,6 +160,32 @@ function main(): void {
       },
     };
   };
+  // Catálogos de tienda en modo lectura. No se consulta el monedero (crearía filas) ni se ejecutan compras.
+  puente.acciones["tienda.estado"] = (papu) => {
+    const vitrina = coins?.vitrina() ?? null;
+    const owned = coins?.owned(papu.id) ?? new Set<string>();
+    return {
+      ok: true,
+      datos: {
+        abierta: !!vitrina,
+        soloLectura: true,
+        objetos: (vitrina?.objetos ?? []).flatMap((id) => {
+          const o = coins?.byId.get(id);
+          return o ? [{ id: o.id, nombre: o.nombre, descripcion: o.descripcion, rareza: o.rareza, precio: null, owned: owned.has(o.id) }] : [];
+        }),
+      },
+    };
+  };
+  puente.acciones["tienda.comprar"] = () => ({ ok: false, motivo: "La tienda del preview es de solo lectura: no se descuentan monedas ni se modifica el inventario." });
+  puente.acciones["mercado.estado"] = (papu) => ({
+    ok: true,
+    datos: {
+      abierto: null,
+      soloLectura: true,
+      objetos: mercado?.vitrina().map((o) => ({ id: o.id, nombre: o.nombre, emoji: o.emoji, descripcion: o.descripcion, precio: o.precio, usos: o.usos ?? null, owned: mercado.tiene(papu.id, o) })) ?? [],
+    },
+  });
+  puente.acciones["mercado.comprar"] = () => ({ ok: false, motivo: "El mercado negro del preview es de solo lectura: no se descuentan monedas ni se modifica el inventario." });
   log(`✔ mundoPreview listo: D1 ${databaseId.slice(0, 8)}… (preview), base en solo lectura: ${dataDir}`);
 
   let ocupado = false;
