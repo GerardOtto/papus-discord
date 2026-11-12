@@ -89,7 +89,8 @@ export function pregunta(v: Vista): string {
     const yaElegi = p.elecciones.findIndex((ids) => ids.includes(v.yo));
     cuerpo = `<div class="opciones${p.opciones.length === 2 ? " dos" : ""}">${p.opciones
       .map((o, k) => {
-        const oculta = !r && (p.ocultas ?? []).includes(k);\n        const clase = r ? (k === r.correcta ? "correcta" : yaElegi === k ? "mal" : "apagada") : oculta ? "apagada" : yaElegi === k ? "mia" : "";
+        const oculta = !r && (p.ocultas ?? []).includes(k);
+        const clase = r ? (k === r.correcta ? "correcta" : yaElegi === k ? "mal" : "apagada") : oculta ? "apagada" : yaElegi === k ? "mia" : "";
         const caras = (p.elecciones[k] ?? []).map((id) => {
           const nueva = !estado.caras.has(`${p.nonce}:${id}`);
           estado.caras.add(`${p.nonce}:${id}`);
