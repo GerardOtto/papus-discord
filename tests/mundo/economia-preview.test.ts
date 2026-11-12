@@ -31,6 +31,12 @@ describe("EconomiaPlazaPreview", () => {
         revision INTEGER NOT NULL DEFAULT 0,
         actualizado_at INTEGER NOT NULL
       );
+      CREATE TABLE mundo_perfiles (
+        papu_id TEXT PRIMARY KEY,
+        pedido_at INTEGER NOT NULL DEFAULT 0,
+        actualizado_at INTEGER NOT NULL DEFAULT 0
+      );
+      INSERT INTO mundo_perfiles (papu_id) VALUES ('123456789012345678');
     `);
     const query: D1Query = async <T>(sql: string, ...params: unknown[]): Promise<T[]> => {
       const statement = preview.prepare(sql);
@@ -57,6 +63,8 @@ describe("EconomiaPlazaPreview", () => {
     expect(firstData.sandbox).toBe(true);
     expect(firstData.xp).toBeGreaterThan(0);
     expect(firstData.xpTotalSandbox).toBe(firstData.xp);
+    const perfil = preview.prepare("SELECT pedido_at FROM mundo_perfiles WHERE papu_id = ?").get("123456789012345678") as { pedido_at: number };
+    expect(perfil.pedido_at).toBeGreaterThan(0);
 
     const cooldown = await fish({ id: "123456789012345678", nombre: "Papu" }, null);
     expect(cooldown.ok).toBe(false);
