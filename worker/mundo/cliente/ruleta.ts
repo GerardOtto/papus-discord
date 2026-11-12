@@ -142,18 +142,15 @@ export function htmlRuleta(v: VistaRuleta): string {
   if (!e) return `<p class="v-cargando">Preguntándole a Teto por tus misiones… 🎰</p>`;
   const soloLectura = e.soloLectura === true;
   const simulacion = e.simulacion === true;
-  const sandbox = e.sandbox === true;
   const cabeza = e.bloqueada
     ? `<span class="v-chip rojo">🚫 Neru te dio un machetazo: sin ruleta por ahora</span>`
-    : sandbox
-      ? `<span class="v-chip">🧪 Progreso aislado · no afecta Discord</span>`
-      : simulacion
-        ? `<span class="v-chip">🧪 Simulación · sin premios reales</span>`
+    : simulacion
+      ? `<span class="v-chip">🧪 Simulación · sin premios reales</span>`
       : soloLectura
         ? `<span class="v-chip">📋 Progreso real · vista previa</span>`
-      : e.tiradas > 0
-        ? `<span class="v-chip verde">🎟️ ${e.tiradas} ${e.tiradas === 1 ? "tirada" : "tiradas"} para hoy</span>`
-        : `<span class="v-chip">${e.usadas >= e.misiones.length ? "¡Ya giraste todas las de hoy! Vuelven mañana." : "Cumple una misión y gana una tirada"}</span>`;
+        : e.tiradas > 0
+          ? `<span class="v-chip verde">🎟️ ${e.tiradas} ${e.tiradas === 1 ? "tirada" : "tiradas"} para hoy</span>`
+          : `<span class="v-chip">${e.usadas >= e.misiones.length ? "¡Ya giraste todas las de hoy! Vuelven mañana." : "Cumple una misión y gana una tirada"}</span>`;
   const misiones = e.misiones
     .map(
       (m) => `<li class="v-mision${m.hecha ? " hecha" : ""}">
