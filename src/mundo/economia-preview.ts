@@ -65,6 +65,7 @@ interface EstadoSandbox {
   monedasResetXp?: number;
   monedasResetPrevia?: number;
   xpSandboxNoTriviaDia?: number;
+  xpSandboxNoTriviaDiaKey?: string;
   xpSandboxNoTriviaHistorial?: Record<string, number>;
   triviaDia?: string; triviaXpDia?: number; triviaPartidasDia?: string[]; triviaSuperadas?: string[]; triviaPremios?: string[]; triviaHitos?: Partial<Record<Dificultad, { aciertos: number; premios: number }>>; triviaAciertosAplicados?: number[]; triviaAciertosResultados?: Record<string, number>; triviaRuns?: Record<string, { day: string; withXp: boolean }>;
 }
@@ -132,8 +133,8 @@ export class EconomiaPlazaPreview {
       "SELECT day, xp - trivia AS xp FROM xp_dia WHERE user_id = ? AND day >= ? AND day < ? AND xp - trivia > 0",
     ).all(userId, from, today) as { day: string; xp: number }[];
     const totals = new Map(rows.map((row) => [row.day, row.xp]));
-    if (state.monedasDia && state.monedasDia >= from && state.monedasDia < today && (state.xpSandboxNoTriviaDia ?? 0) > 0) {
-      totals.set(state.monedasDia, (totals.get(state.monedasDia) ?? 0) + state.xpSandboxNoTriviaDia!);
+    if (state.xpSandboxNoTriviaDiaKey && state.xpSandboxNoTriviaDiaKey >= from && state.xpSandboxNoTriviaDiaKey < today && (state.xpSandboxNoTriviaDia ?? 0) > 0) {
+      totals.set(state.xpSandboxNoTriviaDiaKey, (totals.get(state.xpSandboxNoTriviaDiaKey) ?? 0) + state.xpSandboxNoTriviaDia!);
     }
     for (const [day, xp] of Object.entries(state.xpSandboxNoTriviaHistorial ?? {})) {
       if (day >= from && day < today && xp > 0) totals.set(day, (totals.get(day) ?? 0) + xp);
@@ -148,11 +149,6 @@ export class EconomiaPlazaPreview {
     const now = this.now();
     const real = this.d.coins.activityToday(userId, now);
     if (state.monedasDia !== day) {
-      if (state.monedasDia) {
-        state.xpSandboxNoTriviaHistorial ??= {};
-        state.xpSandboxNoTriviaHistorial[state.monedasDia] = state.xpSandboxNoTriviaDia ?? 0;
-      }
-      state.xpSandboxNoTriviaDia = 0;
       state.monedasDia = day;
       state.xpSandboxDia = 0;
       state.monedasActividadDia = real.actividad;
@@ -188,6 +184,14 @@ export class EconomiaPlazaPreview {
   /** Mismo bono por subir de nivel/rango que CoinService.onLevelChange, aplicado al monedero sandbox. */
   private registrarXpSandbox(state: EstadoSandbox, userId: string, day: string, xp: number, nivelAntes: number, nivelDespues: number, incluirPromedio = true): number {
     this.recalcularMonedasActividad(state, userId, day, xp);
+    if (state.xpSandboxNoTriviaDiaKey !== day) {
+      if (state.xpSandboxNoTriviaDiaKey) {
+        state.xpSandboxNoTriviaHistorial ??= {};
+        state.xpSandboxNoTriviaHistorial[state.xpSandboxNoTriviaDiaKey] = state.xpSandboxNoTriviaDia ?? 0;
+      }
+      state.xpSandboxNoTriviaDia = 0;
+      state.xpSandboxNoTriviaDiaKey = day;
+    }
     if (incluirPromedio) state.xpSandboxNoTriviaDia = (state.xpSandboxNoTriviaDia ?? 0) + Math.max(0, xp);
     if (!this.d.coins || nivelDespues <= nivelAntes) return 0;
     const rangoAntes = rankFor(this.d.levels.settings, nivelAntes);
@@ -529,6 +533,7 @@ export class EconomiaPlazaPreview {
       monedasDia: hoy,
       xpSandboxDia: 0,
       xpSandboxNoTriviaDia: 0,
+      xpSandboxNoTriviaDiaKey: triviaDay,
       xpSandboxNoTriviaHistorial: {},
       monedasActividadDia: this.d.coins?.activityToday(userId, this.now()).actividad ?? 0,
       monedasXpBase: this.d.coins?.activityToday(userId, this.now()).xp ?? 0,
