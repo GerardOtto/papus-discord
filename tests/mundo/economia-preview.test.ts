@@ -406,7 +406,7 @@ describe("EconomiaPlazaPreview", () => {
     const economy=new EconomiaPlazaPreview({query,db:source,levels,coins:null,mercado:{byId:new Map()} as unknown as MercadoService,roulette,quota:{} as Quota,now:()=>now,
       trivia:loadTriviaSettings(),questionLevels:{},questionTotals:{facil:0,medio:0,dificil:0},timeZone:"America/Santiago"});
     const result=await economy.acciones()["mercado.usar"]!({id:sender,nombre:"Remitente"},{id:"regalo-rin-len",para:recipient});
-    expect(result.ok).toBe(true);
+    expect(result.ok, JSON.stringify(result)).toBe(true);
     const from=JSON.parse((preview.prepare("SELECT estado FROM mundo_sandbox WHERE papu_id=?").get(sender) as {estado:string}).estado);
     const to=JSON.parse((preview.prepare("SELECT estado FROM mundo_sandbox WHERE papu_id=?").get(recipient) as {estado:string}).estado);
     expect(from.consumibles["regalo-rin-len"]).toBe(0);expect(to.ruletaRegalos).toBe(1);expect(to.ruletaRegaloDia).toBe(day);
@@ -442,7 +442,7 @@ describe("EconomiaPlazaPreview", () => {
     const economy = new EconomiaPlazaPreview({ query, db: source, levels, coins, mercado, roulette, quota, now: () => now, trivia: loadTriviaSettings(), questionLevels: {}, questionTotals: { facil: 0, medio: 0, dificil: 0 }, timeZone: "America/Santiago" });
     const usar = economy.acciones()["mercado.usar"]!;
     const result = await usar({ id: sender, nombre: "Remitente" }, { id: "regalo-rin-len", para: target });
-    expect(result.ok).toBe(true);
+    expect(result.ok, JSON.stringify(result)).toBe(true);
     const senderRow = await query<{ estado: string }>("SELECT estado FROM mundo_sandbox WHERE papu_id = ?", sender);
     const targetRow = await query<{ estado: string }>("SELECT estado FROM mundo_sandbox WHERE papu_id = ?", target);
     const from = JSON.parse(senderRow[0]!.estado) as { consumibles: Record<string, number>; regalosPendientes?: Record<string, unknown> };
