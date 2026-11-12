@@ -5,7 +5,7 @@
 // Funciones puras: las comparten la sala, la pagina y las pruebas.
 
 /** Allowlist de acciones: el Worker valida el identificador y el bot revalida usuario, datos y permisos. En preview las transacciones se aplican a un ledger aislado; nunca a recursos reales. */
-export const ACCIONES = ["ruleta.estado", "ruleta.girar", "pesca.capturar", "tienda.estado", "tienda.comprar", "mercado.estado", "mercado.comprar", "mercado.usar"] as const;
+export const ACCIONES = ["ruleta.estado", "ruleta.girar", "ruleta.descartar", "pesca.capturar", "tienda.estado", "tienda.comprar", "mercado.estado", "mercado.comprar", "mercado.usar"] as const;
 export type Accion = (typeof ACCIONES)[number];
 export const esAccion = (a: unknown): a is Accion => typeof a === "string" && (ACCIONES as readonly string[]).includes(a);
 
@@ -63,6 +63,7 @@ export interface Giro {
 
 /** Lo que devuelve "ruleta.girar": giro y texto; `simulado` identifica los resultados DEMO sin premio. */
 export interface RuletaGiro {
+  atun?: { girosRestantes: number; usos: number };
   giro: Giro;
   /** "+312 XP (¡subió al nivel 13!)" */
   texto: string;
