@@ -1029,7 +1029,7 @@ export class EconomiaPlazaPreview {
       if (!pending) return { result: error("No tienes un premio pendiente que aceptar."), changed: false };
       if (pending.day !== day) {
         s.atunPendiente = undefined;
-        return { result: error("El premio pendiente del Atún de Luka expiró al cambiar el día. No se consumió una tirada."), changed: true };
+        return { result: error("El premio pendiente del Atún de Luka expiró al cambiar el día. El giro pertenecía al día anterior."), changed: true };
       }
       if (pending.aplicado === false) {
         const aplicado = this.aplicarPremio(s, userId, day, now, pending.index);
