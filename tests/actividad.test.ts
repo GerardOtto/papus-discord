@@ -383,12 +383,13 @@ describe("XP de la trivia multijugador", () => {
     expect(t.sala.vista("ana").pregunta!.ocultas).toHaveLength(2);
     expect(t.sala.vista("beto").pregunta!.ocultas).toEqual([]);
     expect(t.sala.usarGuitarra("ana",o.nonce)).toBe(true);
-    expect(t.sala.usarZanahoria("ana",o.nonce,"personajes")).toBe(true);
+    const tema = t.sala.vista("ana").pregunta!.temas![0]!.tema;
+    expect(t.sala.usarZanahoria("ana",o.nonce,tema)).toBe(true);
     t.sala.responder("ana",o.nonce,{opcion:o.bien});
     t.sala.responder("beto",o.nonce,{opcion:o.bien});
     expect(t.sala.sacarAciertos().find(a=>a.papu==="ana")?.factor).toBe(2);
     siguiente(t);
-    expect(t.sala.vista("ana").pregunta!.texto).toBe("¿b?");
+    expect(t.sala.vista("ana").pregunta!.tema).toBe(tema);
   });
 
   it("la Baguette rescata hasta dos fallos conservando la racha en una partida compartida", () => {
