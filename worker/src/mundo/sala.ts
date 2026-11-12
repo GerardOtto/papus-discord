@@ -15,7 +15,7 @@ import { identificar } from "../actividad/identidad";
 import { ACCION_MIN_MS, ACCION_VENCE_MS, avanzar, COLA_VACIA, esAccion, formar, GIRO_MS, proximoCambio, type ColaRuleta, type Giro, type Resultado, type RuletaGiro } from "./acciones";
 import { aparicion, ASPECTO_INICIAL, CHAT_MIN_MS, destino, HISTORIAL, leerPose, limpiarChat, MAX_PAPUS, mencionados, MOV_MIN_MS, moverValido, validarAspecto, ZONAS } from "./juego";
 import type { Aspecto, Aviso, PapuPublico, Pedido, Respuesta } from "./tipos";
-import { simular } from "./simulado";
+import { simular, simularRuletaPreview } from "./simulado";
 import { COOKIE_TOKEN, leerCookie } from "./web";
 
 export interface MundoEnv {
@@ -172,7 +172,11 @@ export class SalaMundo implements DurableObject {
       const sala = await this.sala();
       // En el PC (wrangler dev) el bot no lee la base local: la sala hace de bot con datos de ejemplo, y el resultado
       // queda listo en D1 para que siga el mismo camino que en produccion.
-      const simulado = this.env.ACTIVIDAD_PRUEBA === "1" && papu.id.startsWith("prueba-") ? JSON.stringify(simular(m.accion, papu)) : null;
+      const simulado = this.env.MUNDO_PREVIEW === "1" && m.accion === "ruleta.girar"
+        ? JSON.stringify(simularRuletaPreview(papu))
+        : this.env.ACTIVIDAD_PRUEBA === "1" && papu.id.startsWith("prueba-")
+          ? JSON.stringify(simular(m.accion, papu))
+          : null;
       await this.env.DB.prepare("INSERT INTO mundo_acciones (sala, papu_id, papu_nombre, accion, datos, ref, creado_at, tomado, resultado) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)")
         .bind(sala, papu.id, papu.nombre, m.accion, datos, m.ref, now, simulado ? 2 : 0, simulado)
         .run();
