@@ -4,7 +4,7 @@
 // ruleta de la plaza muestra los giros de a uno, para todos, en el orden en que llegaron (de la plaza o de Discord).
 // Funciones puras: las comparten la sala, la pagina y las pruebas.
 
-/** Allowlist de acciones: el Worker valida el identificador y el bot revalida usuario, datos y permisos. En preview las transacciones se aplican a un ledger aislado; nunca a recursos reales. */
+/** Allowlist de acciones: el Worker valida el identificador y el bot revalida usuario, datos y permisos. Las transacciones se ejecutan en el backend canónico; el Worker solo transporta comandos. */
 export const ACCIONES = ["ruleta.estado", "ruleta.girar", "ruleta.descartar", "ruleta.aceptar", "pesca.capturar", "tienda.estado", "tienda.comprar", "mercado.estado", "mercado.comprar", "mercado.usar"] as const;
 export type Accion = (typeof ACCIONES)[number];
 export const esAccion = (a: unknown): a is Accion => typeof a === "string" && (ACCIONES as readonly string[]).includes(a);
@@ -38,8 +38,6 @@ export interface RuletaEstado {
   soloLectura?: boolean;
   /** Solo preview: permite probar la animación con giros ficticios, sin tiradas ni recompensas. */
   simulacion?: boolean;
-  /** Preview público: transacciones persistentes en un ledger aislado; nunca escriben en producción. */
-  sandbox?: boolean;
   tiradas: number;
   usadas: number;
   atunPendiente?: { girosRestantes: number; premio?: string; aplicado?: boolean };
