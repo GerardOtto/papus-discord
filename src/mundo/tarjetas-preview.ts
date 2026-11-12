@@ -142,7 +142,7 @@ const sinConversacion = (): ConversationService =>
     },
   }) as unknown as ConversationService;
 
-/** El puente de la plaza apuntando SOLO al D1 del preview, sin Vocaloids, acciones, chat ni foto del servidor. */
+/** Puente al D1 del preview, sin Vocaloids, chat ni foto del servidor; el caller puede añadir acciones explícitamente de solo lectura. */
 export function crearPuentePreview(o: {
   env: NodeJS.ProcessEnv;
   root: string;
