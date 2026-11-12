@@ -25,6 +25,7 @@ export class SalaTrivia implements DurableObject {
   /** Sesion OAuth HttpOnly al abrir la trivia desde la Plaza web. */
   private readonly tokens = new Map<WebSocket, string>();
   private readonly perfiles = new Map<string, Perfil>();
+  private readonly rescatandoBaguette = new Set<string>();
   private timer: ReturnType<typeof setTimeout> | null = null;
   private canal: string | null = null;
   private partida = "";
@@ -167,12 +168,18 @@ export class SalaTrivia implements DurableObject {
   /** La Baguette salva automáticamente hasta dos fallos de quien la tenga; no pausa la ronda compartida. */
   private async rescatarConBaguette(): Promise<void> {
     for (const id of this.sala.pendientesRescateBaguette()) {
-      if (!this.sala.baguetteActiva(id)) {
-        if (!await this.modificarUso(id, "baguette-teto", -1)) continue;
-        this.sala.activarBaguette(id);
-        this.sala.setConsumibles(id, await this.estadoConsumibles(id));
+      if (this.rescatandoBaguette.has(id)) continue;
+      this.rescatandoBaguette.add(id);
+      try {
+        if (!this.sala.baguetteActiva(id)) {
+          if (!await this.modificarUso(id, "baguette-teto", -1)) continue;
+          this.sala.activarBaguette(id);
+          this.sala.setConsumibles(id, await this.estadoConsumibles(id));
+        }
+        this.sala.rescatarBaguette(id);
+      } finally {
+        this.rescatandoBaguette.delete(id);
       }
-      this.sala.rescatarBaguette(id);
     }
   }
 
