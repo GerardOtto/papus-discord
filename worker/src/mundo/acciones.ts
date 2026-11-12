@@ -4,7 +4,7 @@
 // ruleta de la plaza muestra los giros de a uno, para todos, en el orden en que llegaron (de la plaza o de Discord).
 // Funciones puras: las comparten la sala, la pagina y las pruebas.
 
-/** Allowlist de acciones: el Worker valida el identificador y el bot revalida usuario, datos y permisos. En preview solo se registran handlers de lectura o simulación sin recompensas reales. */
+/** Allowlist de acciones: el Worker valida el identificador y el bot revalida usuario, datos y permisos. En preview las transacciones se aplican a un ledger aislado; nunca a recursos reales. */
 export const ACCIONES = ["ruleta.estado", "ruleta.girar", "pesca.capturar", "tienda.estado", "tienda.comprar", "mercado.estado", "mercado.comprar"] as const;
 export type Accion = (typeof ACCIONES)[number];
 export const esAccion = (a: unknown): a is Accion => typeof a === "string" && (ACCIONES as readonly string[]).includes(a);
