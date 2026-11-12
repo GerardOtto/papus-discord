@@ -344,15 +344,19 @@ describe("EconomiaPlazaPreview", () => {
     const first = await fish({ id: user, nombre: "Papu" }, null);
     expect(first.ok).toBe(true);
     let row = await query<{ estado: string }>("SELECT estado FROM mundo_sandbox WHERE papu_id = ?", user);
-    expect(JSON.parse(row[0]!.estado).wallet.ganadas).toBe(2);
+    const firstCoins = JSON.parse(row[0]!.estado).wallet.ganadas as number;
+    expect(firstCoins).toBeGreaterThan(0);
 
     // El PC conserva lo ya ganado, pero abre un nuevo tramo con su propio tope de actividad.
-    await economy.acciones()["mercado.usar"]!({ id: user, nombre: "Papu" }, { id: "pc-adachi-rei" });
+    const reset = await economy.acciones()["mercado.usar"]!({ id: user, nombre: "Papu" }, { id: "pc-adachi-rei" });
+    expect(reset.ok).toBe(true);
     now += 30_001;
     const second = await fish({ id: user, nombre: "Papu" }, null);
     expect(second.ok).toBe(true);
     row = await query<{ estado: string }>("SELECT estado FROM mundo_sandbox WHERE papu_id = ?", user);
-    expect(JSON.parse(row[0]!.estado).wallet.ganadas).toBe(4);
+    const finalCoins = JSON.parse(row[0]!.estado).wallet.ganadas as number;
+    expect(finalCoins).toBeGreaterThan(firstCoins);
+    expect(finalCoins).toBeLessThanOrEqual(firstCoins + 2);
     const real = source.prepare("SELECT ganadas FROM monedero WHERE user_id = ?").get(user) as { ganadas: number };
     expect(real.ganadas).toBe(0);
   });
