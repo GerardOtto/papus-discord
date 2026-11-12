@@ -65,7 +65,8 @@ import { DayStats, papuText, serverText } from "../services/estadisticas";
 import type { ActividadTrivia } from "../trivia/actividad";
 import { armarEstado } from "../mundo/estado";
 import { agruparLineas, lineasRegistro, type MundoPuente } from "../mundo/puente";
-import { accionesRuleta, giroPlaza, ruletaEstado } from "../mundo/ruleta";
+import { accionesRuleta, giroPlaza } from "../mundo/ruleta";
+import { accionesRuletaPreview } from "../mundo/ruleta-preview";
 import { accionPesca } from "../mundo/pesca";
 import { recompensaPesca, textoRecompensaPesca, type TamanoPez } from "../pesca/reglas";
 import type { TriviaService } from "../trivia/service";
@@ -655,12 +656,7 @@ export class PapusApp {
     if (this.d.mundoPreview) {
       const preview = this.d.mundoPreview;
       // Las acciones de preview se calculan con datos reales en SOLO LECTURA: nunca gastan tiradas ni conceden XP.
-      if (this.d.roulette) {
-        preview.acciones["ruleta.estado"] = (papu) => {
-          const estado = ruletaEstado(this.d.roulette!, papu.id);
-          return { ok: true, datos: { ...estado, tiradas: 0, usadas: 0, extras: [], soloLectura: true } };
-        };
-      }
+      if (this.d.roulette) Object.assign(preview.acciones, accionesRuletaPreview(this.d.roulette));
       const ultimoLancePreview = new Map<string, number>();
       preview.acciones["pesca.capturar"] = (papu) => {
         const ahora = Date.now();
