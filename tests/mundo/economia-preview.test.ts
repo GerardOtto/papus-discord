@@ -144,4 +144,85 @@ describe("EconomiaPlazaPreview", () => {
     expect(sandbox.inventario).toContain(articulo!.id);
   });
 
+
+  it("applies roulette prizes and the level-up bonus only to the sandbox ledger", async () => {
+    const source = openDb(":memory:");
+    const preview = openDb(":memory:");
+    abiertos.push(source, preview);
+    preview.exec(`
+      CREATE TABLE mundo_sandbox (
+        papu_id TEXT PRIMARY KEY,
+        estado TEXT NOT NULL,
+        revision INTEGER NOT NULL DEFAULT 0,
+        actualizado_at INTEGER NOT NULL
+      );
+    `);
+    const query: D1Query = async <T>(sql: string, ...params: unknown[]): Promise<T[]> => {
+      const statement = preview.prepare(sql);
+      if (/^\\s*(SELECT|UPDATE)/i.test(sql) || /RETURNING/i.test(sql)) {
+        return statement.all(...(params as never[])) as unknown as T[];
+      }
+      statement.run(...(params as never[]));
+      return [];
+    };
+    const userId = "123456789012345678";
+    const now = Date.parse("2026-11-12T12:00:00-03:00");
+    const levels = new LevelService({ db: source, settings: loadLevelSettings(), timeZone: "America/Santiago" });
+    const quota = new Quota(source, (id, at) => levels.limitFor(id, at), "America/Santiago");
+    const rouletteSettings = loadRouletteSettings();
+    rouletteSettings.premios = [{
+      ...rouletteSettings.premios[0]!,
+      tipo: "xp",
+      porcentaje: 1,
+      peso: 1,
+    }];
+    const roulette = {
+      settings: rouletteSettings,
+      dayOf: () => "2026-11-12",
+      status: () => ({
+        missions: [
+          { id: "voz", nombre: "Voz", avance: "0/120 min", done: false },
+          { id: "mensajes", nombre: "Mensajes", avance: "0/200", done: false },
+          { id: "nivel", nombre: "Subir de nivel", avance: "0/1", done: false },
+        ],
+        used: 0, left: 1, blocked: false, pending: null, regaladas: 0, guardadas: 0, vozReducida: false,
+      }),
+      atun: null,
+    } as unknown as RouletteService;
+    const economy = new EconomiaPlazaPreview({
+      query, db: source, levels, coins: null, mercado: null, roulette, quota,
+      now: () => now, rnd: () => 0,
+    });
+    const actions = economy.acciones();
+    const papu = { id: userId, nombre: "Papu" };
+    const xpRealAntes = levels.store.get(userId).xp;
+
+    const first = await actions["ruleta.girar"]!(papu, null);
+    expect(first.ok).toBe(true);
+    if (!first.ok) return;
+    expect((first.datos as { sandbox: boolean }).sandbox).toBe(true);
+    const xpSandbox = JSON.parse((await query<{ estado: string }>(
+      "SELECT estado FROM mundo_sandbox WHERE papu_id = ?", userId,
+    ))[0]!.estado) as { xp: number; ruletaUsadas: number; subioDia?: string };
+    expect(xpSandbox.xp).toBeGreaterThan(xpRealAntes);
+    expect(xpSandbox.ruletaUsadas).toBe(1);
+    expect(xpSandbox.subioDia).toBe("2026-11-12");
+    expect(levels.store.get(userId).xp).toBe(xpRealAntes);
+
+    const state = await actions["ruleta.estado"]!(papu, null);
+    expect(state.ok).toBe(true);
+    if (state.ok) {
+      const data = state.datos as { sandbox: boolean; tiradas: number; misiones: { id: string; hecha: boolean }[] };
+      expect(data.sandbox).toBe(true);
+      expect(data.tiradas).toBe(1);
+      expect(data.misiones.find((m) => m.id === "nivel")?.hecha).toBe(true);
+    }
+
+    const bonusSpin = await actions["ruleta.girar"]!(papu, null);
+    expect(bonusSpin.ok).toBe(true);
+    const exhausted = await actions["ruleta.girar"]!(papu, null);
+    expect(exhausted.ok).toBe(false);
+    expect(levels.store.get(userId).xp).toBe(xpRealAntes);
+  });
+
 });
