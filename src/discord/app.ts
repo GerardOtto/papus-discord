@@ -714,8 +714,12 @@ export class PapusApp {
       preview.acciones["mercado.comprar"] = () => ({ ok: false, motivo: "El mercado negro del preview es de solo lectura: no se descuentan monedas ni se modifica el inventario." });
       // El ledger reemplaza los manejadores de solo lectura con operaciones persistentes y aisladas.
       if (this.d.economiaPreview) {
-        await this.d.economiaPreview.preload();
-        Object.assign(preview.acciones, this.d.economiaPreview.acciones());
+        try {
+          await this.d.economiaPreview.preload();
+          Object.assign(preview.acciones, this.d.economiaPreview.acciones());
+        } catch (e) {
+          logError("precarga de economía sandbox", e);
+        }
       }
       let previewBusy = false;
       this.mundoPreviewTimer = setInterval(() => {
