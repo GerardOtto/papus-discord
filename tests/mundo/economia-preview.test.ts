@@ -208,7 +208,6 @@ describe("EconomiaPlazaPreview", () => {
     expect(JSON.parse(ledger[0]!.estado).consumibles["microfono-meiko"]).toBe(1);
 
     const girar = economy.acciones()["ruleta.girar"]!;
-    const descartar = economy.acciones()["ruleta.descartar"]!;
     const primerGiro = await girar(papu, null);
     expect(primerGiro.ok).toBe(true);
     if (!primerGiro.ok) return;
