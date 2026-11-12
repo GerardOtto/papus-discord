@@ -63,3 +63,13 @@ CREATE TABLE IF NOT EXISTS mundo_tarjeta_pedidos (
   estado INTEGER NOT NULL DEFAULT 0, entregado INTEGER NOT NULL DEFAULT 0
 );
 CREATE INDEX IF NOT EXISTS preview_mundo_tarjeta_pedidos ON mundo_tarjeta_pedidos (sala, estado, entregado, id);
+
+-- Progreso económico de prueba de cada Papu. No contiene ni escribe datos de producción.
+-- Un único documento por usuario permite confirmar cada compra/recompensa con compare-and-swap.
+CREATE TABLE IF NOT EXISTS mundo_sandbox (
+  papu_id TEXT PRIMARY KEY,
+  estado TEXT NOT NULL,
+  revision INTEGER NOT NULL DEFAULT 0,
+  actualizado_at INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS preview_mundo_sandbox_actualizado ON mundo_sandbox (actualizado_at);
