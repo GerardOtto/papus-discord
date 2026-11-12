@@ -292,6 +292,31 @@ describe("EconomiaPlazaPreview", () => {
     expect(JSON.parse(again.estado).xp).toBe(row.xp);
   });
 
+  it("expira un premio pendiente del Atún al cambiar el día sin aplicarlo gratis", async () => {
+    const source=openDb(":memory:"), preview=openDb(":memory:"); abiertos.push(source,preview);
+    preview.exec("CREATE TABLE mundo_sandbox (papu_id TEXT PRIMARY KEY, estado TEXT NOT NULL, revision INTEGER NOT NULL DEFAULT 0, actualizado_at INTEGER NOT NULL); CREATE TABLE mundo_perfiles (papu_id TEXT PRIMARY KEY, pedido_at INTEGER NOT NULL DEFAULT 0)");
+    const query:D1Query=async <T>(sql:string,...params:unknown[]):Promise<T[]>=>{
+      const st=preview.prepare(sql);
+      if(/RETURNING/i.test(sql)||/^\\s*SELECT/i.test(sql))return st.all(...(params as never[])) as unknown as T[];
+      st.run(...(params as never[]));return [];
+    };
+    const user="123456789012345678",now=Date.parse("2026-11-12T12:00:00-03:00"),day="2026-11-12";
+    const state={version:1,xp:0,wallet:{ganadas:0,compradas:0,ecos:0,gratis:0,gratisRaro:0,gratisLeg:0,sobres:0,sinEpica:0,sinLegendaria:0,hoy:0},inventario:[],consumibles:{"atun-luka":1},comprasMercado:[],ruletaDia:"2026-11-11",ruletaUsadas:0,pescaAt:0,cuotaExtraDia:"2026-11-11",cuotaExtra:0,cuotaUsada:0,atunPendiente:{day:"2026-11-11",index:0,giros:0,gastoUso:false,aplicado:false}};
+    preview.prepare("INSERT INTO mundo_sandbox (papu_id,estado,revision,actualizado_at) VALUES (?,?,0,?)").run(user,JSON.stringify(state),now);
+    const levels=new LevelService({db:source,settings:loadLevelSettings(),timeZone:"America/Santiago"});
+    const roulette={dayOf:()=>day,status:()=>({used:0,left:0,blocked:false,missions:[]}),settings:loadRouletteSettings()} as unknown as RouletteService;
+    const mercado={byId:new Map([["atun-luka",{efecto:"atun",giros:2}]])} as unknown as MercadoService;
+    const economy=new EconomiaPlazaPreview({query,db:source,levels,coins:null,mercado,roulette,quota:{} as Quota,now:()=>now,
+      trivia:loadTriviaSettings(),questionLevels:{},questionTotals:{facil:0,medio:0,dificil:0},timeZone:"America/Santiago"});
+    const aceptar=await economy.acciones()["ruleta.aceptar"]!({id:user,nombre:"Papu"},null);
+    expect(aceptar.ok).toBe(false);
+    const saved=preview.prepare("SELECT estado FROM mundo_sandbox WHERE papu_id=?").get(user) as {estado:string};
+    const next=JSON.parse(saved.estado) as {xp:number;ruletaUsadas:number;atunPendiente?:unknown};
+    expect(next.xp).toBe(0);
+    expect(next.ruletaUsadas).toBe(0);
+    expect(next.atunPendiente).toBeUndefined();
+  });
+
   it("usa el promedio de XP no-trivia sandbox de días anteriores al calcular la trivia", async () => {
     const source=openDb(":memory:"), preview=openDb(":memory:"); abiertos.push(source,preview);
     preview.exec(`
