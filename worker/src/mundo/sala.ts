@@ -102,6 +102,11 @@ export class SalaMundo implements DurableObject {
       Object.assign(papu, pose);
       ficha.movAt = now;
       ws.serializeAttachment(ficha);
+      if (ficha.sentado && pose.a !== 0) {
+        ficha.sentado = false;
+        ws.serializeAttachment(ficha);
+        this.todos({ t: "fogata", id: papu.id, sentado: false }, ws);
+      }
       return this.todos({ t: "mov", id: papu.id, ...pose }, ws);
     }
 
