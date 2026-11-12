@@ -206,7 +206,7 @@ export class SalaTrivia implements DurableObject {
     if (aciertos.length) {
       const now = Date.now();
       const preview = this.env.MUNDO_PREVIEW === "1";
-      const previewStmt = this.env.DB.prepare("INSERT OR IGNORE INTO actividad_aciertos (partida, papu_id, pregunta, dificultad, racha, xp_mostrada, canal, creado_at, multiplicador) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
+      const previewStmt = this.env.DB.prepare("INSERT OR IGNORE INTO actividad_aciertos_preview (partida, papu_id, pregunta, dificultad, racha, xp_mostrada, canal, creado_at, multiplicador) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
       const productionStmt = this.env.DB.prepare("INSERT INTO actividad_aciertos (partida, papu_id, pregunta, dificultad, racha, xp_mostrada, canal, creado_at) SELECT ?, ?, ?, ?, ?, ?, ?, ? WHERE NOT EXISTS (SELECT 1 FROM actividad_aciertos WHERE partida = ? AND papu_id = ? AND pregunta = ?)");
       try {
         // El preview usa índice único; producción usa NOT EXISTS. Ambos toleran reintentos tras una respuesta D1 ambigua.
