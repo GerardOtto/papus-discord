@@ -11,6 +11,7 @@ import { RouletteService } from "../../src/ruleta/service";
 import { Quota } from "../../src/quota/quota";
 import { LevelService } from "../../src/levels/service";
 import { EconomiaPlazaPreview } from "../../src/mundo/economia-preview";
+import { loadTriviaSettings } from "../../src/trivia/rules";
 
 describe("EconomiaPlazaPreview", () => {
   // Los efectos del mercado se ejercitan exclusivamente sobre el ledger sandbox.
@@ -45,6 +46,7 @@ describe("EconomiaPlazaPreview", () => {
     const economy = new EconomiaPlazaPreview({
       query, db: source, levels, coins: null, mercado: null,
       roulette, quota: {} as Quota, now: () => now, rnd: () => 0.99,
+      trivia: loadTriviaSettings(), questionLevels: {}, questionTotals: { facil: 0, medio: 0, dificil: 0 }, timeZone: "America/Santiago",
     });
 
     const fish = economy.acciones()["pesca.capturar"]!;
@@ -107,6 +109,7 @@ describe("EconomiaPlazaPreview", () => {
     });
     const economy = new EconomiaPlazaPreview({
       query, db: source, levels, coins, mercado, roulette, quota, now: () => now, rnd: () => 0.2,
+      trivia: loadTriviaSettings(), questionLevels: {}, questionTotals: { facil: 0, medio: 0, dificil: 0 }, timeZone: "America/Santiago",
     });
     const actions = economy.acciones();
     const papu = { id: userId, nombre: "Papu" };
@@ -187,7 +190,7 @@ describe("EconomiaPlazaPreview", () => {
     const roulette = new RouletteService({ db: source, settings: loadRouletteSettings(), levels, quota, timeZone: "America/Santiago", now: () => now });
     const marketSettings = loadMercadoSettings();
     const mercado = new MercadoService({ db: source, settings: marketSettings, coins, quota, roulette, timeZone: "America/Santiago", now: () => now });
-    const economy = new EconomiaPlazaPreview({ query, db: source, levels, coins, mercado, roulette, quota, now: () => now, rnd: (() => { let roll = 0; return () => roll++ === 0 ? 0.01 : 0.4; })() });
+    const economy = new EconomiaPlazaPreview({ query, db: source, levels, coins, mercado, roulette, quota, now: () => now, rnd: (() => { let roll = 0; return () => roll++ === 0 ? 0.01 : 0.4; })(), trivia: loadTriviaSettings(), questionLevels: {}, questionTotals: { facil: 0, medio: 0, dificil: 0 }, timeZone: "America/Santiago" });
     const papu = { id: userId, nombre: "Papu" };
     const usar = economy.acciones()["mercado.usar"]!;
     const activar = await usar(papu, { id: "microfono-meiko" });
