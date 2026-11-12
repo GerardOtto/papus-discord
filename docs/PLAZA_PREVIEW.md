@@ -35,7 +35,7 @@ El workflow manual `.github/workflows/plaza-preview.yml`:
 4. Carga el secreto OAuth de Teto.
 5. Despliega exclusivamente `papus-plaza-preview`.
 
-No crea bases D1, no aplica migraciones, no despliega `papus-bots` y no modifica el Worker principal. El esquema canónico debe estar previamente instalado mediante el proceso normal de backend.
+No crea bases D1 ni despliega `papus-bots`. Antes de publicar la interfaz, aplica únicamente `worker/migrations/0001_mundo_tarjetas.sql` sobre el D1 canónico: es una migración aditiva e idempotente que crea la caché pública de tarjetas y su cola, sin modificar saldos, XP, inventario ni preferencias. El Worker principal no se reemplaza.
 
 La URL de Cloudflare se informa al terminar el workflow. En el Developer Portal de Discord, el redirect OAuth debe incluir:
 
@@ -49,7 +49,7 @@ El bot principal debe permanecer conectado y ejecutar `MundoPuente.sync()`. Ese 
 
 ## Límites actuales
 
-- Las tarjetas públicas están deshabilitadas en este Worker hasta que sus tablas se incorporen mediante una migración controlada del esquema canónico.
+- Las tarjetas públicas están habilitadas mediante `MUNDO_TARJETAS=1`. El Worker las entrega desde una caché de imágenes generadas por el bot principal usando el renderizador de `/nivel`, sin exponer cuota privada.
 - El preview no debe usar un D1 independiente para las acciones de Papus.
 - No se debe instalar ni ejecutar un segundo proceso Node que consuma la cola de acciones.
 - Para desarrollo local, `wrangler dev` usa el D1 local; no lo conectes al D1 remoto por accidente.
@@ -59,7 +59,8 @@ El bot principal debe permanecer conectado y ejecutar `MundoPuente.sync()`. Ese 
 - [ ] El Worker se llama `papus-plaza-preview` y usa `worker/src/preview.ts`.
 - [ ] Su binding `DB` coincide con el ID de `worker/wrangler.toml`.
 - [ ] El bot principal está conectado y su puente `MundoPuente` está activo.
-- [ ] Las tablas consultadas existen en el esquema canónico.
+- [ ] La migración aditiva de tarjetas se aplicó al D1 canónico antes del despliegue.
+- [ ] `MUNDO_TARJETAS=1` está activo en el Worker de Plaza.
 - [ ] No se ejecutan migraciones ni despliegues del Worker principal desde este workflow.
 
 **No ejecutar `npm run worker:deploy` para publicar esta interfaz:** ese comando despliega el Worker principal y gestiona los endpoints de interacción de los bots.
