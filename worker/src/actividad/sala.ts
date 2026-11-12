@@ -63,7 +63,7 @@ export class SalaTrivia implements DurableObject {
       this.tokens.delete(server);
       // Si el mismo Papu sigue conectado desde otra pestaña, no sale.
       if (id && ![...this.sockets.values()].includes(id)) this.sala.salir(id);
-      this.despues();
+      void this.despues().catch((e) => console.error("actividad: al salir", e));
     };
     server.addEventListener("close", cerrar);
     server.addEventListener("error", cerrar);
@@ -100,7 +100,7 @@ export class SalaTrivia implements DurableObject {
     else if (m.t === "responder") this.sala.responder(id, m.nonce, m);
     else if (m.t === "otra") this.sala.otra(id);\n    else if (m.t === "consumible") await this.usarConsumible(id,m,ws);
     if (aviso) this.enviar(ws, { aviso });
-    this.despues();
+    await this.despues();
   }
 
 
@@ -162,8 +162,21 @@ export class SalaTrivia implements DurableObject {
     }
   }
 
+  /** La Baguette salva automáticamente hasta dos fallos de quien la tenga; no pausa la ronda compartida. */
+  private async rescatarConBaguette(): Promise<void> {
+    for (const id of this.sala.pendientesRescateBaguette()) {
+      if (!this.sala.baguetteActiva(id)) {
+        if (!await this.modificarUso(id, "baguette-teto", -1)) continue;
+        this.sala.activarBaguette(id);
+        this.sala.setConsumibles(id, await this.estadoConsumibles(id));
+      }
+      this.sala.rescatarBaguette(id);
+    }
+  }
+
   /** Tras cada cambio: guarda los aciertos, reparte la vista y arma el temporizador. */
-  private despues(): void {
+  private async despues(): Promise<void> {
+    if (this.env.MUNDO_PREVIEW === "1" && this.sala.fase === "revelar") await this.rescatarConBaguette();
     const fase = this.sala.fase;
     if (fase === "pregunta" && this.faseAnterior !== "pregunta" && this.faseAnterior !== "revelar") this.partida = `${Date.now().toString(36)}-${this.state.id.toString().slice(0, 8)}`;
     // Al empezar cada pregunta se refrescan los perfiles (Teto pudo recalcularlos al aplicar la XP).
@@ -188,7 +201,7 @@ export class SalaTrivia implements DurableObject {
       this.timer = setTimeout(() => {
         this.timer = null;
         this.sala.tick();
-        this.despues();
+        void this.despues().catch((e) => console.error("actividad: temporizador", e));
       }, Math.max(0, at - Date.now()) + 20);
     }
   }
