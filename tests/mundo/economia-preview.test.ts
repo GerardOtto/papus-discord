@@ -279,7 +279,7 @@ describe("EconomiaPlazaPreview", () => {
     preview.prepare("INSERT INTO mundo_sandbox (papu_id,estado,revision,actualizado_at) VALUES (?,?,0,?)").run(user,JSON.stringify(state),now);
     const levels=new LevelService({db:source,settings:loadLevelSettings(),timeZone:"America/Santiago"});
     const roulette={dayOf:()=>day,status:()=>({used:3,left:0,blocked:false,missions:[]})} as unknown as RouletteService;
-    const quota={used:()=>12} as unknown as Quota;
+    const quota={used:()=>12,donated:()=>0} as unknown as Quota;
     const economy=new EconomiaPlazaPreview({query,db:source,levels,coins:null,mercado:{byId:new Map()} as unknown as MercadoService,roulette,quota,now:()=>now,
       trivia:loadTriviaSettings(),questionLevels:{},questionTotals:{facil:0,medio:0,dificil:0},timeZone:"America/Santiago"});
     const result=await economy.acciones()["mercado.usar"]!({id:user,nombre:"Papu"},{id:"pc-adachi-rei"});
