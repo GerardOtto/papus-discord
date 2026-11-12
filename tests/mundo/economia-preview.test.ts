@@ -266,4 +266,29 @@ describe("EconomiaPlazaPreview", () => {
     expect(JSON.parse(again.estado).xp).toBe(row.xp);
   });
 
+  it("PC de Adachi reinicia topes y contadores solo en el ledger sandbox", async () => {
+    const source=openDb(":memory:"), preview=openDb(":memory:"); abiertos.push(source,preview);
+    preview.exec("CREATE TABLE mundo_sandbox (papu_id TEXT PRIMARY KEY, estado TEXT NOT NULL, revision INTEGER NOT NULL DEFAULT 0, actualizado_at INTEGER NOT NULL)");
+    const query:D1Query=async <T>(sql:string,...params:unknown[]):Promise<T[]>=>{
+      const st=preview.prepare(sql);
+      if(/RETURNING/i.test(sql)||/^\\s*SELECT/i.test(sql))return st.all(...(params as never[])) as unknown as T[];
+      st.run(...(params as never[]));return [];
+    };
+    const user="123456789012345678",now=Date.parse("2026-11-12T12:00:00-03:00"),day="2026-11-12";
+    const state={version:1,xp:900,wallet:{ganadas:0,compradas:0,ecos:0,gratis:0,gratisRaro:0,gratisLeg:0,sobres:0,sinEpica:0,sinLegendaria:0,hoy:0},inventario:[],consumibles:{"pc-adachi-rei":1},comprasMercado:[],ruletaDia:day,ruletaUsadas:2,pescaAt:0,cuotaExtraDia:day,cuotaExtra:0,cuotaUsada:5,triviaDia:day,triviaXpDia:30,triviaPartidasDia:["partida-antigua"]};
+    preview.prepare("INSERT INTO mundo_sandbox (papu_id,estado,revision,actualizado_at) VALUES (?,?,0,?)").run(user,JSON.stringify(state),now);
+    const levels=new LevelService({db:source,settings:loadLevelSettings(),timeZone:"America/Santiago"});
+    const roulette={dayOf:()=>day,status:()=>({used:3,left:0,blocked:false,missions:[]})} as unknown as RouletteService;
+    const quota={used:()=>12} as unknown as Quota;
+    const economy=new EconomiaPlazaPreview({query,db:source,levels,coins:null,mercado:{byId:new Map()} as unknown as MercadoService,roulette,quota,now:()=>now,
+      trivia:loadTriviaSettings(),questionLevels:{},questionTotals:{facil:0,medio:0,dificil:0},timeZone:"America/Santiago"});
+    const result=await economy.acciones()["mercado.usar"]!({id:user,nombre:"Papu"},{id:"pc-adachi-rei"});
+    expect(result.ok).toBe(true);
+    const saved=preview.prepare("SELECT estado FROM mundo_sandbox WHERE papu_id=?").get(user) as {estado:string};
+    const next=JSON.parse(saved.estado) as typeof state & {ruletaResetUsadas:number;cuotaResetBase:number};
+    expect(next.xp).toBe(900);expect(next.triviaXpDia).toBe(0);expect(next.triviaPartidasDia).toEqual([]);
+    expect(next.ruletaUsadas).toBe(0);expect(next.ruletaResetUsadas).toBe(3);expect(next.cuotaResetBase).toBe(12);
+    expect(next.cuotaUsada).toBe(0);expect(next.consumibles["pc-adachi-rei"]).toBe(0);
+  });
+
 });
