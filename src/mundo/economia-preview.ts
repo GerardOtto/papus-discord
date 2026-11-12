@@ -363,10 +363,10 @@ export class EconomiaPlazaPreview {
   }
 
   private async syncTriviaProfiles(): Promise<void> {
-    const rows = await this.d.query<{ papu_id: string; partida: string }>(
-      "SELECT papu_id, partida FROM actividad_perfiles_preview WHERE pedido_at >= actualizado_at LIMIT 50",
+    const rows = await this.d.query<{ papu_id: string; partida: string; pedido_at: number }>(
+      "SELECT papu_id, partida, pedido_at FROM actividad_perfiles_preview WHERE pedido_at >= actualizado_at LIMIT 50",
     );
-    for (const { papu_id, partida } of rows) {
+    for (const { papu_id, partida, pedido_at } of rows) {
       const { state } = await this.cargar(papu_id);
       const now = this.now();
       const day = dayKey(new Date(now), this.d.timeZone);
@@ -392,7 +392,7 @@ export class EconomiaPlazaPreview {
         : 0;
       await this.d.query(
         "UPDATE actividad_perfiles_preview SET xp_base = ?, tope = ?, pedido_at = 0, actualizado_at = ? WHERE papu_id = ? AND partida = ? AND pedido_at >= actualizado_at",
-        base, tope, now + 1, papu_id, partida,
+        base, tope, Math.max(now + 1, pedido_at + 1), papu_id, partida,
       );
     }
   }
