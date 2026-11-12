@@ -1,6 +1,13 @@
 name: Deploy isolated Plaza preview
 
 on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'worker/**'
+      - 'scripts/actividad.ts'
+      - 'scripts/mundo.ts'
+      - '.github/workflows/plaza-preview.yml'
   workflow_dispatch:
 
 permissions:
