@@ -157,7 +157,7 @@ export class SalaMundo implements DurableObject {
     }
 
     if (m.t === "accion") {
-      if (this.env.MUNDO_PREVIEW === "1") return this.enviar(ws, { t: "accion", ref: Number.isInteger(m.ref) ? m.ref : 0, accion: m.accion, resultado: { ok: false, motivo: "Esta interacción todavía no está habilitada en el preview." } });
+      // En preview las acciones solo llegan al puente aislado, que debe operar en modo lectura/sandbox.
       if (now - (ficha.accionAt ?? 0) < ACCION_MIN_MS || !esAccion(m.accion) || !Number.isInteger(m.ref)) return;
       ficha.accionAt = now;
       ws.serializeAttachment(ficha);
