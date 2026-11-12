@@ -371,6 +371,7 @@ export class Sala {
         n: r.n,
         nonce: r.nonce,
         dificultad: q.dificultad,
+        tema: q.tema ?? q.categoria,
         tipo: q.tipo,
         texto: q.texto,
         opciones: r.opciones,
