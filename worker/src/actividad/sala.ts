@@ -32,6 +32,7 @@ export class SalaTrivia implements DurableObject {
   private canal: string | null = null;
   private partida = "";
   private faseAnterior = "sala";
+  private iniciando = false;
 
   constructor(
     private readonly state: DurableObjectState,
@@ -100,16 +101,24 @@ export class SalaTrivia implements DurableObject {
     let aviso: string | undefined;
     if (m.t === "configurar") this.sala.configurar(id, m);
     else if (m.t === "empezar") {
-      const permiso = this.sala.puedeEmpezar(id);
-      if (!permiso.ok) aviso = permiso.motivo;
+      if (this.iniciando) aviso = "La partida está preparando los perfiles; espera un momento.";
       else {
-        if (this.env.MUNDO_PREVIEW === "1") {
-          // Preparar el perfil de esta partida antes de arrancar el reloj de la primera pregunta.
-          this.partida = `${Date.now().toString(36)}-${this.state.id.toString().slice(0, 8)}`;
-          await Promise.all(this.sala.ids().map((papu) => this.pedirPerfil(papu).catch((e) => console.error("actividad preview: perfil previo al inicio", e))));
+        const permiso = this.sala.puedeEmpezar(id);
+        if (!permiso.ok) aviso = permiso.motivo;
+        else {
+          this.iniciando = true;
+          try {
+            if (this.env.MUNDO_PREVIEW === "1") {
+              // Preparar el perfil de esta partida antes de arrancar el reloj de la primera pregunta.
+              this.partida = `${Date.now().toString(36)}-${this.state.id.toString().slice(0, 8)}`;
+              await Promise.all(this.sala.ids().map((papu) => this.pedirPerfil(papu).catch((e) => console.error("actividad preview: perfil previo al inicio", e))));
+            }
+            aviso = this.sala.empezar(id).motivo;
+            if (aviso && this.env.MUNDO_PREVIEW === "1") this.partida = "";
+          } finally {
+            this.iniciando = false;
+          }
         }
-        aviso = this.sala.empezar(id).motivo;
-        if (aviso && this.env.MUNDO_PREVIEW === "1") this.partida = "";
       }
     }
     else if (m.t === "responder") this.sala.responder(id, m.nonce, m);
