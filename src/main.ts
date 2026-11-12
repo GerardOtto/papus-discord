@@ -264,7 +264,8 @@ async function main(): Promise<void> {
           const nivel = sandboxXp === null || sandboxXp === undefined ? real.level : progress(levels.settings, sandboxXp).level;
           const restanteSandbox = economiaPreview?.cuotaRestante(id);
           const restante = restanteSandbox === undefined ? quota.remaining(id) : restanteSandbox;
-          const limite = quota.limitFor(id);
+          const limiteSandbox = economiaPreview?.cuotaLimite(id);
+          const limite = limiteSandbox === undefined ? quota.limitFor(id) : limiteSandbox;
           return {
             nivel,
             prestigio: real.prestige,
