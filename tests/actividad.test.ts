@@ -391,7 +391,7 @@ describe("XP de la trivia multijugador", () => {
   });
 
   it("la Baguette rescata hasta dos fallos conservando la racha en una partida compartida", () => {
-    const t=setup([op("a"),op("b"),op("c")]);
+    const t=setup([op("a"),op("b"),op("c"),op("d")]);
     t.unir("ana");
     t.sala.setConsumibles("ana",{celular:0,guitarra:0,zanahoria:0,baguette:1});
     t.sala.empezar("ana");
