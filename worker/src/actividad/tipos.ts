@@ -62,6 +62,7 @@ export interface ResultadoVista {
   xp: number | null;
   opcion?: number;
   texto?: string;
+  salvado?: boolean;
 }
 
 export interface Vista {
