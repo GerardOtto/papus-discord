@@ -151,13 +151,14 @@ export function crearPuentePreview(o: {
   owners?: ReadonlySet<string>;
   fetchFn?: typeof fetch;
   log?: (msg: string) => void;
-}): { puente: MundoPuente; databaseId: string } {
+}): { puente: MundoPuente; databaseId: string; query: ReturnType<typeof d1Client> } {
   const databaseId = idPreview(o.env, o.root);
   const token = o.env.CLOUDFLARE_DEPLOY_TOKEN?.trim();
   const accountId = o.env.CLOUDFLARE_ACCOUNT_ID?.trim();
   if (!token || !accountId) throw new ConfigPreviewError("Faltan CLOUDFLARE_DEPLOY_TOKEN o CLOUDFLARE_ACCOUNT_ID.");
+  const query = d1Client({ accountId, token, databaseId, fetchFn: o.fetchFn });
   const puente = new MundoPuente({
-    query: d1Client({ accountId, token, databaseId, fetchFn: o.fetchFn }),
+    query,
     makeConversation: sinConversacion,
     bots: [],
     owners: o.owners ?? new Set(),
@@ -165,5 +166,5 @@ export function crearPuentePreview(o: {
     tarjetaPublica: o.tarjetaPublica,
     log: o.log,
   });
-  return { puente, databaseId };
+  return { puente, databaseId, query };
 }
