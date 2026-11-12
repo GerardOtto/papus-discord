@@ -28,9 +28,9 @@ Este entorno existe para probar la plaza sin desplegar ni modificar el Worker de
 
 ## Límites funcionales del preview
 
-La plaza permite validar acceso Discord, movimiento, chat, avatares y salas en tiempo real. No procesa menciones a Vocaloids, no sincroniza XP/cuotas, no concede premios y no comparte economía con producción. Las acciones que dependen del bot (por ejemplo, ruleta real) no deben habilitarse como si fueran funcionales.
+La plaza permite validar acceso Discord, movimiento, chat, avatares y salas en tiempo real. La trivia en `/actividad/` reutiliza las reglas originales en modo sandbox, sin XP ni escrituras de recompensas. La plaza no procesa menciones a Vocaloids, no sincroniza XP/cuotas, no concede premios y no comparte economía con producción. Las acciones que dependen del bot (por ejemplo, ruleta real) no deben habilitarse como si fueran funcionales.
 
-La trivia no se sirve desde este Worker preview: el namespace se declara solo para mantener la compatibilidad de tipos/API compartida. La base preview contiene únicamente las tablas necesarias para la plaza, no las tablas de pedidos, niveles, economía ni actividad de los bots. La integración de la trivia requiere una fase posterior que adapte su cliente y backend sin conectar la base de producción.
+La trivia existente también se sirve en `/actividad/` desde este Worker preview, reutilizando el mismo pool de preguntas y las mismas reglas de partida. Su Durable Object corre en el namespace propio del preview. En este modo `MUNDO_PREVIEW=1`, la sala no solicita perfiles al bot, no lee ni escribe `actividad_perfiles` y no persiste `actividad_aciertos`: los aciertos muestran 0 XP y no generan recompensas. La página de trivia sigue usando la integración de Discord Embedded App, por lo que debe abrirse como Actividad de Discord; el acceso OAuth de navegador de la plaza no la convierte automáticamente en una actividad web independiente.
 
 ## Comprobación antes de desplegar
 
