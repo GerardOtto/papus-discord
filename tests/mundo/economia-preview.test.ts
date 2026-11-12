@@ -505,7 +505,11 @@ describe("EconomiaPlazaPreview", () => {
 
     // Simula caída después de acreditar al destinatario pero antes de limpiar la cola del remitente.
     const giftId = "gift-replay";
-    from.regalosPendientes = { [giftId]: { para: target, day: "2026-11-12" } };
+    from.consumibles["regalo-rin-len"] = 0;
+    from.regalosPendientes = {
+      [giftId]: { para: target, day: "2026-11-12" },
+      "gift-expirado": { para: target, day: "2026-11-11" },
+    };
     to.regalosRecibidos.push(giftId);
     preview.prepare("UPDATE mundo_sandbox SET estado = ?, revision = revision + 1 WHERE papu_id = ?").run(JSON.stringify(from), sender);
     preview.prepare("UPDATE mundo_sandbox SET estado = ?, revision = revision + 1 WHERE papu_id = ?").run(JSON.stringify(to), target);
@@ -513,6 +517,10 @@ describe("EconomiaPlazaPreview", () => {
     const after = await query<{ estado: string }>("SELECT estado FROM mundo_sandbox WHERE papu_id = ?", target);
     const received = JSON.parse(after[0]!.estado) as { ruletaRegalos: number };
     expect(received.ruletaRegalos).toBe(1);
+    const senderAfter = await query<{ estado: string }>("SELECT estado FROM mundo_sandbox WHERE papu_id = ?", sender);
+    const senderState = JSON.parse(senderAfter[0]!.estado) as { consumibles: Record<string, number>; regalosPendientes?: Record<string, unknown> };
+    expect(senderState.consumibles["regalo-rin-len"]).toBe(1);
+    expect(senderState.regalosPendientes).toBeUndefined();
   });
   it("locks consumable use while an Atun prize is pending and supports explicit acceptance", async () => {
     const source = openDb(":memory:");
