@@ -111,8 +111,9 @@ export function pregunta(v: Vista): string {
       .join("")}</ul>`;
   }
   const extras = v.consumibles;
+  const yaRespondio = !!v.jugadores.find((j) => j.id === v.yo)?.respondio;
   const herramientas = !r && juego && extras ? `<div class="grupo" style="margin:12px 0">
-    ${extras.celular ? `<button data-consumible="celular">📱 Neru 50/50 · ${extras.celular}</button>` : ""} ${extras.baguette ? `<span class="chip">🥖 Baguette automática · ${extras.baguette} partida(s), 2 rescates</span>` : ""}
+    ${extras.celular && !yaRespondio ? `<button data-consumible="celular">📱 Neru 50/50 · ${extras.celular}</button>` : ""} ${extras.baguette ? `<span class="chip">🥖 Baguette automática · ${extras.baguette} partida(s), 2 rescates</span>` : ""}
     ${extras.guitarra && !extras.guitarraActiva ? `<button data-consumible="guitarra">🎸 Doble XP · ${extras.guitarra}</button>` : extras.guitarraActiva ? `<span class="chip">🎸 Guitarra activa · doble XP</span>` : ""}
     ${extras.zanahoria && p.temas?.length ? `<label class="chip">🥕 Gumi <select id="tema-zanahoria">${p.temas.map(t=>`<option value="${esc(t.tema)}">${esc(t.tema)} (${t.n})</option>`).join("")}</select><button data-consumible="zanahoria">Elegir tema · ${extras.zanahoria}</button></label>` : ""}
   </div>` : "";
