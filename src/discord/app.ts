@@ -579,7 +579,13 @@ export class PapusApp {
           const id = datos && typeof datos === "object" && "id" in datos && typeof (datos as { id?: unknown }).id === "string" ? (datos as { id: string }).id : "";
           if (!id) return { ok: false, motivo: "Elige un objeto válido de la vitrina." };
           const compra = coins.buy(papu.id, id);
-          if (!compra.ok) return { ok: false, motivo: compra.motivo };
+          if (!compra.ok) {
+            const motivos: Record<string, string> = {
+              "no_alcanza_ganadas": "No tienes suficientes Shaula-coins ganadas para ese objeto.",
+              "no_alcanza": "No tienes suficientes Shaula-coins.",
+            };
+            return { ok: false, motivo: motivos[compra.motivo] ?? compra.motivo };
+          }
           return { ok: true, datos: { mensaje: `¡Compraste ${coins.byId.get(id)?.nombre ?? id}!`, wallet: compra.wallet } };
         };
       }
