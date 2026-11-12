@@ -166,6 +166,15 @@ describe("EconomiaPlazaPreview", () => {
       return [];
     };
     const userId = "123456789012345678";
+    preview.prepare(
+      "INSERT INTO mundo_sandbox (papu_id, estado, revision, actualizado_at) VALUES (?, ?, 0, ?)",
+    ).run(userId, JSON.stringify({
+      version: 1, xp: 0,
+      wallet: { ganadas: 0, compradas: 0, ecos: 0, gratis: 0, gratisRaro: 0, gratisLeg: 0, sobres: 0, sinEpica: 0, sinLegendaria: 0, hoy: 0 },
+      inventario: [], consumibles: {}, comprasMercado: [],
+      ruletaDia: "2026-11-12", ruletaUsadas: 0, pescaAt: 0,
+      cuotaExtraDia: "2026-11-12", cuotaExtra: 0, cuotaUsada: 0, subioDia: "",
+    }), Date.parse("2026-11-12T12:00:00-03:00"));
     const now = Date.parse("2026-11-12T12:00:00-03:00");
     const levels = new LevelService({ db: source, settings: loadLevelSettings(), timeZone: "America/Santiago" });
     const quota = new Quota(source, (id, at) => levels.limitFor(id, at), "America/Santiago");
