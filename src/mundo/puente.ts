@@ -118,6 +118,8 @@ export interface MundoDeps {
   bots: readonly BotId[];
   owners: Pick<ReadonlySet<string>, "has">;
   stats: (papuId: string) => MundoStats;
+  /** Renderiza la misma tarjeta de /nivel, sin cuota privada. */
+  tarjetaPublica?: (papuId: string) => Promise<{ data: Buffer; gif: boolean } | null>;
   now?: () => number;
   log?: (msg: string) => void;
 }
@@ -166,12 +168,14 @@ export class MundoPuente {
       acciones: number;
       perfiles: number;
       chat: number;
+      tarjetas: number;
     }>(
       `SELECT
         (SELECT COUNT(*) FROM mundo_menciones WHERE tomado = 0) AS menciones,
         (SELECT COUNT(*) FROM mundo_acciones WHERE tomado = 0) AS acciones,
         (SELECT COUNT(*) FROM mundo_perfiles WHERE pedido_at >= actualizado_at) AS perfiles,
-        (SELECT COUNT(*) FROM mundo_chat WHERE publicado = 0) AS chat`,
+        (SELECT COUNT(*) FROM mundo_chat WHERE publicado = 0) AS chat,
+        (SELECT COUNT(*) FROM mundo_tarjeta_pedidos WHERE estado = 0) AS tarjetas`,
     );
     let rows: Mencion[] = [];
     if (hay?.menciones) {
@@ -196,6 +200,7 @@ export class MundoPuente {
       for (const p of pedidos) await this.guardarPerfil(p.papu_id);
     }
     if (hay?.chat) await this.registro();
+    if (hay?.tarjetas) await this.generarTarjetas();
     await this.publicarEstado();
     await this.limpiar();
     return rows.length;
@@ -406,6 +411,46 @@ export class MundoPuente {
     );
   }
 
+  /** Genera tarjetas solo bajo demanda y las guarda en el D1 de esta instancia (preview o producción). */
+  private async generarTarjetas(): Promise<void> {
+    const pedidos = await this.d.query<{ papu_id: string }>(
+      "SELECT DISTINCT papu_id FROM mundo_tarjeta_pedidos WHERE estado = 0 ORDER BY papu_id LIMIT 10",
+    );
+    for (const { papu_id } of pedidos) {
+      try {
+        const [cache] = await this.d.query<{ actualizado_at: number }>(
+          "SELECT actualizado_at FROM mundo_tarjetas WHERE papu_id = ?",
+          papu_id,
+        );
+        if (cache && this.now() - cache.actualizado_at < 60_000) {
+          await this.d.query("UPDATE mundo_tarjeta_pedidos SET estado = 1 WHERE papu_id = ? AND estado = 0", papu_id);
+          continue;
+        }
+        if (!this.d.tarjetaPublica) throw new Error("El renderizador de tarjetas no está conectado.");
+        const card = await this.d.tarjetaPublica(papu_id);
+        if (!card?.data?.length) throw new Error("No se pudo generar la tarjeta.");
+        if (card.data.length > 600_000) throw new Error("La tarjeta supera el tamaño permitido para la Plaza.");
+        const encoded = card.data.toString("base64");
+        const partes = encoded.match(/.{1,16000}/g) ?? [];
+        await this.d.query("DELETE FROM mundo_tarjeta_partes WHERE papu_id = ?", papu_id);
+        for (let i = 0; i < partes.length; i++) {
+          await this.d.query(
+            "INSERT INTO mundo_tarjeta_partes (papu_id, parte, datos) VALUES (?, ?, ?)",
+            papu_id, i, partes[i]!,
+          );
+        }
+        await this.d.query(
+          "INSERT INTO mundo_tarjetas (papu_id, mime, actualizado_at) VALUES (?, ?, ?) ON CONFLICT(papu_id) DO UPDATE SET mime = excluded.mime, actualizado_at = excluded.actualizado_at",
+          papu_id, card.gif ? "image/gif" : "image/png", this.now(),
+        );
+        await this.d.query("UPDATE mundo_tarjeta_pedidos SET estado = 1 WHERE papu_id = ? AND estado = 0", papu_id);
+      } catch (e) {
+        this.d.log?.(`✘ mundo: tarjeta de ${papu_id}: ${(e as Error)?.message ?? e}`);
+        await this.d.query("UPDATE mundo_tarjeta_pedidos SET estado = 2 WHERE papu_id = ? AND estado = 0", papu_id).catch(() => {});
+      }
+    }
+  }
+
   private async guardarPerfil(papuId: string): Promise<void> {
     const s = /^\d{5,25}$/.test(papuId)
       ? this.d.stats(papuId)
@@ -468,10 +513,11 @@ export function mundoFromEnv(
   env: NodeJS.ProcessEnv,
   deps: Omit<MundoDeps, "query">,
   root = path.resolve(import.meta.dirname, "../.."),
+  databaseIdOverride?: string,
 ): MundoPuente | null {
   const token = env.CLOUDFLARE_DEPLOY_TOKEN?.trim();
   const accountId = env.CLOUDFLARE_ACCOUNT_ID?.trim();
-  const databaseId = workerDatabaseId(root);
+  const databaseId = databaseIdOverride?.trim() || workerDatabaseId(root);
   if (!token || !accountId || !databaseId) return null;
   return new MundoPuente({
     ...deps,
