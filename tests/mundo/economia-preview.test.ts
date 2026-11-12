@@ -83,7 +83,7 @@ describe("EconomiaPlazaPreview", () => {
     `);
     const query: D1Query = async <T>(sql: string, ...params: unknown[]): Promise<T[]> => {
       const statement = preview.prepare(sql);
-      if (/^\\s*(SELECT|UPDATE)/i.test(sql) || /RETURNING/i.test(sql)) {
+      if (/^\s*(SELECT|UPDATE)/i.test(sql) || /RETURNING/i.test(sql)) {
         return statement.all(...(params as never[])) as unknown as T[];
       }
       statement.run(...(params as never[]));
