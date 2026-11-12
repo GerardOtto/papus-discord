@@ -30,7 +30,7 @@ function d1(): { query: D1Query; db: DatabaseSync } {
   return { query, db };
 }
 
-function setup(reply = '{"teto": "¡Hola, <@123456789012345678>! **Qué gusto** verte en la plaza <:baguette:111>"}', limite = 3) {
+function setup(reply = '{"teto": "¡Hola, <@123456789012345678>! **Qué gusto** verte en la plaza <:baguette:111>"}', limite = 3, tarjetaPublica?: (id: string) => Promise<{ data: Buffer; gif: boolean } | null>) {
   const { query, db: base } = d1();
   const db = memDb();
   const engine = new EngineReader(FIXTURE_ENGINE);
@@ -55,6 +55,7 @@ function setup(reply = '{"teto": "¡Hola, <@123456789012345678>! **Qué gusto** 
     bots: ["teto", "miku", "luka", "neru"],
     owners: new Set(),
     stats: (id) => ({ nivel: 4, prestigio: 0, restante: quota.remaining(id), limite: quota.limitFor(id), ruletas: 1 }),
+    tarjetaPublica,
   });
   const mencion = (texto: string, papu = PAPU, bots = "teto", creado = Date.now()) =>
     base
@@ -145,6 +146,28 @@ describe("mundo: @ a los Vocaloids de la plaza", () => {
   });
 });
 
+describe("mundo: tarjetas públicas", () => {
+  it("genera y cachea la tarjeta pública desde el renderizador canónico", async () => {
+    const png = Buffer.from("tarjeta-publica-png");
+    const t = setup(undefined, 3, async (id) => {
+      expect(id).toBe(PAPU);
+      return { data: png, gif: false };
+    });
+    t.base.prepare("INSERT INTO mundo_tarjeta_pedidos (sala, solicitante_id, papu_id, ref, creado_at) VALUES (?, ?, ?, ?, ?)").run("sala-1", PAPU, PAPU, 7, Date.now());
+    await t.vuelta();
+    expect(t.base.prepare("SELECT papu_id, mime FROM mundo_tarjetas").get()).toEqual({ papu_id: PAPU, mime: "image/png" });
+    const partes = t.base.prepare("SELECT datos FROM mundo_tarjeta_partes WHERE papu_id = ? ORDER BY parte").all(PAPU) as { datos: string }[];
+    expect(Buffer.from(partes.map((p) => p.datos).join(""), "base64")).toEqual(png);
+    expect(t.base.prepare("SELECT estado FROM mundo_tarjeta_pedidos").get()).toEqual({ estado: 1 });
+  });
+
+  it("no procesa solicitudes de tarjetas si no hay renderizador conectado", async () => {
+    const t = setup();
+    t.base.prepare("INSERT INTO mundo_tarjeta_pedidos (sala, solicitante_id, papu_id, ref, creado_at) VALUES (?, ?, ?, ?, ?)").run("sala-1", PAPU, PAPU, 8, Date.now());
+    await t.vuelta();
+    expect(t.base.prepare("SELECT estado FROM mundo_tarjeta_pedidos").get()).toEqual({ estado: 0 });
+  });
+});
 describe("mundo: registro del chat en #plaza-papus", () => {
   it("publica el chat nuevo una sola vez, en orden", async () => {
     const t = setup();
