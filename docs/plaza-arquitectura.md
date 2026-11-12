@@ -25,12 +25,19 @@ La Plaza 3D es una segunda interfaz del servidor de Discord. Discord y la Plaza 
 
 - La Plaza no calcula XP, niveles ni saldos.
 - El Worker no concede recompensas ni descuenta monedas.
-- Las tarjetas públicas quedan deshabilitadas en esta interfaz hasta que sus tablas se incorporen mediante una migración controlada del esquema canónico.
+- Las tarjetas públicas reutilizan `LevelsDiscord.publicCard`: muestran el diseño, avatar y objetos equipados de `/nivel`, pero nunca la cuota privada. D1 solo conserva una caché temporal de la imagen y una cola de solicitudes; no contiene progreso ni inventario.
 - El backend revalida usuario, datos, permisos, cooldowns y reglas.
 - La respuesta de éxito se entrega después de la operación del servicio canónico.
 - Los perfiles son snapshots derivados del backend; nunca se usan como fuente de verdad.
 - La presencia y las poses pueden ser efímeras. La economía y la progresión permanecen en los servicios de Papus.
 - Los endpoints de estado no deben almacenar respuestas en caché, para evitar mostrar snapshots vencidos.
+
+## Tarjetas públicas
+
+- `mundo_tarjetas` guarda MIME y fecha de la imagen pública renderizada; `mundo_tarjeta_partes` almacena el Base64 fragmentado para respetar límites de D1/WebSocket; `mundo_tarjeta_pedidos` coordina solicitudes y entregas.
+- Las imágenes se generan en el proceso principal de Papus con el mismo renderizador y equipo de `/nivel`; la cuota diaria se elimina antes de renderizar.
+- La caché se invalida tras 60 segundos y se limpia después de siete días. El Worker solo transporta solicitudes y entrega imágenes.
+- La migración aditiva está en `worker/migrations/0001_mundo_tarjetas.sql`. Debe aplicarse una vez al D1 canónico antes de habilitar `MUNDO_TARJETAS=1`; el workflow de preview no ejecuta migraciones.
 
 ## Despliegue y seguridad
 
