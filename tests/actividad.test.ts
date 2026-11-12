@@ -396,6 +396,14 @@ describe("XP de la trivia multijugador", () => {
     expect(t.sala.vista("ana").pregunta!.tema).toBe(tema);
   });
 
+  it("valida el inicio de una partida sin arrancar el reloj ni cambiar la sala", () => {
+    const t=setup([op("a"),op("b")]);
+    t.unir("ana");
+    expect(t.sala.puedeEmpezar("otro").ok).toBe(false);
+    expect(t.sala.puedeEmpezar("ana").ok).toBe(true);
+    expect(t.sala.fase).toBe("sala");
+  });
+
   it("permite revertir la activación de Baguette si el rescate ya no aplica", () => {
     const t=setup([op("a"),op("b")]);
     t.unir("ana");
