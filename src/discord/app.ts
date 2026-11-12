@@ -661,6 +661,37 @@ export class PapusApp {
         ultimoLancePreview.set(papu.id, ahora);
         return { ok: true, datos: { tamano, xp: recompensa.xp, porcentaje: Math.round(recompensa.porcentaje * 100), texto: textoRecompensaPesca(recompensa), soloLectura: true } };
       };
+      if (this.d.coins) {
+        const coins = this.d.coins;
+        preview.acciones["tienda.estado"] = (papu) => {
+          const vitrina = coins.vitrina();
+          const owned = coins.owned(papu.id);
+          return {
+            ok: true,
+            datos: {
+              abierta: !!vitrina,
+              soloLectura: true,
+              objetos: (vitrina?.objetos ?? []).flatMap((id) => {
+                const o = coins.byId.get(id);
+                return o ? [{ id: o.id, nombre: o.nombre, descripcion: o.descripcion, rareza: o.rareza, precio: priceOf(coins.settings, o), owned: owned.has(o.id) }] : [];
+              }),
+            },
+          };
+        };
+      }
+      preview.acciones["tienda.comprar"] = () => ({ ok: false, motivo: "La tienda del preview es de solo lectura: no se descuentan monedas ni se modifica el inventario." });
+      if (this.d.mercado) {
+        const mercado = this.d.mercado;
+        preview.acciones["mercado.estado"] = (papu) => ({
+          ok: true,
+          datos: {
+            abierto: null,
+            soloLectura: true,
+            objetos: mercado.vitrina().map((o) => ({ id: o.id, nombre: o.nombre, emoji: o.emoji, descripcion: o.descripcion, precio: o.precio, usos: o.usos ?? null, owned: mercado.tiene(papu.id, o) })),
+          },
+        });
+      }
+      preview.acciones["mercado.comprar"] = () => ({ ok: false, motivo: "El mercado negro del preview es de solo lectura: no se descuentan monedas ni se modifica el inventario." });
       let previewBusy = false;
       this.mundoPreviewTimer = setInterval(() => {
         if (previewBusy || this.stopping) return;
