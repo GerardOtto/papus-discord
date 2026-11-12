@@ -77,4 +77,32 @@ describe("mundo: foto del servidor", () => {
     const fila = db.prepare("SELECT valor FROM mundo_estado WHERE clave = 'servidor'").get() as { valor: string };
     expect(JSON.parse(fila.valor).fama[0].nivel).toBe(50);
   });
+
+  it("recupera acciones reclamadas que quedaron interrumpidas por un reinicio", async () => {
+    const db = new DatabaseSync(":memory:");
+    db.exec(readFileSync(path.resolve(import.meta.dirname, "../worker/schema.sql"), "utf8"));
+    db.prepare("INSERT INTO mundo_acciones (sala, papu_id, papu_nombre, accion, datos, ref, creado_at, tomado) VALUES (?, ?, ?, ?, ?, ?, ?, 1)")
+      .run("plaza", "123456789012345678", "Ana", "pesca.capturar", "null", 7, AHORA - 60_001);
+    const query: D1Query = async <T,>(sql: string, ...params: unknown[]) =>
+      db.prepare(sql).all(...(params as never[])) as T[];
+    const puente = new MundoPuente({
+      query,
+      makeConversation: () => ({}) as ConversationService,
+      bots: ["teto"],
+      owners: new Set(),
+      stats: () => ({ nivel: 1, prestigio: 0, restante: 3, limite: 3, ruletas: 0 }),
+      now: () => AHORA,
+    });
+
+    await puente.sync();
+
+    const fila = db.prepare("SELECT tomado, resultado FROM mundo_acciones WHERE ref = 7").get() as { tomado: number; resultado: string };
+    expect(fila.tomado).toBe(2);
+    expect(JSON.parse(fila.resultado)).toMatchObject({
+      ok: false,
+      motivo: "La acción se interrumpió antes de confirmar su respuesta. Revisa tu progreso antes de repetirla.",
+    });
+    db.close();
+  });
+
 });
