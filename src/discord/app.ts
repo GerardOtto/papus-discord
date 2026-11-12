@@ -552,6 +552,7 @@ export class PapusApp {
       // Pesca de la Plaza: usa la XP real y la misma LevelService; el Worker no concede recompensas.
       mundo.acciones["pesca.capturar"] = accionPesca(
         this.d.levels,
+        this.d.db,
         Date.now,
         Math.random,
         async (change) => this.levels.handle(change, {}, { quiet: true }),
