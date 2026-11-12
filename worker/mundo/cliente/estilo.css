@@ -987,3 +987,48 @@ kbd {
   box-shadow: 0 8px 28px rgba(0,0,0,.35);
 }
 .tarjeta-cargando { padding: 22px 12px; text-align: center; font-weight: 700; }
+
+
+/* Tarjetas de vitrina, rareza y estados de colección. */
+.v-vitrina-cabeza{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:4px 0 12px}
+.v-eyebrow{display:block;color:var(--turquesa);font:700 11px "Inter",system-ui,sans-serif;letter-spacing:.13em}
+.v-monedero{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:12px 0}
+.v-monedero>span{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:7px;padding:9px 12px;border-radius:13px;background:rgba(14,12,28,.55);border:1px solid var(--borde-v);font-weight:700}
+.v-monedero small{color:var(--suave);font-size:11px;font-weight:500}
+.v-vitrina{list-style:none;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:0;padding:0}
+.v-producto{min-width:0;display:flex;flex-direction:column;overflow:hidden;border:1px solid var(--borde-v);border-radius:16px;background:rgba(17,13,31,.72)}
+.v-producto-arte{min-height:86px;display:grid;place-items:center;background:radial-gradient(circle at 50% 65%,rgba(255,255,255,.14),transparent 64%),linear-gradient(135deg,rgba(255,255,255,.08),rgba(0,0,0,.12));border-bottom:1px solid var(--borde-v)}
+.v-producto-arte span{font-size:40px;filter:drop-shadow(0 5px 5px rgba(0,0,0,.35))}
+.v-producto-info{display:flex;flex:1;flex-direction:column;align-items:flex-start;gap:6px;padding:10px}
+.v-producto-info>b{font:700 17px/1.1 "Fredoka",system-ui,sans-serif}
+.v-producto-info>small{min-height:34px;color:var(--suave);font-size:11.5px;line-height:1.35}
+.v-producto-rareza{padding:3px 8px;border-radius:999px;background:rgba(255,255,255,.12);color:#ded7ee;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em}
+.v-producto-pie{display:flex;flex-wrap:wrap;align-items:center;gap:5px;margin-top:auto;font-size:11px;color:#f6d779}
+.v-producto-usos{padding:2px 6px;border-radius:6px;background:rgba(57,197,187,.15);color:#7ee4d8}
+.v-producto .v-chip{margin-top:7px;padding:5px 9px;font-size:12px}
+.v-producto .v-comprar{margin-top:7px;padding:8px 10px;font-size:16px;box-shadow:0 3px 0 #8f1622,0 0 0 2px #fff}
+.v-producto.rareza-raro,.v-producto.rareza-epico,.v-producto.rareza-epica{border-color:rgba(61,123,255,.58)}
+.v-producto.rareza-legendario,.v-producto.rareza-legendaria,.v-producto.rareza-mitica{border-color:rgba(246,199,68,.72)}
+.v-producto.rareza-fundador,.v-producto.rareza-contrabando{border-color:rgba(180,140,255,.72)}
+.v-vacia{display:grid;justify-items:center;gap:7px;padding:28px 12px;border:1px dashed var(--borde-v);border-radius:16px;text-align:center;color:var(--suave)}
+.v-vacia span{font-size:34px}.v-vacia b{color:#fff;font:700 18px "Fredoka",system-ui,sans-serif}.v-vacia small{font-size:12px}
+/* Interacción de pesca y resultado de captura. */
+.v-pesca-intro{display:flex;align-items:center;gap:14px;padding:13px;border:1px solid rgba(57,197,187,.35);border-radius:15px;background:rgba(57,197,187,.1)}
+.v-pesca-anzuelo{font-size:34px}.v-pesca-intro b{font:700 18px "Fredoka",system-ui,sans-serif}.v-pesca-intro p{margin:3px 0 0;color:var(--suave);font-size:12px}
+.v-pesca-tamanos{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.v-pez{display:grid;justify-items:center;gap:4px;padding:11px 5px;border:1px solid var(--borde-v);border-radius:14px;background:var(--tarjeta-v);text-align:center}
+.v-pez>span{font-size:29px}.v-pez b{font:700 13px "Fredoka",system-ui,sans-serif}.v-pez strong{color:var(--turquesa);font:700 22px "Fredoka",system-ui,sans-serif}.v-pez small{color:var(--suave);font-size:10px}
+.v-pesca-espera{display:grid;justify-items:center;gap:8px;padding:26px 10px;text-align:center}
+.v-pesca-espera>span{font-size:54px;animation:pesca-boya 1s ease-in-out infinite alternate}
+.v-pesca-espera b{font:700 20px "Fredoka",system-ui,sans-serif}.v-pesca-espera small{color:var(--suave)}
+.v-pesca-onda{width:120px;height:8px;border-radius:50%;background:rgba(57,197,187,.5);animation:pesca-onda 1.1s ease-in-out infinite}
+@keyframes pesca-boya{to{transform:translateY(7px) rotate(8deg)}}@keyframes pesca-onda{50%{transform:scaleX(.65);opacity:.45}}
+.v-captura{display:grid;justify-items:center;gap:7px;padding:17px 12px;border:1px solid rgba(57,197,187,.45);border-radius:18px;background:radial-gradient(80% 70% at 50% 0%,rgba(57,197,187,.2),transparent 80%),var(--tarjeta-v);text-align:center}
+.v-captura.mediana{border-color:rgba(61,123,255,.55)}.v-captura.grande{border-color:rgba(246,199,68,.75)}
+.v-captura-pez{font-size:62px;filter:drop-shadow(0 8px 8px rgba(0,0,0,.35))}.v-captura h3{margin:0;font:700 23px "Fredoka",system-ui,sans-serif}
+.v-captura-xp{color:#7ee4d8;font:700 27px "Fredoka",system-ui,sans-serif}
+.v-captura-barra{width:min(260px,90%);height:9px;overflow:hidden;border-radius:99px;background:rgba(255,255,255,.13)}
+.v-captura-barra span{display:block;height:100%;border-radius:inherit;background:linear-gradient(90deg,var(--turquesa),var(--amarillo))}
+.v-captura>small{color:var(--suave)}.v-captura>p{margin:4px 0 0}
+@media(max-width:420px){.v-vitrina{grid-template-columns:1fr}.v-producto{display:grid;grid-template-columns:88px minmax(0,1fr)}.v-producto-arte{min-height:100%;border-bottom:0;border-right:1px solid var(--borde-v)}.v-producto-info>small{min-height:0}}
+@media(prefers-reduced-motion:reduce){.v-pesca-espera>span,.v-pesca-onda{animation:none}}
