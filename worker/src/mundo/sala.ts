@@ -13,7 +13,7 @@ import moderacion from "../../../config/moderacion.json";
 import { RuleSet, type ModerationSettings } from "../../../src/moderation/rules";
 import { identificar } from "../actividad/identidad";
 import { ACCION_MIN_MS, ACCION_VENCE_MS, avanzar, COLA_VACIA, esAccion, formar, GIRO_MS, proximoCambio, type ColaRuleta, type Giro, type Resultado, type RuletaGiro } from "./acciones";
-import { aparicion, ASPECTO_INICIAL, CHAT_MIN_MS, destino, HISTORIAL, leerPose, limpiarChat, MAX_PAPUS, mencionados, MOV_MIN_MS, moverValido, validarAspecto } from "./juego";
+import { aparicion, ASPECTO_INICIAL, CHAT_MIN_MS, destino, HISTORIAL, leerPose, limpiarChat, MAX_PAPUS, mencionados, MOV_MIN_MS, moverValido, validarAspecto, ZONAS } from "./juego";
 import type { Aspecto, Aviso, PapuPublico, Pedido, Respuesta } from "./tipos";
 import { simular } from "./simulado";
 import { COOKIE_TOKEN, leerCookie } from "./web";
@@ -35,6 +35,7 @@ interface Ficha {
   chatAt: number;
   /** Ultima accion pedida (ms). */
   accionAt?: number;
+  sentado?: boolean;
   /** Ultimo perfil (nivel y cuota) que se le mostro. */
   statsAt?: number;
   /** Ultima version de los perfiles publicos enviados a este socket. */
@@ -183,6 +184,17 @@ export class SalaMundo implements DurableObject {
       return this.todos({ t: "mov", id: papu.id, ...pose, s: 1 }, ws);
     }
 
+    if (m.t === "sentarse") {
+      const fogata = ZONAS.find((z) => z.id === "fogata");
+      if (!fogata || Math.hypot(papu.x - fogata.x, papu.z - fogata.z) > 9) {
+        return this.enviar(ws, { t: "aviso", texto: "Acércate a la fogata para sentarte junto a los demás. 🔥" });
+      }
+      ficha.sentado = m.sentado === true;
+      ws.serializeAttachment(ficha);
+      this.todos({ t: "fogata", id: papu.id, sentado: ficha.sentado });
+      return;
+    }
+
     if (m.t === "aspecto") {
       const aspecto = validarAspecto(m.aspecto);
       if (!aspecto) return;
@@ -218,6 +230,7 @@ export class SalaMundo implements DurableObject {
     const papu: PapuPublico = { id: quien.id, nombre: quien.nombre, aspecto: validarAspecto(m.aspecto) ?? ASPECTO_INICIAL, ...aparicion() };
     ws.serializeAttachment({ id: quien.id, papu, movAt: Date.now(), chatAt: 0 } satisfies Ficha);
     this.enviar(ws, { t: "bienvenida", yo: quien.id, papus: [...presentes, papu] });
+    for (const c of this.conectados()) if (c.ficha.sentado) this.enviar(ws, { t: "fogata", id: c.ficha.papu!.id, sentado: true });
     this.enviar(ws, this.avisoRuleta(await this.ruleta()));
     this.todos({ t: "entra", papu }, ws);
     await this.guardarAspecto(papu.id, papu.aspecto);
@@ -482,6 +495,7 @@ export class SalaMundo implements DurableObject {
   private salir(ws: WebSocket): void {
     const ficha = ws.deserializeAttachment() as Ficha | null;
     if (!ficha?.id) return;
+    if (ficha.sentado) this.todos({ t: "fogata", id: ficha.id, sentado: false }, ws);
     ws.serializeAttachment({ id: null, movAt: 0, chatAt: 0 } satisfies Ficha);
     this.todos({ t: "sale", id: ficha.id }, ws);
   }
