@@ -5,6 +5,13 @@ CREATE TABLE IF NOT EXISTS actividad_perfiles (
   tope INTEGER NOT NULL DEFAULT 0, pedido_at INTEGER NOT NULL DEFAULT 0,
   actualizado_at INTEGER NOT NULL DEFAULT 0
 );
+CREATE TABLE IF NOT EXISTS actividad_perfiles_preview (
+  papu_id TEXT NOT NULL, partida TEXT NOT NULL DEFAULT '',
+  xp_base INTEGER NOT NULL DEFAULT 0, tope INTEGER NOT NULL DEFAULT 0,
+  pedido_at INTEGER NOT NULL DEFAULT 0, actualizado_at INTEGER NOT NULL DEFAULT 0,
+  PRIMARY KEY (papu_id, partida)
+);
+CREATE INDEX IF NOT EXISTS preview_actividad_perfiles_preview_pedido ON actividad_perfiles_preview (pedido_at, actualizado_at);
 CREATE TABLE IF NOT EXISTS actividad_aciertos (
   id INTEGER PRIMARY KEY AUTOINCREMENT, partida TEXT NOT NULL, papu_id TEXT NOT NULL,
   pregunta TEXT NOT NULL, dificultad TEXT NOT NULL, racha INTEGER NOT NULL,
