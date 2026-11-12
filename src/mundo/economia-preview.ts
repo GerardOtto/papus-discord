@@ -518,7 +518,7 @@ export class EconomiaPlazaPreview {
       const now=this.now(), day=dayKey(new Date(now),this.d.timeZone);
       const spins=this.d.roulette.status(userId,now).used;
       const quotaUsed=this.d.quota.used(userId,new Date(now));
-      return this.cambiar(userId,(s)=>{
+      const result=await this.cambiar(userId,(s)=>{
         const usos=s.consumibles[id]??0;
         if(usos<=0)return {result:error("No te quedan usos del PC de Adachi Rei."),changed:false};
         s.consumibles[id]=usos-1;
@@ -527,6 +527,8 @@ export class EconomiaPlazaPreview {
         s.cuotaResetDia=day;s.cuotaResetBase=quotaUsed;s.cuotaUsada=0;
         return {result:ok({mensaje:"💻 Día reiniciado en tu progreso de prueba: partidas y tope de XP de trivia, tiradas y cuota sandbox vuelven a contar desde cero. Lo que ya ganaste se conserva.",usos:s.consumibles[id],sandbox:true})};
       });
+      if(result.ok) await this.d.query("UPDATE actividad_perfiles SET pedido_at = ? WHERE papu_id = ?",now+2,userId);
+      return result;
     }
     if (id !== "microfono-meiko") return error("Ese consumible todavía no tiene una acción disponible en la Plaza.");
     const objeto = this.d.mercado.byId.get(id);
