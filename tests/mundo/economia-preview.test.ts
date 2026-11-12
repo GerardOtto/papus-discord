@@ -301,7 +301,7 @@ describe("EconomiaPlazaPreview", () => {
     const source = openDb(":memory:");
     const preview = openDb(":memory:");
     abiertos.push(source, preview);
-    preview.exec("CREATE TABLE mundo_sandbox (papu_id TEXT PRIMARY KEY, estado TEXT NOT NULL, revision INTEGER NOT NULL DEFAULT 0, actualizado_at INTEGER NOT NULL)");
+    preview.exec("CREATE TABLE mundo_sandbox (papu_id TEXT PRIMARY KEY, estado TEXT NOT NULL, revision INTEGER NOT NULL DEFAULT 0, actualizado_at INTEGER NOT NULL); CREATE TABLE actividad_perfiles (papu_id TEXT PRIMARY KEY, xp_base INTEGER NOT NULL DEFAULT 0, tope INTEGER NOT NULL DEFAULT 0, pedido_at INTEGER NOT NULL DEFAULT 0, actualizado_at INTEGER NOT NULL DEFAULT 0)");
     const query: D1Query = async <T>(sql: string, ...params: unknown[]): Promise<T[]> => {
       const statement = preview.prepare(sql);
       if (/RETURNING/i.test(sql) || /^\s*SELECT/i.test(sql)) return statement.all(...(params as never[])) as unknown as T[];
@@ -521,7 +521,7 @@ describe("EconomiaPlazaPreview", () => {
     preview.exec("CREATE TABLE mundo_sandbox (papu_id TEXT PRIMARY KEY, estado TEXT NOT NULL, revision INTEGER NOT NULL DEFAULT 0, actualizado_at INTEGER NOT NULL)");
     const query: D1Query = async <T>(sql: string, ...params: unknown[]): Promise<T[]> => {
       const statement = preview.prepare(sql);
-      if (/RETURNING/i.test(sql) || /^\\s*SELECT/i.test(sql)) return statement.all(...(params as never[])) as unknown as T[];
+      if (/RETURNING/i.test(sql) || /^\s*SELECT/i.test(sql)) return statement.all(...(params as never[])) as unknown as T[];
       statement.run(...(params as never[]));
       return [];
     };
