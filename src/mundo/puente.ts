@@ -30,7 +30,7 @@ const LOTE = 10;
 /** Mensajes del chat por vuelta para #plaza-papus. */
 const LOTE_CHAT = 60;
 /** Cada cuanto se revisa la foto del servidor para la plaza. */
-const ESTADO_MS = 60_000;
+const ESTADO_MS = 5_000;
 /** Acciones por vuelta. */
 const LOTE_ACCIONES = 10;
 /** Cada cuanto se borran los eventos y acciones viejos (de mas de un dia). */
@@ -315,7 +315,7 @@ export class MundoPuente {
     }
   }
 
-  /** Cada minuto: la foto del servidor, solo si cambio algo (asi casi no escribe en la base). */
+  /** Cada cinco segundos: publica cambios del servidor, solo si cambió el contenido. */
   private async publicarEstado(): Promise<void> {
     if (!this.estado || this.now() - this.estadoAt < ESTADO_MS) return;
     this.estadoAt = this.now();
