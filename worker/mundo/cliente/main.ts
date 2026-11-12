@@ -90,6 +90,7 @@ interface Otro {
   burbujas: HTMLElement;
   mensajes: { el: HTMLElement; hasta: number }[];
   desfase: number;
+  aspecto: Aspecto;
   perfil?: { nivel: number; prestigio: number };
 }
 
@@ -162,7 +163,7 @@ function perfil(m: Extract<Aviso, { t: "perfil" }>): void {
 
 /** Ficha pública al pulsar el nombre o el personaje. */
 function abrirPerfil(o: Otro): void {
-  const a = o.p.aspecto;
+  const a = o.aspecto;
   const p = o.perfil;
   const sombreros = ["Sin sombrero", "Sombrero de fiesta", "Sombrero de copa", "Orejas de gato", "Puerro"];
   const ropa = ASPECTOS.ropa[a.ropa] ?? ASPECTOS.ropa[0];
@@ -220,7 +221,7 @@ function crearOtro(papu: PapuPublico): Otro {
   etiqueta.setAttribute("role", "button");
   etiqueta.setAttribute("aria-label", `Ver perfil de ${papu.nombre}`);
   etiqueta.innerHTML = `<div class="burbujas"></div><span class="nombre">${esc(papu.nombre)}</span>`;
-  const otro: Otro = { p, nombre: papu.nombre, objetivo: { ...papu }, etiqueta, burbujas: etiqueta.querySelector(".burbujas")!, mensajes: [], desfase: Math.random() };
+  const otro: Otro = { p, nombre: papu.nombre, objetivo: { ...papu }, etiqueta, burbujas: etiqueta.querySelector(".burbujas")!, mensajes: [], desfase: Math.random(), aspecto: papu.aspecto };
   etiqueta.addEventListener("click", () => abrirPerfil(otro));
   etiqueta.addEventListener("keydown", (e) => {
     if (e.key === "Enter" || e.key === " ") { e.preventDefault(); abrirPerfil(otro); }
@@ -360,7 +361,7 @@ function recibir(m: Aviso): void {
     // Lo que este Papu le dijo a un Vocaloid queda tambien en su ventana de charla (ya publicado: Neru no lo quito).
     if (m.id === yo && mencionados(m.texto).length) charla.papu(o.nombre, m.texto);
   }
-  else if (m.t === "aspecto" && m.id !== yo) o.p.vestir(m.aspecto);
+  else if (m.t === "aspecto" && m.id !== yo) { o.p.vestir(m.aspecto); o.aspecto = m.aspecto; }
 }
 
 async function iniciar(): Promise<void> {
@@ -618,6 +619,7 @@ $("panel").addEventListener("click", (e) => {
   aspecto = { ...aspecto, [b.dataset.k!]: Number(b.dataset.i) };
   guardar("mundo-aspecto", aspecto);
   mio?.p.vestir(aspecto);
+  if (mio) mio.aspecto = aspecto;
   enviar({ t: "aspecto", aspecto });
   panelAspecto();
 });
