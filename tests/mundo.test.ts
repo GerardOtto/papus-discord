@@ -1,11 +1,48 @@
 // Prototipo del mundo 3D de los Papus: reglas puras de la sala (worker/src/mundo/juego.ts).
 import { describe, expect, it } from "vitest";
 import { COOKIE_TOKEN, cookie, leerCookie, regresoValido, urlAutorizar } from "../worker/src/mundo/web";
-import { aparicion, ASPECTOS, limpiarChat, leerPose, moverValido, OBSTACULOS, RADIO, TIENDAS, validarAspecto, VELOCIDAD, ZONAS } from "../worker/src/mundo/juego";
+import { aparicion, asientoDisponible, ASIENTOS_FOGATA, ASPECTOS, limpiarChat, leerPose, moverValido, OBSTACULOS, poseAsientoFogata, RADIO, TIENDAS, validarAspecto, VELOCIDAD, ZONAS } from "../worker/src/mundo/juego";
 import type { Pose } from "../worker/src/mundo/tipos";
 import { seededRng } from "./helpers";
 
 const quieto: Pose = { x: 0, z: 5, r: 0, a: 0, m: 0 };
+
+
+describe("mundo: fogata compartida", () => {
+  it("asigna seis asientos únicos y rechaza el séptimo", () => {
+    const ocupados: number[] = [];
+    const asignados: number[] = [];
+    for (let i = 0; i < ASIENTOS_FOGATA; i++) {
+      const asiento = asientoDisponible(ocupados);
+      expect(asiento).not.toBeNull();
+      asignados.push(asiento!);
+      ocupados.push(asiento!);
+    }
+    expect(asignados).toEqual([0, 1, 2, 3, 4, 5]);
+    expect(new Set(asignados).size).toBe(ASIENTOS_FOGATA);
+    expect(asientoDisponible(ocupados)).toBeNull();
+  });
+
+  it("reutiliza el primer asiento liberado y descarta índices corruptos", () => {
+    expect(asientoDisponible([0, 1, 3, 4, 5, -1, 6, 1.5])).toBe(2);
+    expect(asientoDisponible([0, 1, 2, 3, 4, 5, 6])).toBeNull();
+  });
+
+  it("coloca cada Papu alrededor del fuego mirando al centro", () => {
+    const fogata = { x: -9, z: 38 };
+    const poses = Array.from({ length: ASIENTOS_FOGATA }, (_, i) => poseAsientoFogata(fogata, i));
+    expect(poses.every(Boolean)).toBe(true);
+    for (const p of poses) {
+      expect(Math.hypot(p!.x - fogata.x, p!.z - fogata.z)).toBeCloseTo(3);
+      expect(p!.a).toBe(0);
+      expect(p!.m).toBe(0);
+    }
+    expect(poseAsientoFogata(fogata, -1)).toBeNull();
+    expect(poseAsientoFogata(fogata, 6)).toBeNull();
+    expect(poseAsientoFogata(fogata, 1.2)).toBeNull();
+  });
+});
+
 
 describe("mundo: movimiento", () => {
   it("acepta caminar y correr a su velocidad", () => {
