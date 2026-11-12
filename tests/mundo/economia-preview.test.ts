@@ -297,6 +297,52 @@ describe("EconomiaPlazaPreview", () => {
   });
 
 
+  it("credits activity coins from sandbox XP and PC resets only the sandbox activity cap", async () => {
+    const source = openDb(":memory:");
+    const preview = openDb(":memory:");
+    abiertos.push(source, preview);
+    preview.exec("CREATE TABLE mundo_sandbox (papu_id TEXT PRIMARY KEY, estado TEXT NOT NULL, revision INTEGER NOT NULL DEFAULT 0, actualizado_at INTEGER NOT NULL)");
+    const query: D1Query = async <T>(sql: string, ...params: unknown[]): Promise<T[]> => {
+      const statement = preview.prepare(sql);
+      if (/RETURNING/i.test(sql) || /^\s*SELECT/i.test(sql)) return statement.all(...(params as never[])) as unknown as T[];
+      statement.run(...(params as never[]));
+      return [];
+    };
+    const user = "123456789012345678";
+    const day = "2026-11-12";
+    let now = Date.parse("2026-11-12T12:00:00-03:00");
+    source.prepare("INSERT INTO monedero (user_id, ganadas) VALUES (?, 0)").run(user);
+    const coinSettings = loadCoinSettings();
+    coinSettings.ganar.xpPorMoneda = 1;
+    coinSettings.ganar.topeActividad = 2;
+    coinSettings.ganar.subirNivel = 0;
+    coinSettings.ganar.rangoNuevo = 0;
+    const levels = new LevelService({ db: source, settings: loadLevelSettings(), timeZone: "America/Santiago" });
+    const coins = new CoinService({ db: source, settings: coinSettings, catalog: loadCatalog(), timeZone: "America/Santiago", now: () => now });
+    const roulette = { dayOf: () => day, status: () => ({ used: 0, left: 0, blocked: false, missions: [] }) } as unknown as RouletteService;
+    const quota = { used: () => 0, donated: () => 0 } as unknown as Quota;
+    const economy = new EconomiaPlazaPreview({
+      query, db: source, levels, coins, mercado: { byId: new Map() } as unknown as MercadoService,
+      roulette, quota, now: () => now, rnd: () => 0.99, trivia: loadTriviaSettings(),
+      questionLevels: {}, questionTotals: { facil: 0, medio: 0, dificil: 0 }, timeZone: "America/Santiago",
+    });
+    const fish = economy.acciones()["pesca.capturar"]!;
+    const first = await fish({ id: user, nombre: "Papu" }, null);
+    expect(first.ok).toBe(true);
+    let row = await query<{ estado: string }>("SELECT estado FROM mundo_sandbox WHERE papu_id = ?", user);
+    expect(JSON.parse(row[0]!.estado).wallet.ganadas).toBe(2);
+
+    // El PC conserva lo ya ganado, pero abre un nuevo tramo con su propio tope de actividad.
+    await economy.acciones()["mercado.usar"]!({ id: user, nombre: "Papu" }, { id: "pc-adachi-rei" });
+    now += 30_001;
+    const second = await fish({ id: user, nombre: "Papu" }, null);
+    expect(second.ok).toBe(true);
+    row = await query<{ estado: string }>("SELECT estado FROM mundo_sandbox WHERE papu_id = ?", user);
+    expect(JSON.parse(row[0]!.estado).wallet.ganadas).toBe(4);
+    const real = source.prepare("SELECT ganadas FROM monedero WHERE user_id = ?").get(user) as { ganadas: number };
+    expect(real.ganadas).toBe(0);
+  });
+
   it("recovers a trivia acierto if the ledger CAS commits but marking the D1 row fails", async () => {
     const source = openDb(":memory:");
     const preview = openDb(":memory:");
