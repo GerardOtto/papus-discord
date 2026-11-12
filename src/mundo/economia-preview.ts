@@ -797,7 +797,7 @@ export class EconomiaPlazaPreview {
       tiradas: Math.max(0, real.left + (state.ruletaResetDia === day ? state.ruletaResetUsadas ?? 0 : 0) + (state.ruletaRegaloDia === day ? state.ruletaRegalos ?? 0 : 0) + (misionNivelSandbox ? 1 : 0) + (misionVozSandbox ? 1 : 0) + (state.ruletaGuardadas ?? 0) - used),
       usadas: Math.max(0, real.used - (state.ruletaResetDia === day ? state.ruletaResetUsadas ?? 0 : 0)) + used,
       sandbox: true,
-      atunPendiente: state.atunPendiente ? { girosRestantes: state.atunPendiente.day === day && state.atunPendiente.aplicado === false ? Math.max(0, (this.d.mercado?.byId.get("atun-luka")?.giros ?? 0) - state.atunPendiente.giros) : 0 } : undefined,
+      atunPendiente: state.atunPendiente ? { girosRestantes: state.atunPendiente.day === day && state.atunPendiente.aplicado === false ? Math.max(0, (this.d.mercado?.byId.get("atun-luka")?.giros ?? 0) - state.atunPendiente.giros) : 0, premio: this.d.roulette.settings.premios[state.atunPendiente.index]?.etiqueta ?? "Premio reservado", aplicado: state.atunPendiente.aplicado !== false } : undefined,
       soloLectura: false,
       simulacion: false,
       extras: [...estado.extras, ...(microfonoActivo ? [`🎤 Micrófono de Meiko activo: hoy la misión pide ${state.microfonoMinutos} min (progreso consultado en modo lectura).`] : []), ...(state.comprasMercado.includes("disquete-adachi-rei") ? [`💾 Disquete de Adachi Rei: ${state.ruletaGuardadas ?? 0} tiradas guardadas para hoy.`] : []), "🧪 Las tiradas y premios se guardan en el progreso aislado de la Plaza; no afectan Discord."],
