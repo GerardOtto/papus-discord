@@ -94,7 +94,16 @@ PAPUS_ENV_FILE=../papus-discord/.env PLAZA_DATA_DIR=<carpeta con papus.sqlite> P
 En la VM (servicio `papus-plaza-preview`, plantilla en `nube/plaza-preview.service`): código en
 `~/papus/plaza-preview` (enlace a `~/papus/app/node_modules`), variables en `~/papus/plaza-preview/preview.env`
 (`PLAZA_PREVIEW_D1_DATABASE_ID`, `PLAZA_DATA_DIR=/home/papus/papus/app/data`, `PAPUS_ENV_FILE=/home/papus/papus/app/.env`).
-Limitado a 220 MB y 50 % de CPU, sin escritura en `~/papus/app` y sin arranque automático. El puente lee las misiones con `LevelService`, `StrikeStore` y `RouletteService` sobre SQLite de solo lectura; la ruleta permite giros visuales DEMO con cooldown, sin consumir tiradas ni conceder premios.
+Limitado a 220 MB y 50 % de CPU, sin escritura en `~/papus/app` y sin arranque automático.
+
+El workflow de GitHub actualiza el Worker Cloudflare, pero no reemplaza el código del proceso systemd de la VM. Después de actualizar esta rama, sincroniza el código de `feature/plaza-beta` en `~/papus/plaza-preview` y reinicia únicamente el puente aislado:
+
+```bash
+sudo systemctl restart papus-plaza-preview
+journalctl -u papus-plaza-preview -n 80 --no-pager
+```
+
+Comprueba que el log indique `mundoPreview listo` y que no haya errores al inicializar `mundo_sandbox`. No reinicies `papus`, no cambies `~/papus/app` y no ejecutes el despliegue del Worker de producción. El puente lee las misiones con `LevelService`, `StrikeStore` y `RouletteService` sobre SQLite de solo lectura; la ruleta permite giros visuales DEMO con cooldown, sin consumir tiradas ni conceder premios.
 
 ```
 sudo install -m 644 ~/papus/plaza-preview/nube/plaza-preview.service /etc/systemd/system/papus-plaza-preview.service
