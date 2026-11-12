@@ -34,6 +34,8 @@ export interface Casilla {
 
 /** Panel de la ruleta de un Papu (lo mismo que /ruleta en Discord). */
 export interface RuletaEstado {
+  /** El preview muestra el progreso real de misiones, pero no permite consumir tiradas ni premios. */
+  soloLectura?: boolean;
   tiradas: number;
   usadas: number;
   bloqueada: boolean;
