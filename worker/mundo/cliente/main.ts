@@ -90,6 +90,7 @@ interface Otro {
   burbujas: HTMLElement;
   mensajes: { el: HTMLElement; hasta: number }[];
   desfase: number;
+  perfil?: { nivel: number; prestigio: number };
 }
 
 /** Mensajes a la vez sobre la cabeza de un Papu: con uno mas, se va el mas viejo. */
@@ -151,6 +152,33 @@ function stats(m: Extract<Aviso, { t: "stats" }>): void {
   }
 }
 
+/** Recibe solo nivel y prestigio: la cuota y las tiradas nunca se comparten con otros Papus. */
+function perfil(m: Extract<Aviso, { t: "perfil" }>): void {
+  const o = m.id === yo ? mio : otros.get(m.id);
+  if (!o) return;
+  o.perfil = { nivel: m.nivel, prestigio: m.prestigio };
+  if (ventana.id === `perfil:${m.id}`) abrirPerfil(o);
+}
+
+/** Ficha pública al pulsar el nombre o el personaje. */
+function abrirPerfil(o: Otro): void {
+  const a = o.p.aspecto;
+  const p = o.perfil;
+  const sombreros = ["Sin sombrero", "Sombrero de fiesta", "Sombrero de copa", "Orejas de gato", "Puerro"];
+  const ropa = ASPECTOS.ropa[a.ropa] ?? ASPECTOS.ropa[0];
+  const piel = ASPECTOS.piel[a.piel] ?? ASPECTOS.piel[0];
+  const nivel = p ? `Nv. ${p.nivel}${p.prestigio ? ` · ✦${p.prestigio}` : ""}` : "Sincronizando nivel…";
+  const html = `<div class="perfil-resumen">
+      <div class="perfil-avatar" style="--ropa:${ropa};--piel:${piel}"><span></span></div>
+      <div><p class="perfil-nombre">${esc(o.nombre)}</p><p class="perfil-nivel">⭐ ${nivel}</p><p class="v-nota">🟢 En la Plaza ahora</p></div>
+    </div>
+    <h3 class="v-seccion">Personalización</h3>
+    <div class="perfil-detalle"><span>👕 Ropa</span><i style="background:${ropa}"></i><span>🎨 Tono de piel</span><i style="background:${piel}"></i><span>🎩 Accesorio</span><b>${sombreros[a.sombrero] ?? "Sin accesorio"}</b></div>
+    <p class="v-pie">La ficha muestra únicamente información pública de la Plaza. Tus cuotas y tiradas solo las ves tú.</p>`;
+  const id = o === mio ? yo : [...otros].find(([, v]) => v === o)?.[0];
+  ventana.abrir(`perfil:${id}`, `👤 ${esc(o.nombre)}`, html);
+}
+
 /** Ficha de cada zona al acercarse (en el decorado todavia no hacen nada). */
 const FICHAS: Record<ZonaId, string> = {
   tablon: "📌 <b>Tablón</b><br>Próximamente: votaciones, noticias, tips, estrenos y el buzón de pedidos de video.",
@@ -187,10 +215,18 @@ function crearOtro(papu: PapuPublico): Otro {
   p.raiz.rotation.y = papu.r;
   plaza.escena.add(p.raiz);
   const etiqueta = document.createElement("div");
-  etiqueta.className = "etiqueta";
+  etiqueta.className = "etiqueta papu";
+  etiqueta.tabIndex = 0;
+  etiqueta.setAttribute("role", "button");
+  etiqueta.setAttribute("aria-label", `Ver perfil de ${papu.nombre}`);
   etiqueta.innerHTML = `<div class="burbujas"></div><span class="nombre">${esc(papu.nombre)}</span>`;
+  const otro: Otro = { p, nombre: papu.nombre, objetivo: { ...papu }, etiqueta, burbujas: etiqueta.querySelector(".burbujas")!, mensajes: [], desfase: Math.random() };
+  etiqueta.addEventListener("click", () => abrirPerfil(otro));
+  etiqueta.addEventListener("keydown", (e) => {
+    if (e.key === "Enter" || e.key === " ") { e.preventDefault(); abrirPerfil(otro); }
+  });
   capa.append(etiqueta);
-  return { p, nombre: papu.nombre, objetivo: { ...papu }, etiqueta, burbujas: etiqueta.querySelector(".burbujas")!, mensajes: [], desfase: Math.random() };
+  return otro;
 }
 
 function quitar(id: string): void {
@@ -295,6 +331,7 @@ function recibir(m: Aviso): void {
   }
   if (m.t === "sale") return quitar(m.id);
   if (m.t === "stats") return stats(m);
+  if (m.t === "perfil") return perfil(m);
   if (m.t === "accion") {
     esperando.get(m.ref)?.(m.resultado);
     esperando.delete(m.ref);
