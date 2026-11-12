@@ -513,7 +513,7 @@ export class EconomiaPlazaPreview {
         precio: priceOf(this.d.coins!.settings, o), owned: state.inventario.includes(o.id),
       }];
     });
-    return ok({ abierta: !!vitrina, sandbox: true, wallet: state.wallet, objetos });
+    return ok({ abierta: !!vitrina, sandbox: true, premioPendiente: state.atunPendiente?.day === this.d.roulette.dayOf(this.now()), wallet: state.wallet, objetos });
   }
 
   private datosMercado(state: EstadoSandbox): Resultado {
@@ -544,7 +544,7 @@ export class EconomiaPlazaPreview {
       };
     });
     return ok({
-      abierto, sandbox: true, wallet: state.wallet, objetos,
+      abierto, sandbox: true, premioPendiente: state.atunPendiente?.day === this.d.roulette.dayOf(now), wallet: state.wallet, objetos,
       apertura: { abre: hoy.abre, cierra: hoy.cierra },
       proximaApertura: { abre: proxima.abre, cierra: proxima.cierra },
     });
@@ -555,6 +555,7 @@ export class EconomiaPlazaPreview {
     const id = datos && typeof datos === "object" ? (datos as { id?: unknown }).id : null;
     if (typeof id !== "string" || id.length > 100) return error("Artículo inválido.");
     return this.cambiar(userId, (s) => {
+      if (s.atunPendiente?.day === this.d.roulette.dayOf(this.now())) return { result: error("Acepta o descarta primero el premio pendiente del Atún de Luka antes de gastar monedas."), changed: false };
       const o = this.d.coins!.byId.get(id);
       const precio = o ? priceOf(this.d.coins!.settings, o) : null;
       if (!o || precio === null) return { result: error("Ese objeto no se vende."), changed: false };
@@ -578,6 +579,7 @@ export class EconomiaPlazaPreview {
     if (typeof id !== "string" || id.length > 100) return error("Artículo inválido.");
     return this.cambiar(userId, (s) => {
       const now = this.now();
+      if (s.atunPendiente?.day === this.d.roulette.dayOf(now)) return { result: error("Acepta o descarta primero el premio pendiente del Atún de Luka antes de gastar monedas."), changed: false };
       const settings = this.d.mercado!.settings;
       const apertura = aperturaHoy(settings, now);
       if (!settings.activo || !abierta(apertura, now)) {
@@ -613,6 +615,8 @@ export class EconomiaPlazaPreview {
   private async usarConsumible(userId: string, datos: unknown): Promise<Resultado> {
     if (!this.d.mercado) return error("El inventario de consumibles no está habilitado.");
     const id = datos && typeof datos === "object" ? (datos as { id?: unknown }).id : null;
+    const actual = await this.cargar(userId);
+    if (actual.state.atunPendiente?.day === this.d.roulette.dayOf(this.now())) return error("Acepta o descarta primero el premio pendiente del Atún de Luka antes de usar otros consumibles.");
     if (id === "pc-adachi-rei") {
       const now=this.now(), day=dayKey(new Date(now),this.d.timeZone);
       const spins=this.d.roulette.status(userId,now).used;
@@ -880,6 +884,18 @@ export class EconomiaPlazaPreview {
     });
   }
 
+  private async aceptarAtun(userId: string): Promise<Resultado> {
+    const day = this.d.roulette.dayOf(this.now());
+    return this.cambiar(userId, (s) => {
+      if (!s.atunPendiente) return { result: error("No tienes un premio pendiente que aceptar."), changed: false };
+      if (s.atunPendiente.day !== day) {
+        s.atunPendiente = undefined;
+        return { result: ok({ mensaje: "El premio anterior ya estaba aplicado; se limpió el estado pendiente.", sandbox: true }) };
+      }
+      s.atunPendiente = undefined;
+      return { result: ok({ mensaje: "🐟 ¡Premio aceptado! Ya puedes usar tus monedas y consumibles de prueba.", sandbox: true }) };
+    });
+  }
   private async descartarAtun(userId: string, nombre: string): Promise<Resultado> {
     const now = this.now();
     const day = this.d.roulette.dayOf(now);
@@ -934,6 +950,7 @@ export class EconomiaPlazaPreview {
       "ruleta.estado": (papu) => this.estadoRuleta(papu.id),
       "ruleta.girar": (papu) => this.girarRuleta(papu.id, papu.nombre),
       "ruleta.descartar": (papu) => this.descartarAtun(papu.id, papu.nombre),
+      "ruleta.aceptar": (papu) => this.aceptarAtun(papu.id),
       "pesca.capturar": (papu) => this.pescar(papu.id),
       "tienda.estado": async (papu) => {
         const { state } = await this.cargar(papu.id);
