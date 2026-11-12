@@ -91,6 +91,7 @@ describe("EconomiaPlazaPreview", () => {
       return [];
     };
     const userId = "123456789012345678";
+    let now = Date.parse("2026-11-12T12:00:00-06:00");
     source.prepare("INSERT INTO monedero (user_id, ganadas, compradas) VALUES (?, ?, ?)").run(userId, 10_000_000, 10_000_000);
     const levels = new LevelService({ db: source, settings: loadLevelSettings(), timeZone: "America/Santiago" });
     const quota = new Quota(source, (id, at) => levels.limitFor(id, at), "America/Santiago");
