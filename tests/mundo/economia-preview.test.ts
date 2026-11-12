@@ -297,7 +297,7 @@ describe("EconomiaPlazaPreview", () => {
     preview.exec("CREATE TABLE mundo_sandbox (papu_id TEXT PRIMARY KEY, estado TEXT NOT NULL, revision INTEGER NOT NULL DEFAULT 0, actualizado_at INTEGER NOT NULL); CREATE TABLE mundo_perfiles (papu_id TEXT PRIMARY KEY, pedido_at INTEGER NOT NULL DEFAULT 0)");
     const query:D1Query=async <T>(sql:string,...params:unknown[]):Promise<T[]>=>{
       const st=preview.prepare(sql);
-      if(/RETURNING/i.test(sql)||/^\\s*SELECT/i.test(sql))return st.all(...(params as never[])) as unknown as T[];
+      if(/RETURNING/i.test(sql)||/^\s*SELECT/i.test(sql))return st.all(...(params as never[])) as unknown as T[];
       st.run(...(params as never[]));return [];
     };
     const user="123456789012345678",now=Date.parse("2026-11-12T12:00:00-03:00"),day="2026-11-12";
