@@ -1081,7 +1081,7 @@ function pintarCatalogo(tipo: TipoCatalogo, datos: Record<string, unknown>): str
     const icono = o.emoji ?? (["legendaria","legendario","mitica"].includes(rareza) ? "✨" : ["raro","epico","epica"].includes(rareza) ? "💎" : "🎁");
     const precio = o.precio === null ? "Precio no disponible" : `${o.precio.toLocaleString("es-CL")} Shaula-coins`;
     const extra = o.usos ? `<span class="v-producto-usos">${o.usos} usos</span>` : "";
-    const accion = o.activable ? `<button class="v-boton" data-usar-consumible="${esc(o.id)}">🎤 Activar por hoy</button>`
+    const accion = o.activable ? `<button class="v-boton" data-usar-consumible="${esc(o.id)}">${o.id === "pc-adachi-rei" ? "💻 Reiniciar día de prueba" : "🎤 Activar por hoy"}</button>`
       : o.activo ? '<span class="v-chip verde">✓ Activo hoy</span>'
       : o.owned ? '<span class="v-chip verde">✓ En tu colección</span>'
       : soloLectura ? '<span class="v-chip">Solo lectura</span>'
