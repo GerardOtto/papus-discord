@@ -652,7 +652,7 @@ export class PapusApp {
       if (this.d.roulette) {
         preview.acciones["ruleta.estado"] = (papu) => {
           const estado = ruletaEstado(this.d.roulette!, papu.id);
-          return { ok: true, datos: { ...estado, tiradas: 0, usadas: 0, extras: [], casillas: [], soloLectura: true } };
+          return { ok: true, datos: { ...estado, tiradas: 0, usadas: 0, extras: [], soloLectura: true } };
         };
       }
       const ultimoLancePreview = new Map<string, number>();
