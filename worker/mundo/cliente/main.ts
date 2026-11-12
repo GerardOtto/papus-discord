@@ -1031,6 +1031,24 @@ function abrirRuleta(): void {
   });
 }
 
+async function aceptarAtun(): Promise<void> {
+  if (vistaRuleta.mio?.fase === "pidiendo" || miGiro) return;
+  vistaRuleta.mio = { fase: "pidiendo" };
+  pintarRuleta();
+  const r = await pedir("ruleta.aceptar");
+  if (!r.ok) {
+    vistaRuleta.mio = { fase: "error", motivo: r.motivo };
+    pintarRuleta();
+    aviso(r.motivo);
+    return;
+  }
+  vistaRuleta.mio = undefined;
+  const estado = await pedir("ruleta.estado");
+  if (estado.ok) vistaRuleta.estado = estado.datos as RuletaEstado;
+  const d = r.datos as { mensaje?: string };
+  aviso(d.mensaje ?? "Premio aceptado.");
+  pintarRuleta();
+}
 async function descartarAtun(): Promise<void> {
   if (vistaRuleta.mio?.fase === "pidiendo" || miGiro) return;
   vistaRuleta.mio = { fase: "pidiendo" };
@@ -1241,6 +1259,7 @@ function comando(texto: string): void {
 ventana.cuerpo.addEventListener("click", (e) => {
   const b = (e.target as HTMLElement).closest<HTMLButtonElement>("button[data-accion]");
   if (b?.dataset.accion === "girar" && !b.disabled) void girarRuleta();
+  if (b?.dataset.accion === "aceptar-atun" && !b.disabled) void aceptarAtun();
   if (b?.dataset.accion === "pescar" && !b.disabled) void pescar();
   if (b?.dataset.accion === "descartar-atun" && !b.disabled) void descartarAtun();
   const usar = (e.target as HTMLElement).closest<HTMLButtonElement>("button[data-usar-consumible]");
