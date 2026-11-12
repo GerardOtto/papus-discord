@@ -319,7 +319,7 @@ export class EconomiaPlazaPreview {
     const eligible = this.d.levels.canEarn(papu, now);
     const base = eligible ? answerXp(this.d.trivia, this.d.levels.settings, { xp: state.xp, dailyAvg: avg, streak: 1, multiplier }) : 0;
     const tope = withXp && eligible ? Math.max(0, dailyCap(this.d.trivia, this.d.levels.settings, state.xp, multiplier) - (state.triviaXpDia ?? 0)) : 0;
-    await this.d.query("UPDATE actividad_perfiles_preview SET xp_base = ?, tope = ?, pedido_at = 0, actualizado_at = ? WHERE papu_id = ? AND partida = ?", base, tope, now + 1, papu, partida);
+    await this.d.query("UPDATE actividad_perfiles_preview SET xp_base = ?, tope = ?, pedido_at = 0, actualizado_at = ? WHERE papu_id = ? AND partida = ?", base, tope, now + 3, papu, partida);
   }
 
   /** Entrega regalos pendientes con una clave idempotente en el ledger del destinatario. */
