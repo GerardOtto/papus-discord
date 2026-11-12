@@ -65,6 +65,7 @@ import type { ActividadTrivia } from "../trivia/actividad";
 import { armarEstado } from "../mundo/estado";
 import { agruparLineas, lineasRegistro, type MundoPuente } from "../mundo/puente";
 import { accionesRuleta, giroPlaza } from "../mundo/ruleta";
+import { accionPesca } from "../mundo/pesca";
 import type { TriviaService } from "../trivia/service";
 import type { RouletteService, SpinResult } from "../ruleta/service";
 import type { SorteoService } from "../sorteo/service";
@@ -546,6 +547,13 @@ export class PapusApp {
           void mundo.evento("aviso", { texto }, userId);
         };
       }
+      // Pesca de la Plaza: usa la XP real y la misma LevelService; el Worker no concede recompensas.
+      mundo.acciones["pesca.capturar"] = accionPesca(
+        this.d.levels,
+        Date.now,
+        Math.random,
+        async (change) => this.levels.handle(change, {}, { quiet: true }),
+      );
       // Registro del chat de la plaza en #plaza-papus (solo lectura), en mensajes agrupados y sin avisar a nadie.
       mundo.onChat = async (lineas) => {
         const ch = this.guild ? findTextChannel(this.guild, CHANNELS.plaza) : null;
