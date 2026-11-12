@@ -116,7 +116,7 @@ export class Sala {
   // ───────────────────────── Papus ─────────────────────────
 
   setConsumibles(id: string, x: { celular: number; guitarra: number; zanahoria: number; baguette: number }): void { this.extras.set(id, x); }
-  puedeCelular(id: string, nonce: string): boolean { const r=this.ronda,j=this.jugadores.get(id); return !!r&&this.fase==="pregunta"&&r.nonce===nonce&&!!j?.juega&&(this.modo==="cooperativo"||j.vivo)&&r.pregunta.tipo==="opciones"&&r.opciones.length>=4&&this.ocultas.get(id)?.nonce!==nonce&&(this.extras.get(id)?.celular??0)>0; }
+  puedeCelular(id: string, nonce: string): boolean { const r=this.ronda,j=this.jugadores.get(id); return !!r&&this.fase==="pregunta"&&r.nonce===nonce&&!!j?.juega&&(this.modo==="cooperativo"||j.vivo)&&r.pregunta.tipo==="opciones"&&r.opciones.length>=4&&!r.respuestas.has(id)&&this.ocultas.get(id)?.nonce!==nonce&&(this.extras.get(id)?.celular??0)>0; }
   usarCelular(id: string, nonce: string): boolean { if(!this.puedeCelular(id,nonce))return false;const r=this.ronda!,wrong=r.opciones.map((_,i)=>i).filter(i=>i!==r.correcta);for(let i=wrong.length-1;i>0;i--){const j=Math.floor(this.rnd()*(i+1));[wrong[i],wrong[j]]=[wrong[j]!,wrong[i]!];}this.ocultas.set(id,{nonce,indices:wrong.slice(0,2)});return true; }
   puedeGuitarra(id:string,nonce:string):boolean {const j=this.jugadores.get(id);return !!this.ronda&&this.fase==="pregunta"&&this.ronda.nonce===nonce&&!!j?.juega&&(this.modo==="cooperativo"||j.vivo)&&!this.guitarras.has(id)&&(this.extras.get(id)?.guitarra??0)>0;}
   usarGuitarra(id:string,nonce:string):boolean {if(!this.puedeGuitarra(id,nonce))return false;this.guitarras.add(id);return true;}
