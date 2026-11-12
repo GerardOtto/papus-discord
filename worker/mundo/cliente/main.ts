@@ -1251,7 +1251,7 @@ function mostrarPremio(g: RuletaGiro): void {
   const p = $("premio");
   p.innerHTML = `<p class="premio-titulo">${esc(g.giro.titulo)}</p><p class="premio-sub">${esc(g.giro.subtitulo)}</p>${
     g.simulado ? '<p class="premio-sub">🧪 Simulación: no se consumió una tirada ni se entregó un premio.</p>' : ""
-  }${g.tiradas > 0 ? `<button type="button" data-usar="ruleta">🎰 ${g.atun ? "Aceptar premio" : "Girar otra vez"} (${g.tiradas})</button>` : ""}${g.atun?.girosRestantes ? `<button type="button" data-descartar-atun>🐟 Descartar y volver a girar (${g.atun.girosRestantes})</button>` : ""}`;
+  }${g.tiradas > 0 ? `<button type="button" data-usar="ruleta">🎰 ${g.atun ? "Aceptar premio y girar otra vez" : "Girar otra vez"} (${g.tiradas})</button>` : ""}${g.atun?.girosRestantes ? `<button type="button" data-descartar-atun>🐟 Descartar y volver a girar (${g.atun.girosRestantes})</button>` : ""}`;
   p.hidden = false;
   clearTimeout((mostrarPremio as unknown as { t?: number }).t);
   (mostrarPremio as unknown as { t?: number }).t = window.setTimeout(() => (p.hidden = true), 7000);
