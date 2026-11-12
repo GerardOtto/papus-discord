@@ -50,7 +50,6 @@ export function accionPesca(
     const cambio = recompensa.xp > 0 ? levels.bonus(papu.id, recompensa.xp, t) : null;
     if (cambio && afterAward) await afterAward(cambio).catch(() => {});
     kvSet(db, clave, String(t));
-    const despues = levels.store.get(papu.id).xp;
     return {
       ok: true,
       datos: {
