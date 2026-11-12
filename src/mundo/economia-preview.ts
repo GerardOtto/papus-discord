@@ -44,6 +44,10 @@ interface EstadoSandbox {
   microfonoMinutos?: number;
   disqueteProcesadoDia?: string;
   ruletaGuardadas?: number;
+  ruletaResetDia?: string;
+  ruletaResetUsadas?: number;
+  cuotaResetDia?: string;
+  cuotaResetBase?: number;
   atunPendiente?: { day: string; index: number; giros: number; gastoUso: boolean; xp: number; mensajes: number; sobres: number; subioAntes?: string; nivelAntes: number };
   triviaDia?: string; triviaXpDia?: number; triviaPartidasDia?: string[]; triviaSuperadas?: string[]; triviaPremios?: string[]; triviaHitos?: Partial<Record<Dificultad, { aciertos: number; premios: number }>>; triviaAciertosAplicados?: number[];
 }
@@ -194,7 +198,8 @@ export class EconomiaPlazaPreview {
     const voz = real.missions.find((m) => m.id === "voz");
     const vozActual = this.d.levels.store.dayStats(userId, day).vozMin;
     const extraMicrofono = state?.microfonoDia === day && !!state.microfonoMinutos && !!voz && !voz.done && vozActual >= state.microfonoMinutos ? 1 : 0;
-    return Math.max(0, real.left + extraNivel + extraMicrofono - used);
+    const reset = state?.ruletaResetDia === day ? state.ruletaResetUsadas ?? 0 : 0;
+    return Math.max(0, real.left + reset + extraNivel + extraMicrofono - used);
   }
 
   private inicial(userId: string): EstadoSandbox {
@@ -406,6 +411,20 @@ export class EconomiaPlazaPreview {
   private async usarConsumible(userId: string, datos: unknown): Promise<Resultado> {
     if (!this.d.mercado) return error("El inventario de consumibles no está habilitado.");
     const id = datos && typeof datos === "object" ? (datos as { id?: unknown }).id : null;
+    if (id === "pc-adachi-rei") {
+      const now=this.now(), day=dayKey(new Date(now),this.d.timeZone);
+      const spins=this.d.roulette.status(userId,now).used;
+      const quotaUsed=this.d.quota.used(userId,new Date(now));
+      return this.cambiar(userId,(s)=>{
+        const usos=s.consumibles[id]??0;
+        if(usos<=0)return {result:error("No te quedan usos del PC de Adachi Rei."),changed:false};
+        s.consumibles[id]=usos-1;
+        s.triviaDia=day;s.triviaXpDia=0;s.triviaPartidasDia=[];
+        s.ruletaDia=day;s.ruletaUsadas=0;s.ruletaResetDia=day;s.ruletaResetUsadas=spins;
+        s.cuotaResetDia=day;s.cuotaResetBase=quotaUsed;s.cuotaUsada=0;
+        return {result:ok({mensaje:"💻 Día reiniciado en tu progreso de prueba: partidas y tope de XP de trivia, tiradas y cuota sandbox vuelven a contar desde cero. Lo que ya ganaste se conserva.",usos:s.consumibles[id],sandbox:true})};
+      });
+    }
     if (id !== "microfono-meiko") return error("Ese consumible todavía no tiene una acción disponible en la Plaza.");
     const objeto = this.d.mercado.byId.get(id);
     if (!objeto || objeto.efecto !== "microfono" || !objeto.vozMinutos) return error("El Micrófono de Meiko no está configurado.");
@@ -518,8 +537,8 @@ export class EconomiaPlazaPreview {
     return ok({
       ...estado,
       misiones,
-      tiradas: Math.max(0, real.left + (misionNivelSandbox ? 1 : 0) + (misionVozSandbox ? 1 : 0) + (state.ruletaGuardadas ?? 0) - used),
-      usadas: real.used + used,
+      tiradas: Math.max(0, real.left + (state.ruletaResetDia === day ? state.ruletaResetUsadas ?? 0 : 0) + (misionNivelSandbox ? 1 : 0) + (misionVozSandbox ? 1 : 0) + (state.ruletaGuardadas ?? 0) - used),
+      usadas: Math.max(0, real.used - (state.ruletaResetDia === day ? state.ruletaResetUsadas ?? 0 : 0)) + used,
       sandbox: true,
       atunPendiente: state.atunPendiente?.day === day ? { girosRestantes: Math.max(0, (this.d.mercado?.byId.get("atun-luka")?.giros ?? 0) - state.atunPendiente.giros) } : undefined,
       soloLectura: false,
@@ -543,9 +562,10 @@ export class EconomiaPlazaPreview {
       const limit = this.d.quota.limitFor(userId, new Date(now));
       const extraBase = this.d.quota.extra(userId, new Date(now));
       const usedBase = this.d.quota.used(userId, new Date(now));
+      const usedEffective = Math.max(0, usedBase - (state.cuotaResetDia === day ? state.cuotaResetBase ?? 0 : 0));
       const extraSandbox = state.cuotaExtraDia === day ? state.cuotaExtra : 0;
       const roomActual = Number.isFinite(limit)
-        ? Math.max(0, limit - Math.max(0, limit + extraBase + extraSandbox - usedBase - state.cuotaUsada))
+        ? Math.max(0, limit - Math.max(0, limit + extraBase + extraSandbox - usedEffective - state.cuotaUsada))
         : 0;
       if (premio.tipo === "cuota_llena") {
         mensajes = Math.min(1, roomActual);
@@ -597,7 +617,7 @@ export class EconomiaPlazaPreview {
       const voz = real.missions.find((m) => m.id === "voz");
       const vozActual = this.d.levels.store.dayStats(userId, day).vozMin;
       const misionVozSandbox = s.microfonoDia === day && !!s.microfonoMinutos && !!voz && !voz.done && vozActual >= s.microfonoMinutos;
-      const disponibles = real.left + (misionNivelSandbox ? 1 : 0) + (misionVozSandbox ? 1 : 0) + (s.ruletaGuardadas ?? 0);
+      const disponibles = real.left + (s.ruletaResetDia === day ? s.ruletaResetUsadas ?? 0 : 0) + (misionNivelSandbox ? 1 : 0) + (misionVozSandbox ? 1 : 0) + (s.ruletaGuardadas ?? 0);
       if (s.ruletaUsadas >= disponibles) return { result: error("No te quedan tiradas disponibles. Cumple una misión y vuelve a intentarlo."), changed: false };
       const premios = this.d.roulette.settings.premios.map((p) => p.tipo === "sobre" && !this.d.coins ? { ...p, peso: 0 } : p);
       const index = pickPrize({ premios }, this.rnd);
@@ -655,7 +675,7 @@ export class EconomiaPlazaPreview {
       const voz = real.missions.find((m) => m.id === "voz");
       const vozActual = this.d.levels.store.dayStats(userId, day).vozMin;
       const misionVozSandbox = s.microfonoDia === day && !!s.microfonoMinutos && !!voz && !voz.done && vozActual >= s.microfonoMinutos;
-      const disponibles = real.left + (misionNivelSandbox ? 1 : 0) + (misionVozSandbox ? 1 : 0) + (s.ruletaGuardadas ?? 0);
+      const disponibles = real.left + (s.ruletaResetDia === day ? s.ruletaResetUsadas ?? 0 : 0) + (misionNivelSandbox ? 1 : 0) + (misionVozSandbox ? 1 : 0) + (s.ruletaGuardadas ?? 0);
       return {
         result: ok({
           giro: { papu: userId, nombre, index, titulo: `🧪 ${aplicado.titulo}`, subtitulo: aplicado.subtitulo, origen: "plaza" },
