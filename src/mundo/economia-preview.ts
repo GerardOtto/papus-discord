@@ -179,6 +179,7 @@ export class EconomiaPlazaPreview {
       "SELECT id, partida, papu_id, pregunta, racha, multiplicador, xp FROM actividad_aciertos_preview WHERE aplicado = 0 ORDER BY id LIMIT 200",
     );
     let applied = 0;
+    const touched = new Map<string, Set<string>>();
     for (const row of rows) {
       const gained = await this.cambiar(row.papu_id, (s) => {
         s.triviaAciertosAplicados ??= [];
@@ -285,14 +286,37 @@ export class EconomiaPlazaPreview {
         s.triviaAciertosResultados[key] = earned;
         return { result: earned };
       });
+      if (gained === null) continue;
       // Si el proceso se cae después del CAS, el resultado guardado permite reintentar sin duplicar XP ni sobres.
-      await this.d.query("UPDATE actividad_aciertos_preview SET aplicado = 1, xp = ? WHERE id = ? AND aplicado = 0", Number(gained ?? 0), row.id);
-      if (Number(gained ?? 0) > 0) await this.d.query("UPDATE mundo_perfiles SET pedido_at = ? WHERE papu_id = ?", this.now() + 2, row.papu_id).catch(() => {});
+      await this.d.query("UPDATE actividad_aciertos_preview SET aplicado = 1, xp = ? WHERE id = ? AND aplicado = 0", Number(gained), row.id);
+      if (Number(gained) > 0) await this.d.query("UPDATE mundo_perfiles SET pedido_at = ? WHERE papu_id = ?", this.now() + 2, row.papu_id).catch(() => {});
+      const partidas = touched.get(row.papu_id) ?? new Set<string>();
+      partidas.add(row.partida);
+      touched.set(row.papu_id, partidas);
       applied++;
     }
+    for (const [papu, partidas] of touched) for (const partida of partidas) await this.guardarPerfilTrivia(papu, partida);
     await this.entregarRegalos();
     await this.syncTriviaProfiles();
     return applied;
+  }
+
+  /** Recalcula el perfil de la partida después de cada lote de aciertos, como ActividadTrivia en producción. */
+  private async guardarPerfilTrivia(papu: string, partida: string): Promise<void> {
+    const { state } = await this.cargar(papu);
+    const now = this.now();
+    const day = dayKey(new Date(now), this.d.timeZone);
+    if (state.triviaDia !== day) { state.triviaDia = day; state.triviaXpDia = 0; state.triviaPartidasDia = []; }
+    state.triviaPartidasDia ??= [];
+    const run = state.triviaRuns?.[`${partida}:${papu}`];
+    const withXp = run?.withXp ?? state.triviaPartidasDia.length < this.d.trivia.limites.partidasConXp;
+    const from = dayKey(new Date(now - this.d.trivia.xp.dias * 86_400_000), this.d.timeZone);
+    const avg = (this.d.db.prepare("SELECT AVG(xp - trivia) AS avg FROM xp_dia WHERE user_id = ? AND day >= ? AND day < ? AND xp - trivia > 0").get(papu, from, day) as { avg: number | null } | undefined)?.avg ?? 0;
+    const multiplier = this.d.levels.multiplier(new Date(now));
+    const eligible = this.d.levels.canEarn(papu, now);
+    const base = eligible ? answerXp(this.d.trivia, this.d.levels.settings, { xp: state.xp, dailyAvg: avg, streak: 1, multiplier }) : 0;
+    const tope = withXp && eligible ? Math.max(0, dailyCap(this.d.trivia, this.d.levels.settings, state.xp, multiplier) - (state.triviaXpDia ?? 0)) : 0;
+    await this.d.query("UPDATE actividad_perfiles_preview SET xp_base = ?, tope = ?, pedido_at = 0, actualizado_at = ? WHERE papu_id = ? AND partida = ?", base, tope, now + 1, papu, partida);
   }
 
   /** Entrega regalos pendientes con una clave idempotente en el ledger del destinatario. */
@@ -339,10 +363,10 @@ export class EconomiaPlazaPreview {
   }
 
   private async syncTriviaProfiles(): Promise<void> {
-    const rows = await this.d.query<{ papu_id: string }>(
-      "SELECT papu_id FROM actividad_perfiles WHERE pedido_at >= actualizado_at LIMIT 50",
+    const rows = await this.d.query<{ papu_id: string; partida: string }>(
+      "SELECT papu_id, partida FROM actividad_perfiles_preview WHERE pedido_at >= actualizado_at LIMIT 50",
     );
-    for (const { papu_id } of rows) {
+    for (const { papu_id, partida } of rows) {
       const { state } = await this.cargar(papu_id);
       const now = this.now();
       const day = dayKey(new Date(now), this.d.timeZone);
@@ -352,8 +376,8 @@ export class EconomiaPlazaPreview {
         state.triviaPartidasDia = [];
       }
       state.triviaPartidasDia ??= [];
-      const runs = state.triviaPartidasDia.length;
-      const withXp = runs < this.d.trivia.limites.partidasConXp;
+      const run = partida ? state.triviaRuns?.[`${partida}:${papu_id}`] : undefined;
+      const withXp = run?.withXp ?? state.triviaPartidasDia.length < this.d.trivia.limites.partidasConXp;
       const from = dayKey(new Date(now - this.d.trivia.xp.dias * 86_400_000), this.d.timeZone);
       const avg = (this.d.db.prepare(
         "SELECT AVG(xp - trivia) AS avg FROM xp_dia WHERE user_id = ? AND day >= ? AND day < ? AND xp - trivia > 0",
@@ -367,8 +391,8 @@ export class EconomiaPlazaPreview {
         ? Math.max(0, dailyCap(this.d.trivia, this.d.levels.settings, state.xp, multiplier) - (state.triviaXpDia ?? 0))
         : 0;
       await this.d.query(
-        "UPDATE actividad_perfiles SET xp_base = ?, tope = ?, pedido_at = 0, actualizado_at = ? WHERE papu_id = ? AND pedido_at >= actualizado_at",
-        base, tope, now + 1, papu_id,
+        "UPDATE actividad_perfiles_preview SET xp_base = ?, tope = ?, pedido_at = 0, actualizado_at = ? WHERE papu_id = ? AND partida = ? AND pedido_at >= actualizado_at",
+        base, tope, now + 1, papu_id, partida,
       );
     }
   }
