@@ -27,6 +27,8 @@ export class SalaTrivia implements DurableObject {
   private readonly perfiles = new Map<string, Perfil>();
   private readonly rescatandoBaguette = new Set<string>();
   private timer: ReturnType<typeof setTimeout> | null = null;
+  private persistTimer: ReturnType<typeof setTimeout> | null = null;
+  private persistAttempts = 0;
   private canal: string | null = null;
   private partida = "";
   private faseAnterior = "sala";
@@ -183,6 +185,15 @@ export class SalaTrivia implements DurableObject {
     }
   }
 
+  private programarReintentoAciertos(): void {
+    if (this.persistTimer) return;
+    const delay = Math.min(30_000, 1_000 * 2 ** Math.min(this.persistAttempts++, 5));
+    this.persistTimer = setTimeout(() => {
+      this.persistTimer = null;
+      void this.despues().catch((e) => console.error("actividad: reintento de aciertos", e));
+    }, delay);
+  }
+
   /** Tras cada cambio: guarda los aciertos, reparte la vista y arma el temporizador. */
   private async despues(): Promise<void> {
     if (this.env.MUNDO_PREVIEW === "1" && this.sala.fase === "revelar") await this.rescatarConBaguette();
@@ -205,8 +216,11 @@ export class SalaTrivia implements DurableObject {
           : stmt.bind(this.partida, a.papu, a.pregunta, a.dificultad, a.racha, a.xp, this.canal, now)));
       } catch (error) {
         this.sala.devolverAciertos(aciertos);
-        throw error;
+        console.error("actividad: no se pudieron persistir los aciertos; se reintentará", error);
+        this.programarReintentoAciertos();
       }
+      if (this.persistTimer) { clearTimeout(this.persistTimer); this.persistTimer = null; }
+      this.persistAttempts = 0;
     }
     for (const [ws, id] of this.sockets) if (id) this.enviar(ws, { vista: this.sala.vista(id) });
     if (this.timer) clearTimeout(this.timer);
