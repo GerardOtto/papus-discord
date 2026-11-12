@@ -126,6 +126,7 @@ export class SalaMundo implements DurableObject {
     }
 
     if (m.t === "tarjeta") {
+      if (this.env.MUNDO_PREVIEW !== "1") return this.enviar(ws, { t: "tarjeta", ref: m.ref, papu: m.papu, estado: "error", motivo: "Las tarjetas estarán disponibles en el preview." });
       if (!Number.isSafeInteger(m.ref) || m.ref < 1 || !/^\\d{5,25}$/.test(m.papu)) return;
       const objetivo = this.conectados().find((c) => c.ficha.papu?.id === m.papu);
       if (!objetivo) return this.enviar(ws, { t: "tarjeta", ref: m.ref, papu: m.papu, estado: "error", motivo: "Ese Papu ya no está conectado a la Plaza." });
@@ -263,18 +264,20 @@ export class SalaMundo implements DurableObject {
         (SELECT COUNT(*) FROM mundo_menciones WHERE sala = ?1 AND tomado < 2 AND creado_at > ?2) AS menciones,
         (SELECT COUNT(*) FROM mundo_acciones WHERE sala = ?1 AND tomado = 2 AND entregado = 0) AS listas,
         (SELECT COUNT(*) FROM mundo_acciones WHERE sala = ?1 AND tomado < 2 AND creado_at > ?3) AS acciones,
-        (SELECT COUNT(*) FROM mundo_eventos WHERE id > ?4) AS eventos,
-        (SELECT COUNT(*) FROM mundo_tarjeta_pedidos WHERE sala = ?1 AND (estado = 0 OR (estado > 0 AND entregado = 0))) AS tarjetas`,
+        (SELECT COUNT(*) FROM mundo_eventos WHERE id > ?4) AS eventos`,
     )
       .bind(sala, ahora - ESPERA_MS, ahora - ACCION_VENCE_MS, eventoId)
-      .first<{ respuestas: number; menciones: number; listas: number; acciones: number; eventos: number; tarjetas: number }>();
+      .first<{ respuestas: number; menciones: number; listas: number; acciones: number; eventos: number }>();
     if (hay?.respuestas) await this.entregarRespuestas(sala);
     if (hay?.listas) await this.entregarAcciones(sala);
     if (hay?.eventos) await this.leerEventos(eventoId);
-    if (hay?.tarjetas) await this.entregarTarjetas(sala);
+    const tarjetas = this.env.MUNDO_PREVIEW === "1"
+      ? await this.env.DB.prepare("SELECT COUNT(*) AS cantidad FROM mundo_tarjeta_pedidos WHERE sala = ? AND (estado = 0 OR (estado > 0 AND entregado = 0))").bind(sala).first<{ cantidad: number }>()
+      : null;
+    if (tarjetas?.cantidad) await this.entregarTarjetas(sala);
     await this.moverRuleta();
     const perfiles = await this.entregarPerfiles();
-    const pendiente = (hay?.menciones ?? 0) + (hay?.acciones ?? 0) + (hay?.tarjetas ?? 0) + perfiles > 0;
+    const pendiente = (hay?.menciones ?? 0) + (hay?.acciones ?? 0) + (tarjetas?.cantidad ?? 0) + perfiles > 0;
     const cuando = [pendiente ? ahora + REVISION_MS : null, this.conectados().length ? ahora + LATIDO_MS : null, proximoCambio(await this.ruleta())].filter(
       (x): x is number => x !== null,
     );
