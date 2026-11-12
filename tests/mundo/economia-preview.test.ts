@@ -179,7 +179,6 @@ describe("EconomiaPlazaPreview", () => {
       }),
       now,
     );
-    let now = Date.parse("2026-11-12T12:00:00-03:00");
     const levels = new LevelService({ db: source, settings: loadLevelSettings(), timeZone: "America/Santiago" });
     const quota = new Quota(source, (id, at) => levels.limitFor(id, at), "America/Santiago");
     const coins = new CoinService({ db: source, settings: loadCoinSettings(), catalog: loadCatalog(), timeZone: "America/Santiago", now: () => now });
