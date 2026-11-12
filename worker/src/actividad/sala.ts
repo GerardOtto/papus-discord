@@ -13,7 +13,7 @@ export interface SalaEnv {
   GUILD_ID: string;
   /** "1" = acepta Papus de prueba sin Discord (solo en `wrangler dev`). */
   ACTIVIDAD_PRUEBA?: string;
-  /** "1" = partida sandbox: no consulta perfiles ni persiste aciertos/recompensas. */
+  /** "1" = partida sandbox: sincroniza perfiles, aciertos y consumibles exclusivamente con el ledger preview. */
   MUNDO_PREVIEW?: string;
 }
 
