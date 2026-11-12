@@ -1081,7 +1081,7 @@ function pintarCatalogo(tipo: TipoCatalogo, datos: Record<string, unknown>): str
     const icono = o.emoji ?? (["legendaria","legendario","mitica"].includes(rareza) ? "✨" : ["raro","epico","epica"].includes(rareza) ? "💎" : "🎁");
     const precio = o.precio === null ? "Precio no disponible" : `${o.precio.toLocaleString("es-CL")} Shaula-coins`;
     const extra = o.usos ? `<span class="v-producto-usos">${o.usos} usos</span>` : "";
-    const accion = o.activable ? `<button class="v-boton" data-usar-consumible="${esc(o.id)}">${o.id === "pc-adachi-rei" ? "💻 Reiniciar día de prueba" : "🎤 Activar por hoy"}</button>`
+    const accion = o.activable ? `<button class="v-boton" data-usar-consumible="${esc(o.id)}">${o.id === "pc-adachi-rei" ? "💻 Reiniciar día de prueba" : o.id === "regalo-rin-len" ? "🎁 Regalar una tirada" : "🎤 Activar por hoy"}</button>`
       : o.activo ? '<span class="v-chip verde">✓ Activo hoy</span>'
       : o.owned ? '<span class="v-chip verde">✓ En tu colección</span>'
       : soloLectura ? '<span class="v-chip">Solo lectura</span>'
@@ -1103,7 +1103,9 @@ function pintarCatalogo(tipo: TipoCatalogo, datos: Record<string, unknown>): str
 
 async function usarConsumible(id: string): Promise<void> {
   ventana.poner("mercado", '<p class="v-cargando">Activando consumible…</p>');
-  const r = await pedir("mercado.usar", { id });
+  const para = id === "regalo-rin-len" ? prompt("ID de Discord del Papu que recibirá la tirada:")?.trim() : undefined;
+  if (id === "regalo-rin-len" && !para) return abrirCatalogo("mercado");
+  const r = await pedir("mercado.usar", { id, ...(para ? { para } : {}) });
   if (!r.ok) {
     aviso(r.motivo);
     return abrirCatalogo("mercado");
