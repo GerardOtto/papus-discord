@@ -37,6 +37,8 @@ interface Ficha {
   accionAt?: number;
   /** Ultimo perfil (nivel y cuota) que se le mostro. */
   statsAt?: number;
+  /** Ultima version de los perfiles publicos enviados a este socket. */
+  perfilesAt?: Record<string, number>;
   /** Navegador: token de Discord de la cookie (solo hasta comprobar quien es). */
   token?: string;
 }
@@ -393,10 +395,18 @@ export class SalaMundo implements DurableObject {
       if (p.pedido_at >= p.actualizado_at && p.pedido_at > reciente) pendientes++;
       if (!p.actualizado_at) continue;
       for (const c of conectados) {
-        if (c.ficha.papu!.id !== p.papu_id || (c.ficha.statsAt ?? 0) >= p.actualizado_at) continue;
-        c.ficha.statsAt = p.actualizado_at;
-        c.ws.serializeAttachment(c.ficha);
-        this.enviar(c.ws, { t: "stats", nivel: p.nivel, prestigio: p.prestigio, restante: p.restante, limite: p.limite, ruletas: p.ruletas ?? 0 });
+        c.ficha.perfilesAt ??= {};
+        if ((c.ficha.perfilesAt[p.papu_id] ?? 0) < p.actualizado_at) {
+          c.ficha.perfilesAt[p.papu_id] = p.actualizado_at;
+          c.ws.serializeAttachment(c.ficha);
+          this.enviar(c.ws, { t: "perfil", id: p.papu_id, nivel: p.nivel, prestigio: p.prestigio });
+        }
+        if (c.ficha.papu!.id === p.papu_id && (c.ficha.statsAt ?? 0) < p.actualizado_at) {
+          c.ficha.statsAt = p.actualizado_at;
+          c.ws.serializeAttachment(c.ficha);
+          // Cuota y tiradas solo se envian al propio Papu.
+          this.enviar(c.ws, { t: "stats", nivel: p.nivel, prestigio: p.prestigio, restante: p.restante, limite: p.limite, ruletas: p.ruletas ?? 0 });
+        }
       }
     }
     return pendientes;
