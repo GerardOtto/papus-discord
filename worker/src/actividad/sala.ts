@@ -206,14 +206,13 @@ export class SalaTrivia implements DurableObject {
     if (aciertos.length) {
       const now = Date.now();
       const preview = this.env.MUNDO_PREVIEW === "1";
-      const stmt = preview
-        ? this.env.DB.prepare("INSERT OR IGNORE INTO actividad_aciertos (partida, papu_id, pregunta, dificultad, racha, xp_mostrada, canal, creado_at, multiplicador) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)")
-        : this.env.DB.prepare("INSERT INTO actividad_aciertos (partida, papu_id, pregunta, dificultad, racha, xp_mostrada, canal, creado_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
+      const previewStmt = this.env.DB.prepare("INSERT OR IGNORE INTO actividad_aciertos (partida, papu_id, pregunta, dificultad, racha, xp_mostrada, canal, creado_at, multiplicador) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
+      const productionStmt = this.env.DB.prepare("INSERT INTO actividad_aciertos (partida, papu_id, pregunta, dificultad, racha, xp_mostrada, canal, creado_at) SELECT ?, ?, ?, ?, ?, ?, ?, ? WHERE NOT EXISTS (SELECT 1 FROM actividad_aciertos WHERE partida = ? AND papu_id = ? AND pregunta = ?)");
       try {
-        // Esperar la confirmación de D1 evita vaciar el buffer y perder aciertos ante un fallo de red.
+        // El preview usa índice único; producción usa NOT EXISTS. Ambos toleran reintentos tras una respuesta D1 ambigua.
         await this.env.DB.batch(aciertos.map((a) => preview
-          ? stmt.bind(this.partida, a.papu, a.pregunta, a.dificultad, a.racha, a.xp, this.canal, now, a.factor ?? 1)
-          : stmt.bind(this.partida, a.papu, a.pregunta, a.dificultad, a.racha, a.xp, this.canal, now)));
+          ? previewStmt.bind(this.partida, a.papu, a.pregunta, a.dificultad, a.racha, a.xp, this.canal, now, a.factor ?? 1)
+          : productionStmt.bind(this.partida, a.papu, a.pregunta, a.dificultad, a.racha, a.xp, this.canal, now, this.partida, a.papu, a.pregunta)));
         if (this.persistTimer) { clearTimeout(this.persistTimer); this.persistTimer = null; }
         this.persistAttempts = 0;
       } catch (error) {
