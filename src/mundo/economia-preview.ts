@@ -111,7 +111,7 @@ export class EconomiaPlazaPreview {
    * el caso en que el CAS del ledger se confirme pero falle la escritura de aplicado en la tabla de actividad. */
   async syncTrivia(): Promise<number> {
     const rows = await this.d.query<{ id: number; partida: string; papu_id: string; pregunta: string; racha: number; multiplicador?: number; xp?: number | null }>(
-      "SELECT id, partida, papu_id, pregunta, racha, multiplicador, xp FROM actividad_aciertos WHERE aplicado = 0 ORDER BY id LIMIT 200",
+      "SELECT id, partida, papu_id, pregunta, racha, multiplicador, xp FROM actividad_aciertos_preview WHERE aplicado = 0 ORDER BY id LIMIT 200",
     );
     let applied = 0;
     for (const row of rows) {
@@ -219,7 +219,7 @@ export class EconomiaPlazaPreview {
         return { result: earned };
       });
       // Si el proceso se cae después del CAS, el resultado guardado permite reintentar sin duplicar XP ni sobres.
-      await this.d.query("UPDATE actividad_aciertos SET aplicado = 1, xp = ? WHERE id = ? AND aplicado = 0", Number(gained ?? 0), row.id);
+      await this.d.query("UPDATE actividad_aciertos_preview SET aplicado = 1, xp = ? WHERE id = ? AND aplicado = 0", Number(gained ?? 0), row.id);
       applied++;
     }
     await this.entregarRegalos();
