@@ -6,8 +6,8 @@
 // Un @ a un Vocaloid de la plaza (@Teto) queda en D1 (mundo_menciones) y lo responde el bot con la misma cuota, cola y
 // LLM que en Discord (src/mundo/puente.ts). Mientras haya algo pendiente, una alarma revisa D1 cada 2 s y entrega las
 // respuestas como burbujas; sin pendientes no hay alarma y el objeto vuelve a dormir.
-// Acciones (/ruleta…, acciones.ts): igual que los @, quedan en D1 (mundo_acciones) y el bot las ejecuta con las reglas
-// de Discord. Mientras haya Papus conectados, un latido cada 5 s lee lo que paso en Discord (mundo_eventos: giros de la
+// Acciones (/ruleta…, acciones.ts): quedan en el D1 canónico (mundo_acciones) y el bot principal las ejecuta
+// mediante los mismos servicios de negocio que atienden Discord. Mientras haya Papus conectados, un latido cada 5 s lee lo que paso en Discord (mundo_eventos: giros de la
 // ruleta, "ya tienes una tirada"). La cola de la ruleta grande vive en el almacenamiento del objeto.
 import moderacion from "../../../config/moderacion.json";
 import { RuleSet, type ModerationSettings } from "../../../src/moderation/rules";
