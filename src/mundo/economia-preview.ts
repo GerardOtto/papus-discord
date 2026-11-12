@@ -557,7 +557,7 @@ export class EconomiaPlazaPreview {
     if (id === "pc-adachi-rei") {
       const now=this.now(), day=dayKey(new Date(now),this.d.timeZone);
       const spins=this.d.roulette.status(userId,now).used;
-      const quotaUsed=this.d.quota.used(userId,new Date(now));
+      const quotaUsed=Math.max(0,this.d.quota.used(userId,new Date(now))-this.d.quota.donated(userId,new Date(now)));
       const result=await this.cambiar(userId,(s)=>{
         const usos=s.consumibles[id]??0;
         if(usos<=0)return {result:error("No te quedan usos del PC de Adachi Rei."),changed:false};
