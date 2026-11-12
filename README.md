@@ -102,10 +102,13 @@ lleva el mapa (`npm run mundo:mapa` → `assets/mundo/mapa-plaza.png`) y el enla
 Vocaloids en la plaza (por ahora Teto, que pasea y saluda con frases fijas): son **renders**, nunca el modelo 3D.
 `npm run mundo:sprites -- tet` usa Blender y el pipeline de `../Diva-a-Render` para renderizar 8 direcciones × 7
 cuadros (quieta + 6 pasos) y deja `assets/mundo/tet.webp` y `tet.json`; `npm run mundo` los copia a la página.
-Hablarle a Teto en la plaza: `@Teto …` en el chat. Gasta la misma cuota diaria que un @ en Discord y da la misma XP
-(la responde el bot con su cola y su LLM: `src/mundo/puente.ts`, cada 3 s, por la base D1 del worker). Arriba se ven el
-nivel y los mensajes que le quedan hoy al Papu. Los Papus de prueba (`wrangler dev`) solo reciben un aviso. Tras cambiar
-`worker/schema.sql`, en local: `npx wrangler d1 execute papus --local --file=schema.sql --yes`.
+La Plaza y Discord comparten el mismo D1 canónico y los mismos servicios de negocio. El bot principal procesa
+las menciones y acciones de la Plaza cada 3 s mediante `src/mundo/puente.ts`; XP, nivel, cuota, monedas, inventario,
+ruleta, pesca y mercado se consultan y modifican desde los servicios centrales de Papus. Los perfiles de usuarios
+conectados se refrescan periódicamente para reflejar también la actividad realizada en Discord. El Worker separado
+`papus-plaza-preview` solo aísla la interfaz y sus Durable Objects: su binding `DB` se resuelve al mismo identificador
+que `worker/wrangler.toml`. El workflow de Plaza no crea ni migra bases de datos y no despliega `papus-bots`.
+En local, `wrangler dev` usa su D1 local y no altera los datos remotos.
 
 ## Estructura
 - `src/services/` lógica de conversación y moderación (probada sin Discord).
