@@ -11,8 +11,6 @@ import { RouletteService } from "../../src/ruleta/service";
 import { Quota } from "../../src/quota/quota";
 import { LevelService } from "../../src/levels/service";
 import { EconomiaPlazaPreview } from "../../src/mundo/economia-preview";
-import type { RouletteService } from "../../src/ruleta/service";
-import type { Quota } from "../../src/quota/quota";
 
 describe("EconomiaPlazaPreview", () => {
   const abiertos: ReturnType<typeof openDb>[] = [];
