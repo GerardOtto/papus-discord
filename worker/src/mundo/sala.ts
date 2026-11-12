@@ -127,7 +127,7 @@ export class SalaMundo implements DurableObject {
 
     if (m.t === "tarjeta") {
       if (this.env.MUNDO_PREVIEW !== "1") return this.enviar(ws, { t: "tarjeta", ref: m.ref, papu: m.papu, estado: "error", motivo: "Las tarjetas estarán disponibles en el preview." });
-      if (!Number.isSafeInteger(m.ref) || m.ref < 1 || !/^\\d{5,25}$/.test(m.papu)) return;
+      if (!Number.isSafeInteger(m.ref) || m.ref < 1 || !/^[0-9]{5,25}$/.test(m.papu)) return;
       const objetivo = this.conectados().find((c) => c.ficha.papu?.id === m.papu);
       if (!objetivo) return this.enviar(ws, { t: "tarjeta", ref: m.ref, papu: m.papu, estado: "error", motivo: "Ese Papu ya no está conectado a la Plaza." });
       const sala = await this.sala();
@@ -330,12 +330,16 @@ export class SalaMundo implements DurableObject {
 
   /** Entrega las tarjetas ya generadas por el puente. Solo al Papu que las solicitó. */
   private async entregarTarjetas(sala: string): Promise<void> {
+    await this.env.DB.prepare("UPDATE mundo_tarjeta_pedidos SET estado = 2 WHERE sala = ? AND estado = 0 AND creado_at < ?").bind(sala, Date.now() - 30_000).run();
     const { results } = await this.env.DB.prepare(
-      "SELECT id, solicitante_id, papu_id, ref, estado FROM mundo_tarjeta_pedidos WHERE sala = ? AND entregado = 0 AND estado > 0 ORDER BY id LIMIT 10",
-    ).bind(sala).all<{ id: number; solicitante_id: string; papu_id: string; ref: number; estado: number }>();
+      "SELECT id, solicitante_id, papu_id, ref, estado, creado_at FROM mundo_tarjeta_pedidos WHERE sala = ? AND entregado = 0 AND estado > 0 ORDER BY id LIMIT 10",
+    ).bind(sala).all<{ id: number; solicitante_id: string; papu_id: string; ref: number; estado: number; creado_at: number }>();
     for (const pedido of results) {
       const cliente = this.conectados().find((c) => c.ficha.papu?.id === pedido.solicitante_id);
-      if (!cliente) continue;
+      if (!cliente) {
+        if (Date.now() - pedido.creado_at > 60_000) await this.env.DB.prepare("UPDATE mundo_tarjeta_pedidos SET entregado = 1 WHERE id = ?").bind(pedido.id).run();
+        continue;
+      }
       if (pedido.estado === 2) {
         this.enviar(cliente.ws, { t: "tarjeta", ref: pedido.ref, papu: pedido.papu_id, estado: "error", motivo: "No pude generar la tarjeta. Inténtalo de nuevo en un momento." });
       } else {
