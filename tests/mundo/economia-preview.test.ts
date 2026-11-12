@@ -407,4 +407,53 @@ describe("EconomiaPlazaPreview", () => {
     expect(from.consumibles["regalo-rin-len"]).toBe(0);expect(to.ruletaRegalos).toBe(1);expect(to.ruletaRegaloDia).toBe(day);
   });
 
+  it("delivers Rin and Len gifts as isolated daily spins and deduplicates retries", async () => {
+    const source = openDb(":memory:");
+    const preview = openDb(":memory:");
+    abiertos.push(source, preview);
+    preview.exec(`
+      CREATE TABLE mundo_sandbox (papu_id TEXT PRIMARY KEY, estado TEXT NOT NULL, revision INTEGER NOT NULL DEFAULT 0, actualizado_at INTEGER NOT NULL);
+      CREATE TABLE actividad_perfiles (papu_id TEXT PRIMARY KEY, xp_base INTEGER NOT NULL DEFAULT 0, tope INTEGER NOT NULL DEFAULT 0, pedido_at INTEGER NOT NULL DEFAULT 0, actualizado_at INTEGER NOT NULL DEFAULT 0);
+      CREATE TABLE actividad_aciertos (id INTEGER PRIMARY KEY AUTOINCREMENT, partida TEXT NOT NULL, papu_id TEXT NOT NULL, pregunta TEXT NOT NULL, dificultad TEXT NOT NULL, racha INTEGER NOT NULL, xp_mostrada INTEGER, canal TEXT, creado_at INTEGER NOT NULL, aplicado INTEGER NOT NULL DEFAULT 0, xp INTEGER, multiplicador INTEGER NOT NULL DEFAULT 1);
+    `);
+    const query: D1Query = async <T>(sql: string, ...params: unknown[]): Promise<T[]> => {
+      const statement = preview.prepare(sql);
+      if (/RETURNING/i.test(sql) || /^\\s*SELECT/i.test(sql)) return statement.all(...(params as never[])) as unknown as T[];
+      statement.run(...(params as never[]));
+      return [];
+    };
+    const sender = "123456789012345678";
+    const target = "223456789012345678";
+    const now = Date.parse("2026-11-12T12:00:00-03:00");
+    source.prepare("INSERT INTO monedero (user_id, ganadas) VALUES (?, ?)").run(sender, 10_000);
+    source.prepare("INSERT INTO consumibles (user_id, objeto, usos) VALUES (?, ?, ?)").run(sender, "regalo-rin-len", 2);
+    const levels = new LevelService({ db: source, settings: loadLevelSettings(), timeZone: "America/Santiago" });
+    const quota = new Quota(source, (id, at) => levels.limitFor(id, at), "America/Santiago");
+    const coins = new CoinService({ db: source, settings: loadCoinSettings(), catalog: loadCatalog(), timeZone: "America/Santiago", now: () => now });
+    const roulette = new RouletteService({ db: source, settings: loadRouletteSettings(), levels, quota, timeZone: "America/Santiago", now: () => now });
+    const mercado = new MercadoService({ db: source, settings: loadMercadoSettings(), coins, quota, roulette, timeZone: "America/Santiago", now: () => now });
+    const economy = new EconomiaPlazaPreview({ query, db: source, levels, coins, mercado, roulette, quota, now: () => now, trivia: loadTriviaSettings(), questionLevels: {}, questionTotals: { facil: 0, medio: 0, dificil: 0 }, timeZone: "America/Santiago" });
+    const usar = economy.acciones()["mercado.usar"]!;
+    const result = await usar({ id: sender, nombre: "Remitente" }, { id: "regalo-rin-len", para: target });
+    expect(result.ok).toBe(true);
+    const senderRow = await query<{ estado: string }>("SELECT estado FROM mundo_sandbox WHERE papu_id = ?", sender);
+    const targetRow = await query<{ estado: string }>("SELECT estado FROM mundo_sandbox WHERE papu_id = ?", target);
+    const from = JSON.parse(senderRow[0]!.estado) as { consumibles: Record<string, number>; regalosPendientes?: Record<string, unknown> };
+    const to = JSON.parse(targetRow[0]!.estado) as { ruletaRegaloDia: string; ruletaRegalos: number; regalosRecibidos: string[] };
+    expect(from.consumibles["regalo-rin-len"]).toBe(1);
+    expect(from.regalosPendientes).toBeUndefined();
+    expect(to).toMatchObject({ ruletaRegaloDia: "2026-11-12", ruletaRegalos: 1 });
+    expect(to.regalosRecibidos).toHaveLength(1);
+
+    // Simula caída después de acreditar al destinatario pero antes de limpiar la cola del remitente.
+    const giftId = "gift-replay";
+    from.regalosPendientes = { [giftId]: { para: target, day: "2026-11-12" } };
+    to.regalosRecibidos.push(giftId);
+    preview.prepare("UPDATE mundo_sandbox SET estado = ?, revision = revision + 1 WHERE papu_id = ?").run(JSON.stringify(from), sender);
+    preview.prepare("UPDATE mundo_sandbox SET estado = ?, revision = revision + 1 WHERE papu_id = ?").run(JSON.stringify(to), target);
+    await economy.syncTrivia();
+    const after = await query<{ estado: string }>("SELECT estado FROM mundo_sandbox WHERE papu_id = ?", target);
+    const received = JSON.parse(after[0]!.estado) as { ruletaRegalos: number };
+    expect(received.ruletaRegalos).toBe(1);
+  });
 });
