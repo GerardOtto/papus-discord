@@ -5,7 +5,7 @@ import type { Db } from "../db/database";
 import type { D1Query } from "../cloud/d1";
 import type { Atender } from "./puente";
 import type { LevelService } from "../levels/service";
-import type { CoinService, Wallet } from "../coins/service";
+import type { CoinService } from "../coins/service";
 import { paySplit, priceOf } from "../coins/rules";
 import type { MercadoService } from "../mercado/service";
 import { CONSUMIBLES, PERMANENTES } from "../mercado/rules";
@@ -85,7 +85,7 @@ export class EconomiaPlazaPreview {
 
   ruletasUsadas(userId: string): number {
     const state = this.cache.get(userId);
-    if (!state || state.ruletaDia !== this.d.roulette.day(this.now())) return 0;
+    if (!state || state.ruletaDia !== this.d.roulette.dayOf(this.now())) return 0;
     return state.ruletaUsadas;
   }
 
@@ -176,7 +176,7 @@ export class EconomiaPlazaPreview {
     throw new Error("La Plaza está procesando otra acción tuya. Vuelve a intentarlo.");
   }
 
-  private datosTienda(userId: string, state: EstadoSandbox): Resultado {
+  private datosTienda(state: EstadoSandbox): Resultado {
     if (!this.d.coins) return error("La tienda no está habilitada.");
     const vitrina = this.d.coins.vitrina(this.now());
     const objetos = (vitrina?.objetos ?? []).flatMap((id) => {
@@ -190,7 +190,7 @@ export class EconomiaPlazaPreview {
     return ok({ abierta: !!vitrina, sandbox: true, wallet: state.wallet, objetos });
   }
 
-  private datosMercado(userId: string, state: EstadoSandbox): Resultado {
+  private datosMercado(state: EstadoSandbox): Resultado {
     if (!this.d.mercado) return error("El mercado negro no está habilitado.");
     const now = this.now();
     const settings = this.d.mercado.settings;
@@ -301,7 +301,7 @@ export class EconomiaPlazaPreview {
     const loaded = await this.cargar(userId);
     const state = loaded.state;
     const now = this.now();
-    const day = this.d.roulette.day(now);
+    const day = this.d.roulette.dayOf(now);
     const used = state.ruletaDia === day ? state.ruletaUsadas : 0;
     const real = this.d.roulette.status(userId, now);
     const estado = ruletaEstado(this.d.roulette, userId, real);
@@ -335,22 +335,32 @@ export class EconomiaPlazaPreview {
         xp = prizeXp(this.d.roulette.settings, this.d.levels.settings, premio, s.xp, this.d.levels.multiplier(new Date(now)));
         s.xp += xp;
       } else if (premio.tipo === "cuota" || premio.tipo === "cuota_llena") {
-        const units = premio.tipo === "cuota_llena" ? 1 : (premio.valor ?? 0);
         const limit = this.d.quota.limitFor(userId, new Date(now));
         const extraBase = this.d.quota.extra(userId, new Date(now));
         const usedBase = this.d.quota.used(userId, new Date(now));
         const donated = this.d.quota.donated(userId, new Date(now));
         const extraSandbox = s.cuotaExtraDia === day ? s.cuotaExtra : 0;
-        const remaining = Number.isFinite(limit) ? Math.max(0, limit + extraBase + extraSandbox - usedBase - s.cuotaUsada) : 0;
-        const room = Number.isFinite(limit) ? Math.max(0, limit - remaining) : 0;
-        mensajes = Math.min(units, room);
-        overflow = units - mensajes;
-        s.cuotaExtraDia = day;
-        s.cuotaExtra = extraSandbox + mensajes;
-        if (premio.tipo === "cuota_llena" && usedBase + s.cuotaUsada > donated) {
-          s.cuotaUsada = 0;
-          mensajes = Math.max(mensajes, usedBase + s.cuotaUsada - donated);
+        const roomActual = Number.isFinite(limit)
+          ? Math.max(0, limit - Math.max(0, limit + extraBase + extraSandbox - usedBase - s.cuotaUsada))
+          : 0;
+        if (premio.tipo === "cuota_llena") {
+          const recuperados = Math.max(0, s.cuotaUsada - Math.max(0, s.cuotaUsada - donated));
+          if (recuperados > 0) {
+            mensajes = recuperados;
+            s.cuotaUsada = 0;
+            s.cuotaExtra = extraSandbox + recuperados;
+          } else {
+            mensajes = Math.min(1, roomActual);
+            overflow = 1 - mensajes;
+            s.cuotaExtra = extraSandbox + mensajes;
+          }
+        } else {
+          const unidades = premio.valor ?? 0;
+          mensajes = Math.min(unidades, roomActual);
+          overflow = unidades - mensajes;
+          s.cuotaExtra = extraSandbox + mensajes;
         }
+        s.cuotaExtraDia = day;
         if (overflow > 0) {
           const c = this.d.levels.settings.cuotaSobrante ?? { porcentajeNivel: 0.05, minimo: 15 };
           const needed = progress(this.d.levels.settings, s.xp).needed;
@@ -389,12 +399,12 @@ export class EconomiaPlazaPreview {
       "pesca.capturar": (papu) => this.pescar(papu.id),
       "tienda.estado": async (papu) => {
         const { state } = await this.cargar(papu.id);
-        return this.datosTienda(papu.id, state);
+        return this.datosTienda(state);
       },
       "tienda.comprar": (papu, datos) => this.comprarTienda(papu.id, datos),
       "mercado.estado": async (papu) => {
         const { state } = await this.cargar(papu.id);
-        return this.datosMercado(papu.id, state);
+        return this.datosMercado(state);
       },
       "mercado.comprar": (papu, datos) => this.comprarMercado(papu.id, datos),
     };
