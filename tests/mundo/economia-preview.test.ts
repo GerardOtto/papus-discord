@@ -514,4 +514,39 @@ describe("EconomiaPlazaPreview", () => {
     const received = JSON.parse(after[0]!.estado) as { ruletaRegalos: number };
     expect(received.ruletaRegalos).toBe(1);
   });
+  it("locks consumable use while an Atun prize is pending and supports explicit acceptance", async () => {
+    const source = openDb(":memory:");
+    const preview = openDb(":memory:");
+    abiertos.push(source, preview);
+    preview.exec("CREATE TABLE mundo_sandbox (papu_id TEXT PRIMARY KEY, estado TEXT NOT NULL, revision INTEGER NOT NULL DEFAULT 0, actualizado_at INTEGER NOT NULL)");
+    const query: D1Query = async <T>(sql: string, ...params: unknown[]): Promise<T[]> => {
+      const statement = preview.prepare(sql);
+      if (/RETURNING/i.test(sql) || /^\\s*SELECT/i.test(sql)) return statement.all(...(params as never[])) as unknown as T[];
+      statement.run(...(params as never[]));
+      return [];
+    };
+    const user = "123456789012345678";
+    const now = Date.parse("2026-11-12T12:00:00-03:00");
+    const day = "2026-11-12";
+    const levels = new LevelService({ db: source, settings: loadLevelSettings(), timeZone: "America/Santiago" });
+    const roulette = { dayOf: () => day } as unknown as RouletteService;
+    const state = {
+      version: 1, xp: 0,
+      wallet: { ganadas: 100, compradas: 0, ecos: 0, gratis: 0, gratisRaro: 0, gratisLeg: 0, sobres: 0, sinEpica: 0, sinLegendaria: 0, hoy: 0 },
+      inventario: [], consumibles: { "microfono-meiko": 1 }, comprasMercado: [],
+      ruletaDia: day, ruletaUsadas: 1, pescaAt: 0, cuotaExtraDia: day, cuotaExtra: 0, cuotaUsada: 0, subioDia: "",
+      atunPendiente: { day, index: 0, giros: 0, gastoUso: false, xp: 10, mensajes: 0, sobres: 0, nivelAntes: 1 },
+    };
+    preview.prepare("INSERT INTO mundo_sandbox (papu_id,estado,revision,actualizado_at) VALUES (?,?,0,?)").run(user, JSON.stringify(state), now);
+    const economy = new EconomiaPlazaPreview({ query, db: source, levels, coins: null, mercado: { byId: new Map() } as unknown as MercadoService, roulette, quota: {} as Quota, now: () => now, trivia: loadTriviaSettings(), questionLevels: {}, questionTotals: { facil: 0, medio: 0, dificil: 0 }, timeZone: "America/Santiago" });
+    const usar = economy.acciones()["mercado.usar"]!;
+    const blocked = await usar({ id: user, nombre: "Papu" }, { id: "microfono-meiko" });
+    expect(blocked.ok).toBe(false);
+    const before = preview.prepare("SELECT estado FROM mundo_sandbox WHERE papu_id = ?").get(user) as { estado: string };
+    expect((JSON.parse(before.estado) as { consumibles: Record<string, number> }).consumibles["microfono-meiko"]).toBe(1);
+    const accepted = await economy.acciones()["ruleta.aceptar"]!({ id: user, nombre: "Papu" }, null);
+    expect(accepted.ok).toBe(true);
+    const after = preview.prepare("SELECT estado FROM mundo_sandbox WHERE papu_id = ?").get(user) as { estado: string };
+    expect((JSON.parse(after.estado) as { atunPendiente?: unknown }).atunPendiente).toBeUndefined();
+  });
 });
