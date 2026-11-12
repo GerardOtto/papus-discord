@@ -860,7 +860,7 @@ export class EconomiaPlazaPreview {
     return { xp, mensajes, sobres, titulo, subtitulo, texto, subioAntes, nivelAntes: levelBefore, bonoNivel };
   }
 
-  private tiradasDisponibles(state: EstadoSandbox, userId: string, now: number, day: string, real: ReturnType<RouletteService["status"]>): number {
+  private tiradasDisponibles(state: EstadoSandbox, userId: string, day: string, real: ReturnType<RouletteService["status"]>): number {
     const nivelYaContado = real.missions.some((m) => m.id === "nivel" && m.done);
     const extraNivel = state.subioDia === day && !nivelYaContado ? 1 : 0;
     const voz = real.missions.find((m) => m.id === "voz");
@@ -890,10 +890,8 @@ export class EconomiaPlazaPreview {
   private async girarRuleta(userId: string, nombre: string): Promise<Resultado> {
     const now = this.now();
     await this.actualizarDisquete(userId);
-    if (!this.d.levels.canEarn(userId, now)) return error("Neru te bloqueó la ruleta: no puedes obtener recompensas. 🚫");
     const day = this.d.roulette.dayOf(now);
     const real = this.d.roulette.status(userId, now);
-    if (real.blocked) return error("🚫 Neru te dio un machetazo: sin ruleta por ahora.");
     return this.cambiar(userId, (s) => {
       const pending = s.atunPendiente;
       if (pending?.aplicado === false) {
@@ -902,10 +900,12 @@ export class EconomiaPlazaPreview {
         if (s.ruletaDia === pending.day) s.ruletaUsadas++;
         else if (pending.day === day) { s.ruletaDia = day; s.ruletaUsadas = 1; }
         s.atunPendiente = undefined;
-        return { result: ok({ giro: { papu: userId, nombre, index: pending.index, titulo: `🧪 ${aplicado.titulo}`, subtitulo: aplicado.subtitulo, origen: "plaza" }, texto: aplicado.texto, tiradas: this.tiradasDisponibles(s, userId, now, day, real), sandbox: true }) };
+        return { result: ok({ giro: { papu: userId, nombre, index: pending.index, titulo: `🧪 ${aplicado.titulo}`, subtitulo: aplicado.subtitulo, origen: "plaza" }, texto: aplicado.texto, tiradas: this.tiradasDisponibles(s, userId, day, real), sandbox: true }) };
       }
       // Compatibilidad con ledgers anteriores: el premio antiguo ya se había acreditado al sortear.
       if (pending) s.atunPendiente = undefined;
+      if (!this.d.levels.canEarn(userId, now)) return { result: error("Neru te bloqueó la ruleta: no puedes obtener recompensas. 🚫"), changed: false };
+      if (real.blocked) return { result: error("🚫 Neru te dio un machetazo: sin ruleta por ahora."), changed: false };
       if (s.ruletaDia !== day) { s.ruletaDia = day; s.ruletaUsadas = 0; }
       const disponibles = this.tiradasDisponibles(s, userId, now, day, real);
       if (disponibles <= 0) return { result: error("No te quedan tiradas disponibles. Cumple una misión y vuelve a intentarlo."), changed: false };
@@ -947,7 +947,6 @@ export class EconomiaPlazaPreview {
     const now = this.now();
     const day = this.d.roulette.dayOf(now);
     const real = this.d.roulette.status(userId, now);
-    if (real.blocked) return error("Neru bloqueó la ruleta: no puedes descartar premios ahora.");
     return this.cambiar(userId, (s) => {
       const pending = s.atunPendiente;
       const objeto = this.d.mercado?.byId.get("atun-luka");
