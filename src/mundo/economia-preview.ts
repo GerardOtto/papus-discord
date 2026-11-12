@@ -621,10 +621,16 @@ export class EconomiaPlazaPreview {
         const usos=s.consumibles[id]??0;
         if(usos<=0)return {result:error("No te quedan usos del PC de Adachi Rei."),changed:false};
         s.consumibles[id]=usos-1;
+        // El PC reinicia también el tramo de monedas por actividad, sin borrar las ya ganadas.
+        this.recalcularMonedasActividad(s,userId,day,0);
+        const monedas = this.d.coins?.activityToday(userId,now);
+        s.monedasResetDia=day;
+        s.monedasResetXp=(monedas?.xp??0)+(s.xpSandboxDia??0);
+        s.monedasResetPrevia=s.monedasActividadDia??monedas?.actividad??0;
         s.triviaDia=day;s.triviaXpDia=0;s.triviaPartidasDia=[];
         s.ruletaDia=day;s.ruletaUsadas=0;s.ruletaResetDia=day;s.ruletaResetUsadas=spins;
         s.cuotaResetDia=day;s.cuotaResetBase=quotaUsed;s.cuotaUsada=0;
-        return {result:ok({mensaje:"💻 Día reiniciado en tu progreso de prueba: partidas y tope de XP de trivia, tiradas y cuota sandbox vuelven a contar desde cero. Lo que ya ganaste se conserva.",usos:s.consumibles[id],sandbox:true})};
+        return {result:ok({mensaje:"💻 Día reiniciado en tu progreso de prueba: partidas, topes de XP, monedas por actividad, tiradas y cuota sandbox vuelven a contar desde cero. Lo que ya ganaste se conserva.",usos:s.consumibles[id],sandbox:true})};
       });
       if(result.ok) await this.d.query("UPDATE actividad_perfiles SET pedido_at = ? WHERE papu_id = ?",now+2,userId);
       return result;
