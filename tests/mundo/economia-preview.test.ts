@@ -215,7 +215,6 @@ describe("EconomiaPlazaPreview", () => {
     expect(primerGiro.ok).toBe(true);
     if (!primerGiro.ok) return;
     expect((primerGiro.datos as { atun?: { girosRestantes: number } }).atun?.girosRestantes).toBe(2);
-    const primerIndex = (primerGiro.datos as { giro: { index: number } }).giro.index;
     const reloaded = new EconomiaPlazaPreview({ query, db: source, levels, coins, mercado, roulette, quota, now: () => now, rnd: () => 0.4, trivia: loadTriviaSettings(), questionLevels: {}, questionTotals: { facil: 0, medio: 0, dificil: 0 }, timeZone: "America/Santiago" });
     await reloaded.preload();
     const estadoRecargado = await reloaded.acciones()["ruleta.estado"]!(papu, null);
