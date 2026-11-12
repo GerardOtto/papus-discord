@@ -28,8 +28,8 @@ export function leerCookie(header: string | null, nombre: string): string | null
 }
 
 /** Encabezado Set-Cookie de /mundo (HttpOnly, SameSite=Lax; Secure si el sitio es https). maxAge 0 = borrarla. */
-export function cookie(nombre: string, valor: string, opts: { maxAge: number; https: boolean }): string {
-  return [`${nombre}=${encodeURIComponent(valor)}`, "Path=/mundo", "HttpOnly", "SameSite=Lax", `Max-Age=${Math.max(0, Math.floor(opts.maxAge))}`, ...(opts.https ? ["Secure"] : [])].join("; ");
+export function cookie(nombre: string, valor: string, opts: { maxAge: number; https: boolean; path?: string }): string {
+  return [`${nombre}=${encodeURIComponent(valor)}`, `Path=${opts.path ?? "/mundo"}`, "HttpOnly", "SameSite=Lax", `Max-Age=${Math.max(0, Math.floor(opts.maxAge))}`, ...(opts.https ? ["Secure"] : [])].join("; ");
 }
 
 /** Direccion de regreso del OAuth (hay que registrarla en el portal de Discord, en OAuth2 > Redirects). */
