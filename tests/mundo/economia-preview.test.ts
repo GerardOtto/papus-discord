@@ -169,13 +169,14 @@ describe("EconomiaPlazaPreview", () => {
     source.prepare("INSERT INTO monedero (user_id, ganadas) VALUES (?, ?)").run(userId, 10_000_000);
     source.prepare("INSERT INTO consumibles (user_id, objeto, usos) VALUES (?, ?, ?)").run(userId, "microfono-meiko", 2);
     source.prepare("INSERT INTO xp_dia (user_id, day, voz_min) VALUES (?, ?, ?)").run(userId, "2026-11-12", 65);
+    source.prepare("INSERT INTO xp_dia (user_id, day, voz_min) VALUES (?, ?, ?)").run(userId, "2026-11-11", 120);
     preview.prepare("INSERT INTO mundo_sandbox (papu_id, estado, revision, actualizado_at) VALUES (?, ?, 0, ?)").run(
       userId,
       JSON.stringify({
         version: 1, xp: 0,
         wallet: { ganadas: 10_000_000, compradas: 0, ecos: 0, gratis: 0, gratisRaro: 0, gratisLeg: 0, sobres: 0, sinEpica: 0, sinLegendaria: 0, hoy: 0 },
-        inventario: [], consumibles: { "microfono-meiko": 2 }, comprasMercado: [],
-        ruletaDia: "2026-11-12", ruletaUsadas: 0, pescaAt: 0,
+        inventario: [], consumibles: { "microfono-meiko": 2 }, comprasMercado: ["disquete-adachi-rei"],
+        ruletaDia: "2026-11-11", ruletaUsadas: 0, pescaAt: 0, disqueteProcesadoDia: "2026-11-11", ruletaGuardadas: 0,
         cuotaExtraDia: "2026-11-12", cuotaExtra: 0, cuotaUsada: 0, subioDia: "",
       }),
       now,
@@ -196,7 +197,8 @@ describe("EconomiaPlazaPreview", () => {
     if (estado.ok) {
       const voz = (estado.datos as { misiones: { id: string; nombre: string; meta: number; actual: number; hecha: boolean }[] }).misiones.find((m) => m.id === "voz");
       expect(voz).toMatchObject({ nombre: "60 min en voz", meta: 60, actual: 60, hecha: true });
-      expect((estado.datos as { tiradas: number }).tiradas).toBe(1);
+      expect((estado.datos as { tiradas: number }).tiradas).toBe(2);
+      expect((estado.datos as { extras: string[] }).extras.some((x) => x.includes("1 tiradas guardadas"))).toBe(true);
     }
     const repetido = await usar(papu, { id: "microfono-meiko" });
     expect(repetido.ok).toBe(false);
