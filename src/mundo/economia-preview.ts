@@ -524,7 +524,7 @@ export class EconomiaPlazaPreview {
         precio: priceOf(this.d.coins!.settings, o), owned: state.inventario.includes(o.id),
       }];
     });
-    return ok({ abierta: !!vitrina, sandbox: true, premioPendiente: state.atunPendiente?.day === this.d.roulette.dayOf(this.now()), wallet: state.wallet, objetos });
+    return ok({ abierta: !!vitrina, sandbox: true, premioPendiente: !!state.atunPendiente, wallet: state.wallet, objetos });
   }
 
   private datosMercado(state: EstadoSandbox): Resultado {
@@ -566,7 +566,7 @@ export class EconomiaPlazaPreview {
     const id = datos && typeof datos === "object" ? (datos as { id?: unknown }).id : null;
     if (typeof id !== "string" || id.length > 100) return error("Artículo inválido.");
     return this.cambiar(userId, (s) => {
-      if (s.atunPendiente?.day === this.d.roulette.dayOf(this.now())) return { result: error("Acepta o descarta primero el premio pendiente del Atún de Luka antes de gastar monedas."), changed: false };
+      if (s.atunPendiente) return { result: error("Acepta o descarta primero el premio pendiente del Atún de Luka antes de gastar monedas."), changed: false };
       const o = this.d.coins!.byId.get(id);
       const precio = o ? priceOf(this.d.coins!.settings, o) : null;
       if (!o || precio === null) return { result: error("Ese objeto no se vende."), changed: false };
@@ -590,7 +590,7 @@ export class EconomiaPlazaPreview {
     if (typeof id !== "string" || id.length > 100) return error("Artículo inválido.");
     return this.cambiar(userId, (s) => {
       const now = this.now();
-      if (s.atunPendiente?.day === this.d.roulette.dayOf(now)) return { result: error("Acepta o descarta primero el premio pendiente del Atún de Luka antes de gastar monedas."), changed: false };
+      if (s.atunPendiente) return { result: error("Acepta o descarta primero el premio pendiente del Atún de Luka antes de gastar monedas."), changed: false };
       const settings = this.d.mercado!.settings;
       const apertura = aperturaHoy(settings, now);
       if (!settings.activo || !abierta(apertura, now)) {
@@ -627,7 +627,7 @@ export class EconomiaPlazaPreview {
     if (!this.d.mercado) return error("El inventario de consumibles no está habilitado.");
     const id = datos && typeof datos === "object" ? (datos as { id?: unknown }).id : null;
     const actual = await this.cargar(userId);
-    if (actual.state.atunPendiente?.day === this.d.roulette.dayOf(this.now())) return error("Acepta o descarta primero el premio pendiente del Atún de Luka antes de usar otros consumibles.");
+    if (actual.state.atunPendiente) return error("Acepta o descarta primero el premio pendiente del Atún de Luka antes de usar otros consumibles.");
     if (id === "pc-adachi-rei") {
       const now=this.now(), day=dayKey(new Date(now),this.d.timeZone);
       const spins=this.d.roulette.status(userId,now).used;
@@ -696,6 +696,7 @@ export class EconomiaPlazaPreview {
     const now = this.now();
     if (!this.d.levels.canEarn(userId, now)) return error("Neru te bloqueó temporalmente la XP; hoy no puedes obtener recompensas. 🚫");
     return this.cambiar(userId, (s) => {
+      if (s.atunPendiente) return { result: error("Acepta o descarta primero el premio pendiente del Atún de Luka."), changed: false };
       if (now - s.pescaAt < 30_000) {
         return { result: error(`La caña necesita descansar ${Math.ceil((30_000 - (now - s.pescaAt)) / 1000)} s. 🎣`), changed: false };
       }
@@ -737,7 +738,7 @@ export class EconomiaPlazaPreview {
         const voz = real.missions.find((m) => m.id === "voz");
         const vozActual = this.d.levels.store.dayStats(userId, cursor).vozMin;
         const microfono = s.microfonoDia === cursor && !!s.microfonoMinutos && !!voz && !voz.done && vozActual >= s.microfonoMinutos ? 1 : 0;
-        const usadas = s.ruletaDia === cursor ? s.ruletaUsadas : 0;
+        const usadas = (s.ruletaDia === cursor ? s.ruletaUsadas : 0) + (s.atunPendiente?.day === cursor && s.atunPendiente.aplicado === false ? 1 : 0);
         const reset = s.ruletaResetDia === cursor ? s.ruletaResetUsadas ?? 0 : 0;
         const regalos = s.ruletaRegaloDia === cursor ? s.ruletaRegalos ?? 0 : 0;
         guardadas = Math.max(0, guardadas + real.left + reset + regalos + nivel + microfono - usadas);
@@ -796,7 +797,7 @@ export class EconomiaPlazaPreview {
       tiradas: Math.max(0, real.left + (state.ruletaResetDia === day ? state.ruletaResetUsadas ?? 0 : 0) + (state.ruletaRegaloDia === day ? state.ruletaRegalos ?? 0 : 0) + (misionNivelSandbox ? 1 : 0) + (misionVozSandbox ? 1 : 0) + (state.ruletaGuardadas ?? 0) - used),
       usadas: Math.max(0, real.used - (state.ruletaResetDia === day ? state.ruletaResetUsadas ?? 0 : 0)) + used,
       sandbox: true,
-      atunPendiente: state.atunPendiente?.day === day ? { girosRestantes: Math.max(0, (this.d.mercado?.byId.get("atun-luka")?.giros ?? 0) - state.atunPendiente.giros) } : undefined,
+      atunPendiente: state.atunPendiente ? { girosRestantes: state.atunPendiente.day === day && state.atunPendiente.aplicado === false ? Math.max(0, (this.d.mercado?.byId.get("atun-luka")?.giros ?? 0) - state.atunPendiente.giros) : 0 } : undefined,
       soloLectura: false,
       simulacion: false,
       extras: [...estado.extras, ...(microfonoActivo ? [`🎤 Micrófono de Meiko activo: hoy la misión pide ${state.microfonoMinutos} min (progreso consultado en modo lectura).`] : []), ...(state.comprasMercado.includes("disquete-adachi-rei") ? [`💾 Disquete de Adachi Rei: ${state.ruletaGuardadas ?? 0} tiradas guardadas para hoy.`] : []), "🧪 Las tiradas y premios se guardan en el progreso aislado de la Plaza; no afectan Discord."],
@@ -898,8 +899,8 @@ export class EconomiaPlazaPreview {
       if (pending?.aplicado === false) {
         const aplicado = this.aplicarPremio(s, userId, day, now, pending.index);
         if (!aplicado) return { result: error("El premio pendiente ya no está configurado."), changed: false };
-        if (s.ruletaDia !== pending.day) { s.ruletaDia = pending.day; s.ruletaUsadas = 0; }
-        s.ruletaUsadas++;
+        if (s.ruletaDia === pending.day) s.ruletaUsadas++;
+        else if (pending.day === day) { s.ruletaDia = day; s.ruletaUsadas = 1; }
         s.atunPendiente = undefined;
         return { result: ok({ giro: { papu: userId, nombre, index: pending.index, titulo: `🧪 ${aplicado.titulo}`, subtitulo: aplicado.subtitulo, origen: "plaza" }, texto: aplicado.texto, tiradas: this.tiradasDisponibles(s, userId, now, day, real), sandbox: true }) };
       }
