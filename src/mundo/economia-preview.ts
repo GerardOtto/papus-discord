@@ -547,11 +547,11 @@ export class EconomiaPlazaPreview {
           s.ruletaRegalos=(s.ruletaRegalos??0)+1;
           return {result:undefined};
         });
-        await this.d.query("UPDATE mundo_perfiles SET pedido_at = ? WHERE papu_id = ?",now+2,to);
       } catch(e) {
         await this.cambiar(userId,(s)=>{s.consumibles[id]=(s.consumibles[id]??0)+1;return {result:undefined};}).catch(()=>{});
         return error("No pude entregar la tirada; devolví el uso del regalo. Inténtalo de nuevo.");
       }
+      await this.d.query("UPDATE mundo_perfiles SET pedido_at = ? WHERE papu_id = ?",now+2,to).catch(()=>{});
       return ok({mensaje:"🎁 ¡Tirada enviada! La recibirá en su ruleta de prueba de hoy.",sandbox:true});
     }
     if (id === "pc-adachi-rei") {
