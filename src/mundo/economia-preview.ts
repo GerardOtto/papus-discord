@@ -125,10 +125,10 @@ export class EconomiaPlazaPreview {
       inventario: this.d.coins ? [...this.d.coins.owned(userId)] : [],
       consumibles,
       comprasMercado,
-      ruletaDia: this.d.roulette.day(this.now()),
+      ruletaDia: this.d.roulette.dayOf(this.now()),
       ruletaUsadas: 0,
       pescaAt: 0,
-      cuotaExtraDia: this.d.roulette.day(this.now()),
+      cuotaExtraDia: this.d.roulette.dayOf(this.now()),
       cuotaExtra: 0,
       cuotaUsada: 0,
     };
@@ -319,7 +319,7 @@ export class EconomiaPlazaPreview {
   private async girarRuleta(userId: string, nombre: string): Promise<Resultado> {
     const now = this.now();
     if (!this.d.levels.canEarn(userId, now)) return error("Neru te bloqueó la ruleta: no puedes obtener recompensas. 🚫");
-    const day = this.d.roulette.day(now);
+    const day = this.d.roulette.dayOf(now);
     const real = this.d.roulette.status(userId, now);
     if (real.blocked) return error("🚫 Neru te dio un machetazo: sin ruleta por ahora.");
     return this.cambiar(userId, (s) => {
@@ -344,22 +344,15 @@ export class EconomiaPlazaPreview {
           ? Math.max(0, limit - Math.max(0, limit + extraBase + extraSandbox - usedBase - s.cuotaUsada))
           : 0;
         if (premio.tipo === "cuota_llena") {
-          const recuperados = Math.max(0, s.cuotaUsada - Math.max(0, s.cuotaUsada - donated));
-          if (recuperados > 0) {
-            mensajes = recuperados;
-            s.cuotaUsada = 0;
-            s.cuotaExtra = extraSandbox + recuperados;
-          } else {
-            mensajes = Math.min(1, roomActual);
-            overflow = 1 - mensajes;
-            s.cuotaExtra = extraSandbox + mensajes;
-          }
+          // En preview no se ejecutan mensajes a Vocaloids; se aplica la recompensa de respaldo de un mensaje.
+          mensajes = Math.min(1, roomActual);
+          overflow = 1 - mensajes;
         } else {
           const unidades = premio.valor ?? 0;
           mensajes = Math.min(unidades, roomActual);
           overflow = unidades - mensajes;
-          s.cuotaExtra = extraSandbox + mensajes;
         }
+        s.cuotaExtra = extraSandbox + mensajes;
         s.cuotaExtraDia = day;
         if (overflow > 0) {
           const c = this.d.levels.settings.cuotaSobrante ?? { porcentajeNivel: 0.05, minimo: 15 };
