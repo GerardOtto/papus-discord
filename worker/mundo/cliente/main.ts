@@ -92,6 +92,8 @@ interface Otro {
   desfase: number;
   aspecto: Aspecto;
   perfil?: { nivel: number; prestigio: number };
+  tarjeta: HTMLImageElement;
+  tarjetaHasta: number;
 }
 
 /** Mensajes a la vez sobre la cabeza de un Papu: con uno mas, se va el mas viejo. */
@@ -163,6 +165,24 @@ function perfil(m: Extract<Aviso, { t: "perfil" }>): void {
 
 /** Ficha pública al pulsar el nombre o el personaje. */
 function abrirPerfil(o: Otro): void {
+  solicitarTarjeta(o, "ventana");
+}
+
+function solicitarTarjeta(o: Otro, modo: "ventana" | "cabeza"): void {
+  const id = o === mio ? yo : [...otros].find(([, v]) => v === o)?.[0];
+  if (!id) return;
+  const ref = ++refs;
+  tarjetasEsperando.set(ref, { o, modo });
+  if (modo === "ventana") ventana.abrir(`perfil:${id}`, `⭐ ${esc(o.nombre)}`, `<p class="tarjeta-cargando">Preparando la tarjeta original de /nivel…</p><p class="v-nota">La imagen no incluye tu cuota ni tus tiradas privadas.</p>`);
+  enviar({ t: "tarjeta", papu: id, ref });
+  window.setTimeout(() => {
+    if (!tarjetasEsperando.delete(ref)) return;
+    if (modo === "ventana" && ventana.id === `perfil:${id}`) ventana.poner(`perfil:${id}`, `<p class="tarjeta-cargando">El bot aún no ha respondido. Comprueba que el puente del preview esté configurado.</p>`);
+    else aviso("La tarjeta no llegó a tiempo. Inténtalo otra vez.");
+  }, 25_000);
+}
+
+function abrirPerfilAntiguo(o: Otro): void {
   const a = o.aspecto;
   const p = o.perfil;
   const sombreros = ["Sin sombrero", "Sombrero de fiesta", "Sombrero de copa", "Orejas de gato", "Puerro"];
@@ -229,7 +249,12 @@ function crearOtro(papu: PapuPublico): Otro {
   etiqueta.setAttribute("role", "button");
   etiqueta.setAttribute("aria-label", `Ver perfil de ${papu.nombre}`);
   etiqueta.innerHTML = `<div class="burbujas"></div><span class="nombre">${esc(papu.nombre)}</span>`;
-  const otro: Otro = { p, nombre: papu.nombre, objetivo: { ...papu }, etiqueta, burbujas: etiqueta.querySelector(".burbujas")!, mensajes: [], desfase: Math.random(), aspecto: papu.aspecto };
+  const tarjeta = document.createElement("img");
+  tarjeta.className = "tarjeta-cabeza";
+  tarjeta.alt = `Tarjeta de nivel de ${papu.nombre}`;
+  tarjeta.hidden = true;
+  etiqueta.prepend(tarjeta);
+  const otro: Otro = { p, nombre: papu.nombre, objetivo: { ...papu }, etiqueta, burbujas: etiqueta.querySelector(".burbujas")!, mensajes: [], desfase: Math.random(), aspecto: papu.aspecto, tarjeta, tarjetaHasta: 0 };
   etiqueta.addEventListener("click", () => abrirPerfil(otro));
   etiqueta.addEventListener("keydown", (e) => {
     if (e.key === "Enter" || e.key === " ") { e.preventDefault(); abrirPerfil(otro); }
@@ -261,6 +286,7 @@ function enviar(p: Pedido): void {
 /** Acciones pedidas al bot que esperan su resultado (por `ref`). */
 let refs = 0;
 const esperando = new Map<number, (r: Resultado) => void>();
+const tarjetasEsperando = new Map<number, { o: Otro; modo: "ventana" | "cabeza" }>();
 /** Le pide al bot algo de un comando (con las reglas de Discord) y espera el resultado. */
 function pedir(accion: Accion, datos?: unknown): Promise<Resultado> {
   return new Promise((listo) => {
@@ -310,6 +336,28 @@ function entrada(disponible: boolean): void {
   e.hidden = false;
 }
 
+function recibirTarjeta(m: Extract<Aviso, { t: "tarjeta" }>): void {
+  const pendiente = tarjetasEsperando.get(m.ref);
+  if (!pendiente) return;
+  tarjetasEsperando.delete(m.ref);
+  if (m.estado !== "lista" || !m.datos) {
+    if (pendiente.modo === "ventana") ventana.poner(`perfil:${m.papu}`, `<p class="tarjeta-cargando">${esc(m.motivo ?? "No pude cargar la tarjeta.")}</p>`);
+    else aviso(m.motivo ?? "No pude cargar tu tarjeta.");
+    return;
+  }
+  const src = `data:${m.mime ?? "image/png"};base64,${m.datos}`;
+  if (pendiente.modo === "cabeza") {
+    pendiente.o.tarjeta.src = src;
+    pendiente.o.tarjeta.hidden = false;
+    pendiente.o.tarjeta.classList.remove("mostrar");
+    void pendiente.o.tarjeta.offsetWidth;
+    pendiente.o.tarjeta.classList.add("mostrar");
+    pendiente.o.tarjetaHasta = performance.now() + 5000;
+  } else {
+    ventana.poner(`perfil:${m.papu}`, `<img class="tarjeta-completa" src="${src}" alt="Tarjeta de nivel de ${esc(pendiente.o.nombre)}"><p class="v-pie">Tarjeta pública generada con el mismo diseño de /nivel. La cuota y las tiradas privadas no se incluyen.</p>`);
+  }
+}
+
 function recibir(m: Aviso): void {
   if (m.t === "error" && modoWeb && m.texto.startsWith("No pude comprobar")) return entrada(true);
   if (m.t === "error") return error(m.texto);
@@ -341,6 +389,7 @@ function recibir(m: Aviso): void {
   if (m.t === "sale") return quitar(m.id);
   if (m.t === "stats") return stats(m);
   if (m.t === "perfil") return perfil(m);
+  if (m.t === "tarjeta") return recibirTarjeta(m);
   if (m.t === "accion") {
     esperando.get(m.ref)?.(m.resultado);
     esperando.delete(m.ref);
@@ -458,6 +507,7 @@ addEventListener("keydown", (e) => {
   }
   const k = e.key.toLowerCase();
   if (k === "m" && !e.repeat) alternarMontura();
+  if (k === "p" && !e.repeat && mio) solicitarTarjeta(mio, "cabeza");
   if (k === "v" && !e.repeat) alternarCamara();
   if (k === "f" && !e.repeat && cercaDe) USAR[cercaDe]?.abrir();
   teclas.add(k);
@@ -571,6 +621,7 @@ function alternarMontura(): void {
   $("btn-montura").classList.toggle("activo", !!pose.m);
 }
 $("btn-montura").addEventListener("click", alternarMontura);
+$("btn-tarjeta").addEventListener("click", () => { if (mio) solicitarTarjeta(mio, "cabeza"); });
 
 // Joystick tactil: se arrastra desde cualquier punto del lienzo; lejos del centro = correr.
 const joy = { activo: false, id: -1, ox: 0, oy: 0, dx: 0, dy: 0 };
@@ -817,6 +868,11 @@ function cuadro(): void {
     o.etiqueta.style.display = visible ? "" : "none";
     if (visible) o.etiqueta.style.transform = `translate(${((tmp.x + 1) / 2) * w}px, ${((1 - tmp.y) / 2) * h}px) translate(-50%, -100%)`;
     // Cada burbuja se va cuando se le acaba su tiempo.
+    if (o.tarjetaHasta && ahora > o.tarjetaHasta) {
+      o.tarjeta.classList.remove("mostrar");
+      o.tarjeta.hidden = true;
+      o.tarjetaHasta = 0;
+    }
     if (o.mensajes.some((m) => ahora > m.hasta)) {
       o.mensajes = o.mensajes.filter((m) => (ahora > m.hasta ? (m.el.remove(), false) : true));
     }
