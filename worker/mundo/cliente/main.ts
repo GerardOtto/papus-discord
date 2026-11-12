@@ -232,7 +232,7 @@ const FICHAS: Record<ZonaId, string> = {
   mercado: "🕶️ <b>Mercado negro</b> · Cerrado<br>Abre una hora al día, a hora sorpresa. Neru llega cuando abre.",
   ruleta: "🎰 <b>Ruleta grande</b><br>Gírala con las tiradas de tus misiones del día (las mismas que en Discord).",
   escuela: "🏫 <b>Escuela de la trivia</b><br>Abre una partida multijugador con los Papus que entren a la misma sala.",
-  estanque: "🎣 <b>Estanque</b><br>Próximamente: pesca peces chicos, medianos y grandes que dan XP.",
+  estanque: "🎣 <b>Estanque</b><br>Lanza la caña, pesca un pez y gana XP según su tamaño: 5%, 10% o 20% de tu barra.",
   fogata: "🔥 <b>Fogata</b><br>Un lugar para sentarse con otros Papus y Vocaloids.",
   altar: "💍 <b>Altar de bodas</b><br>Próximamente: aquí queda la boda más reciente.",
   fama: "🏆 <b>Salón de la fama</b><br>Próximamente: los Papus de más nivel y los récords.",
@@ -240,7 +240,7 @@ const FICHAS: Record<ZonaId, string> = {
 };
 /** Lugares que se pueden usar desde su ficha (boton o tecla F). */
 const USAR: Partial<Record<ZonaId, { texto: string; abrir: () => void }>> = {
-  ruleta: { texto: "🎰 Abrir la ruleta", abrir: () => abrirRuleta() },
+  ruleta: { texto: "🎰 Abrir la ruleta", abrir: () => abrirRuleta() },\n  estanque: { texto: "🎣 Pescar", abrir: () => abrirPesca() },
   escuela: {
     texto: "🧠 Jugar trivia multijugador",
     abrir: () => {
@@ -1025,6 +1025,36 @@ async function girarRuleta(): Promise<void> {
   faseMia();
 }
 
+/** Ventana de pesca: el bot decide tamaño y XP; el cliente solo presenta el resultado. */
+function abrirPesca(): void {
+  ventana.abrir(
+    "pesca",
+    "🎣 Pesca en el estanque",
+    `<p>La captura depende de la suerte. Cuanto más grande el pez, mayor será la parte de tu barra de nivel que recibirás.</p>
+    <ul class="v-misiones">
+      <li>🐟 Pez pequeño · 5% de la barra</li>
+      <li>🐠 Pez mediano · 10% de la barra</li>
+      <li>🦈 Pez grande · 20% de la barra</li>
+    </ul>
+    <button class="v-boton" data-accion="pescar">🎣 Lanzar la caña</button>
+    <p class="v-pie">Hay 30 segundos de espera entre capturas.</p>`,
+  );
+}
+
+async function pescar(): Promise<void> {
+  ventana.poner("pesca", `<p class="v-cargando">Lanzando la caña… 🎣</p>`);
+  const r = await pedir("pesca.capturar");
+  if (!r.ok) {
+    ventana.poner("pesca", `<p class="v-error">${esc(r.motivo)}</p><button class="v-boton" data-accion="pescar">Volver a intentar</button>`);
+    return;
+  }
+  const d = r.datos as { tamano: string; xp: number; porcentaje: number; texto: string; soloLectura?: boolean };
+  const emoji = d.tamano === "grande" ? "🦈" : d.tamano === "mediano" ? "🐠" : "🐟";
+  ventana.poner("pesca", `<div class="v-premio"><p class="v-premio-titulo">${emoji} ¡Buena captura!</p><p>${esc(d.texto)}</p></div>
+    ${d.soloLectura ? '<p class="v-nota">Vista previa: la recompensa se calculó con tu progreso real, pero no se aplicó XP.</p>' : '<p class="v-pie">La XP ya se sumó a tu nivel.</p>'}
+    <button class="v-boton" data-accion="pescar">🎣 Volver a pescar</button>`);
+}
+
 /** En que va mi giro segun la fila de la sala: en la fila, girando (la ventana se cierra para mirarlo) o terminado. */
 function faseMia(): void {
   if (!miGiro || !yo) return pintarRuleta();
@@ -1092,7 +1122,7 @@ function comando(texto: string): void {
 // Botones de la ventana, de la ficha del lugar y del cartel del premio.
 ventana.cuerpo.addEventListener("click", (e) => {
   const b = (e.target as HTMLElement).closest<HTMLButtonElement>("button[data-accion]");
-  if (b?.dataset.accion === "girar" && !b.disabled) void girarRuleta();
+  if (b?.dataset.accion === "girar" && !b.disabled) void girarRuleta();\n  if (b?.dataset.accion === "pescar" && !b.disabled) void pescar();
 });
 for (const id of ["stand", "premio"]) {
   $(id).addEventListener("click", (e) => {
