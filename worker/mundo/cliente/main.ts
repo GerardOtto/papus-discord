@@ -1050,6 +1050,8 @@ function pintarCatalogo(tipo: TipoCatalogo, datos: Record<string, unknown>): str
   const objetos = Array.isArray(datos.objetos) ? datos.objetos as { id: string; nombre: string; descripcion: string; rareza?: string; emoji?: string; precio: number | null; usos?: number | null; owned: boolean }[] : [];
   const soloLectura = datos.soloLectura === true;
   const abierto = datos.abierta;
+  const wallet = datos.wallet && typeof datos.wallet === "object" ? datos.wallet as { ganadas?: number; compradas?: number } : null;
+  const monedero = wallet ? `<p class="v-pie">🪙 Ganadas: <b>${wallet.ganadas ?? 0}</b> · Compradas: <b>${wallet.compradas ?? 0}</b></p>` : "";
   const estado = tipo === "mercado"
     ? abierto === null ? "Vista previa de solo lectura" : abierto ? "Neru está atendiendo" : "Neru mantiene el mercado cerrado"
     : abierto ? "Vitrina disponible" : "No hay una vitrina activa";
@@ -1062,7 +1064,7 @@ function pintarCatalogo(tipo: TipoCatalogo, datos: Record<string, unknown>): str
       : `<button class="v-boton" data-compra="${tipo}:${esc(o.id)}">Comprar</button>`;
     return `<li class="v-mision"><span class="v-mision-texto"><b>${esc(o.emoji ? `${o.emoji} ${o.nombre}` : o.nombre)}</b><small>${esc(o.descripcion)} · ${esc(precio)}${extra}</small></span>${accion}</li>`;
   }).join("");
-  return `<p class="v-nota">${esc(estado)}</p>${filas ? `<ul class="v-misiones">${filas}</ul>` : '<p>No hay objetos en esta vitrina.</p>'}
+  return `<p class="v-nota">${esc(estado)}</p>${monedero}${filas ? `<ul class="v-misiones">${filas}</ul>` : '<p>No hay objetos en esta vitrina.</p>'}
     ${soloLectura ? '<p class="v-pie">El catálogo se consulta sin modificar monedas ni inventario. Las compras se habilitarán en el entorno de producción.</p>' : ""}`;
 }
 
