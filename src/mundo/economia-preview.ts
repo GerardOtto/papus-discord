@@ -49,7 +49,7 @@ interface EstadoSandbox {
   cuotaResetDia?: string;
   cuotaResetBase?: number;
   atunPendiente?: { day: string; index: number; giros: number; gastoUso: boolean; xp: number; mensajes: number; sobres: number; subioAntes?: string; nivelAntes: number };
-  triviaDia?: string; triviaXpDia?: number; triviaPartidasDia?: string[]; triviaSuperadas?: string[]; triviaPremios?: string[]; triviaHitos?: Partial<Record<Dificultad, { aciertos: number; premios: number }>>; triviaAciertosAplicados?: number[];
+  triviaDia?: string; triviaXpDia?: number; triviaPartidasDia?: string[]; triviaSuperadas?: string[]; triviaPremios?: string[]; triviaHitos?: Partial<Record<Dificultad, { aciertos: number; premios: number }>>; triviaAciertosAplicados?: number[]; triviaAciertosResultados?: Record<string, number>; triviaRuns?: Record<string, { day: string; withXp: boolean }>;
 }
 interface FilaSandbox { papu_id: string; estado: string; revision: number }
 const ceroWallet = (): WalletSandbox => ({ ganadas: 0, compradas: 0, ecos: 0, gratis: 0, gratisRaro: 0, gratisLeg: 0, sobres: 0, sinEpica: 0, sinLegendaria: 0, hoy: 0 });
@@ -99,66 +99,119 @@ export class EconomiaPlazaPreview {
   }
 
   xp(userId: string): number | null { return this.cache.get(userId)?.xp ?? null; }
-  /** Sincroniza aciertos al ledger preview con idempotencia dentro del mismo CAS que aplica las recompensas. */
+  /** Sincroniza aciertos al ledger preview. El resultado por ID se conserva indefinidamente para recuperar
+   * el caso en que el CAS del ledger se confirme pero falle la escritura de aplicado en la tabla de actividad. */
   async syncTrivia(): Promise<number> {
-    const rows = await this.d.query<{ id: number; partida: string; papu_id: string; pregunta: string; racha: number; multiplicador?: number }>(
-      "SELECT id, partida, papu_id, pregunta, racha, multiplicador FROM actividad_aciertos WHERE aplicado = 0 ORDER BY id LIMIT 200",
+    const rows = await this.d.query<{ id: number; partida: string; papu_id: string; pregunta: string; racha: number; multiplicador?: number; xp?: number | null }>(
+      "SELECT id, partida, papu_id, pregunta, racha, multiplicador, xp FROM actividad_aciertos WHERE aplicado = 0 ORDER BY id LIMIT 200",
     );
     let applied = 0;
     for (const row of rows) {
       const gained = await this.cambiar(row.papu_id, (s) => {
         s.triviaAciertosAplicados ??= [];
-        if (s.triviaAciertosAplicados.includes(row.id)) return { result: undefined, changed: false };
-        const now = this.now(), day = dayKey(new Date(now), this.d.timeZone);
-        if (s.triviaDia !== day) { s.triviaDia = day; s.triviaXpDia = 0; s.triviaPartidasDia = []; }
-        s.triviaPartidasDia ??= []; s.triviaSuperadas ??= []; s.triviaPremios ??= []; s.triviaHitos ??= {};
+        s.triviaAciertosResultados ??= {};
+        const key = String(row.id);
+        if (Object.prototype.hasOwnProperty.call(s.triviaAciertosResultados, key)) {
+          return { result: s.triviaAciertosResultados[key]!, changed: false };
+        }
+        // Compatibilidad con ledgers creados por la versión anterior, que guardaba solo los IDs.
+        if (s.triviaAciertosAplicados.includes(row.id)) {
+          return { result: Math.max(0, Number(row.xp ?? 0)), changed: false };
+        }
+
+        const now = this.now();
+        const day = dayKey(new Date(now), this.d.timeZone);
+        if (s.triviaDia !== day) {
+          s.triviaDia = day;
+          s.triviaXpDia = 0;
+          s.triviaPartidasDia = [];
+        }
+        s.triviaPartidasDia ??= [];
+        s.triviaSuperadas ??= [];
+        s.triviaPremios ??= [];
+        s.triviaHitos ??= {};
+        s.triviaRuns ??= {};
+
+        // Una partida multijugador cuenta una sola vez, aunque tenga muchos aciertos o cruce medianoche.
         const runKey = `${row.partida}:${row.papu_id}`;
-        if (!s.triviaPartidasDia.includes(runKey)) s.triviaPartidasDia.push(runKey);
-        const withXp = s.triviaPartidasDia.indexOf(runKey) < this.d.trivia.limites.partidasConXp;
-        let gained = 0;
-        if (withXp && this.d.levels.canEarn(row.papu_id, now)) {
-          const from = dayKey(new Date(now - this.d.trivia.xp.dias * 86400000), this.d.timeZone);
-          const avg = (this.d.db.prepare("SELECT AVG(xp - trivia) AS avg FROM xp_dia WHERE user_id = ? AND day >= ? AND day < ? AND xp - trivia > 0").get(row.papu_id, from, day) as {avg:number|null}|undefined)?.avg ?? 0;
+        let run = s.triviaRuns[runKey];
+        if (!run) {
+          const withXp = s.triviaPartidasDia.length < this.d.trivia.limites.partidasConXp;
+          if (!s.triviaPartidasDia.includes(runKey)) s.triviaPartidasDia.push(runKey);
+          run = { day, withXp };
+          s.triviaRuns[runKey] = run;
+        }
+
+        let earned = 0;
+        const eligible = this.d.levels.canEarn(row.papu_id, now);
+        if (run.withXp && eligible) {
+          const from = dayKey(new Date(now - this.d.trivia.xp.dias * 86_400_000), this.d.timeZone);
+          const avg = (this.d.db.prepare(
+            "SELECT AVG(xp - trivia) AS avg FROM xp_dia WHERE user_id = ? AND day >= ? AND day < ? AND xp - trivia > 0",
+          ).get(row.papu_id, from, day) as { avg: number | null } | undefined)?.avg ?? 0;
           const multiplier = this.d.levels.multiplier(new Date(now));
-          const full = answerXp(this.d.trivia, this.d.levels.settings, { xp:s.xp, dailyAvg:avg, streak:Math.max(1,row.racha), multiplier }) * Math.max(1, row.multiplicador ?? 1);
+          const factor = Math.max(1, Math.min(2, Math.floor(row.multiplicador ?? 1)));
+          const full = answerXp(this.d.trivia, this.d.levels.settings, {
+            xp: s.xp,
+            dailyAvg: avg,
+            streak: Math.max(1, row.racha),
+            multiplier,
+          }) * factor;
           const cap = dailyCap(this.d.trivia, this.d.levels.settings, s.xp, multiplier);
-          gained = Math.max(0, Math.min(full, cap - (s.triviaXpDia ?? 0)));
+          earned = Math.max(0, Math.min(full, cap - (s.triviaXpDia ?? 0)));
           const before = progress(this.d.levels.settings, s.xp).level;
-          s.xp += gained; s.triviaXpDia = (s.triviaXpDia ?? 0) + gained;
+          s.xp += earned;
+          s.triviaXpDia = (s.triviaXpDia ?? 0) + earned;
           if (progress(this.d.levels.settings, s.xp).level > before) s.subioDia = day;
         }
+
         const level = this.d.questionLevels[row.pregunta];
         if (level) {
-          const h = s.triviaHitos[level] ?? {aciertos:0,premios:0};
+          // Preguntas superadas son únicas; los aciertos repetidos sí cuentan para hitos, igual que TriviaService.pass/hit.
           if (!s.triviaSuperadas.includes(row.pregunta)) s.triviaSuperadas.push(row.pregunta);
-          if (this.d.levels.canEarn(row.papu_id, now)) {
+          const count = (d: Dificultad) => s.triviaSuperadas!.filter((id) => this.d.questionLevels[id] === d).length;
+          if (count(level) >= this.d.questionTotals[level] && !s.triviaPremios.includes(level)) {
+            s.triviaPremios.push(level);
+            const prize = this.d.trivia.dificultades[level].premio;
+            if (prize === "comun") s.wallet.gratis++;
+            else if (prize === "raro") s.wallet.gratisRaro++;
+            else s.wallet.gratisLeg++;
+          }
+          const all = (["facil", "medio", "dificil"] as Dificultad[]).every(
+            (d) => this.d.questionTotals[d] > 0 && count(d) >= this.d.questionTotals[d],
+          );
+          if (all && !s.triviaPremios.includes("todas")) {
+            s.triviaPremios.push("todas");
+            const prize = this.d.trivia.secreto.sobres;
+            if (prize.tipo === "comun") s.wallet.gratis += prize.cantidad;
+            else if (prize.tipo === "raro") s.wallet.gratisRaro += prize.cantidad;
+            else s.wallet.gratisLeg += prize.cantidad;
+          }
+
+          // TriviaService.hit solo suma hitos si el Papu puede ganar XP y, cuando se configura,
+          // si la partida pertenece a las partidas elegibles para XP.
+          if (eligible && (!this.d.trivia.hitos?.soloPartidasConXp || run.withXp)) {
+            const h = s.triviaHitos[level] ?? { aciertos: 0, premios: 0 };
             h.aciertos++;
             const milestone = this.d.trivia.dificultades[level].hito;
             const due = milestone ? Math.floor(h.aciertos / milestone.cada) : 0;
-            if (due > h.premios) {
-              const n=due-h.premios; h.premios=due;
-              if (milestone!.premio==="comun") s.wallet.gratis+=n;
-              else if (milestone!.premio==="raro") s.wallet.gratisRaro+=n;
-              else s.wallet.gratisLeg+=n;
+            if (milestone && due > h.premios) {
+              const n = due - h.premios;
+              h.premios = due;
+              if (milestone.premio === "comun") s.wallet.gratis += n;
+              else if (milestone.premio === "raro") s.wallet.gratisRaro += n;
+              else s.wallet.gratisLeg += n;
             }
-          }
-          s.triviaHitos[level]=h;
-          const count=(d:Dificultad)=>s.triviaSuperadas!.filter(id=>this.d.questionLevels[id]===d).length;
-          if (count(level)>=this.d.questionTotals[level] && !s.triviaPremios.includes(level)) {
-            s.triviaPremios.push(level); const prize=this.d.trivia.dificultades[level].premio;
-            if(prize==="comun")s.wallet.gratis++; else if(prize==="raro")s.wallet.gratisRaro++; else s.wallet.gratisLeg++;
-          }
-          const all=(["facil","medio","dificil"] as Dificultad[]).every(d=>this.d.questionTotals[d]>0&&count(d)>=this.d.questionTotals[d]);
-          if(all&&!s.triviaPremios.includes("todas")) {
-            s.triviaPremios.push("todas"); const p=this.d.trivia.secreto.sobres;
-            if(p.tipo==="comun")s.wallet.gratis+=p.cantidad; else if(p.tipo==="raro")s.wallet.gratisRaro+=p.cantidad; else s.wallet.gratisLeg+=p.cantidad;
+            s.triviaHitos[level] = h;
           }
         }
+
         s.triviaAciertosAplicados.push(row.id);
-        if(s.triviaAciertosAplicados.length>1000)s.triviaAciertosAplicados=s.triviaAciertosAplicados.slice(-800);
-        return {result:gained};
+        s.triviaAciertosResultados[key] = earned;
+        return { result: earned };
       });
-      await this.d.query("UPDATE actividad_aciertos SET aplicado = 1, xp = ? WHERE id = ?", Number(gained ?? 0), row.id);
+      // Si el proceso se cae después del CAS, el resultado guardado permite reintentar sin duplicar XP ni sobres.
+      await this.d.query("UPDATE actividad_aciertos SET aplicado = 1, xp = ? WHERE id = ? AND aplicado = 0", Number(gained ?? 0), row.id);
       applied++;
     }
     await this.syncTriviaProfiles();
@@ -166,20 +219,39 @@ export class EconomiaPlazaPreview {
   }
 
   private async syncTriviaProfiles(): Promise<void> {
-    const rows=await this.d.query<{papu_id:string}>("SELECT papu_id FROM actividad_perfiles WHERE pedido_at >= actualizado_at LIMIT 50");
-    for(const {papu_id} of rows) {
-      const {state}=await this.cargar(papu_id), now=this.now(), day=dayKey(new Date(now), this.d.timeZone);
-      if(state.triviaDia!==day){state.triviaDia=day;state.triviaXpDia=0;state.triviaPartidasDia=[];}
-      const runs=state.triviaPartidasDia?.length??0, withXp=runs<this.d.trivia.limites.partidasConXp;
-      const from=dayKey(new Date(now-this.d.trivia.xp.dias*86400000),this.d.timeZone);
-      const avg=(this.d.db.prepare("SELECT AVG(xp - trivia) AS avg FROM xp_dia WHERE user_id = ? AND day >= ? AND day < ? AND xp - trivia > 0").get(papu_id,from,day) as {avg:number|null}|undefined)?.avg??0;
-      const multiplier=this.d.levels.multiplier(new Date(now)), eligible=this.d.levels.canEarn(papu_id,now);
-      const base=eligible?answerXp(this.d.trivia,this.d.levels.settings,{xp:state.xp,dailyAvg:avg,streak:1,multiplier}):0;
-      const tope=withXp&&eligible?Math.max(0,dailyCap(this.d.trivia,this.d.levels.settings,state.xp,multiplier)-(state.triviaXpDia??0)):0;
-      await this.d.query("UPDATE actividad_perfiles SET xp_base = ?, tope = ?, pedido_at = 0, actualizado_at = ? WHERE papu_id = ?",base,tope,now+1,papu_id);
+    const rows = await this.d.query<{ papu_id: string }>(
+      "SELECT papu_id FROM actividad_perfiles WHERE pedido_at >= actualizado_at LIMIT 50",
+    );
+    for (const { papu_id } of rows) {
+      const { state } = await this.cargar(papu_id);
+      const now = this.now();
+      const day = dayKey(new Date(now), this.d.timeZone);
+      if (state.triviaDia !== day) {
+        state.triviaDia = day;
+        state.triviaXpDia = 0;
+        state.triviaPartidasDia = [];
+      }
+      state.triviaPartidasDia ??= [];
+      const runs = state.triviaPartidasDia.length;
+      const withXp = runs < this.d.trivia.limites.partidasConXp;
+      const from = dayKey(new Date(now - this.d.trivia.xp.dias * 86_400_000), this.d.timeZone);
+      const avg = (this.d.db.prepare(
+        "SELECT AVG(xp - trivia) AS avg FROM xp_dia WHERE user_id = ? AND day >= ? AND day < ? AND xp - trivia > 0",
+      ).get(papu_id, from, day) as { avg: number | null } | undefined)?.avg ?? 0;
+      const multiplier = this.d.levels.multiplier(new Date(now));
+      const eligible = this.d.levels.canEarn(papu_id, now);
+      const base = eligible ? answerXp(this.d.trivia, this.d.levels.settings, {
+        xp: state.xp, dailyAvg: avg, streak: 1, multiplier,
+      }) : 0;
+      const tope = withXp && eligible
+        ? Math.max(0, dailyCap(this.d.trivia, this.d.levels.settings, state.xp, multiplier) - (state.triviaXpDia ?? 0))
+        : 0;
+      await this.d.query(
+        "UPDATE actividad_perfiles SET xp_base = ?, tope = ?, pedido_at = 0, actualizado_at = ? WHERE papu_id = ? AND pedido_at >= actualizado_at",
+        base, tope, now + 1, papu_id,
+      );
     }
   }
-
 
   ruletasUsadas(userId: string): number {
     const state = this.cache.get(userId);
