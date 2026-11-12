@@ -312,6 +312,7 @@ describe("EconomiaPlazaPreview", () => {
     const day = "2026-11-12";
     let now = Date.parse("2026-11-12T12:00:00-03:00");
     source.prepare("INSERT INTO monedero (user_id, ganadas) VALUES (?, 0)").run(user);
+    source.prepare("INSERT INTO consumibles (user_id, objeto, usos) VALUES (?, ?, 1)").run(user, "pc-adachi-rei");
     const coinSettings = loadCoinSettings();
     coinSettings.ganar.xpPorMoneda = 1;
     coinSettings.ganar.topeActividad = 2;
