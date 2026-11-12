@@ -7,6 +7,10 @@ on:
       - 'worker/**'
       - 'scripts/actividad.ts'
       - 'scripts/mundo.ts'
+      - 'src/mundo/**'
+      - 'src/pesca/**'
+      - 'tests/mundo/**'
+      - 'tests/pesca/**'
       - '.github/workflows/plaza-preview.yml'
   workflow_dispatch:
 
