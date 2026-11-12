@@ -83,7 +83,7 @@ Mientras la beta no se fusione, las tarjetas las genera un proceso aparte (`scri
 - Lee `papus.sqlite` en **solo lectura** (`readOnly` + `PRAGMA query_only`): no migra ni escribe.
 - Lee nombres y avatares de Discord solo por REST con el token de Teto (sin segunda sesión de gateway).
 - Escribe únicamente en el D1 `PLAZA_PREVIEW_D1_DATABASE_ID`; se niega a arrancar sin él o si es el de producción.
-- No responde menciones ni publica chat. Solo atiende `ruleta.estado` para mostrar el progreso real de las misiones; no expone `ruleta.girar` ni ninguna acción que consuma tiradas, XP, monedas u objetos.
+- No responde menciones ni publica chat. Atiende `ruleta.estado`, `pesca.capturar` (calcula la recompensa sin aplicarla), `tienda.estado` y `mercado.estado`. Las compras y `ruleta.girar` se rechazan en preview; no consume tiradas, XP, monedas ni objetos.
 
 Prueba sin D1 (dibuja una tarjeta a un archivo):
 
