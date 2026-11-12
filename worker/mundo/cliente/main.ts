@@ -160,7 +160,6 @@ function perfil(m: Extract<Aviso, { t: "perfil" }>): void {
   const o = m.id === yo ? mio : otros.get(m.id);
   if (!o) return;
   o.perfil = { nivel: m.nivel, prestigio: m.prestigio };
-  if (ventana.id === `perfil:${m.id}`) abrirPerfil(o);
 }
 
 /** Ficha pública al pulsar el nombre o el personaje. */
@@ -180,24 +179,6 @@ function solicitarTarjeta(o: Otro, modo: "ventana" | "cabeza"): void {
     if (modo === "ventana" && ventana.id === `perfil:${id}`) ventana.poner(`perfil:${id}`, `<p class="tarjeta-cargando">El bot aún no ha respondido. Comprueba que el puente del preview esté configurado.</p>`);
     else aviso("La tarjeta no llegó a tiempo. Inténtalo otra vez.");
   }, 25_000);
-}
-
-function abrirPerfilAntiguo(o: Otro): void {
-  const a = o.aspecto;
-  const p = o.perfil;
-  const sombreros = ["Sin sombrero", "Sombrero de fiesta", "Sombrero de copa", "Orejas de gato", "Puerro"];
-  const ropa = ASPECTOS.ropa[a.ropa] ?? ASPECTOS.ropa[0];
-  const piel = ASPECTOS.piel[a.piel] ?? ASPECTOS.piel[0];
-  const nivel = p ? `Nv. ${p.nivel}${p.prestigio ? ` · ✦${p.prestigio}` : ""}` : "Sincronizando nivel…";
-  const html = `<div class="perfil-resumen">
-      <div class="perfil-avatar" style="--ropa:${ropa};--piel:${piel}"><span></span></div>
-      <div><p class="perfil-nombre">${esc(o.nombre)}</p><p class="perfil-nivel">⭐ ${nivel}</p><p class="v-nota">🟢 En la Plaza ahora</p></div>
-    </div>
-    <h3 class="v-seccion">Personalización</h3>
-    <div class="perfil-detalle"><span>👕 Ropa</span><i style="background:${ropa}"></i><span>🎨 Tono de piel</span><i style="background:${piel}"></i><span>🎩 Accesorio</span><b>${sombreros[a.sombrero] ?? "Sin accesorio"}</b></div>
-    <p class="v-pie">La ficha muestra únicamente información pública de la Plaza. Tus cuotas y tiradas solo las ves tú.</p>`;
-  const id = o === mio ? yo : [...otros].find(([, v]) => v === o)?.[0];
-  ventana.abrir(`perfil:${id}`, `👤 ${esc(o.nombre)}`, html);
 }
 
 /** Ficha de cada zona al acercarse (en el decorado todavia no hacen nada). */
