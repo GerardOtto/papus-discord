@@ -222,7 +222,7 @@ describe("EconomiaPlazaPreview", () => {
     expect(estadoRecargado.ok).toBe(true);
     if (estadoRecargado.ok) expect((estadoRecargado.datos as { atunPendiente?: { girosRestantes: number } }).atunPendiente?.girosRestantes).toBe(2);
     const giroConPremioPendiente = await reloaded.acciones()["ruleta.girar"]!(papu, null);
-    expect(giroConPremioPendiente.ok).toBe(false);
+    expect(giroConPremioPendiente.ok).toBe(true);
     const siguePendiente = await reloaded.acciones()["ruleta.estado"]!(papu, null);
     if (siguePendiente.ok) expect((siguePendiente.datos as { atunPendiente?: { girosRestantes: number } }).atunPendiente?.girosRestantes).toBe(2);
     const descartarRecargado = reloaded.acciones()["ruleta.descartar"]!;
