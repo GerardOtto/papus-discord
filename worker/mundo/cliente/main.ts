@@ -1041,7 +1041,7 @@ async function girarRuleta(): Promise<void> {
     return pintarRuleta();
   }
   miGiro = r.datos as RuletaGiro;
-  if (vistaRuleta.estado) vistaRuleta.estado = { ...vistaRuleta.estado, tiradas: miGiro.tiradas, usadas: vistaRuleta.estado.usadas + 1 };
+  if (vistaRuleta.estado && !miGiro.simulado) vistaRuleta.estado = { ...vistaRuleta.estado, tiradas: miGiro.tiradas, usadas: vistaRuleta.estado.usadas + 1 };
   faseMia();
 }
 
@@ -1168,8 +1168,8 @@ function revisarMiGiro(ahora: number): void {
 function mostrarPremio(g: RuletaGiro): void {
   const p = $("premio");
   p.innerHTML = `<p class="premio-titulo">${esc(g.giro.titulo)}</p><p class="premio-sub">${esc(g.giro.subtitulo)}</p>${
-    g.tiradas > 0 ? `<button type="button" data-usar="ruleta">🎰 Girar otra vez (${g.tiradas})</button>` : ""
-  }`;
+    g.simulado ? '<p class="premio-sub">🧪 Simulación: no se consumió una tirada ni se entregó un premio.</p>' : ""
+  }${g.tiradas > 0 ? `<button type="button" data-usar="ruleta">🎰 Girar otra vez (${g.tiradas})</button>` : ""}`;
   p.hidden = false;
   clearTimeout((mostrarPremio as unknown as { t?: number }).t);
   (mostrarPremio as unknown as { t?: number }).t = window.setTimeout(() => (p.hidden = true), 7000);
