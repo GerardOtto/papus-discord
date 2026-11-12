@@ -241,6 +241,14 @@ export class EconomiaPlazaPreview {
       subioDia: "",
       disqueteProcesadoDia: "",
       ruletaGuardadas: 0,
+      // Foto inicial de la progresión de trivia, siempre leída desde SQLite en solo lectura.
+      triviaDia: this.d.roulette.dayOf(this.now()),
+      triviaXpDia: (this.d.db.prepare("SELECT trivia FROM xp_dia WHERE user_id = ? AND day = ?").get(userId, this.d.roulette.dayOf(this.now())) as { trivia: number } | undefined)?.trivia ?? 0,
+      triviaPartidasDia: (this.d.db.prepare("SELECT id FROM trivia_partidas WHERE user_id = ? AND day = ?").all(userId, this.d.roulette.dayOf(this.now())) as { id: number }[]).map((x) => `legacy:${x.id}`),
+      triviaSuperadas: (this.d.db.prepare("SELECT pregunta FROM trivia_superadas WHERE user_id = ?").all(userId) as { pregunta: string }[]).map((x) => x.pregunta),
+      triviaPremios: (this.d.db.prepare("SELECT dificultad FROM trivia_premios WHERE user_id = ?").all(userId) as { dificultad: string }[]).map((x) => x.dificultad),
+      triviaHitos: Object.fromEntries((this.d.db.prepare("SELECT dificultad, aciertos, premios FROM trivia_hitos WHERE user_id = ?").all(userId) as { dificultad: Dificultad; aciertos: number; premios: number }[]).map((x) => [x.dificultad, { aciertos: x.aciertos, premios: x.premios }])),
+      triviaAciertosAplicados: [],
     };
   }
 
