@@ -275,11 +275,14 @@ describe("EconomiaPlazaPreview", () => {
     const roulette={dayOf:()=>"2026-11-12"} as unknown as RouletteService;
     preview.prepare("INSERT INTO actividad_aciertos_preview (partida,papu_id,pregunta,dificultad,racha,creado_at,multiplicador) VALUES (?,?,?,?,?,?,?)").run("partida-1",user,"pregunta-1","facil",1,now,2);
     preview.prepare("INSERT INTO actividad_perfiles_preview (papu_id,pedido_at,actualizado_at) VALUES (?,?,0)").run(user,now);
+    preview.prepare("INSERT INTO actividad_perfiles_preview (papu_id,partida,pedido_at,actualizado_at) VALUES (?,?,0,0)").run(user,"partida-1");
     const economy=new EconomiaPlazaPreview({query,db:source,levels,coins:null,mercado:null,roulette,quota:{} as Quota,now:()=>now,
       trivia:loadTriviaSettings(),questionLevels:{"pregunta-1":"facil"},questionTotals:{facil:1,medio:0,dificil:0},timeZone:"America/Santiago"});
     expect(await economy.syncTrivia()).toBe(1);
     const row=preview.prepare("SELECT aplicado,xp FROM actividad_aciertos_preview").get() as {aplicado:number;xp:number};
     expect(row.aplicado).toBe(1);expect(row.xp).toBe(20);
+    const profile=preview.prepare("SELECT xp_base,tope FROM actividad_perfiles_preview WHERE papu_id=? AND partida=?").get(user,"partida-1") as {xp_base:number;tope:number};
+    expect(profile.xp_base).toBeGreaterThan(0);expect(profile.tope).toBeGreaterThan(0);
     const saved=preview.prepare("SELECT estado FROM mundo_sandbox WHERE papu_id=?").get(user) as {estado:string};
     const state=JSON.parse(saved.estado) as {xp:number;wallet:{gratis:number};triviaSuperadas:string[];triviaPremios:string[]};
     expect(state.xp).toBe(row.xp);expect(state.triviaSuperadas).toContain("pregunta-1");
