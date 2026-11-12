@@ -24,6 +24,7 @@ import { StrikeStore } from "../src/moderation/strikes";
 import { loadRouletteSettings } from "../src/ruleta/rules";
 import { RouletteService } from "../src/ruleta/service";
 import { ruletaEstado } from "../src/mundo/ruleta";
+import { recompensaPesca, textoRecompensaPesca, type TamanoPez } from "../src/pesca/reglas";
 
 const ROOT = path.resolve(import.meta.dirname, "..");
 const CADA_MS = 3_000;
@@ -126,6 +127,31 @@ function main(): void {
     return {
       ok: true,
       datos: { ...estado, tiradas: 0, usadas: 0, extras: [], casillas: [], soloLectura: true },
+    };
+  };
+  // Pesca de prueba: calcula la recompensa con XP real, pero NUNCA la escribe en SQLite.
+  const ultimoLance = new Map<string, number>();
+  puente.acciones["pesca.capturar"] = (papu) => {
+    const ahora = Date.now();
+    const ultimo = ultimoLance.get(papu.id) ?? 0;
+    if (ahora - ultimo < 30_000) {
+      return { ok: false, motivo: `La caña necesita descansar ${Math.ceil((30_000 - (ahora - ultimo)) / 1000)} s. 🎣` };
+    }
+    if (!levels.canEarn(papu.id, ahora)) return { ok: false, motivo: "Neru te bloqueó temporalmente la XP. 🚫" };
+    const n = Math.random();
+    const tamano: TamanoPez = n < 0.55 ? "pequeno" : n < 0.87 ? "mediano" : "grande";
+    const recompensa = recompensaPesca(levels.settings, levels.store.get(papu.id).xp, tamano);
+    if (!recompensa) return { ok: false, motivo: "No pude calcular la captura." };
+    ultimoLance.set(papu.id, ahora);
+    return {
+      ok: true,
+      datos: {
+        tamano,
+        xp: recompensa.xp,
+        porcentaje: Math.round(recompensa.porcentaje * 100),
+        texto: textoRecompensaPesca(recompensa),
+        soloLectura: true,
+      },
     };
   };
   log(`✔ mundoPreview listo: D1 ${databaseId.slice(0, 8)}… (preview), base en solo lectura: ${dataDir}`);
