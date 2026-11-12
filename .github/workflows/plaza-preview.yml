@@ -9,6 +9,12 @@ on:
       - 'scripts/mundo.ts'
       - 'src/mundo/**'
       - 'src/pesca/**'
+      - 'src/coins/**'
+      - 'src/mercado/**'
+      - 'src/ruleta/**'
+      - 'src/levels/**'
+      - 'src/quota/**'
+      - 'scripts/plaza-tarjetas.ts'
       - 'tests/mundo/**'
       - 'tests/pesca/**'
       - '.github/workflows/plaza-preview.yml'
@@ -45,7 +51,7 @@ jobs:
       - name: Typecheck Worker, trivia and plaza (profiles)
         run: npm run worker:typecheck
       - name: Test fishing XP reward rules
-        run: npm test -- tests/pesca/reglas.test.ts tests/mundo/ruleta-preview.test.ts
+        run: npm test -- tests/pesca/reglas.test.ts tests/mundo/ruleta-preview.test.ts tests/mundo/economia-preview.test.ts
 
       - name: Build plaza and trivia assets
         run: |
