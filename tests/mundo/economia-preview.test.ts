@@ -272,7 +272,7 @@ describe("EconomiaPlazaPreview", () => {
     preview.exec("CREATE TABLE actividad_perfiles (papu_id TEXT PRIMARY KEY, xp_base INTEGER NOT NULL DEFAULT 0, tope INTEGER NOT NULL DEFAULT 0, pedido_at INTEGER NOT NULL DEFAULT 0, actualizado_at INTEGER NOT NULL DEFAULT 0)");
     const query:D1Query=async <T>(sql:string,...params:unknown[]):Promise<T[]>=>{
       const st=preview.prepare(sql);
-      if(/RETURNING/i.test(sql)||/^\\s*SELECT/i.test(sql))return st.all(...(params as never[])) as unknown as T[];
+      if(/RETURNING/i.test(sql)||/^\s*SELECT/i.test(sql))return st.all(...(params as never[])) as unknown as T[];
       st.run(...(params as never[]));return [];
     };
     const user="123456789012345678",now=Date.parse("2026-11-12T12:00:00-03:00"),day="2026-11-12";
@@ -329,15 +329,15 @@ describe("EconomiaPlazaPreview", () => {
     await expect(economy.syncTrivia()).rejects.toThrow("simulated D1 interruption after ledger commit");
     const first = preview.prepare("SELECT estado FROM mundo_sandbox WHERE papu_id = ?").get(user) as { estado: string };
     const afterCommit = JSON.parse(first.estado) as { xp: number; triviaAciertosResultados: Record<string, number>; wallet: { gratis: number } };
-    expect(afterCommit.xp).toBe(20);
-    expect(afterCommit.triviaAciertosResultados["1"]).toBe(20);
+    expect(afterCommit.xp).toBe(10);
+    expect(afterCommit.triviaAciertosResultados["1"]).toBe(10);
     expect(afterCommit.wallet.gratis).toBe(1);
 
     expect(await economy.syncTrivia()).toBe(1);
     const row = preview.prepare("SELECT aplicado, xp FROM actividad_aciertos WHERE id = 1").get() as { aplicado: number; xp: number };
     const final = preview.prepare("SELECT estado FROM mundo_sandbox WHERE papu_id = ?").get(user) as { estado: string };
-    expect(row).toEqual({ aplicado: 1, xp: 20 });
-    expect((JSON.parse(final.estado) as { xp: number; wallet: { gratis: number } })).toMatchObject({ xp: 20, wallet: { gratis: 1 } });
+    expect(row).toEqual({ aplicado: 1, xp: 10 });
+    expect((JSON.parse(final.estado) as { xp: number; wallet: { gratis: number } })).toMatchObject({ xp: 10, wallet: { gratis: 1 } });
   });
 
   it("does not advance hitos in a non-XP run when the setting restricts them", async () => {
@@ -394,7 +394,7 @@ describe("EconomiaPlazaPreview", () => {
     const source=openDb(":memory:"),preview=openDb(":memory:");abiertos.push(source,preview);
     preview.exec("CREATE TABLE mundo_sandbox (papu_id TEXT PRIMARY KEY, estado TEXT NOT NULL, revision INTEGER NOT NULL DEFAULT 0, actualizado_at INTEGER NOT NULL)");
     preview.exec("CREATE TABLE actividad_perfiles (papu_id TEXT PRIMARY KEY, xp_base INTEGER NOT NULL DEFAULT 0, tope INTEGER NOT NULL DEFAULT 0, pedido_at INTEGER NOT NULL DEFAULT 0, actualizado_at INTEGER NOT NULL DEFAULT 0)");
-    const query:D1Query=async <T>(sql:string,...params:unknown[]):Promise<T[]>=>{const st=preview.prepare(sql);if(/RETURNING/i.test(sql)||/^\\s*SELECT/i.test(sql))return st.all(...(params as never[])) as unknown as T[];st.run(...(params as never[]));return [];};
+    const query:D1Query=async <T>(sql:string,...params:unknown[]):Promise<T[]>=>{const st=preview.prepare(sql);if(/RETURNING/i.test(sql)||/^\s*SELECT/i.test(sql))return st.all(...(params as never[])) as unknown as T[];st.run(...(params as never[]));return [];};
     const sender="123456789012345678",recipient="223456789012345678",now=Date.parse("2026-11-12T12:00:00-03:00"),day="2026-11-12";
     const state=(uses:number)=>({version:1,xp:100,wallet:{ganadas:0,compradas:0,ecos:0,gratis:0,gratisRaro:0,gratisLeg:0,sobres:0,sinEpica:0,sinLegendaria:0,hoy:0},inventario:[],consumibles:{"regalo-rin-len":uses},comprasMercado:[],ruletaDia:day,ruletaUsadas:0,pescaAt:0,cuotaExtraDia:day,cuotaExtra:0,cuotaUsada:0});
     preview.prepare("INSERT INTO mundo_sandbox (papu_id,estado,revision,actualizado_at) VALUES (?,?,0,?)").run(sender,JSON.stringify(state(1)),now);
@@ -422,7 +422,7 @@ describe("EconomiaPlazaPreview", () => {
     `);
     const query: D1Query = async <T>(sql: string, ...params: unknown[]): Promise<T[]> => {
       const statement = preview.prepare(sql);
-      if (/RETURNING/i.test(sql) || /^\\s*SELECT/i.test(sql)) return statement.all(...(params as never[])) as unknown as T[];
+      if (/RETURNING/i.test(sql) || /^\s*SELECT/i.test(sql)) return statement.all(...(params as never[])) as unknown as T[];
       statement.run(...(params as never[]));
       return [];
     };
