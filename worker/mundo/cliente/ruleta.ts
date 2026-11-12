@@ -177,7 +177,7 @@ export function htmlRuleta(v: VistaRuleta): string {
               : "";
   const ocupada = v.ahora ? `<p class="v-nota">🎡 Girando ahora: <b>${esc(v.ahora.nombre)}</b>${v.ahora.origen === "discord" ? " (desde Discord)" : ""}${v.fila ? ` · ${v.fila} en la fila` : ""}</p>` : "";
   const puede = !e.bloqueada && !["pidiendo", "fila", "girando"].includes(mio?.fase ?? "") && (simulacion || (!soloLectura && e.tiradas > 0));
-  const premios = soloLectura && !simulacion ? "" : `<h3 class="v-seccion">${sandbox ? "Premios del entorno de prueba" : simulacion ? "Casillas de demostración" : "Premios"}</h3><ul class="v-casillas">${casillas}</ul>`;
+  const premios = soloLectura && !simulacion ? "" : `<h3 class="v-seccion">${simulacion ? "Casillas de demostración" : "Premios"}</h3><ul class="v-casillas">${casillas}</ul>`;
   const controles = soloLectura && !simulacion ? "" : `${estadoGiro}${ocupada}
     ${e.atunPendiente ? `<span class="v-chip">🐟 Premio reservado: ${esc(e.atunPendiente.premio ?? "Premio pendiente")} · ${e.atunPendiente.aplicado === false ? "sin acreditar" : "ya acreditado"}</span><button class="v-boton" data-accion="aceptar-atun">✓ Aceptar premio</button>` : ""}${e.atunPendiente?.girosRestantes ? `<button class="v-boton" data-accion="descartar-atun">🐟 Descartar premio y volver a girar (${e.atunPendiente.girosRestantes})</button>` : ""}
     ${!e.atunPendiente ? `<button class="v-boton" data-accion="girar" ${puede ? "" : "disabled"}>🎰 ${simulacion ? "Probar giro" : puede ? `Girar (${e.tiradas})` : "Sin tiradas"}</button>` : ""}`;
