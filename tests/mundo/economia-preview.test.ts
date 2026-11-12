@@ -291,4 +291,101 @@ describe("EconomiaPlazaPreview", () => {
     expect(next.cuotaUsada).toBe(0);expect(next.consumibles["pc-adachi-rei"]).toBe(0);
   });
 
+
+  it("recovers a trivia acierto if the ledger CAS commits but marking the D1 row fails", async () => {
+    const source = openDb(":memory:");
+    const preview = openDb(":memory:");
+    abiertos.push(source, preview);
+    preview.exec(`
+      CREATE TABLE mundo_sandbox (papu_id TEXT PRIMARY KEY, estado TEXT NOT NULL, revision INTEGER NOT NULL DEFAULT 0, actualizado_at INTEGER NOT NULL);
+      CREATE TABLE actividad_perfiles (papu_id TEXT PRIMARY KEY, xp_base INTEGER NOT NULL DEFAULT 0, tope INTEGER NOT NULL DEFAULT 0, pedido_at INTEGER NOT NULL DEFAULT 0, actualizado_at INTEGER NOT NULL DEFAULT 0);
+      CREATE TABLE actividad_aciertos (id INTEGER PRIMARY KEY AUTOINCREMENT, partida TEXT NOT NULL, papu_id TEXT NOT NULL, pregunta TEXT NOT NULL, dificultad TEXT NOT NULL, racha INTEGER NOT NULL, xp_mostrada INTEGER, canal TEXT, creado_at INTEGER NOT NULL, aplicado INTEGER NOT NULL DEFAULT 0, xp INTEGER, multiplicador INTEGER NOT NULL DEFAULT 1);
+    `);
+    let failMark = true;
+    const query: D1Query = async <T>(sql: string, ...params: unknown[]): Promise<T[]> => {
+      if (/UPDATE actividad_aciertos/i.test(sql) && failMark) {
+        failMark = false;
+        throw new Error("simulated D1 interruption after ledger commit");
+      }
+      const statement = preview.prepare(sql);
+      if (/RETURNING/i.test(sql) || /^\s*SELECT/i.test(sql)) return statement.all(...(params as never[])) as unknown as T[];
+      statement.run(...(params as never[]));
+      return [];
+    };
+    const user = "123456789012345678";
+    const now = Date.parse("2026-11-12T12:00:00-03:00");
+    const levels = new LevelService({ db: source, settings: loadLevelSettings(), timeZone: "America/Santiago" });
+    const roulette = { dayOf: () => "2026-11-12" } as unknown as RouletteService;
+    preview.prepare("INSERT INTO actividad_aciertos (partida,papu_id,pregunta,dificultad,racha,creado_at,multiplicador) VALUES (?,?,?,?,?,?,?)")
+      .run("partida-reintento", user, "pregunta-reintento", "facil", 1, now, 1);
+    const economy = new EconomiaPlazaPreview({
+      query, db: source, levels, coins: null, mercado: null, roulette, quota: {} as Quota,
+      now: () => now, trivia: loadTriviaSettings(), questionLevels: { "pregunta-reintento": "facil" },
+      questionTotals: { facil: 1, medio: 0, dificil: 0 }, timeZone: "America/Santiago",
+    });
+
+    await expect(economy.syncTrivia()).rejects.toThrow("simulated D1 interruption after ledger commit");
+    const first = preview.prepare("SELECT estado FROM mundo_sandbox WHERE papu_id = ?").get(user) as { estado: string };
+    const afterCommit = JSON.parse(first.estado) as { xp: number; triviaAciertosResultados: Record<string, number>; wallet: { gratis: number } };
+    expect(afterCommit.xp).toBe(20);
+    expect(afterCommit.triviaAciertosResultados["1"]).toBe(20);
+    expect(afterCommit.wallet.gratis).toBe(1);
+
+    expect(await economy.syncTrivia()).toBe(1);
+    const row = preview.prepare("SELECT aplicado, xp FROM actividad_aciertos WHERE id = 1").get() as { aplicado: number; xp: number };
+    const final = preview.prepare("SELECT estado FROM mundo_sandbox WHERE papu_id = ?").get(user) as { estado: string };
+    expect(row).toEqual({ aplicado: 1, xp: 20 });
+    expect((JSON.parse(final.estado) as { xp: number; wallet: { gratis: number } })).toMatchObject({ xp: 20, wallet: { gratis: 1 } });
+  });
+
+  it("does not advance hitos in a non-XP run when the setting restricts them", async () => {
+    const source = openDb(":memory:");
+    const preview = openDb(":memory:");
+    abiertos.push(source, preview);
+    preview.exec(`
+      CREATE TABLE mundo_sandbox (papu_id TEXT PRIMARY KEY, estado TEXT NOT NULL, revision INTEGER NOT NULL DEFAULT 0, actualizado_at INTEGER NOT NULL);
+      CREATE TABLE actividad_perfiles (papu_id TEXT PRIMARY KEY, xp_base INTEGER NOT NULL DEFAULT 0, tope INTEGER NOT NULL DEFAULT 0, pedido_at INTEGER NOT NULL DEFAULT 0, actualizado_at INTEGER NOT NULL DEFAULT 0);
+      CREATE TABLE actividad_aciertos (id INTEGER PRIMARY KEY AUTOINCREMENT, partida TEXT NOT NULL, papu_id TEXT NOT NULL, pregunta TEXT NOT NULL, dificultad TEXT NOT NULL, racha INTEGER NOT NULL, xp_mostrada INTEGER, canal TEXT, creado_at INTEGER NOT NULL, aplicado INTEGER NOT NULL DEFAULT 0, xp INTEGER, multiplicador INTEGER NOT NULL DEFAULT 1);
+    `);
+    const query: D1Query = async <T>(sql: string, ...params: unknown[]): Promise<T[]> => {
+      const statement = preview.prepare(sql);
+      if (/RETURNING/i.test(sql) || /^\s*SELECT/i.test(sql)) return statement.all(...(params as never[])) as unknown as T[];
+      statement.run(...(params as never[]));
+      return [];
+    };
+    const user = "123456789012345678";
+    const now = Date.parse("2026-11-12T12:00:00-03:00");
+    const day = "2026-11-12";
+    const levels = new LevelService({ db: source, settings: loadLevelSettings(), timeZone: "America/Santiago" });
+    const roulette = { dayOf: () => day } as unknown as RouletteService;
+    const settings = loadTriviaSettings();
+    settings.limites.partidasConXp = 1;
+    settings.hitos = { soloPartidasConXp: true };
+    const state = {
+      version: 1, xp: 0,
+      wallet: { ganadas: 0, compradas: 0, ecos: 0, gratis: 0, gratisRaro: 0, gratisLeg: 0, sobres: 0, sinEpica: 0, sinLegendaria: 0, hoy: 0 },
+      inventario: [], consumibles: {}, comprasMercado: [], ruletaDia: day, ruletaUsadas: 0, pescaAt: 0,
+      cuotaExtraDia: day, cuotaExtra: 0, cuotaUsada: 0, subioDia: "",
+      triviaDia: day, triviaXpDia: 0, triviaPartidasDia: ["legacy:partida-ya-contada"],
+      triviaSuperadas: [], triviaPremios: [], triviaHitos: { facil: { aciertos: 199, premios: 0 } }, triviaAciertosAplicados: [],
+    };
+    preview.prepare("INSERT INTO mundo_sandbox (papu_id,estado,revision,actualizado_at) VALUES (?,?,0,?)").run(user, JSON.stringify(state), now);
+    preview.prepare("INSERT INTO actividad_aciertos (partida,papu_id,pregunta,dificultad,racha,creado_at,multiplicador) VALUES (?,?,?,?,?,?,?)")
+      .run("partida-sin-xp", user, "pregunta-unica", "facil", 1, now, 1);
+    const economy = new EconomiaPlazaPreview({
+      query, db: source, levels, coins: null, mercado: null, roulette, quota: {} as Quota,
+      now: () => now, trivia: settings, questionLevels: { "pregunta-unica": "facil" },
+      questionTotals: { facil: 1, medio: 0, dificil: 0 }, timeZone: "America/Santiago",
+    });
+
+    expect(await economy.syncTrivia()).toBe(1);
+    const row = preview.prepare("SELECT xp FROM actividad_aciertos").get() as { xp: number };
+    const saved = preview.prepare("SELECT estado FROM mundo_sandbox WHERE papu_id = ?").get(user) as { estado: string };
+    const result = JSON.parse(saved.estado) as { xp: number; wallet: { gratis: number }; triviaHitos: { facil: { aciertos: number } } };
+    expect(row.xp).toBe(0);
+    expect(result.xp).toBe(0);
+    expect(result.triviaHitos.facil.aciertos).toBe(199);
+    expect(result.wallet.gratis).toBe(1);
+  });
+
 });
