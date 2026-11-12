@@ -39,6 +39,8 @@ interface EstadoSandbox {
   subioDia?: string;
   microfonoDia?: string;
   microfonoMinutos?: number;
+  disqueteProcesadoDia?: string;
+  ruletaGuardadas?: number;
 }
 interface FilaSandbox { papu_id: string; estado: string; revision: number }
 const ceroWallet = (): WalletSandbox => ({ ganadas: 0, compradas: 0, ecos: 0, gratis: 0, gratisRaro: 0, gratisLeg: 0, sobres: 0, sinEpica: 0, sinLegendaria: 0, hoy: 0 });
@@ -148,6 +150,8 @@ export class EconomiaPlazaPreview {
       cuotaExtra: 0,
       cuotaUsada: 0,
       subioDia: "",
+      disqueteProcesadoDia: "",
+      ruletaGuardadas: 0,
     };
   }
 
@@ -283,6 +287,10 @@ export class EconomiaPlazaPreview {
       if (CONSUMIBLES.includes(o.efecto)) s.consumibles[id] = (s.consumibles[id] ?? 0) + (o.usos ?? 0);
       if (o.efecto === "objeto" && o.objeto && !s.inventario.includes(o.objeto)) s.inventario.push(o.objeto);
       if (o.efecto === "rol" || o.efecto === "disquete" || o.efecto === "machete") s.comprasMercado.push(id);
+      if (o.efecto === "disquete") {
+        s.disqueteProcesadoDia = this.d.roulette.dayOf(now);
+        s.ruletaGuardadas = 0;
+      }
       return {
         result: ok({
           mensaje: `¡Compraste ${o.nombre}! ${o.usos ? `Se añadieron ${o.usos} usos.` : "El artículo quedó registrado en tu colección de prueba."}`,
@@ -339,7 +347,51 @@ export class EconomiaPlazaPreview {
     });
   }
 
+  /** Cierra los días transcurridos y acumula tiradas no usadas solo desde que el Disquete está en el ledger sandbox. */
+  private async actualizarDisquete(userId: string): Promise<void> {
+    const day = this.d.roulette.dayOf(this.now());
+    await this.cambiar(userId, (s) => {
+      if (!s.comprasMercado.includes("disquete-adachi-rei")) return { result: undefined, changed: false };
+      let cursor = s.disqueteProcesadoDia || s.ruletaDia;
+      if (!cursor || cursor >= day) return { result: undefined, changed: false };
+      let guardadas = s.ruletaGuardadas ?? 0;
+      for (let i = 0; cursor < day && i < 400; i++) {
+        const fin = this.finDia(cursor);
+        const real = this.d.roulette.status(userId, fin);
+        const nivel = s.subioDia === cursor && !real.missions.some((m) => m.id === "nivel" && m.done) ? 1 : 0;
+        const voz = real.missions.find((m) => m.id === "voz");
+        const vozActual = this.d.levels.store.dayStats(userId, cursor).vozMin;
+        const microfono = s.microfonoDia === cursor && !!s.microfonoMinutos && !!voz && !voz.done && vozActual >= s.microfonoMinutos ? 1 : 0;
+        const usadas = s.ruletaDia === cursor ? s.ruletaUsadas : 0;
+        guardadas = Math.max(0, guardadas + real.left + nivel + microfono - usadas);
+        cursor = this.siguienteDia(cursor);
+      }
+      s.ruletaGuardadas = guardadas;
+      s.disqueteProcesadoDia = day;
+      return { result: undefined };
+    });
+  }
+
+  /** Último milisegundo del día según la zona horaria de la ruleta. */
+  private finDia(day: string): number {
+    let lo = Date.parse(`${day}T12:00:00.000Z`);
+    let hi = lo + 3_600_000;
+    while (this.d.roulette.dayOf(hi) === day) { lo = hi; hi += 3_600_000; }
+    while (hi - lo > 1) {
+      const mid = lo + Math.floor((hi - lo) / 2);
+      if (this.d.roulette.dayOf(mid) === day) lo = mid;
+      else hi = mid;
+    }
+    return lo;
+  }
+
+  private siguienteDia(day: string): string {
+    const t = new Date(Date.parse(`${day}T12:00:00Z`) + 86_400_000);
+    return `${t.getUTCFullYear()}-${String(t.getUTCMonth()+1).padStart(2,"0")}-${String(t.getUTCDate()).padStart(2,"0")}`;
+  }
+
   private async estadoRuleta(userId: string): Promise<Resultado> {
+    await this.actualizarDisquete(userId);
     const loaded = await this.cargar(userId);
     const state = loaded.state;
     const now = this.now();
@@ -364,17 +416,18 @@ export class EconomiaPlazaPreview {
     return ok({
       ...estado,
       misiones,
-      tiradas: Math.max(0, real.left + (misionNivelSandbox ? 1 : 0) + (misionVozSandbox ? 1 : 0) - used),
+      tiradas: Math.max(0, real.left + (misionNivelSandbox ? 1 : 0) + (misionVozSandbox ? 1 : 0) + (state.ruletaGuardadas ?? 0) - used),
       usadas: real.used + used,
       sandbox: true,
       soloLectura: false,
       simulacion: false,
-      extras: [...estado.extras, ...(microfonoActivo ? [`🎤 Micrófono de Meiko activo: hoy la misión pide ${state.microfonoMinutos} min (progreso consultado en modo lectura).`] : []), "🧪 Las tiradas y premios se guardan en el progreso aislado de la Plaza; no afectan Discord."],
+      extras: [...estado.extras, ...(microfonoActivo ? [`🎤 Micrófono de Meiko activo: hoy la misión pide ${state.microfonoMinutos} min (progreso consultado en modo lectura).`] : []), ...(state.comprasMercado.includes("disquete-adachi-rei") ? [`💾 Disquete de Adachi Rei: ${state.ruletaGuardadas ?? 0} tiradas guardadas para hoy.`] : []), "🧪 Las tiradas y premios se guardan en el progreso aislado de la Plaza; no afectan Discord."],
     });
   }
 
   private async girarRuleta(userId: string, nombre: string): Promise<Resultado> {
     const now = this.now();
+    await this.actualizarDisquete(userId);
     if (!this.d.levels.canEarn(userId, now)) return error("Neru te bloqueó la ruleta: no puedes obtener recompensas. 🚫");
     const day = this.d.roulette.dayOf(now);
     const real = this.d.roulette.status(userId, now);
@@ -386,7 +439,7 @@ export class EconomiaPlazaPreview {
       const voz = real.missions.find((m) => m.id === "voz");
       const vozActual = this.d.levels.store.dayStats(userId, day).vozMin;
       const misionVozSandbox = s.microfonoDia === day && !!s.microfonoMinutos && !!voz && !voz.done && vozActual >= s.microfonoMinutos;
-      const disponibles = real.left + (misionNivelSandbox ? 1 : 0) + (misionVozSandbox ? 1 : 0);
+      const disponibles = real.left + (misionNivelSandbox ? 1 : 0) + (misionVozSandbox ? 1 : 0) + (s.ruletaGuardadas ?? 0);
       if (s.ruletaUsadas >= disponibles) return { result: error("No te quedan tiradas disponibles. Cumple una misión y vuelve a intentarlo."), changed: false };
       const premios = this.d.roulette.settings.premios.map((p) => p.tipo === "sobre" && !this.d.coins ? { ...p, peso: 0 } : p);
       const index = pickPrize({ premios }, this.rnd);
