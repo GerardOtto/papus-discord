@@ -115,7 +115,7 @@ export class EconomiaPlazaPreview {
           const from = dayKey(new Date(now - this.d.trivia.xp.dias * 86400000), this.d.timeZone);
           const avg = (this.d.db.prepare("SELECT AVG(xp - trivia) AS avg FROM xp_dia WHERE user_id = ? AND day >= ? AND day < ? AND xp - trivia > 0").get(row.papu_id, from, day) as {avg:number|null}|undefined)?.avg ?? 0;
           const multiplier = this.d.levels.multiplier(new Date(now));
-          const full = answerXp(this.d.trivia, this.d.levels.settings, { xp:s.xp, dailyAvg:avg, streak:Math.max(1,row.racha), multiplier });
+          const full = answerXp(this.d.trivia, this.d.levels.settings, { xp:s.xp, dailyAvg:avg, streak:Math.max(1,row.racha), multiplier }) * Math.max(1, row.multiplicador ?? 1);
           const cap = dailyCap(this.d.trivia, this.d.levels.settings, s.xp, multiplier);
           gained = Math.max(0, Math.min(full, cap - (s.triviaXpDia ?? 0)));
           const before = progress(this.d.levels.settings, s.xp).level;
