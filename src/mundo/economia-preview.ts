@@ -219,8 +219,40 @@ export class EconomiaPlazaPreview {
       await this.d.query("UPDATE actividad_aciertos SET aplicado = 1, xp = ? WHERE id = ? AND aplicado = 0", Number(gained ?? 0), row.id);
       applied++;
     }
+    await this.entregarRegalos();
     await this.syncTriviaProfiles();
     return applied;
+  }
+
+  /** Entrega regalos pendientes con una clave idempotente en el ledger del destinatario. */
+  private async entregarRegalos(remitente?: string): Promise<number> {
+    const rows = remitente
+      ? await this.d.query<{ papu_id: string; estado: string }>("SELECT papu_id, estado FROM mundo_sandbox WHERE papu_id = ?", remitente)
+      : await this.d.query<{ papu_id: string; estado: string }>("SELECT papu_id, estado FROM mundo_sandbox WHERE estado LIKE ? LIMIT 100", '%"regalosPendientes"%');
+    let entregados = 0;
+    for (const row of rows) {
+      let pendientes: Record<string, { para: string; day: string }> = {};
+      try { pendientes = (JSON.parse(row.estado) as EstadoSandbox).regalosPendientes ?? {}; } catch { continue; }
+      for (const [id, regalo] of Object.entries(pendientes)) {
+        if (!/^\\d{5,25}$/.test(regalo.para) || regalo.para === row.papu_id) continue;
+        await this.cambiar(regalo.para, (destino) => {
+          destino.regalosRecibidos ??= [];
+          if (destino.regalosRecibidos.includes(id)) return { result: undefined, changed: false };
+          if (destino.ruletaRegaloDia !== regalo.day) { destino.ruletaRegaloDia = regalo.day; destino.ruletaRegalos = 0; }
+          destino.ruletaRegalos = (destino.ruletaRegalos ?? 0) + 1;
+          destino.regalosRecibidos.push(id);
+          return { result: undefined };
+        });
+        await this.cambiar(row.papu_id, (origen) => {
+          if (!origen.regalosPendientes?.[id]) return { result: undefined, changed: false };
+          delete origen.regalosPendientes[id];
+          if (!Object.keys(origen.regalosPendientes).length) delete origen.regalosPendientes;
+          return { result: undefined };
+        });
+        entregados++;
+      }
+    }
+    return entregados;
   }
 
   private async syncTriviaProfiles(): Promise<void> {
@@ -553,7 +585,7 @@ export class EconomiaPlazaPreview {
       await this.entregarRegalos(userId);
       const pendientes = await this.cargar(userId);
       const quedan = Object.keys(pendientes.state.regalosPendientes ?? {}).length;
-      return ok({ mensaje: quedan ? "🍊🍌 El regalo quedó registrado y se entregará al completar la sincronización." : "🍊🍌 ¡Regalo enviado! Se añadió una tirada sandbox a " + para + ".", usos: reserva.datos.usos, sandbox: true });
+      return ok({ mensaje: quedan ? "🍊🍌 El regalo quedó registrado y se entregará al completar la sincronización." : "🍊🍌 ¡Regalo enviado! Se añadió una tirada sandbox a " + para + ".", usos: (reserva.datos as { usos: number }).usos, sandbox: true });
     }
     if (id !== "microfono-meiko") return error("Ese consumible todavía no tiene una acción disponible en la Plaza.");
     const objeto = this.d.mercado.byId.get(id);
