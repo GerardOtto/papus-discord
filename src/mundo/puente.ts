@@ -168,14 +168,12 @@ export class MundoPuente {
       acciones: number;
       perfiles: number;
       chat: number;
-      tarjetas: number;
     }>(
       `SELECT
         (SELECT COUNT(*) FROM mundo_menciones WHERE tomado = 0) AS menciones,
         (SELECT COUNT(*) FROM mundo_acciones WHERE tomado = 0) AS acciones,
         (SELECT COUNT(*) FROM mundo_perfiles WHERE pedido_at >= actualizado_at) AS perfiles,
-        (SELECT COUNT(*) FROM mundo_chat WHERE publicado = 0) AS chat,
-        (SELECT COUNT(*) FROM mundo_tarjeta_pedidos WHERE estado = 0) AS tarjetas`,
+        (SELECT COUNT(*) FROM mundo_chat WHERE publicado = 0) AS chat`,
     );
     let rows: Mencion[] = [];
     if (hay?.menciones) {
@@ -200,7 +198,10 @@ export class MundoPuente {
       for (const p of pedidos) await this.guardarPerfil(p.papu_id);
     }
     if (hay?.chat) await this.registro();
-    if (hay?.tarjetas) await this.generarTarjetas();
+    if (this.d.tarjetaPublica) {
+      const [pendientes] = await this.d.query<{ total: number }>("SELECT COUNT(*) AS total FROM mundo_tarjeta_pedidos WHERE estado = 0");
+      if (pendientes?.total) await this.generarTarjetas();
+    }
     await this.publicarEstado();
     await this.limpiar();
     return rows.length;
