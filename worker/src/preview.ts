@@ -1,5 +1,5 @@
 // Worker exclusivo de preview de la plaza. No importa el worker de produccion,
-// no expone /interactions de Miku/Luka y no ejecuta tareas programadas.
+ // no expone /interactions de Miku/Luka y no ejecuta tareas programadas.
 import { actividad } from "./actividad/api";
 import { mundo, type MundoApiEnv } from "./mundo/api";
 
@@ -11,10 +11,10 @@ export interface PreviewEnv extends MundoApiEnv {}
 export default {
   async fetch(request: Request, env: PreviewEnv): Promise<Response> {
     const url = new URL(request.url);
+    // La interfaz 3D se publica como asset estático en /mundo/.
+    // No responder aquí con texto: eso interceptaba "/" antes de llegar a los assets.
     if (request.method === "GET" && url.pathname === "/") {
-      return new Response("Papus Plaza Preview · entorno aislado", {
-        headers: { "Content-Type": "text/plain; charset=utf-8", "Cache-Control": "no-store" },
-      });
+      return Response.redirect(new URL("/mundo/", url.origin), 302);
     }
     if (url.pathname.startsWith("/actividad/api/")) {
       const response = await actividad(request, env);
