@@ -47,3 +47,19 @@ CREATE TABLE IF NOT EXISTS mundo_eventos (
   id INTEGER PRIMARY KEY AUTOINCREMENT, papu_id TEXT, tipo TEXT NOT NULL,
   datos TEXT NOT NULL, creado_at INTEGER NOT NULL
 );
+
+
+-- Tarjetas públicas de nivel: imágenes cacheadas en partes pequeñas para transportarlas por D1.
+CREATE TABLE IF NOT EXISTS mundo_tarjetas (
+  papu_id TEXT PRIMARY KEY, mime TEXT NOT NULL, actualizado_at INTEGER NOT NULL
+);
+CREATE TABLE IF NOT EXISTS mundo_tarjeta_partes (
+  papu_id TEXT NOT NULL, parte INTEGER NOT NULL, datos TEXT NOT NULL,
+  PRIMARY KEY (papu_id, parte)
+);
+CREATE TABLE IF NOT EXISTS mundo_tarjeta_pedidos (
+  id INTEGER PRIMARY KEY AUTOINCREMENT, sala TEXT NOT NULL, solicitante_id TEXT NOT NULL,
+  papu_id TEXT NOT NULL, ref INTEGER NOT NULL, creado_at INTEGER NOT NULL,
+  estado INTEGER NOT NULL DEFAULT 0, entregado INTEGER NOT NULL DEFAULT 0
+);
+CREATE INDEX IF NOT EXISTS preview_mundo_tarjeta_pedidos ON mundo_tarjeta_pedidos (sala, estado, entregado, id);
