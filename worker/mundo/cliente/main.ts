@@ -201,8 +201,9 @@ const USAR: Partial<Record<ZonaId, { texto: string; abrir: () => void }>> = {
   escuela: {
     texto: "🧠 Jugar trivia multijugador",
     abrir: () => {
-      const w = window.open("/actividad/?sala=plaza", "_blank", "noopener,noreferrer");
+      const w = window.open("/actividad/?sala=plaza", "_blank");
       if (!w) aviso("Tu navegador bloqueó la nueva pestaña. Permite ventanas emergentes para abrir la trivia.");
+      else w.opener = null;
     },
   },
 };
