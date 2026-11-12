@@ -1,0 +1,31 @@
+# Puente AISLADO de tarjetas de la Plaza preview (docs/PLAZA_PREVIEW.md). Servicio aparte de "papus": no lo
+# reinicia, no comparte su código (~/papus/plaza-preview) y no puede escribir en ~/papus/app (ReadOnlyPaths).
+# Instalar: sudo install -m 644 plaza-preview.service /etc/systemd/system/papus-plaza-preview.service
+#           sudo systemctl daemon-reload && sudo systemctl start papus-plaza-preview
+# Sin "enable": si la VM se reinicia, el preview queda apagado (los bots de producción sí arrancan).
+# Quitar: sudo systemctl stop papus-plaza-preview && sudo rm /etc/systemd/system/papus-plaza-preview.service
+#         sudo systemctl daemon-reload && rm -rf ~/papus/plaza-preview
+[Unit]
+Description=Papus - tarjetas de la Plaza preview (aislado)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=papus
+WorkingDirectory=/home/papus/papus/plaza-preview
+# Solo PLAZA_PREVIEW_D1_DATABASE_ID, PLAZA_DATA_DIR y PAPUS_ENV_FILE; el .env de los bots se lee, no se copia.
+EnvironmentFile=/home/papus/papus/plaza-preview/preview.env
+ExecStart=/usr/local/bin/node --disable-warning=ExperimentalWarning --import tsx scripts/plaza-tarjetas.ts
+Restart=on-failure
+RestartSec=30
+# Producción primero: poca memoria y CPU, y nada de escribir en la carpeta de los bots.
+MemoryMax=220M
+MemorySwapMax=0
+CPUQuota=50%
+Nice=10
+ReadOnlyPaths=/home/papus/papus/app
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

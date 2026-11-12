@@ -74,3 +74,33 @@ PLAZA_PREVIEW_D1_DATABASE_ID=<ID de la base papus-plaza-preview>
 El puente reutiliza `CLOUDFLARE_DEPLOY_TOKEN` y `CLOUDFLARE_ACCOUNT_ID`, pero solo escribe en el ID explícito anterior. Si la variable no existe, no se conecta al preview. No cambies `worker/wrangler.toml` ni ejecutes el despliegue de producción.
 
 Las tarjetas se generan al solicitarlas, se cachean durante 60 segundos y se envían solo a quien las pidió. La imagen pública excluye la cuota diaria. El botón ⭐ o la tecla P muestra la tarjeta propia sobre el personaje durante cinco segundos; al pulsar el nombre de otro Papu se abre su tarjeta completa.
+
+## Puente aislado de tarjetas (sin tocar el bot de producción)
+
+Mientras la beta no se fusione, las tarjetas las genera un proceso aparte (`scripts/plaza-tarjetas.ts`,
+`src/mundo/tarjetas-preview.ts`), no el proceso `papus`:
+
+- Lee `papus.sqlite` en **solo lectura** (`readOnly` + `PRAGMA query_only`): no migra ni escribe.
+- Lee nombres y avatares de Discord solo por REST con el token de Teto (sin segunda sesión de gateway).
+- Escribe únicamente en el D1 `PLAZA_PREVIEW_D1_DATABASE_ID`; se niega a arrancar sin él o si es el de producción.
+- No responde menciones, no ejecuta acciones de la plaza ni publica chat.
+
+Prueba sin D1 (dibuja una tarjeta a un archivo):
+
+```
+PAPUS_ENV_FILE=../papus-discord/.env PLAZA_DATA_DIR=<carpeta con papus.sqlite> PLAZA_PREVIEW_D1_DATABASE_ID=<uuid> npm run plaza:tarjetas -- --probar=<id> --salida=tarjeta.png
+```
+
+En la VM (servicio `papus-plaza-preview`, plantilla en `nube/plaza-preview.service`): código en
+`~/papus/plaza-preview` (enlace a `~/papus/app/node_modules`), variables en `~/papus/plaza-preview/preview.env`
+(`PLAZA_PREVIEW_D1_DATABASE_ID`, `PLAZA_DATA_DIR=/home/papus/papus/app/data`, `PAPUS_ENV_FILE=/home/papus/papus/app/.env`).
+Limitado a 220 MB y 50 % de CPU, sin escritura en `~/papus/app` y sin arranque automático.
+
+```
+sudo install -m 644 ~/papus/plaza-preview/nube/plaza-preview.service /etc/systemd/system/papus-plaza-preview.service
+sudo systemctl daemon-reload && sudo systemctl start papus-plaza-preview
+journalctl -u papus-plaza-preview -f      # "✔ mundoPreview listo" y "✔ tarjeta de <id>"
+```
+
+Revertir: `sudo systemctl stop papus-plaza-preview && sudo rm /etc/systemd/system/papus-plaza-preview.service && sudo systemctl daemon-reload && rm -rf ~/papus/plaza-preview`.
+`nube subir` no toca esta carpeta; antes de `nube volver` o `trasladar`, detener el servicio.
