@@ -90,7 +90,7 @@ describe("EconomiaPlazaPreview", () => {
       return [];
     };
     const userId = "123456789012345678";
-    source.prepare("INSERT INTO monedero (user_id, ganadas, compradas) VALUES (?, ?, ?)").run(userId, 100_000, 100_000);
+    source.prepare("INSERT INTO monedero (user_id, ganadas, compradas) VALUES (?, ?, ?)").run(userId, 10_000_000, 10_000_000);
     let now = Date.parse("2026-11-12T12:00:00-03:00");
     const levels = new LevelService({ db: source, settings: loadLevelSettings(), timeZone: "America/Santiago" });
     const quota = new Quota(source, (id, at) => levels.limitFor(id, at), "America/Santiago");
@@ -132,14 +132,14 @@ describe("EconomiaPlazaPreview", () => {
     expect(compraMercado.ok).toBe(true);
 
     const walletReal = source.prepare("SELECT ganadas, compradas FROM monedero WHERE user_id = ?").get(userId) as { ganadas: number; compradas: number };
-    expect(walletReal).toEqual({ ganadas: 100_000, compradas: 100_000 });
+    expect(walletReal).toEqual({ ganadas: 10_000_000, compradas: 10_000_000 });
     const ledger = await query<{ estado: string; revision: number }>(
       "SELECT estado, revision FROM mundo_sandbox WHERE papu_id = ?", userId,
     );
     expect(ledger).toHaveLength(1);
     expect(ledger[0]!.revision).toBe(2);
     const sandbox = JSON.parse(ledger[0]!.estado) as { wallet: { ganadas: number; compradas: number }; inventario: string[] };
-    expect(sandbox.wallet.compradas).toBeLessThan(100_000);
+    expect(sandbox.wallet.compradas).toBeLessThan(10_000_000);
     expect(sandbox.wallet.ganadas).toBeLessThan(100_000);
     expect(sandbox.inventario).toContain(articulo!.id);
   });
