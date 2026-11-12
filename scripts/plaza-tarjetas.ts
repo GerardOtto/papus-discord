@@ -19,6 +19,11 @@ import { LevelService } from "../src/levels/service";
 import { abrirSoloLectura, crearPuentePreview, crearTarjetaPublica, DiscordLectura } from "../src/mundo/tarjetas-preview";
 import { Quota } from "../src/quota/quota";
 import { Especiales, loadEspeciales } from "../src/services/especiales";
+import { loadModerationSettings } from "../src/moderation/rules";
+import { StrikeStore } from "../src/moderation/strikes";
+import { loadRouletteSettings } from "../src/ruleta/rules";
+import { RouletteService } from "../src/ruleta/service";
+import { ruletaEstado } from "../src/mundo/ruleta";
 
 const ROOT = path.resolve(import.meta.dirname, "..");
 const CADA_MS = 3_000;
@@ -40,12 +45,14 @@ function main(): void {
 
   const owners = new Set<string>(config.ownerId ? [config.ownerId] : []);
   const especiales = new Especiales(loadEspeciales(), Date.now, config.quotaTimeZone);
+  const moderation = loadModerationSettings();
+  const strikes = new StrikeStore(db, moderation.limites.strikeDias);
   const levels = new LevelService({
     db,
     settings: loadLevelSettings(),
     timeZone: config.quotaTimeZone,
     unranked: (id) => owners.has(id),
-    xpBlocked: () => false, // nunca se da XP desde aquí
+    xpBlocked: (id, at) => strikes.xpBlocked(id, at),
   });
   const quota = new Quota(db, (id, now) => levels.limitFor(id, now), config.quotaTimeZone, {
     has: (id) => owners.has(id) || especiales.unlimited(id),
@@ -54,6 +61,9 @@ function main(): void {
   const coins = coinSettings.activo
     ? new CoinService({ db, settings: coinSettings, catalog: loadCatalog(), timeZone: config.quotaTimeZone })
     : null;
+
+  // Solo consulta misiones reales. No se conecta la acción de girar: este proceso abre SQLite en solo lectura.
+  const roulette = new RouletteService({ db, settings: loadRouletteSettings(), levels, quota, timeZone: config.quotaTimeZone });
 
   let acento = ACENTO_TETO;
   try {
@@ -109,6 +119,15 @@ function main(): void {
     },
     log,
   });
+  // La ventana de la ruleta funciona como panel de misiones, pero nunca consume tiradas ni aplica premios.
+  puente.acciones["ruleta.estado"] = (papu) => {
+    const status = roulette.status(papu.id);
+    const estado = ruletaEstado(roulette, papu.id, status);
+    return {
+      ok: true,
+      datos: { ...estado, tiradas: 0, usadas: 0, extras: [], casillas: [], soloLectura: true },
+    };
+  };
   log(`✔ mundoPreview listo: D1 ${databaseId.slice(0, 8)}… (preview), base en solo lectura: ${dataDir}`);
 
   let ocupado = false;
