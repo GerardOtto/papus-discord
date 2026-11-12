@@ -117,4 +117,4 @@ export type Pedido =
   | { t: "empezar" }
   | { t: "responder"; nonce: string; opcion?: number; texto?: string }
   | { t: "otra" }
-  | { t: "consumible"; objeto: "celular" | "guitarra" | "zanahoria"; tema?: string };
+  | { t: "consumible"; objeto: "celular" | "guitarra" | "zanahoria"; nonce: string; tema?: string };
