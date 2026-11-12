@@ -286,7 +286,6 @@ export class EconomiaPlazaPreview {
         s.triviaAciertosResultados[key] = earned;
         return { result: earned };
       });
-      if (gained === null) continue;
       // Si el proceso se cae después del CAS, el resultado guardado permite reintentar sin duplicar XP ni sobres.
       await this.d.query("UPDATE actividad_aciertos_preview SET aplicado = 1, xp = ? WHERE id = ? AND aplicado = 0", Number(gained), row.id);
       if (Number(gained) > 0) await this.d.query("UPDATE mundo_perfiles SET pedido_at = ? WHERE papu_id = ?", this.now() + 2, row.papu_id).catch(() => {});
@@ -553,6 +552,14 @@ export class EconomiaPlazaPreview {
       );
       if (updated.length) {
         this.cache.set(userId, state);
+        const refrescarPerfiles = state.xp !== original.xp || state.triviaDia !== original.triviaDia ||
+          state.triviaXpDia !== original.triviaXpDia ||
+          JSON.stringify(state.triviaPartidasDia ?? []) !== JSON.stringify(original.triviaPartidasDia ?? []);
+        if (refrescarPerfiles) {
+          const pedido = this.now() + 2;
+          await this.d.query("UPDATE actividad_perfiles_preview SET pedido_at = ? WHERE papu_id = ?", pedido, userId).catch(() => {});
+          await this.d.query("UPDATE mundo_perfiles SET pedido_at = ? WHERE papu_id = ?", pedido, userId).catch(() => {});
+        }
         return result;
       }
     }
