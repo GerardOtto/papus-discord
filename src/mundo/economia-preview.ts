@@ -6,14 +6,14 @@ import type { D1Query } from "../cloud/d1";
 import type { Atender } from "./puente";
 import type { LevelService } from "../levels/service";
 import type { CoinService } from "../coins/service";
-import { paySplit, priceOf } from "../coins/rules";
+import { activityCoins, levelBonus, paySplit, priceOf } from "../coins/rules";
 import type { MercadoService } from "../mercado/service";
 import { CONSUMIBLES, PERMANENTES } from "../mercado/rules";
 import { abierta, aperturaHoy, proximaApertura } from "../mercado/rules";
 import type { Quota } from "../quota/quota";
 import type { RouletteService } from "../ruleta/service";
 import { pickPrize, prizeXp } from "../ruleta/rules";
-import { progress, quotaWithTransition } from "../levels/rules";
+import { progress, quotaWithTransition, rankFor } from "../levels/rules";
 import { answerXp, dailyCap, type Dificultad, type TriviaSettings } from "../trivia/rules";
 import { dayKey } from "../time";
 import { reinicioDe } from "../mercado/reinicios";
@@ -53,7 +53,13 @@ interface EstadoSandbox {
   regalosSecuencia?: number;
   regalosPendientes?: Record<string, { para: string; day: string }>;
   regalosRecibidos?: string[];
-  atunPendiente?: { day: string; index: number; giros: number; gastoUso: boolean; xp: number; mensajes: number; sobres: number; subioAntes?: string; nivelAntes: number };
+  atunPendiente?: { day: string; index: number; giros: number; gastoUso: boolean; xp: number; mensajes: number; sobres: number; subioAntes?: string; nivelAntes: number; bonoNivel?: number };
+  monedasDia?: string;
+  xpSandboxDia?: number;
+  monedasActividadDia?: number;
+  monedasResetDia?: string;
+  monedasResetXp?: number;
+  monedasResetPrevia?: number;
   triviaDia?: string; triviaXpDia?: number; triviaPartidasDia?: string[]; triviaSuperadas?: string[]; triviaPremios?: string[]; triviaHitos?: Partial<Record<Dificultad, { aciertos: number; premios: number }>>; triviaAciertosAplicados?: number[]; triviaAciertosResultados?: Record<string, number>; triviaRuns?: Record<string, { day: string; withXp: boolean }>;
 }
 interface FilaSandbox { papu_id: string; estado: string; revision: number }
@@ -107,6 +113,51 @@ export class EconomiaPlazaPreview {
   }
 
   xp(userId: string): number | null { return this.cache.get(userId)?.xp ?? null; }
+
+  /** Acredita o revierte en el ledger la parte de monedas ganadas por XP de actividad sandbox. */
+  private recalcularMonedasActividad(state: EstadoSandbox, userId: string, day: string, deltaXp = 0): number {
+    if (!this.d.coins) return 0;
+    const now = this.now();
+    const real = this.d.coins.activityToday(userId, now);
+    if (state.monedasDia !== day) {
+      state.monedasDia = day;
+      state.xpSandboxDia = 0;
+      state.monedasActividadDia = real.actividad;
+      state.monedasResetDia = undefined;
+      state.monedasResetXp = undefined;
+      state.monedasResetPrevia = undefined;
+      const earned = this.d.db.prepare("SELECT ganadas FROM monedas_dia WHERE user_id = ? AND day = ?").get(userId, day) as { ganadas: number } | undefined;
+      state.wallet.hoy = earned?.ganadas ?? 0;
+    }
+    state.xpSandboxDia = Math.max(0, (state.xpSandboxDia ?? 0) + deltaXp);
+    const original = reinicioDe(this.d.db, userId, day);
+    const reset = state.monedasResetDia === day
+      ? { xp: state.monedasResetXp ?? real.xp, previa: state.monedasResetPrevia ?? state.monedasActividadDia ?? real.actividad }
+      : original.veces ? { xp: original.monedasXp, previa: original.monedasPrevia } : undefined;
+    const objetivo = activityCoins(this.d.coins.settings, {
+      xp: real.xp + state.xpSandboxDia,
+      ...(reset ? { reinicio: reset } : {}),
+    });
+    const anterior = state.monedasActividadDia ?? real.actividad;
+    const delta = objetivo - anterior;
+    if (delta) {
+      state.wallet.ganadas = Math.max(0, state.wallet.ganadas + delta);
+      state.wallet.hoy = Math.max(0, state.wallet.hoy + delta);
+    }
+    state.monedasActividadDia = objetivo;
+    return delta;
+  }
+
+  /** Mismo bono por subir de nivel/rango que CoinService.onLevelChange, aplicado al monedero sandbox. */
+  private registrarXpSandbox(state: EstadoSandbox, userId: string, day: string, xp: number, nivelAntes: number, nivelDespues: number): number {
+    this.recalcularMonedasActividad(state, userId, day, xp);
+    if (!this.d.coins || nivelDespues <= nivelAntes) return 0;
+    const rangoAntes = rankFor(this.d.levels.settings, nivelAntes);
+    const rangoDespues = rankFor(this.d.levels.settings, nivelDespues);
+    const bonus = levelBonus(this.d.coins.settings, nivelAntes, nivelDespues, rangoDespues.index > rangoAntes.index);
+    state.wallet.ganadas += bonus;
+    return bonus;
+  }
   /** Sincroniza aciertos al ledger preview. El resultado por ID se conserva indefinidamente para recuperar
    * el caso en que el CAS del ledger se confirme pero falle la escritura de aplicado en la tabla de actividad. */
   async syncTrivia(): Promise<number> {
@@ -170,7 +221,9 @@ export class EconomiaPlazaPreview {
           const before = progress(this.d.levels.settings, s.xp).level;
           s.xp += earned;
           s.triviaXpDia = (s.triviaXpDia ?? 0) + earned;
-          if (progress(this.d.levels.settings, s.xp).level > before) s.subioDia = day;
+          const after = progress(this.d.levels.settings, s.xp).level;
+          if (after > before) s.subioDia = day;
+          this.registrarXpSandbox(s, row.papu_id, day, earned, before, after);
         }
 
         const level = this.d.questionLevels[row.pregunta];
@@ -400,6 +453,9 @@ export class EconomiaPlazaPreview {
       triviaPremios: (this.d.db.prepare("SELECT dificultad FROM trivia_premios WHERE user_id = ?").all(userId) as { dificultad: string }[]).map((x) => x.dificultad),
       triviaHitos: Object.fromEntries((this.d.db.prepare("SELECT dificultad, aciertos, premios FROM trivia_hitos WHERE user_id = ?").all(userId) as { dificultad: Dificultad; aciertos: number; premios: number }[]).map((x) => [x.dificultad, { aciertos: x.aciertos, premios: x.premios }])),
       triviaAciertosAplicados: [],
+      monedasDia: hoy,
+      xpSandboxDia: 0,
+      monedasActividadDia: this.d.coins?.activityToday(userId, this.now()).actividad ?? 0,
     };
   }
 
@@ -628,7 +684,9 @@ export class EconomiaPlazaPreview {
       s.xp += recompensa.xp;
       s.pescaAt = now;
       const xpDespues = s.xp;
-      if (progress(this.d.levels.settings, xpDespues).level > nivelAntes) s.subioDia = this.d.roulette.dayOf(now);
+      const nivelDespues = progress(this.d.levels.settings, xpDespues).level;
+      if (nivelDespues > nivelAntes) s.subioDia = this.d.roulette.dayOf(now);
+      this.registrarXpSandbox(s, userId, this.d.roulette.dayOf(now), recompensa.xp, nivelAntes, nivelDespues);
       return {
         result: ok({
           tamano, xp: recompensa.xp, porcentaje: Math.round(recompensa.porcentaje * 100),
@@ -722,7 +780,7 @@ export class EconomiaPlazaPreview {
   }
 
   private aplicarPremio(state: EstadoSandbox, userId: string, day: string, now: number, index: number): {
-    xp: number; mensajes: number; sobres: number; titulo: string; subtitulo: string; texto: string; subioAntes?: string; nivelAntes: number;
+    xp: number; mensajes: number; sobres: number; titulo: string; subtitulo: string; texto: string; subioAntes?: string; nivelAntes: number; bonoNivel: number;
   } | null {
     const premio = this.d.roulette.settings.premios[index];
     if (!premio || (premio.tipo === "sobre" && !this.d.coins)) return null;
@@ -763,6 +821,7 @@ export class EconomiaPlazaPreview {
     }
     const levelAfter = progress(this.d.levels.settings, state.xp).level;
     if (levelAfter > levelBefore) state.subioDia = day;
+    const bonoNivel = this.registrarXpSandbox(state, userId, day, xp, levelBefore, levelAfter);
     const titulo = premio.tipo === "xp" ? `¡+${xp} XP!`
       : premio.tipo === "cuota" ? `¡+${mensajes} mensajes!`
       : premio.tipo === "cuota_llena" ? (mensajes ? `¡Recuperaste ${mensajes} mensajes!` : "¡Mensaje extra!")
@@ -773,7 +832,7 @@ export class EconomiaPlazaPreview {
     const texto = premio.tipo === "xp" ? `+${xp} XP en tu progreso de prueba.`
       : premio.tipo === "cuota" || premio.tipo === "cuota_llena" ? `+${mensajes} mensajes de cuota de prueba.`
       : `${sobres} sobre(s) añadidos al monedero de prueba.`;
-    return { xp, mensajes, sobres, titulo, subtitulo, texto, subioAntes, nivelAntes: levelBefore };
+    return { xp, mensajes, sobres, titulo, subtitulo, texto, subioAntes, nivelAntes: levelBefore, bonoNivel };
   }
 
   private async girarRuleta(userId: string, nombre: string): Promise<Resultado> {
@@ -805,7 +864,7 @@ export class EconomiaPlazaPreview {
       const atun = this.d.mercado?.byId.get("atun-luka");
       const usosAtun = s.consumibles["atun-luka"] ?? 0;
       if (atun?.efecto === "atun" && usosAtun > 0 && (atun.giros ?? 0) > 0) {
-        s.atunPendiente = { day, index, giros: 0, gastoUso: false, xp: aplicado.xp, mensajes: aplicado.mensajes, sobres: aplicado.sobres, subioAntes: aplicado.subioAntes, nivelAntes: aplicado.nivelAntes };
+        s.atunPendiente = { day, index, giros: 0, gastoUso: false, xp: aplicado.xp, mensajes: aplicado.mensajes, sobres: aplicado.sobres, subioAntes: aplicado.subioAntes, nivelAntes: aplicado.nivelAntes, bonoNivel: aplicado.bonoNivel };
       }
       const girosRestantes = s.atunPendiente ? Math.max(0, (atun?.giros ?? 0) - s.atunPendiente.giros) : 0;
       return {
@@ -835,6 +894,8 @@ export class EconomiaPlazaPreview {
         s.consumibles["atun-luka"] = usos - 1;
       }
       s.xp = Math.max(0, s.xp - pending.xp);
+      this.recalcularMonedasActividad(s, userId, day, -pending.xp);
+      if (pending.bonoNivel) s.wallet.ganadas = Math.max(0, s.wallet.ganadas - pending.bonoNivel);
       if (s.cuotaExtraDia === day) s.cuotaExtra = Math.max(0, s.cuotaExtra - pending.mensajes);
       s.wallet.gratis = Math.max(0, s.wallet.gratis - pending.sobres);
       if (progress(this.d.levels.settings, s.xp).level > pending.nivelAntes) s.subioDia = day;
@@ -846,7 +907,7 @@ export class EconomiaPlazaPreview {
       if (!aplicado) return { result: error("No pude sortear un nuevo premio."), changed: false };
       const giros = pending.giros + 1;
       const gastoUso = true;
-      s.atunPendiente = { day, index, giros, gastoUso, xp: aplicado.xp, mensajes: aplicado.mensajes, sobres: aplicado.sobres, subioAntes: pending.subioAntes, nivelAntes: pending.nivelAntes };
+      s.atunPendiente = { day, index, giros, gastoUso, xp: aplicado.xp, mensajes: aplicado.mensajes, sobres: aplicado.sobres, subioAntes: pending.subioAntes, nivelAntes: pending.nivelAntes, bonoNivel: aplicado.bonoNivel };
       const usos = s.consumibles["atun-luka"] ?? 0;
       const nivelYaContado = real.missions.some((m) => m.id === "nivel" && m.done);
       const misionNivelSandbox = s.subioDia === day && !nivelYaContado;
