@@ -42,8 +42,7 @@
     "trivia:imagenes": "node --disable-warning=ExperimentalWarning --import tsx scripts/trivia-imagenes.ts",
     "coleccion": "node --disable-warning=ExperimentalWarning --import tsx scripts/coleccion.ts",
     "peleas:avatares": "python scripts/peleas_avatares.py",
-    "peleas:wiki": "node --disable-warning=ExperimentalWarning --import tsx scripts/peleas-wiki.ts",
-    "plaza:tarjetas": "node --disable-warning=ExperimentalWarning --import tsx scripts/plaza-tarjetas.ts"
+    "peleas:wiki": "node --disable-warning=ExperimentalWarning --import tsx scripts/peleas-wiki.ts"
   },
   "dependencies": {
     "@napi-rs/canvas": "1.0.10",
