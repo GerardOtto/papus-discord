@@ -241,7 +241,8 @@ const FICHAS: Record<ZonaId, string> = {
 };
 /** Lugares que se pueden usar desde su ficha (boton o tecla F). */
 const USAR: Partial<Record<ZonaId, { texto: string; abrir: () => void }>> = {
-  ruleta: { texto: "🎰 Abrir la ruleta", abrir: () => abrirRuleta() },\n  estanque: { texto: "🎣 Pescar", abrir: () => abrirPesca() },
+  ruleta: { texto: "🎰 Abrir la ruleta", abrir: () => abrirRuleta() },
+  estanque: { texto: "🎣 Pescar", abrir: () => abrirPesca() },
   tienda: { texto: "🛍️ Abrir Tienda Shaula", abrir: () => abrirCatalogo("tienda") },
   mercado: { texto: "🕶️ Ver mercado negro", abrir: () => abrirCatalogo("mercado") },
   fogata: { texto: "🔥 Sentarse", abrir: () => alternarFogata() },
@@ -1187,7 +1188,8 @@ function comando(texto: string): void {
 // Botones de la ventana, de la ficha del lugar y del cartel del premio.
 ventana.cuerpo.addEventListener("click", (e) => {
   const b = (e.target as HTMLElement).closest<HTMLButtonElement>("button[data-accion]");
-  if (b?.dataset.accion === "girar" && !b.disabled) void girarRuleta();\n  if (b?.dataset.accion === "pescar" && !b.disabled) void pescar();
+  if (b?.dataset.accion === "girar" && !b.disabled) void girarRuleta();
+  if (b?.dataset.accion === "pescar" && !b.disabled) void pescar();
   const compra = (e.target as HTMLElement).closest<HTMLButtonElement>("button[data-compra]");
   if (compra?.dataset.compra) {
     const [tipo, id] = compra.dataset.compra.split(":", 2);
