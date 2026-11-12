@@ -132,7 +132,7 @@ function main(): void {
     const estado = ruletaEstado(roulette, papu.id, status);
     return {
       ok: true,
-      datos: { ...estado, tiradas: 0, usadas: 0, extras: [], casillas: [], soloLectura: true },
+      datos: { ...estado, tiradas: 0, usadas: 0, extras: [], soloLectura: true },
     };
   };
   // Pesca de prueba: calcula la recompensa con XP real, pero NUNCA la escribe en SQLite.
