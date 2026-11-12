@@ -89,7 +89,7 @@ export async function mundo(request: Request, env: MundoApiEnv): Promise<Respons
         if (a) aspectos[r.papu_id] = a;
       }
     }
-    return Response.json({ estado, aspectos }, { headers: { "Cache-Control": "public, max-age=60" } });
+    return Response.json({ estado, aspectos }, { headers: { "Cache-Control": "no-store" } });
   }
 
   // Lo demas lo atiende la trivia, con la misma ruta bajo /actividad/api/.
