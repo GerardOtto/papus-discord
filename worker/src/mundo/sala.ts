@@ -379,7 +379,7 @@ export class SalaMundo implements DurableObject {
       } catch {
         resultado = { ok: false, motivo: "No me llegó la respuesta. Inténtalo de nuevo." };
       }
-      if (r.accion === "ruleta.girar" && resultado.ok) {
+      if ((r.accion === "ruleta.girar" || r.accion === "ruleta.descartar") && resultado.ok) {
         const g = resultado.datos as RuletaGiro;
         await this.girar({ ...g.giro, papu: r.papu_id, nombre: r.papu_nombre, origen: "plaza" });
         await this.registrar(null, "teto", "teto", `🎰 ${r.papu_nombre} giró la ruleta grande: ${g.texto}`);
