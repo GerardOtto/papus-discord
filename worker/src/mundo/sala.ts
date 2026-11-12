@@ -13,7 +13,7 @@ import moderacion from "../../../config/moderacion.json";
 import { RuleSet, type ModerationSettings } from "../../../src/moderation/rules";
 import { identificar } from "../actividad/identidad";
 import { ACCION_MIN_MS, ACCION_VENCE_MS, avanzar, COLA_VACIA, esAccion, formar, GIRO_MS, proximoCambio, type ColaRuleta, type Giro, type Resultado, type RuletaGiro } from "./acciones";
-import { aparicion, ASPECTO_INICIAL, CHAT_MIN_MS, destino, HISTORIAL, leerPose, limpiarChat, MAX_PAPUS, mencionados, MOV_MIN_MS, moverValido, validarAspecto, ZONAS } from "./juego";
+import { aparicion, asientoDisponible, ASPECTO_INICIAL, CHAT_MIN_MS, destino, HISTORIAL, leerPose, limpiarChat, MAX_PAPUS, mencionados, MOV_MIN_MS, moverValido, poseAsientoFogata, validarAspecto, ZONAS } from "./juego";
 import type { Aspecto, Aviso, PapuPublico, Pedido, Respuesta } from "./tipos";
 import { simular } from "./simulado";
 import { COOKIE_TOKEN, leerCookie } from "./web";
@@ -198,17 +198,13 @@ export class SalaMundo implements DurableObject {
       }
       if (m.sentado) {
         if (ficha.sentado) return;
-        const ocupados = new Set(this.conectados().flatMap((c) => c.ficha.asiento === undefined ? [] : [c.ficha.asiento]));
-        const asiento = Array.from({ length: 6 }, (_, i) => i).find((i) => !ocupados.has(i));
-        if (asiento === undefined) return this.enviar(ws, { t: "aviso", texto: "Todos los troncos están ocupados. Espera a que alguien se levante. 🔥" });
+        const asiento = asientoDisponible(this.conectados().flatMap((c) => c.ficha.asiento === undefined ? [] : [c.ficha.asiento]));
+        if (asiento === null) return this.enviar(ws, { t: "aviso", texto: "Todos los troncos están ocupados. Espera a que alguien se levante. 🔥" });
+        const pose = poseAsientoFogata(fogata, asiento);
+        if (!pose) return this.enviar(ws, { t: "aviso", texto: "No pude reservar un tronco. Inténtalo de nuevo. 🔥" });
         ficha.sentado = true;
         ficha.asiento = asiento;
-        const angulo = (asiento / 6) * Math.PI * 2 + 0.3;
-        papu.x = fogata.x + Math.cos(angulo) * 3;
-        papu.z = fogata.z + Math.sin(angulo) * 3;
-        papu.r = angulo + Math.PI;
-        papu.a = 0;
-        papu.m = 0;
+        Object.assign(papu, pose);
         ficha.movAt = now;
         ws.serializeAttachment(ficha);
         this.enviar(ws, { t: "corrige", x: papu.x, z: papu.z, r: papu.r, a: 0, m: 0 });
