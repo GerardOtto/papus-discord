@@ -624,7 +624,7 @@ export class PapusApp {
               await this.grantRole(papu.id, compra.rol, "Compra en el mercado negro desde la Plaza");
               rol = `También recibiste el rol ${compra.rol}.`;
             } catch {
-              rol = "La compra se guardó; el rol se asignará cuando Discord vuelva a estar disponible.";
+              rol = "La compra se guardó, pero no pude asignar el rol. Contacta al staff para que lo revise.";
             }
           }
           return { ok: true, datos: { mensaje: `¡Compraste ${compra.objeto.nombre}! ${rol}`, wallet: compra.wallet } };
