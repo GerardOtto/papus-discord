@@ -34,7 +34,7 @@ const op = (id: string, extra: Partial<PreguntaPool> = {}): PreguntaPool => ({
 });
 const tx = (id: string): PreguntaPool => ({ ...op(id), tipo: "texto", respuesta: "Kasane Teto", otras: [], aceptadas: ["Kasane Teto", "teto"] });
 
-function setup(preguntas: PreguntaPool[] = [op("a"), op("b"), op("c"), op("d")], xp: (p: string, r: number) => number | null = (_p, r) => 10 * r) {
+function setup(preguntas: PreguntaPool[] = [op("a"), op("b"), op("c"), op("d")], xp: (p: string, r: number, factor?: number) => number | null = (_p, r, factor = 1) => 10 * r * factor) {
   let now = 1_000_000;
   const sala = new Sala({ pool: preguntas, now: () => now, rnd: seededRng(3), xp });
   const unir = (...ids: string[]) => ids.forEach((id) => sala.unir({ id, nombre: id.toUpperCase(), avatar: "x.png" }));
