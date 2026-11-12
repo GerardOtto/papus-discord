@@ -1067,14 +1067,16 @@ function pintarCatalogo(tipo: TipoCatalogo, datos: Record<string, unknown>): str
 async function abrirCatalogo(tipo: TipoCatalogo): Promise<void> {
   const titulo = tipo === "tienda" ? "🛍️ Tienda Shaula" : "🕶️ Mercado negro";
   ventana.abrir(tipo, titulo, '<p class="v-cargando">Consultando la vitrina…</p>');
-  const r = await pedir(`${tipo}.estado`);
+  const accion: Accion = tipo === "tienda" ? "tienda.estado" : "mercado.estado";
+  const r = await pedir(accion);
   if (!r.ok) return ventana.poner(tipo, `<p class="v-error">${esc(r.motivo)}</p>`);
   ventana.poner(tipo, pintarCatalogo(tipo, r.datos as Record<string, unknown>));
 }
 
 async function comprarObjeto(tipo: TipoCatalogo, id: string): Promise<void> {
   ventana.poner(tipo, '<p class="v-cargando">Procesando la compra…</p>');
-  const r = await pedir(`${tipo}.comprar`, { id });
+  const accion: Accion = tipo === "tienda" ? "tienda.comprar" : "mercado.comprar";
+  const r = await pedir(accion, { id });
   if (!r.ok) {
     aviso(r.motivo);
     return abrirCatalogo(tipo);
