@@ -867,6 +867,7 @@ function cuadro(): void {
     r.position.z += (o.objetivo.z - r.position.z) * k;
     r.rotation.y = girar(r.rotation.y, o.objetivo.r, k);
     o.p.animar(t, o.objetivo.a, !!o.objetivo.m, o.desfase);
+    o.p.raiz.scale.y = o.sentado ? 0.72 : 1;
   }
 
   if (teto) {
