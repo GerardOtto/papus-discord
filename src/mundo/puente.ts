@@ -310,7 +310,7 @@ export class MundoPuente {
     const viejo = this.now() - DIA_MS;
     await this.d.query("DELETE FROM mundo_eventos WHERE creado_at < ?", viejo);
     await this.d.query("DELETE FROM mundo_acciones WHERE creado_at < ?", viejo);
-    if (this.d.tarjetaPublica) {
+    if (this.tarjetaPublica) {
       await this.d.query("DELETE FROM mundo_tarjeta_pedidos WHERE creado_at < ? AND entregado = 1", viejo);
       const tarjetasViejas = this.now() - 7 * DIA_MS;
       await this.d.query("DELETE FROM mundo_tarjeta_partes WHERE papu_id IN (SELECT papu_id FROM mundo_tarjetas WHERE actualizado_at < ?)", tarjetasViejas);
