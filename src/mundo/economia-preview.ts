@@ -411,7 +411,7 @@ export class EconomiaPlazaPreview {
       return {
         id: o.id, nombre: o.nombre, emoji: o.emoji, descripcion: o.descripcion,
         rareza: permanente ? "contrabando" : "raro", precio: o.precio,
-        usos, owned, activable: o.efecto === "microfono" && usos > 0 && !microfonoActivo, activo: microfonoActivo,
+        usos, owned, activable: (o.efecto === "microfono" && usos > 0 && !microfonoActivo) || (o.id === "pc-adachi-rei" && usos > 0), activo: microfonoActivo,
       };
     });
     return ok({
