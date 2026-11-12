@@ -149,12 +149,15 @@ export class MundoPuente {
   estado: (() => EstadoMundo) | null = null;
   /** Acciones de la plaza que sabe atender el bot (las demas responden "aun no"). Las conecta Discord. */
   acciones: Partial<Record<Accion, Atender>> = {};
+  /** Renderizador público de /nivel; el bot principal lo conecta al arrancar. */
+  tarjetaPublica: MundoDeps["tarjetaPublica"];
   private estadoAt = 0;
   private estadoHuella = "";
   private limpiezaAt = 0;
 
   constructor(private readonly d: MundoDeps) {
     this.now = d.now ?? Date.now;
+    this.tarjetaPublica = d.tarjetaPublica;
     this.conversation = d.makeConversation(this.port());
   }
 
@@ -212,7 +215,7 @@ export class MundoPuente {
       for (const p of pedidos) await this.guardarPerfil(p.papu_id);
     }
     if (hay?.chat) await this.registro();
-    if (this.d.tarjetaPublica) {
+    if (this.tarjetaPublica) {
       const [pendientes] = await this.d.query<{ total: number }>("SELECT COUNT(*) AS total FROM mundo_tarjeta_pedidos WHERE estado = 0");
       if (pendientes?.total) await this.generarTarjetas();
     }
@@ -447,8 +450,8 @@ export class MundoPuente {
           await this.d.query("UPDATE mundo_tarjeta_pedidos SET estado = 1 WHERE papu_id = ? AND estado = 0", papu_id);
           continue;
         }
-        if (!this.d.tarjetaPublica) throw new Error("El renderizador de tarjetas no está conectado.");
-        const card = await this.d.tarjetaPublica(papu_id);
+        if (!this.tarjetaPublica) throw new Error("El renderizador de tarjetas no está conectado.");
+        const card = await this.tarjetaPublica(papu_id);
         if (!card?.data?.length) throw new Error("No se pudo generar la tarjeta.");
         if (card.data.length > 600_000) throw new Error("La tarjeta supera el tamaño permitido para la Plaza.");
         const encoded = card.data.toString("base64");
