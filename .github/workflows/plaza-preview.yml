@@ -50,7 +50,7 @@ jobs:
         run: npm run typecheck
       - name: Typecheck Worker, trivia and plaza (profiles)
         run: npm run worker:typecheck
-      - name: Test fishing XP reward rules
+      - name: Test isolated economy, fishing and roulette
         run: npm test -- tests/pesca/reglas.test.ts tests/mundo/ruleta-preview.test.ts tests/mundo/economia-preview.test.ts
 
       - name: Build plaza and trivia assets
