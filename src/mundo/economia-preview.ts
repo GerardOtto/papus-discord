@@ -53,7 +53,7 @@ interface EstadoSandbox {
   regalosSecuencia?: number;
   regalosPendientes?: Record<string, { para: string; day: string }>;
   regalosRecibidos?: string[];
-  atunPendiente?: { day: string; index: number; giros: number; gastoUso: boolean; xp: number; mensajes: number; sobres: number; subioAntes?: string; nivelAntes: number; bonoNivel?: number };
+  atunPendiente?: { day: string; index: number; giros: number; gastoUso: boolean; aplicado?: boolean; xp?: number; mensajes?: number; sobres?: number; subioAntes?: string; nivelAntes?: number; bonoNivel?: number };
   monedasDia?: string;
   xpSandboxDia?: number;
   monedasActividadDia?: number;
@@ -859,6 +859,33 @@ export class EconomiaPlazaPreview {
     return { xp, mensajes, sobres, titulo, subtitulo, texto, subioAntes, nivelAntes: levelBefore, bonoNivel };
   }
 
+  private tiradasDisponibles(state: EstadoSandbox, userId: string, now: number, day: string, real: ReturnType<RouletteService["status"]>): number {
+    const nivelYaContado = real.missions.some((m) => m.id === "nivel" && m.done);
+    const extraNivel = state.subioDia === day && !nivelYaContado ? 1 : 0;
+    const voz = real.missions.find((m) => m.id === "voz");
+    const vozActual = this.d.levels.store.dayStats(userId, day).vozMin;
+    const extraMicrofono = state.microfonoDia === day && !!state.microfonoMinutos && !!voz && !voz.done && vozActual >= state.microfonoMinutos ? 1 : 0;
+    const disponibles = real.left
+      + (state.ruletaResetDia === day ? state.ruletaResetUsadas ?? 0 : 0)
+      + (state.ruletaRegaloDia === day ? state.ruletaRegalos ?? 0 : 0)
+      + extraNivel + extraMicrofono + (state.ruletaGuardadas ?? 0);
+    const usadas = state.ruletaDia === day ? state.ruletaUsadas : 0;
+    return Math.max(0, disponibles - usadas);
+  }
+
+  private giroPendiente(userId: string, nombre: string, index: number, girosRestantes: number, usos: number, tiradas: number): {
+    giro: { papu: string; nombre: string; index: number; titulo: string; subtitulo: string; origen: string };
+    texto: string; tiradas: number; sandbox: true; atun: { girosRestantes: number; usos: number };
+  } {
+    const premio = this.d.roulette.settings.premios[index];
+    const etiqueta = premio?.etiqueta ?? "Premio de la ruleta";
+    return {
+      giro: { papu: userId, nombre, index, titulo: `🐟 ${etiqueta}`, subtitulo: "Premio pendiente · todavía no aplicado", origen: "plaza" },
+      texto: `${etiqueta}: premio reservado. Acéptalo o descártalo con el Atún de Luka.`,
+      tiradas, sandbox: true, atun: { girosRestantes, usos },
+    };
+  }
+
   private async girarRuleta(userId: string, nombre: string): Promise<Resultado> {
     const now = this.now();
     await this.actualizarDisquete(userId);
@@ -867,95 +894,87 @@ export class EconomiaPlazaPreview {
     const real = this.d.roulette.status(userId, now);
     if (real.blocked) return error("🚫 Neru te dio un machetazo: sin ruleta por ahora.");
     return this.cambiar(userId, (s) => {
+      const pending = s.atunPendiente;
+      if (pending?.aplicado === false) {
+        const aplicado = this.aplicarPremio(s, userId, day, now, pending.index);
+        if (!aplicado) return { result: error("El premio pendiente ya no está configurado."), changed: false };
+        if (s.ruletaDia !== pending.day) { s.ruletaDia = pending.day; s.ruletaUsadas = 0; }
+        s.ruletaUsadas++;
+        s.atunPendiente = undefined;
+        return { result: ok({ giro: { papu: userId, nombre, index: pending.index, titulo: `🧪 ${aplicado.titulo}`, subtitulo: aplicado.subtitulo, origen: "plaza" }, texto: aplicado.texto, tiradas: this.tiradasDisponibles(s, userId, now, day, real), sandbox: true }) };
+      }
+      // Compatibilidad con ledgers anteriores: el premio antiguo ya se había acreditado al sortear.
+      if (pending) s.atunPendiente = undefined;
       if (s.ruletaDia !== day) { s.ruletaDia = day; s.ruletaUsadas = 0; }
-      // Girar de nuevo acepta el premio pendiente anterior; el descarte es la única forma de re-sortearlo.
-      if (s.atunPendiente) s.atunPendiente = undefined;
-      const nivelYaContado = real.missions.some((m) => m.id === "nivel" && m.done);
-      const misionNivelSandbox = s.subioDia === day && !nivelYaContado;
-      const voz = real.missions.find((m) => m.id === "voz");
-      const vozActual = this.d.levels.store.dayStats(userId, day).vozMin;
-      const misionVozSandbox = s.microfonoDia === day && !!s.microfonoMinutos && !!voz && !voz.done && vozActual >= s.microfonoMinutos;
-      const disponibles = real.left + (s.ruletaResetDia === day ? s.ruletaResetUsadas ?? 0 : 0) + (s.ruletaRegaloDia === day ? s.ruletaRegalos ?? 0 : 0) + (misionNivelSandbox ? 1 : 0) + (misionVozSandbox ? 1 : 0) + (s.ruletaGuardadas ?? 0);
-      if (s.ruletaUsadas >= disponibles) return { result: error("No te quedan tiradas disponibles. Cumple una misión y vuelve a intentarlo."), changed: false };
-      const premios = this.d.roulette.settings.premios.map((p) => p.tipo === "sobre" && !this.d.coins ? { ...p, peso: 0 } : p);
-      const index = pickPrize({ premios }, this.rnd);
-      const aplicado = this.aplicarPremio(s, userId, day, now, index);
-      if (!aplicado) return { result: error("La ruleta no tiene premios configurados."), changed: false };
-      s.ruletaUsadas++;
+      const disponibles = this.tiradasDisponibles(s, userId, now, day, real);
+      if (disponibles <= 0) return { result: error("No te quedan tiradas disponibles. Cumple una misión y vuelve a intentarlo."), changed: false };
+      const index = pickPrize({ premios: this.d.roulette.settings.premios.map((p) => p.tipo === "sobre" && !this.d.coins ? { ...p, peso: 0 } : p) }, this.rnd);
       const atun = this.d.mercado?.byId.get("atun-luka");
       const usosAtun = s.consumibles["atun-luka"] ?? 0;
       if (atun?.efecto === "atun" && usosAtun > 0 && (atun.giros ?? 0) > 0) {
-        s.atunPendiente = { day, index, giros: 0, gastoUso: false, xp: aplicado.xp, mensajes: aplicado.mensajes, sobres: aplicado.sobres, subioAntes: aplicado.subioAntes, nivelAntes: aplicado.nivelAntes, bonoNivel: aplicado.bonoNivel };
+        s.atunPendiente = { day, index, giros: 0, gastoUso: false, aplicado: false };
+        return { result: ok(this.giroPendiente(userId, nombre, index, atun.giros ?? 0, usosAtun, disponibles)) };
       }
-      const girosRestantes = s.atunPendiente ? Math.max(0, (atun?.giros ?? 0) - s.atunPendiente.giros) : 0;
-      return {
-        result: ok({
-          giro: { papu: userId, nombre, index, titulo: `🧪 ${aplicado.titulo}`, subtitulo: aplicado.subtitulo, origen: "plaza" },
-          texto: aplicado.texto, tiradas: Math.max(0, disponibles - s.ruletaUsadas), sandbox: true,
-          ...(s.atunPendiente ? { atun: { girosRestantes, usos: usosAtun } } : {}),
-        }),
-      };
+      const aplicado = this.aplicarPremio(s, userId, day, now, index);
+      if (!aplicado) return { result: error("La ruleta no tiene premios configurados."), changed: false };
+      s.ruletaUsadas++;
+      return { result: ok({ giro: { papu: userId, nombre, index, titulo: `🧪 ${aplicado.titulo}`, subtitulo: aplicado.subtitulo, origen: "plaza" }, texto: aplicado.texto, tiradas: this.tiradasDisponibles(s, userId, now, day, real), sandbox: true }) };
     });
   }
 
   private async aceptarAtun(userId: string): Promise<Resultado> {
-    const day = this.d.roulette.dayOf(this.now());
+    const now = this.now();
+    const day = this.d.roulette.dayOf(now);
+    await this.actualizarDisquete(userId);
     return this.cambiar(userId, (s) => {
-      if (!s.atunPendiente) return { result: error("No tienes un premio pendiente que aceptar."), changed: false };
-      if (s.atunPendiente.day !== day) {
+      const pending = s.atunPendiente;
+      if (!pending) return { result: error("No tienes un premio pendiente que aceptar."), changed: false };
+      if (pending.aplicado === false) {
+        const aplicado = this.aplicarPremio(s, userId, day, now, pending.index);
+        if (!aplicado) return { result: error("El premio pendiente ya no está configurado."), changed: false };
+        if (s.ruletaDia === pending.day) s.ruletaUsadas++;
+        else if (pending.day === day) { s.ruletaDia = day; s.ruletaUsadas = 1; }
         s.atunPendiente = undefined;
-        return { result: ok({ mensaje: "El premio anterior ya estaba aplicado; se limpió el estado pendiente.", sandbox: true }) };
+        return { result: ok({ mensaje: `🐟 Premio aceptado: ${aplicado.titulo}. ${aplicado.texto}`, wallet: s.wallet, sandbox: true }) };
       }
       s.atunPendiente = undefined;
-      return { result: ok({ mensaje: "🐟 ¡Premio aceptado! Ya puedes usar tus monedas y consumibles de prueba.", sandbox: true }) };
+      return { result: ok({ mensaje: "🐟 Premio anterior confirmado; ya estaba aplicado en tu progreso de prueba.", wallet: s.wallet, sandbox: true }) };
     });
   }
+
   private async descartarAtun(userId: string, nombre: string): Promise<Resultado> {
     const now = this.now();
     const day = this.d.roulette.dayOf(now);
     const real = this.d.roulette.status(userId, now);
-    if (!this.d.levels.canEarn(userId, now) || real.blocked) return error("Neru bloqueó la ruleta: no puedes descartar premios ahora.");
+    if (real.blocked) return error("Neru bloqueó la ruleta: no puedes descartar premios ahora.");
     return this.cambiar(userId, (s) => {
       const pending = s.atunPendiente;
       const objeto = this.d.mercado?.byId.get("atun-luka");
-      if (!pending || pending.day !== day || objeto?.efecto !== "atun") return { result: error("No tienes un giro pendiente que puedas descartar."), changed: false };
+      if (!pending || pending.day !== day || objeto?.efecto !== "atun") return { result: error("No tienes un giro pendiente que puedas descartar hoy."), changed: false };
       const maxGiros = objeto.giros ?? 0;
       if (pending.giros >= maxGiros) return { result: error("Ya usaste todos los descartes de este giro."), changed: false };
-      if (!pending.gastoUso) {
-        const usos = s.consumibles["atun-luka"] ?? 0;
-        if (usos <= 0) return { result: error("No te quedan usos del Atún de Luka."), changed: false };
-        s.consumibles["atun-luka"] = usos - 1;
+      if (pending.aplicado !== false) {
+        s.xp = Math.max(0, s.xp - (pending.xp ?? 0));
+        this.recalcularMonedasActividad(s, userId, day, -(pending.xp ?? 0));
+        if (pending.bonoNivel) s.wallet.ganadas = Math.max(0, s.wallet.ganadas - pending.bonoNivel);
+        if (s.cuotaExtraDia === day) s.cuotaExtra = Math.max(0, s.cuotaExtra - (pending.mensajes ?? 0));
+        s.wallet.gratis = Math.max(0, s.wallet.gratis - (pending.sobres ?? 0));
+        if (pending.nivelAntes !== undefined && progress(this.d.levels.settings, s.xp).level > pending.nivelAntes) s.subioDia = day;
+        else if (pending.subioAntes !== undefined) s.subioDia = pending.subioAntes;
+        else if (s.subioDia === day) s.subioDia = "";
       }
-      s.xp = Math.max(0, s.xp - pending.xp);
-      this.recalcularMonedasActividad(s, userId, day, -pending.xp);
-      if (pending.bonoNivel) s.wallet.ganadas = Math.max(0, s.wallet.ganadas - pending.bonoNivel);
-      if (s.cuotaExtraDia === day) s.cuotaExtra = Math.max(0, s.cuotaExtra - pending.mensajes);
-      s.wallet.gratis = Math.max(0, s.wallet.gratis - pending.sobres);
-      if (progress(this.d.levels.settings, s.xp).level > pending.nivelAntes) s.subioDia = day;
-      else if (pending.subioAntes !== undefined) s.subioDia = pending.subioAntes;
-      else if (s.subioDia === day) s.subioDia = "";
-      const premios = this.d.roulette.settings.premios.map((p) => p.tipo === "sobre" && !this.d.coins ? { ...p, peso: 0 } : p);
-      const index = pickPrize({ premios }, this.rnd);
-      const aplicado = this.aplicarPremio(s, userId, day, now, index);
-      if (!aplicado) return { result: error("No pude sortear un nuevo premio."), changed: false };
+      let usos = s.consumibles["atun-luka"] ?? 0;
+      if (!pending.gastoUso) {
+        if (usos <= 0) return { result: error("No te quedan usos del Atún de Luka."), changed: false };
+        s.consumibles["atun-luka"] = --usos;
+      }
+      const index = pickPrize({ premios: this.d.roulette.settings.premios.map((p) => p.tipo === "sobre" && !this.d.coins ? { ...p, peso: 0 } : p) }, this.rnd);
       const giros = pending.giros + 1;
-      const gastoUso = true;
-      s.atunPendiente = { day, index, giros, gastoUso, xp: aplicado.xp, mensajes: aplicado.mensajes, sobres: aplicado.sobres, subioAntes: pending.subioAntes, nivelAntes: pending.nivelAntes, bonoNivel: aplicado.bonoNivel };
-      const usos = s.consumibles["atun-luka"] ?? 0;
-      const nivelYaContado = real.missions.some((m) => m.id === "nivel" && m.done);
-      const misionNivelSandbox = s.subioDia === day && !nivelYaContado;
-      const voz = real.missions.find((m) => m.id === "voz");
-      const vozActual = this.d.levels.store.dayStats(userId, day).vozMin;
-      const misionVozSandbox = s.microfonoDia === day && !!s.microfonoMinutos && !!voz && !voz.done && vozActual >= s.microfonoMinutos;
-      const disponibles = real.left + (s.ruletaResetDia === day ? s.ruletaResetUsadas ?? 0 : 0) + (misionNivelSandbox ? 1 : 0) + (misionVozSandbox ? 1 : 0) + (s.ruletaGuardadas ?? 0);
-      return {
-        result: ok({
-          giro: { papu: userId, nombre, index, titulo: `🧪 ${aplicado.titulo}`, subtitulo: aplicado.subtitulo, origen: "plaza" },
-          texto: `Atún de Luka: premio descartado. ${aplicado.texto}`,
-          tiradas: Math.max(0, disponibles - s.ruletaUsadas), sandbox: true,
-          atun: { girosRestantes: Math.max(0, maxGiros - giros), usos },
-        }),
-      };
+      s.atunPendiente = { day, index, giros, gastoUso: true, aplicado: false };
+      return { result: ok({
+        ...this.giroPendiente(userId, nombre, index, Math.max(0, maxGiros - giros), usos, this.tiradasDisponibles(s, userId, now, day, real)),
+        texto: `🐟 Premio descartado. ${this.d.roulette.settings.premios[index]?.etiqueta ?? "Nuevo premio"} reservado para aceptar.`,
+      }) };
     });
   }
 
