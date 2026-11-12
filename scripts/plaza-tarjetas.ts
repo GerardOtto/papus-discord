@@ -1,4 +1,4 @@
-// Puente aislado de tarjetas y misiones de la Plaza preview: npm run plaza:tarjetas (docs/PLAZA_PREVIEW.md).
+// Puente aislado de tarjetas, economía y actividades de la Plaza preview: npm run plaza:tarjetas (docs/PLAZA_PREVIEW.md).
 // Proceso aparte de los bots: no se conecta a Discord como bot (solo REST con el token de Teto), lee la base de los bots
 // en SOLO LECTURA y escribe únicamente en el D1 del preview (PLAZA_PREVIEW_D1_DATABASE_ID, nunca el de producción).
 //
