@@ -26,6 +26,7 @@ export interface Acierto {
   dificultad: Dificultad;
   racha: number;
   xp: number | null;
+  factor: number;
 }
 
 interface Jugador {
@@ -67,7 +68,7 @@ export interface SalaDeps {
   now?: () => number;
   rnd?: () => number;
   /** XP de un acierto con esa racha (null = aun no se sabe; Teto la calcula igual al aplicarla). */
-  xp?: (papu: string, racha: number) => number | null;
+  xp?: (papu: string, racha: number, factor?: number) => number | null;
   /** Ruta de los archivos de imagen y audio. */
   mediaBase?: string;
 }
@@ -95,6 +96,10 @@ export class Sala {
   private finInfo: Vista["fin"] | null = null;
   private contador = 0;
   private aciertos: Acierto[] = [];
+  private readonly extras = new Map<string, { celular: number; guitarra: number; zanahoria: number; baguette: number }>();
+  private readonly ocultas = new Map<string, { nonce: string; indices: number[] }>();
+  private readonly guitarras = new Set<string>();
+  private readonly zanahorias = new Map<string, string>();
   private readonly now: () => number;
   private readonly rnd: () => number;
 
@@ -105,6 +110,13 @@ export class Sala {
 
   // ───────────────────────── Papus ─────────────────────────
 
+  setConsumibles(id: string, x: { celular: number; guitarra: number; zanahoria: number; baguette: number }): void { this.extras.set(id, x); }
+  puedeCelular(id: string, nonce: string): boolean { const r=this.ronda,j=this.jugadores.get(id); return !!r&&this.fase==="pregunta"&&r.nonce===nonce&&!!j?.juega&&(this.modo==="cooperativo"||j.vivo)&&r.pregunta.tipo==="opciones"&&r.opciones.length>=4&&this.ocultas.get(id)?.nonce!==nonce&&(this.extras.get(id)?.celular??0)>0; }
+  usarCelular(id: string, nonce: string): boolean { if(!this.puedeCelular(id,nonce))return false;const r=this.ronda!,wrong=r.opciones.map((_,i)=>i).filter(i=>i!==r.correcta);for(let i=wrong.length-1;i>0;i--){const j=Math.floor(this.rnd()*(i+1));[wrong[i],wrong[j]]=[wrong[j]!,wrong[i]!];}this.ocultas.set(id,{nonce,indices:wrong.slice(0,2)});return true; }
+  puedeGuitarra(id:string,nonce:string):boolean {const j=this.jugadores.get(id);return !!this.ronda&&this.fase==="pregunta"&&this.ronda.nonce===nonce&&!!j?.juega&&(this.modo==="cooperativo"||j.vivo)&&!this.guitarras.has(id)&&(this.extras.get(id)?.guitarra??0)>0;}
+  usarGuitarra(id:string,nonce:string):boolean {if(!this.puedeGuitarra(id,nonce))return false;this.guitarras.add(id);return true;}
+  puedeZanahoria(id:string,nonce:string,tema:string):boolean {const j=this.jugadores.get(id);return !!this.ronda&&this.fase==="pregunta"&&this.ronda.nonce===nonce&&!!j?.juega&&(this.modo==="cooperativo"||j.vivo)&&this.zanahorias.get(id)!==nonce&&(this.extras.get(id)?.zanahoria??0)>0&&this.orden.some(q=>(q.tema??q.categoria)===tema);}
+  usarZanahoria(id:string,nonce:string,tema:string):boolean {if(!this.puedeZanahoria(id,nonce,tema))return false;const i=this.orden.findIndex(q=>(q.tema??q.categoria)===tema);const [q]=this.orden.splice(i,1);this.orden.unshift(q!);this.zanahorias.set(id,nonce);return true;}
   /** Entra (o vuelve) un Papu. Si la partida ya empezo y no jugaba, mira hasta la siguiente. */
   unir(p: { id: string; nombre: string; avatar: string }): { ok: boolean; motivo?: string } {
     const prev = this.jugadores.get(p.id);
@@ -174,6 +186,7 @@ export class Sala {
       else Object.assign(j, { juega: true, vivo: true, fallo: false, racha: 0, aciertos: 0, xp: 0 });
     }
     this.empezaron = this.jugadores.size;
+    this.guitarras.clear(); this.ocultas.clear(); this.zanahorias.clear();
     this.orden = barajar(preguntas, this.rnd);
     this.jugadas = 0;
     this.finInfo = null;
@@ -247,9 +260,10 @@ export class Sala {
       if (ok) {
         j.racha++;
         j.aciertos++;
-        xp = this.d.xp ? this.d.xp(j.id, j.racha) : null;
+        const factor = this.guitarras.has(j.id) ? 2 : 1;
+        xp = this.d.xp ? this.d.xp(j.id, j.racha, factor) : null;
         if (xp) j.xp += xp;
-        this.aciertos.push({ papu: j.id, pregunta: q.id, dificultad: q.dificultad, racha: j.racha, xp });
+        this.aciertos.push({ papu: j.id, pregunta: q.id, dificultad: q.dificultad, racha: j.racha, xp, factor });
       } else {
         j.racha = 0;
         fallaron.push(j);
@@ -350,6 +364,8 @@ export class Sala {
         tipo: q.tipo,
         texto: q.texto,
         opciones: r.opciones,
+        ocultas: this.ocultas.get(yo)?.nonce===r.nonce ? this.ocultas.get(yo)!.indices : [],
+        temas: [...new Set(this.orden.map(q=>q.tema??q.categoria))].map(tema=>({tema,n:this.orden.filter(q=>(q.tema??q.categoria)===tema).length})).sort((a,b)=>b.n-a.n),
         ...(q.media ? { media: { tipo: q.media.tipo, url: `${this.d.mediaBase ?? "media/"}${q.media.archivo}` } } : {}),
         segundos: q.segundos,
         restante: Math.max(0, r.deadline - t),
@@ -367,6 +383,7 @@ export class Sala {
         };
       }
     }
+    v.consumibles = { celular:this.extras.get(yo)?.celular??0, guitarra:this.extras.get(yo)?.guitarra??0, zanahoria:this.extras.get(yo)?.zanahoria??0, baguette:this.extras.get(yo)?.baguette??0, guitarraActiva:this.guitarras.has(yo) };
     if (this.fase === "fin" && this.finInfo) v.fin = this.finInfo;
     return v;
   }
