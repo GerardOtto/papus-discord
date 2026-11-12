@@ -1114,9 +1114,10 @@ async function pescar(): Promise<void> {
     ventana.poner("pesca", `<p class="v-error">${esc(r.motivo)}</p><button class="v-boton" data-accion="pescar">Volver a intentar</button>`);
     return;
   }
-  const d = r.datos as { tamano: string; xp: number; porcentaje: number; texto: string; soloLectura?: boolean };
+  const d = r.datos as { tamano: string; xp: number; porcentaje: number; texto: string; nivelAntes?: number; nivelDespues?: number; soloLectura?: boolean };
   const emoji = d.tamano === "grande" ? "🦈" : d.tamano === "mediano" ? "🐠" : "🐟";
-  ventana.poner("pesca", `<div class="v-premio"><p class="v-premio-titulo">${emoji} ¡Buena captura!</p><p>${esc(d.texto)}</p></div>
+  const subida = d.nivelAntes !== undefined && d.nivelDespues !== undefined && d.nivelDespues > d.nivelAntes ? `<p class="v-premio-sub">🎉 ¡Subiste al nivel ${d.nivelDespues}!</p>` : "";
+  ventana.poner("pesca", `<div class="v-premio"><p class="v-premio-titulo">${emoji} ¡Buena captura!</p><p>${esc(d.texto)}</p>${subida}</div>
     ${d.soloLectura ? '<p class="v-nota">Vista previa: la recompensa se calculó con tu progreso real, pero no se aplicó XP.</p>' : '<p class="v-pie">La XP ya se sumó a tu nivel.</p>'}
     <button class="v-boton" data-accion="pescar">🎣 Volver a pescar</button>`);
 }
