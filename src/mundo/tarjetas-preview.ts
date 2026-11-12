@@ -164,9 +164,9 @@ export function crearPuentePreview(o: {
     owners: o.owners ?? new Set(),
     stats: o.stats,
     tarjetaPublica: o.tarjetaPublica,
-    // El chat local no se publica en Discord, pero se marca atendido para no acumular pendientes en D1.
-    onChat: async () => {},
     log: o.log,
   });
+  // El chat local no se publica en Discord, pero se marca atendido para no acumular pendientes en D1.
+  puente.onChat = async () => {};
   return { puente, databaseId, query };
 }
