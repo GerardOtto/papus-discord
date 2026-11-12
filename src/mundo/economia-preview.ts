@@ -715,6 +715,7 @@ export class EconomiaPlazaPreview {
     const day = this.d.roulette.dayOf(this.now());
     let actual = await this.cargar(userId);
     if (actual.state.atunPendiente && actual.state.atunPendiente.day !== day) {
+      await this.actualizarDisquete(userId);
       await this.cambiar(userId, (s) => {
         if (s.atunPendiente && s.atunPendiente.day !== day) s.atunPendiente = undefined;
         return { result: null };
