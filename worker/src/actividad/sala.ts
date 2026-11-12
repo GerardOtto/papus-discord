@@ -160,6 +160,7 @@ export class SalaTrivia implements DurableObject {
     for (const r of rows.results) {
       const prev = this.perfiles.get(r.papu_id);
       if (!prev || r.actualizado_at > prev.at) this.perfiles.set(r.papu_id, { base: r.xp_base, tope: r.tope, at: r.actualizado_at });
+      if (this.env.MUNDO_PREVIEW === "1") this.sala.setConsumibles(r.papu_id, await this.estadoConsumibles(r.papu_id));
     }
   }
 
