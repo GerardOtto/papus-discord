@@ -9,7 +9,7 @@ CREATE TABLE IF NOT EXISTS actividad_aciertos (
   id INTEGER PRIMARY KEY AUTOINCREMENT, partida TEXT NOT NULL, papu_id TEXT NOT NULL,
   pregunta TEXT NOT NULL, dificultad TEXT NOT NULL, racha INTEGER NOT NULL,
   xp_mostrada INTEGER, canal TEXT, creado_at INTEGER NOT NULL,
-  aplicado INTEGER NOT NULL DEFAULT 0, xp INTEGER
+  aplicado INTEGER NOT NULL DEFAULT 0, xp INTEGER, multiplicador INTEGER NOT NULL DEFAULT 1
 );
 CREATE INDEX IF NOT EXISTS preview_actividad_aciertos_pendientes ON actividad_aciertos (aplicado, id);
 CREATE TABLE IF NOT EXISTS mundo_menciones (
