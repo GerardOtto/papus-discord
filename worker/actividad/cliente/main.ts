@@ -185,6 +185,10 @@ app.addEventListener("click", (e) => {
   else if (b.dataset.eleccion) enviar({ t: "configurar", eleccion: b.dataset.eleccion as Eleccion });
   else if (b.dataset.accion === "empezar") (estado.aviso = ""), enviar({ t: "empezar" });
   else if (b.dataset.accion === "otra") enviar({ t: "otra" });
+  else if (b.dataset.consumible && vista?.pregunta) {
+    const tema = (document.getElementById("tema-zanahoria") as HTMLSelectElement | null)?.value;
+    enviar({ t: "consumible", objeto: b.dataset.consumible as "celular" | "guitarra" | "zanahoria", nonce: vista.pregunta.nonce, ...(tema ? { tema } : {}) });
+  }
 });
 
 app.addEventListener("submit", (e) => {
