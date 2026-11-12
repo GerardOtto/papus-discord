@@ -94,7 +94,6 @@ jobs:
           grep -q 'MUNDO_PREVIEW = "1"' worker/wrangler.preview.toml
           ! grep -q '^name = "papus-bots"' worker/wrangler.preview.toml
           grep -q 'wrangler deploy --config=worker/wrangler.preview.toml' .github/workflows/plaza-preview.yml
-          ! grep -q 'worker:deploy' .github/workflows/plaza-preview.yml
       - name: Deploy only papus-plaza-preview
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
