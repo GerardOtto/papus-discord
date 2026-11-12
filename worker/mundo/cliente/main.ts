@@ -1050,10 +1050,12 @@ type TipoCatalogo = "tienda" | "mercado";
 function pintarCatalogo(tipo: TipoCatalogo, datos: Record<string, unknown>): string {
   const objetos = Array.isArray(datos.objetos) ? datos.objetos as { id: string; nombre: string; descripcion: string; rareza?: string; emoji?: string; precio: number | null; usos?: number | null; owned: boolean }[] : [];
   const soloLectura = datos.soloLectura === true;
+  const sandbox = datos.sandbox === true;
   const abierto = tipo === "mercado" ? datos.abierto : datos.abierta;
   const wallet = datos.wallet && typeof datos.wallet === "object" ? datos.wallet as { ganadas?: number; compradas?: number } : null;
+  const proxima = datos.proximaApertura && typeof datos.proximaApertura === "object" ? (datos.proximaApertura as { abre?: number }).abre : undefined;
   const estado = tipo === "mercado"
-    ? abierto === null ? "Vista previa de solo lectura" : abierto ? "Neru está atendiendo" : "Neru mantiene el mercado cerrado"
+    ? abierto === null ? "Estado del mercado no disponible" : abierto ? "Neru está atendiendo" : proxima ? `Neru mantiene el mercado cerrado · abre ${new Date(proxima).toLocaleString("es-CL")}` : "Neru mantiene el mercado cerrado"
     : abierto ? "Vitrina disponible" : "No hay una vitrina activa";
   const saldo = wallet ? `<div class="v-monedero"><span>🪙 <small>Ganadas</small><b>${wallet.ganadas ?? 0}</b></span><span>💳 <small>Compradas</small><b>${wallet.compradas ?? 0}</b></span></div>` : "";
   const nombres: Record<string, string> = { comun:"Común", raro:"Raro", epico:"Épico", epica:"Épica", legendario:"Legendario", legendaria:"Legendaria", mitica:"Mítica", fundador:"Fundador", membresia:"Membresía", contrabando:"Contrabando" };
@@ -1078,7 +1080,7 @@ function pintarCatalogo(tipo: TipoCatalogo, datos: Record<string, unknown>): str
   const cabecera = `<div class="v-vitrina-cabeza"><div><span class="v-eyebrow">${tipo === "tienda" ? "COLECCIÓN SHAULA" : "PUESTO DE NERU"}</span><p class="v-nota">${esc(estado)}</p></div>${soloLectura ? '<span class="v-chip">Preview</span>' : abierto ? '<span class="v-chip verde">Abierto</span>' : '<span class="v-chip rojo">Cerrado</span>'}</div>`;
   return `${cabecera}${saldo}<h3 class="v-seccion">${tipo === "tienda" ? "Vitrina de temporada" : "Selección de hoy"}</h3>
     ${filas ? `<ul class="v-vitrina">${filas}</ul>` : '<div class="v-vacia"><span>🛍️</span><b>La vitrina está vacía</b><small>Vuelve más tarde para descubrir nuevos artículos.</small></div>'}
-    ${soloLectura ? '<p class="v-pie">Este entorno permite explorar y consultar el monedero, pero no realiza compras ni modifica el inventario.</p>' : ""}`;
+    ${soloLectura ? '<p class="v-pie">Este entorno permite explorar y consultar el monedero, pero no realiza compras ni modifica el inventario.</p>' : sandbox ? '<p class="v-pie">🧪 Las compras se guardan en tu colección y monedero de prueba. No descuentan monedas ni modifican el inventario de Discord.</p>' : ""}`;
 }
 
 async function abrirCatalogo(tipo: TipoCatalogo): Promise<void> {
@@ -1124,7 +1126,7 @@ async function pescar(): Promise<void> {
     ventana.poner("pesca", `<p class="v-error">${esc(r.motivo)}</p><button class="v-boton" data-accion="pescar">Volver a intentar</button>`);
     return;
   }
-  const d = r.datos as { tamano: string; xp: number; porcentaje: number; texto: string; nivelAntes?: number; nivelDespues?: number; soloLectura?: boolean };
+  const d = r.datos as { tamano: string; xp: number; porcentaje: number; texto: string; nivelAntes?: number; nivelDespues?: number; soloLectura?: boolean; sandbox?: boolean; xpTotalSandbox?: number };
   const grande = d.tamano === "grande", mediano = d.tamano === "mediano";
   const emoji = grande ? "🦈" : mediano ? "🐠" : "🐟";
   const nombre = grande ? "Pez grande" : mediano ? "Pez mediano" : "Pez pequeño";
@@ -1135,7 +1137,7 @@ async function pescar(): Promise<void> {
     <div class="v-captura-barra"><span style="width:${d.porcentaje}%"></span></div>
     <small>${d.porcentaje}% de la barra del nivel</small><p>${esc(d.texto)}</p>${subida}
   </div>
-  ${d.soloLectura ? '<p class="v-nota">Preview: la captura se calculó con tu progreso real, pero no modificó tu XP.</p>' : '<p class="v-pie">La XP ya se sumó a tu nivel.</p>'}
+  ${d.sandbox ? `<p class="v-nota">🧪 +XP guardada en tu progreso de prueba. Total sandbox: ${d.xpTotalSandbox?.toLocaleString("es-CL") ?? "actualizado"}. Tu XP de Discord permanece intacta.</p>` : d.soloLectura ? '<p class="v-nota">Preview: la captura se calculó con tu progreso real, pero no modificó tu XP.</p>' : '<p class="v-pie">La XP ya se sumó a tu nivel.</p>'}
   <button class="v-boton" data-accion="pescar">🎣 Volver a pescar</button>`);
 }
 
