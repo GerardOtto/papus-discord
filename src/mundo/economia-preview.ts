@@ -712,7 +712,15 @@ export class EconomiaPlazaPreview {
   private async usarConsumible(userId: string, datos: unknown): Promise<Resultado> {
     if (!this.d.mercado) return error("El inventario de consumibles no está habilitado.");
     const id = datos && typeof datos === "object" ? (datos as { id?: unknown }).id : null;
-    const actual = await this.cargar(userId);
+    const day = this.d.roulette.dayOf(this.now());
+    let actual = await this.cargar(userId);
+    if (actual.state.atunPendiente && actual.state.atunPendiente.day !== day) {
+      await this.cambiar(userId, (s) => {
+        if (s.atunPendiente && s.atunPendiente.day !== day) s.atunPendiente = undefined;
+        return { result: null };
+      }, false);
+      actual = await this.cargar(userId);
+    }
     if (actual.state.atunPendiente) return error("Acepta o descarta primero el premio pendiente del Atún de Luka antes de usar otros consumibles.");
     if (id === "pc-adachi-rei") {
       // Cierra los días anteriores antes de resetear ruletaDia; así el Disquete no pierde tiradas ya gastadas.
