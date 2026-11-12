@@ -41,11 +41,15 @@ interface Jugador {
   aciertos: number;
   xp: number;
   orden: number;
+  rachaFallida: number;
+  baguetteActiva: boolean;
+  rescatesBaguette: number;
 }
 
 interface Respuesta {
   opcion?: number;
   texto?: string;
+  salvado?: boolean;
 }
 
 interface Ronda {
@@ -117,6 +121,9 @@ export class Sala {
   usarGuitarra(id:string,nonce:string):boolean {if(!this.puedeGuitarra(id,nonce))return false;this.guitarras.add(id);return true;}
   puedeZanahoria(id:string,nonce:string,tema:string):boolean {const j=this.jugadores.get(id);return !!this.ronda&&this.fase==="pregunta"&&this.ronda.nonce===nonce&&!!j?.juega&&(this.modo==="cooperativo"||j.vivo)&&this.zanahorias.get(id)!==nonce&&(this.extras.get(id)?.zanahoria??0)>0&&this.orden.some(q=>(q.tema??q.categoria)===tema);}
   usarZanahoria(id:string,nonce:string,tema:string):boolean {if(!this.puedeZanahoria(id,nonce,tema))return false;const i=this.orden.findIndex(q=>(q.tema??q.categoria)===tema);const [q]=this.orden.splice(i,1);this.orden.unshift(q!);this.zanahorias.set(id,nonce);return true;}
+  pendientesRescateBaguette(): string[] { if(this.fase!=="revelar"||!this.ronda?.resultados)return [];return Object.entries(this.ronda.resultados).filter(([id,r])=>!r.ok&&!r.salvado&&(this.jugadores.get(id)?.rescatesBaguette??2)<2).map(([id])=>id); }
+  activarBaguette(id:string):void {const j=this.jugadores.get(id);if(j)j.baguetteActiva=true;}
+  rescatarBaguette(id:string):boolean {const j=this.jugadores.get(id),r=this.ronda?.resultados?.[id];if(this.fase!=="revelar"||!j||!r||r.ok||r.salvado||!j.baguetteActiva||j.rescatesBaguette>=2)return false;j.rescatesBaguette++;j.racha=j.rachaFallida;j.vivo=true;j.fallo=false;r.salvado=true;if(this.ronda?.caen)this.ronda.caen=this.ronda.caen.filter(x=>x!==id);return true;}
   /** Entra (o vuelve) un Papu. Si la partida ya empezo y no jugaba, mira hasta la siguiente. */
   unir(p: { id: string; nombre: string; avatar: string }): { ok: boolean; motivo?: string } {
     const prev = this.jugadores.get(p.id);
@@ -125,7 +132,7 @@ export class Sala {
     } else {
       if (this.jugadores.size >= MAX_JUGADORES) return { ok: false, motivo: `La sala está llena (${MAX_JUGADORES} Papus).` };
       const enJuego = this.fase === "pregunta" || this.fase === "revelar";
-      this.jugadores.set(p.id, { ...p, conectado: true, juega: !enJuego, vivo: !enJuego, fallo: false, racha: 0, aciertos: 0, xp: 0, orden: this.contador++ });
+      this.jugadores.set(p.id, { ...p, conectado: true, juega: !enJuego, vivo: !enJuego, fallo: false, racha: 0, aciertos: 0, xp: 0, orden: this.contador++, rachaFallida: 0, baguetteActiva: false, rescatesBaguette: 0 });
     }
     if (!this.host || !this.jugadores.get(this.host)?.conectado) this.host = p.id;
     return { ok: true };
@@ -183,7 +190,7 @@ export class Sala {
     if (!preguntas.length) return { ok: false, motivo: "No hay preguntas de esa dificultad." };
     for (const j of this.jugadores.values()) {
       if (!j.conectado) this.jugadores.delete(j.id);
-      else Object.assign(j, { juega: true, vivo: true, fallo: false, racha: 0, aciertos: 0, xp: 0 });
+      else Object.assign(j, { juega: true, vivo: true, fallo: false, racha: 0, aciertos: 0, xp: 0, rachaFallida: 0, baguetteActiva: false, rescatesBaguette: 0 });
     }
     this.empezaron = this.jugadores.size;
     this.guitarras.clear(); this.ocultas.clear(); this.zanahorias.clear();
@@ -265,6 +272,7 @@ export class Sala {
         if (xp) j.xp += xp;
         this.aciertos.push({ papu: j.id, pregunta: q.id, dificultad: q.dificultad, racha: j.racha, xp, factor });
       } else {
+        j.rachaFallida = j.racha;
         j.racha = 0;
         fallaron.push(j);
       }
