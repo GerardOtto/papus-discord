@@ -188,7 +188,7 @@ const FICHAS: Record<ZonaId, string> = {
   tienda: "🛍️ <b>Tienda Shaula</b><br>Próximamente: sobres y objetos para tu tarjeta.",
   mercado: "🕶️ <b>Mercado negro</b> · Cerrado<br>Abre una hora al día, a hora sorpresa. Neru llega cuando abre.",
   ruleta: "🎰 <b>Ruleta grande</b><br>Gírala con las tiradas de tus misiones del día (las mismas que en Discord).",
-  escuela: "🏫 <b>Escuela de la trivia</b><br>Próximamente: entra a la trivia multijugador.",
+  escuela: "🏫 <b>Escuela de la trivia</b><br>Abre una partida multijugador con los Papus que entren a la misma sala.",
   estanque: "🎣 <b>Estanque</b><br>Próximamente: pesca peces chicos, medianos y grandes que dan XP.",
   fogata: "🔥 <b>Fogata</b><br>Un lugar para sentarse con otros Papus y Vocaloids.",
   altar: "💍 <b>Altar de bodas</b><br>Próximamente: aquí queda la boda más reciente.",
