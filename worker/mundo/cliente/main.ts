@@ -198,6 +198,13 @@ const FICHAS: Record<ZonaId, string> = {
 /** Lugares que se pueden usar desde su ficha (boton o tecla F). */
 const USAR: Partial<Record<ZonaId, { texto: string; abrir: () => void }>> = {
   ruleta: { texto: "🎰 Abrir la ruleta", abrir: () => abrirRuleta() },
+  escuela: {
+    texto: "🧠 Jugar trivia multijugador",
+    abrir: () => {
+      const w = window.open("/actividad/?sala=plaza", "_blank", "noopener,noreferrer");
+      if (!w) aviso("Tu navegador bloqueó la nueva pestaña. Permite ventanas emergentes para abrir la trivia.");
+    },
+  },
 };
 /** Hacia donde mira la camara aerea cerca de algo alto (a medio camino con el Papu): la rueda de la ruleta. */
 const FOCO: Partial<Record<ZonaId, { x: number; y: number; z: number }>> = {
