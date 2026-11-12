@@ -99,7 +99,19 @@ export class SalaTrivia implements DurableObject {
     }
     let aviso: string | undefined;
     if (m.t === "configurar") this.sala.configurar(id, m);
-    else if (m.t === "empezar") aviso = this.sala.empezar(id).motivo;
+    else if (m.t === "empezar") {
+      const permiso = this.sala.puedeEmpezar(id);
+      if (!permiso.ok) aviso = permiso.motivo;
+      else {
+        if (this.env.MUNDO_PREVIEW === "1") {
+          // Preparar el perfil de esta partida antes de arrancar el reloj de la primera pregunta.
+          this.partida = `${Date.now().toString(36)}-${this.state.id.toString().slice(0, 8)}`;
+          await Promise.all(this.sala.ids().map((papu) => this.pedirPerfil(papu).catch((e) => console.error("actividad preview: perfil previo al inicio", e))));
+        }
+        aviso = this.sala.empezar(id).motivo;
+        if (aviso && this.env.MUNDO_PREVIEW === "1") this.partida = "";
+      }
+    }
     else if (m.t === "responder") this.sala.responder(id, m.nonce, m);
     else if (m.t === "otra") this.sala.otra(id);
     else if (m.t === "consumible") await this.usarConsumible(id,m,ws);
@@ -229,8 +241,9 @@ export class SalaTrivia implements DurableObject {
     const fase = this.sala.fase;
     if (fase === "sala" && this.faseAnterior !== "sala") this.partida = "";
     if (fase === "pregunta" && this.faseAnterior !== "pregunta" && this.faseAnterior !== "revelar") {
-      this.partida = `${Date.now().toString(36)}-${this.state.id.toString().slice(0, 8)}`;
-      if (this.env.MUNDO_PREVIEW === "1") {
+      const partidaNueva = !this.partida;
+      if (partidaNueva) this.partida = `${Date.now().toString(36)}-${this.state.id.toString().slice(0, 8)}`;
+      if (this.env.MUNDO_PREVIEW === "1" && partidaNueva) {
         this.state.waitUntil(Promise.all(this.sala.ids().map((id) => this.pedirPerfil(id))).then(() => undefined).catch((e) => console.error("actividad preview: perfiles al iniciar", e)));
       }
     }
