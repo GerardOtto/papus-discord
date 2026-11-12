@@ -107,7 +107,7 @@ export function pregunta(v: Vista): string {
     cuerpo += `<div class="respondieron">${v.jugadores.filter((j) => j.respondio).map((j) => cara(j)).join("")}</div>`;
   } else {
     cuerpo = `<ul class="lista">${Object.entries(r.resultados)
-      .map(([id, res]) => `<li>${cara(quien(v, id))} <b>${esc(quien(v, id)?.nombre ?? "")}</b> ${res.ok ? "✅" : "❌"} <i>${esc(res.texto ?? "(sin respuesta)")}</i><span class="num">${res.ok && res.xp ? `+${fmt(res.xp)} XP` : ""}</span></li>`)
+      .map(([id, res]) => `<li>${cara(quien(v, id))} <b>${esc(quien(v, id)?.nombre ?? "")}</b> ${res.ok ? "✅" : res.salvado ? "🥖" : "❌"} <i>${res.salvado ? "Baguette: racha conservada" : esc(res.texto ?? "(sin respuesta)")}</i><span class="num">${res.ok && res.xp ? `+${fmt(res.xp)} XP` : ""}</span></li>`)
       .join("")}</ul>`;
   }
   const extras = v.consumibles;
