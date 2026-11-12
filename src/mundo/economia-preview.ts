@@ -566,7 +566,7 @@ export class EconomiaPlazaPreview {
         if(usos<=0)return {result:error("No te quedan usos del PC de Adachi Rei."),changed:false};
         s.consumibles[id]=usos-1;
         s.triviaDia=day;s.triviaXpDia=0;s.triviaPartidasDia=[];
-        s.ruletaDia=day;s.ruletaUsadas=0;s.ruletaResetDia=day;s.ruletaResetUsadas=spins;s.ruletaRegaloDia=day;s.ruletaRegalos=0;
+        s.ruletaDia=day;s.ruletaUsadas=0;s.ruletaResetDia=day;s.ruletaResetUsadas=spins;
         s.cuotaResetDia=day;s.cuotaResetBase=quotaUsed;s.cuotaUsada=0;
         return {result:ok({mensaje:"💻 Día reiniciado en tu progreso de prueba: partidas y tope de XP de trivia, tiradas y cuota sandbox vuelven a contar desde cero. Lo que ya ganaste se conserva.",usos:s.consumibles[id],sandbox:true})};
       });
