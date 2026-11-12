@@ -83,6 +83,7 @@ describe("mundo: entrada por el navegador", () => {
     expect(c).toContain("Path=/mundo");
     expect(c).toContain("Secure");
     expect(cookie(COOKIE_TOKEN, "", { maxAge: 0, https: false })).not.toContain("Secure");
+    expect(cookie(COOKIE_TOKEN, "t", { maxAge: 60, https: true, path: "/" })).toContain("Path=/;");
   });
 
   it("pide a Discord solo quien es y su ficha del servidor, y vuelve a /mundo/api/volver", () => {
