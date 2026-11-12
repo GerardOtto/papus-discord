@@ -193,6 +193,8 @@ export interface AppDeps {
   actividad?: ActividadTrivia | null;
   /** Mundo de los Papus (Actividad 3D): @ a los Vocaloids de la plaza y nivel/cuota de cada Papu (null = sin Cloudflare). */
   mundo?: MundoPuente | null;
+  /** Puente opcional y aislado para tarjetas del preview; nunca comparte el D1 de producción. */
+  mundoPreview?: MundoPuente | null;
   /** Sorteo de GyroP (src/sorteo/; null = desactivado). */
   sorteo?: SorteoService | null;
   /** 1vs1 de los Vocaloids con apuestas de Shaula-coins (src/peleas/; null = desactivado). */
@@ -221,6 +223,7 @@ export class PapusApp {
   private calendarTimer: ReturnType<typeof setInterval> | null = null;
   private actividadTimer: ReturnType<typeof setInterval> | null = null;
   private mundoTimer: ReturnType<typeof setInterval> | null = null;
+  private mundoPreviewTimer: ReturnType<typeof setInterval> | null = null;
   private rolesTimer: ReturnType<typeof setInterval> | null = null;
   private expiryTimer: ReturnType<typeof setTimeout> | null = null;
   private welcomeTimer: ReturnType<typeof setTimeout> | null = null;
@@ -562,6 +565,16 @@ export class PapusApp {
           .finally(() => (busy = false));
       }, MUNDO_MS);
     }
+    if (this.d.mundoPreview) {
+      let previewBusy = false;
+      this.mundoPreviewTimer = setInterval(() => {
+        if (previewBusy || this.stopping) return;
+        previewBusy = true;
+        void this.d.mundoPreview!.sync()
+          .catch((e) => logError("tarjetas de la Plaza preview", e))
+          .finally(() => (previewBusy = false));
+      }, MUNDO_MS);
+    }
     if (this.d.calendar) {
       void this.updateCalendar().catch((e) => logError("calendario", e));
       this.calendarTimer = setInterval(() => void this.updateCalendar().catch((e) => logError("calendario", e)), CALENDAR_EVERY_MS);
@@ -583,6 +596,12 @@ export class PapusApp {
   private readonly tipNudges = new Map<string, number>();
   private readonly tickets: TicketStore;
 
+  /** Renderiza la tarjeta original de /nivel en modo público (sin cuota diaria). */
+  async tarjetaPublica(userId: string): Promise<{ data: Buffer; gif: boolean } | null> {
+    if (!this.levels) return null;
+    return this.levels.publicCard(userId);
+  }
+
   async stop(): Promise<void> {
     if (this.stopping) return;
     this.stopping = true;
@@ -590,6 +609,7 @@ export class PapusApp {
     if (this.calendarTimer) clearInterval(this.calendarTimer);
     if (this.actividadTimer) clearInterval(this.actividadTimer);
     if (this.mundoTimer) clearInterval(this.mundoTimer);
+    if (this.mundoPreviewTimer) clearInterval(this.mundoPreviewTimer);
     if (this.rolesTimer) clearInterval(this.rolesTimer);
     if (this.expiryTimer) clearTimeout(this.expiryTimer);
     if (this.welcomeTimer) clearTimeout(this.welcomeTimer);
