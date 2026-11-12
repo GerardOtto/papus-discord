@@ -691,6 +691,8 @@ export class PapusApp {
             },
           };
         };
+      } else {
+        preview.acciones["tienda.estado"] = () => ({ ok: true, datos: { abierta: false, soloLectura: true, objetos: [] } });
       }
       preview.acciones["tienda.comprar"] = () => ({ ok: false, motivo: "La tienda del preview es de solo lectura: no se descuentan monedas ni se modifica el inventario." });
       if (this.d.mercado) {
@@ -703,6 +705,8 @@ export class PapusApp {
             objetos: mercado.vitrina().map((o) => ({ id: o.id, nombre: o.nombre, emoji: o.emoji, descripcion: o.descripcion, precio: o.precio, usos: o.usos ?? null, owned: mercado.tiene(papu.id, o) })),
           },
         });
+      } else {
+        preview.acciones["mercado.estado"] = () => ({ ok: true, datos: { abierto: null, soloLectura: true, objetos: [] } });
       }
       preview.acciones["mercado.comprar"] = () => ({ ok: false, motivo: "El mercado negro del preview es de solo lectura: no se descuentan monedas ni se modifica el inventario." });
       let previewBusy = false;
