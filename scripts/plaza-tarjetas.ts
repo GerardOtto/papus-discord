@@ -25,7 +25,7 @@ import { loadModerationSettings } from "../src/moderation/rules";
 import { StrikeStore } from "../src/moderation/strikes";
 import { loadRouletteSettings } from "../src/ruleta/rules";
 import { RouletteService } from "../src/ruleta/service";
-import { accionesRuletaPreview } from "../src/mundo/ruleta-preview";
+import { ruletaEstado } from "../src/mundo/ruleta";
 import { recompensaPesca, textoRecompensaPesca, type TamanoPez } from "../src/pesca/reglas";
 
 const ROOT = path.resolve(import.meta.dirname, "..");
@@ -126,8 +126,11 @@ function main(): void {
     },
     log,
   });
-  // La ruleta usa el progreso real y permite girar solo para mostrar la animación, sin consumir tiradas ni aplicar premios.
-  Object.assign(puente.acciones, accionesRuletaPreview(roulette));
+  // La ruleta muestra misiones reales; el giro DEMO lo resuelve el Durable Object sin pasar por SQLite.
+  puente.acciones["ruleta.estado"] = (papu) => {
+    const estado = ruletaEstado(roulette, papu.id, roulette.status(papu.id));
+    return { ok: true, datos: { ...estado, tiradas: 0, usadas: 0, extras: [], soloLectura: true, simulacion: true } };
+  };
   // Pesca de prueba: calcula la recompensa con XP real, pero NUNCA la escribe en SQLite.
   const ultimoLance = new Map<string, number>();
   puente.acciones["pesca.capturar"] = (papu) => {
