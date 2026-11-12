@@ -145,5 +145,53 @@ describe("EconomiaPlazaPreview", () => {
   });
 
 
+  it("activates the Meiko microphone only once per day and lowers the sandbox voice mission", async () => {
+    const source = openDb(":memory:");
+    const preview = openDb(":memory:");
+    abiertos.push(source, preview);
+    preview.exec(`
+      CREATE TABLE mundo_sandbox (
+        papu_id TEXT PRIMARY KEY,
+        estado TEXT NOT NULL,
+        revision INTEGER NOT NULL DEFAULT 0,
+        actualizado_at INTEGER NOT NULL
+      );
+    `);
+    const query: D1Query = async <T>(sql: string, ...params: unknown[]): Promise<T[]> => {
+      const statement = preview.prepare(sql);
+      if (/^\\s*(SELECT|UPDATE)/i.test(sql) || /RETURNING/i.test(sql)) return statement.all(...(params as never[])) as unknown as T[];
+      statement.run(...(params as never[]));
+      return [];
+    };
+    const userId = "123456789012345678";
+    source.prepare("INSERT INTO monedero (user_id, ganadas) VALUES (?, ?)").run(userId, 10_000_000);
+    source.prepare("INSERT INTO consumibles (user_id, objeto, usos) VALUES (?, ?, ?)").run(userId, "microfono-meiko", 2);
+    source.prepare("INSERT INTO xp_dia (user_id, day, voz_min) VALUES (?, ?, ?)").run(userId, "2026-11-12", 65);
+    let now = Date.parse("2026-11-12T12:00:00-03:00");
+    const levels = new LevelService({ db: source, settings: loadLevelSettings(), timeZone: "America/Santiago" });
+    const quota = new Quota(source, (id, at) => levels.limitFor(id, at), "America/Santiago");
+    const coins = new CoinService({ db: source, settings: loadCoinSettings(), catalog: loadCatalog(), timeZone: "America/Santiago", now: () => now });
+    const roulette = new RouletteService({ db: source, settings: loadRouletteSettings(), levels, quota, timeZone: "America/Santiago", now: () => now });
+    const marketSettings = loadMercadoSettings();
+    const mercado = new MercadoService({ db: source, settings: marketSettings, coins, quota, roulette, timeZone: "America/Santiago", now: () => now });
+    const economy = new EconomiaPlazaPreview({ query, db: source, levels, coins, mercado, roulette, quota, now: () => now, rnd: () => 0.1 });
+    const papu = { id: userId, nombre: "Papu" };
+    const usar = economy.acciones()["mercado.usar"]!;
+    const activar = await usar(papu, { id: "microfono-meiko" });
+    expect(activar.ok).toBe(true);
+    const estado = await economy.acciones()["ruleta.estado"]!(papu, null);
+    expect(estado.ok).toBe(true);
+    if (estado.ok) {
+      const voz = (estado.datos as { misiones: { id: string; nombre: string; meta: number; actual: number; hecha: boolean }[] }).misiones.find((m) => m.id === "voz");
+      expect(voz).toMatchObject({ nombre: "60 min en voz", meta: 60, actual: 60, hecha: true });
+    }
+    const repetido = await usar(papu, { id: "microfono-meiko" });
+    expect(repetido.ok).toBe(false);
+    const consumibles = source.prepare("SELECT usos FROM consumibles WHERE user_id = ? AND objeto = ?").get(userId, "microfono-meiko") as { usos: number };
+    expect(consumibles.usos).toBe(2);
+    const ledger = await query<{ estado: string }>("SELECT estado FROM mundo_sandbox WHERE papu_id = ?", userId);
+    expect(JSON.parse(ledger[0]!.estado).consumibles["microfono-meiko"]).toBe(1);
+  });
+
 
 });
