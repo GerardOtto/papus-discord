@@ -196,11 +196,17 @@ export class SalaTrivia implements DurableObject {
       const now = Date.now();
       const preview = this.env.MUNDO_PREVIEW === "1";
       const stmt = preview
-        ? this.env.DB.prepare("INSERT INTO actividad_aciertos (partida, papu_id, pregunta, dificultad, racha, xp_mostrada, canal, creado_at, multiplicador) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)")
+        ? this.env.DB.prepare("INSERT OR IGNORE INTO actividad_aciertos (partida, papu_id, pregunta, dificultad, racha, xp_mostrada, canal, creado_at, multiplicador) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)")
         : this.env.DB.prepare("INSERT INTO actividad_aciertos (partida, papu_id, pregunta, dificultad, racha, xp_mostrada, canal, creado_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
-      this.state.waitUntil(this.env.DB.batch(aciertos.map((a) => preview
-        ? stmt.bind(this.partida, a.papu, a.pregunta, a.dificultad, a.racha, a.xp, this.canal, now, a.factor ?? 1)
-        : stmt.bind(this.partida, a.papu, a.pregunta, a.dificultad, a.racha, a.xp, this.canal, now))).then(() => undefined, (e) => console.error("actividad: aciertos a D1", e)));
+      try {
+        // Esperar la confirmación de D1 evita vaciar el buffer y perder aciertos ante un fallo de red.
+        await this.env.DB.batch(aciertos.map((a) => preview
+          ? stmt.bind(this.partida, a.papu, a.pregunta, a.dificultad, a.racha, a.xp, this.canal, now, a.factor ?? 1)
+          : stmt.bind(this.partida, a.papu, a.pregunta, a.dificultad, a.racha, a.xp, this.canal, now)));
+      } catch (error) {
+        this.sala.devolverAciertos(aciertos);
+        throw error;
+      }
     }
     for (const [ws, id] of this.sockets) if (id) this.enviar(ws, { vista: this.sala.vista(id) });
     if (this.timer) clearTimeout(this.timer);
