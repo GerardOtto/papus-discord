@@ -64,6 +64,8 @@ interface EstadoSandbox {
   monedasResetDia?: string;
   monedasResetXp?: number;
   monedasResetPrevia?: number;
+  xpSandboxNoTriviaDia?: number;
+  xpSandboxNoTriviaHistorial?: Record<string, number>;
   triviaDia?: string; triviaXpDia?: number; triviaPartidasDia?: string[]; triviaSuperadas?: string[]; triviaPremios?: string[]; triviaHitos?: Partial<Record<Dificultad, { aciertos: number; premios: number }>>; triviaAciertosAplicados?: number[]; triviaAciertosResultados?: Record<string, number>; triviaRuns?: Record<string, { day: string; withXp: boolean }>;
 }
 interface FilaSandbox { papu_id: string; estado: string; revision: number }
@@ -124,12 +126,30 @@ export class EconomiaPlazaPreview {
     return result;
   }
 
+  /** Promedio de XP diaria no-trivia: combina la foto real de solo lectura con actividad sandbox de días previos. */
+  private promedioDiarioTrivia(userId: string, state: EstadoSandbox, from: string, today: string): number {
+    const rows = this.d.db.prepare(
+      "SELECT day, xp - trivia AS xp FROM xp_dia WHERE user_id = ? AND day >= ? AND day < ? AND xp - trivia > 0",
+    ).all(userId, from, today) as { day: string; xp: number }[];
+    const totals = new Map(rows.map((row) => [row.day, row.xp]));
+    for (const [day, xp] of Object.entries(state.xpSandboxNoTriviaHistorial ?? {})) {
+      if (day >= from && day < today && xp > 0) totals.set(day, (totals.get(day) ?? 0) + xp);
+    }
+    const active = [...totals.values()].filter((xp) => xp > 0);
+    return active.length ? active.reduce((sum, xp) => sum + xp, 0) / active.length : 0;
+  }
+
   /** Acredita o revierte en el ledger la parte de monedas ganadas por XP de actividad sandbox. */
   private recalcularMonedasActividad(state: EstadoSandbox, userId: string, day: string, deltaXp = 0): number {
     if (!this.d.coins) return 0;
     const now = this.now();
     const real = this.d.coins.activityToday(userId, now);
     if (state.monedasDia !== day) {
+      if (state.monedasDia) {
+        state.xpSandboxNoTriviaHistorial ??= {};
+        state.xpSandboxNoTriviaHistorial[state.monedasDia] = state.xpSandboxNoTriviaDia ?? 0;
+      }
+      state.xpSandboxNoTriviaDia = 0;
       state.monedasDia = day;
       state.xpSandboxDia = 0;
       state.monedasActividadDia = real.actividad;
@@ -163,8 +183,9 @@ export class EconomiaPlazaPreview {
   }
 
   /** Mismo bono por subir de nivel/rango que CoinService.onLevelChange, aplicado al monedero sandbox. */
-  private registrarXpSandbox(state: EstadoSandbox, userId: string, day: string, xp: number, nivelAntes: number, nivelDespues: number): number {
+  private registrarXpSandbox(state: EstadoSandbox, userId: string, day: string, xp: number, nivelAntes: number, nivelDespues: number, incluirPromedio = true): number {
     this.recalcularMonedasActividad(state, userId, day, xp);
+    if (incluirPromedio) state.xpSandboxNoTriviaDia = (state.xpSandboxNoTriviaDia ?? 0) + Math.max(0, xp);
     if (!this.d.coins || nivelDespues <= nivelAntes) return 0;
     const rangoAntes = rankFor(this.d.levels.settings, nivelAntes);
     const rangoDespues = rankFor(this.d.levels.settings, nivelDespues);
@@ -220,9 +241,7 @@ export class EconomiaPlazaPreview {
         const eligible = this.d.levels.canEarn(row.papu_id, now);
         if (run.withXp && eligible) {
           const from = dayKey(new Date(now - this.d.trivia.xp.dias * 86_400_000), this.d.timeZone);
-          const avg = (this.d.db.prepare(
-            "SELECT AVG(xp - trivia) AS avg FROM xp_dia WHERE user_id = ? AND day >= ? AND day < ? AND xp - trivia > 0",
-          ).get(row.papu_id, from, day) as { avg: number | null } | undefined)?.avg ?? 0;
+          const avg = this.promedioDiarioTrivia(row.papu_id, s, from, day);
           const multiplier = this.d.levels.multiplier(new Date(now));
           const factor = Math.max(1, Math.min(2, Math.floor(row.multiplicador ?? 1)));
           const full = answerXp(this.d.trivia, this.d.levels.settings, {
@@ -238,7 +257,7 @@ export class EconomiaPlazaPreview {
           s.triviaXpDia = (s.triviaXpDia ?? 0) + earned;
           const after = progress(this.d.levels.settings, s.xp).level;
           if (after > before) s.subioDia = day;
-          this.registrarXpSandbox(s, row.papu_id, day, earned, before, after);
+          this.registrarXpSandbox(s, row.papu_id, day, earned, before, after, false);
         }
 
         const level = this.d.questionLevels[row.pregunta];
@@ -314,7 +333,7 @@ export class EconomiaPlazaPreview {
     const run = state.triviaRuns?.[`${partida}:${papu}`];
     const withXp = run?.withXp ?? state.triviaPartidasDia.length < this.d.trivia.limites.partidasConXp;
     const from = dayKey(new Date(now - this.d.trivia.xp.dias * 86_400_000), this.d.timeZone);
-    const avg = (this.d.db.prepare("SELECT AVG(xp - trivia) AS avg FROM xp_dia WHERE user_id = ? AND day >= ? AND day < ? AND xp - trivia > 0").get(papu, from, day) as { avg: number | null } | undefined)?.avg ?? 0;
+    const avg = this.promedioDiarioTrivia(papu, state, from, day);
     const multiplier = this.d.levels.multiplier(new Date(now));
     const eligible = this.d.levels.canEarn(papu, now);
     const base = eligible ? answerXp(this.d.trivia, this.d.levels.settings, { xp: state.xp, dailyAvg: avg, streak: 1, multiplier }) : 0;
@@ -382,9 +401,7 @@ export class EconomiaPlazaPreview {
       const run = partida ? state.triviaRuns?.[`${partida}:${papu_id}`] : undefined;
       const withXp = run?.withXp ?? state.triviaPartidasDia.length < this.d.trivia.limites.partidasConXp;
       const from = dayKey(new Date(now - this.d.trivia.xp.dias * 86_400_000), this.d.timeZone);
-      const avg = (this.d.db.prepare(
-        "SELECT AVG(xp - trivia) AS avg FROM xp_dia WHERE user_id = ? AND day >= ? AND day < ? AND xp - trivia > 0",
-      ).get(papu_id, from, day) as { avg: number | null } | undefined)?.avg ?? 0;
+      const avg = this.promedioDiarioTrivia(papu_id, state, from, day);
       const multiplier = this.d.levels.multiplier(new Date(now));
       const eligible = this.d.levels.canEarn(papu_id, now);
       const base = eligible ? answerXp(this.d.trivia, this.d.levels.settings, {
@@ -508,6 +525,8 @@ export class EconomiaPlazaPreview {
       triviaAciertosAplicados: [],
       monedasDia: hoy,
       xpSandboxDia: 0,
+      xpSandboxNoTriviaDia: 0,
+      xpSandboxNoTriviaHistorial: {},
       monedasActividadDia: this.d.coins?.activityToday(userId, this.now()).actividad ?? 0,
       monedasXpBase: this.d.coins?.activityToday(userId, this.now()).xp ?? 0,
       monedasResetBaseDia: reinicio.veces && hoy ? hoy : undefined,
