@@ -828,7 +828,8 @@ export class EconomiaPlazaPreview {
       xp = prizeXp(this.d.roulette.settings, this.d.levels.settings, premio, state.xp, this.d.levels.multiplier(new Date(now)));
       state.xp += xp;
     } else if (premio.tipo === "cuota" || premio.tipo === "cuota_llena") {
-      const limit = this.cuotaLimite(userId) ?? this.d.quota.limitFor(userId, new Date(now));
+      const sandboxLimit = this.cuotaLimite(userId);
+      const limit = sandboxLimit === undefined ? this.d.quota.limitFor(userId, new Date(now)) : sandboxLimit;
       const extraBase = this.d.quota.extra(userId, new Date(now));
       const usedBase = this.d.quota.used(userId, new Date(now));
       const usedEffective = Math.max(0, usedBase - (state.cuotaResetDia === day ? state.cuotaResetBase ?? 0 : 0));
