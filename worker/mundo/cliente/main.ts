@@ -1048,7 +1048,7 @@ async function girarRuleta(): Promise<void> {
 type TipoCatalogo = "tienda" | "mercado";
 
 function pintarCatalogo(tipo: TipoCatalogo, datos: Record<string, unknown>): string {
-  const objetos = Array.isArray(datos.objetos) ? datos.objetos as { id: string; nombre: string; descripcion: string; rareza?: string; emoji?: string; precio: number | null; usos?: number | null; owned: boolean }[] : [];
+  const objetos = Array.isArray(datos.objetos) ? datos.objetos as { id: string; nombre: string; descripcion: string; rareza?: string; emoji?: string; precio: number | null; usos?: number | null; owned: boolean; activable?: boolean; activo?: boolean }[] : [];
   const soloLectura = datos.soloLectura === true;
   const sandbox = datos.sandbox === true;
   const abierto = tipo === "mercado" ? datos.abierto : datos.abierta;
@@ -1065,7 +1065,9 @@ function pintarCatalogo(tipo: TipoCatalogo, datos: Record<string, unknown>): str
     const icono = o.emoji ?? (["legendaria","legendario","mitica"].includes(rareza) ? "✨" : ["raro","epico","epica"].includes(rareza) ? "💎" : "🎁");
     const precio = o.precio === null ? "Precio no disponible" : `${o.precio.toLocaleString("es-CL")} Shaula-coins`;
     const extra = o.usos ? `<span class="v-producto-usos">${o.usos} usos</span>` : "";
-    const accion = o.owned ? '<span class="v-chip verde">✓ En tu colección</span>'
+    const accion = o.activable ? `<button class="v-boton" data-usar-consumible="${esc(o.id)}">🎤 Activar por hoy</button>`
+      : o.activo ? '<span class="v-chip verde">✓ Activo hoy</span>'
+      : o.owned ? '<span class="v-chip verde">✓ En tu colección</span>'
       : soloLectura ? '<span class="v-chip">Solo lectura</span>'
       : abierto === false ? '<span class="v-chip">Cerrado</span>'
       : `<button class="v-boton v-comprar" data-compra="${tipo}:${esc(o.id)}">Comprar</button>`;
@@ -1081,6 +1083,18 @@ function pintarCatalogo(tipo: TipoCatalogo, datos: Record<string, unknown>): str
   return `${cabecera}${saldo}<h3 class="v-seccion">${tipo === "tienda" ? "Vitrina de temporada" : "Selección de hoy"}</h3>
     ${filas ? `<ul class="v-vitrina">${filas}</ul>` : '<div class="v-vacia"><span>🛍️</span><b>La vitrina está vacía</b><small>Vuelve más tarde para descubrir nuevos artículos.</small></div>'}
     ${soloLectura ? '<p class="v-pie">Este entorno permite explorar y consultar el monedero, pero no realiza compras ni modifica el inventario.</p>' : sandbox ? '<p class="v-pie">🧪 Las compras se guardan en tu colección y monedero de prueba. No descuentan monedas ni modifican el inventario de Discord.</p>' : ""}`;
+}
+
+async function usarConsumible(id: string): Promise<void> {
+  ventana.poner("mercado", '<p class="v-cargando">Activando consumible…</p>');
+  const r = await pedir("mercado.usar", { id });
+  if (!r.ok) {
+    aviso(r.motivo);
+    return abrirCatalogo("mercado");
+  }
+  const d = r.datos as { mensaje?: string };
+  aviso(d.mensaje ?? "Consumible activado.");
+  await abrirCatalogo("mercado");
 }
 
 async function abrirCatalogo(tipo: TipoCatalogo): Promise<void> {
@@ -1210,6 +1224,8 @@ ventana.cuerpo.addEventListener("click", (e) => {
   const b = (e.target as HTMLElement).closest<HTMLButtonElement>("button[data-accion]");
   if (b?.dataset.accion === "girar" && !b.disabled) void girarRuleta();
   if (b?.dataset.accion === "pescar" && !b.disabled) void pescar();
+  const usar = (e.target as HTMLElement).closest<HTMLButtonElement>("button[data-usar-consumible]");
+  if (usar?.dataset.usarConsumible) void usarConsumible(usar.dataset.usarConsumible);
   const compra = (e.target as HTMLElement).closest<HTMLButtonElement>("button[data-compra]");
   if (compra?.dataset.compra) {
     const [tipo, id] = compra.dataset.compra.split(":", 2);
