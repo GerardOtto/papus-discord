@@ -555,7 +555,7 @@ export class EconomiaPlazaPreview {
       };
     });
     return ok({
-      abierto, sandbox: true, premioPendiente: state.atunPendiente?.day === this.d.roulette.dayOf(now), wallet: state.wallet, objetos,
+      abierto, sandbox: true, premioPendiente: !!state.atunPendiente, wallet: state.wallet, objetos,
       apertura: { abre: hoy.abre, cierra: hoy.cierra },
       proximaApertura: { abre: proxima.abre, cierra: proxima.cierra },
     });
