@@ -125,6 +125,7 @@ export class Sala {
   pendientesRescateBaguette(): string[] { if(this.fase!=="revelar"||!this.ronda?.resultados)return [];return Object.entries(this.ronda.resultados).filter(([id,r])=>!r.ok&&!r.salvado&&(this.jugadores.get(id)?.rescatesBaguette??2)<2).map(([id])=>id); }
   baguetteActiva(id:string):boolean {return !!this.jugadores.get(id)?.baguetteActiva;}
   activarBaguette(id:string):void {const j=this.jugadores.get(id);if(j)j.baguetteActiva=true;}
+  desactivarBaguette(id:string):void {const j=this.jugadores.get(id);if(j)j.baguetteActiva=false;}
   rescatarBaguette(id:string):boolean {const j=this.jugadores.get(id),r=this.ronda?.resultados?.[id];if(this.fase!=="revelar"||!j||!r||r.ok||r.salvado||!j.baguetteActiva||j.rescatesBaguette>=2)return false;j.rescatesBaguette++;j.racha=j.rachaFallida;j.vivo=true;j.fallo=false;r.salvado=true;if(this.ronda?.caen)this.ronda.caen=this.ronda.caen.filter(x=>x!==id);return true;}
   /** Entra (o vuelve) un Papu. Si la partida ya empezo y no jugaba, mira hasta la siguiente. */
   unir(p: { id: string; nombre: string; avatar: string }): { ok: boolean; motivo?: string } {
