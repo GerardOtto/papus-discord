@@ -186,11 +186,18 @@ export class Sala {
   }
 
   /** Empieza la partida con todos los conectados (solo el anfitrion). */
-  empezar(by: string): { ok: boolean; motivo?: string } {
+  puedeEmpezar(by: string): { ok: boolean; motivo?: string } {
     if (by !== this.host) return { ok: false, motivo: "Solo el anfitrión puede empezar." };
     if (this.fase !== "sala" && this.fase !== "fin") return { ok: false, motivo: "La partida ya empezó." };
     const preguntas = this.d.pool.filter((q) => this.eleccion === "mezcla" || q.dificultad === this.eleccion);
     if (!preguntas.length) return { ok: false, motivo: "No hay preguntas de esa dificultad." };
+    return { ok: true };
+  }
+
+  empezar(by: string): { ok: boolean; motivo?: string } {
+    const permiso = this.puedeEmpezar(by);
+    if (!permiso.ok) return permiso;
+    const preguntas = this.d.pool.filter((q) => this.eleccion === "mezcla" || q.dificultad === this.eleccion);
     for (const j of this.jugadores.values()) {
       if (!j.conectado) this.jugadores.delete(j.id);
       else Object.assign(j, { juega: true, vivo: true, fallo: false, racha: 0, aciertos: 0, xp: 0, rachaFallida: 0, baguetteActiva: false, rescatesBaguette: 0 });
