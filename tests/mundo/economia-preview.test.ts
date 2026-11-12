@@ -11,7 +11,7 @@ import { RouletteService } from "../../src/ruleta/service";
 import { Quota } from "../../src/quota/quota";
 import { LevelService } from "../../src/levels/service";
 import { EconomiaPlazaPreview } from "../../src/mundo/economia-preview";
-import { loadTriviaSettings } from "../../src/trivia/rules";
+import { answerXp, dailyCap, loadTriviaSettings } from "../../src/trivia/rules";
 
 describe("EconomiaPlazaPreview", () => {
   // Los efectos del mercado se ejercitan exclusivamente sobre el ledger sandbox.
@@ -273,20 +273,26 @@ describe("EconomiaPlazaPreview", () => {
     const user="123456789012345678", now=Date.parse("2026-11-12T12:00:00-03:00");
     const levels=new LevelService({db:source,settings:loadLevelSettings(),timeZone:"America/Santiago"});
     const roulette={dayOf:()=>"2026-11-12"} as unknown as RouletteService;
-    preview.prepare("INSERT INTO actividad_aciertos_preview (partida,papu_id,pregunta,dificultad,racha,creado_at,multiplicador) VALUES (?,?,?,?,?,?,?)").run("partida-1",user,"pregunta-1","facil",1,now,2);
+    const state={version:1,xp:10000,wallet:{ganadas:0,compradas:0,ecos:0,gratis:0,gratisRaro:0,gratisLeg:0,sobres:0,sinEpica:0,sinLegendaria:0,hoy:0},inventario:[],consumibles:{},comprasMercado:[],ruletaDia:"2026-11-12",ruletaUsadas:0,pescaAt:0,cuotaExtraDia:"2026-11-12",cuotaExtra:0,cuotaUsada:0,monedasDia:"2026-11-12",xpSandboxDia:0,triviaDia:"2026-11-12",triviaXpDia:0,triviaPartidasDia:[]};
+    preview.prepare("INSERT INTO mundo_sandbox (papu_id,estado,revision,actualizado_at) VALUES (?,?,0,?)").run(user,JSON.stringify(state),now);
+    preview.prepare("INSERT INTO actividad_aciertos_preview (partida,papu_id,pregunta,dificultad,racha,creado_at,multiplicador) VALUES (?,?,?,?,?,?,?)").run("partida-1",user,"pregunta-1","facil",21,now,2);
     preview.prepare("INSERT INTO actividad_perfiles_preview (papu_id,pedido_at,actualizado_at) VALUES (?,?,0)").run(user,now);
     preview.prepare("INSERT INTO actividad_perfiles_preview (papu_id,partida,pedido_at,actualizado_at) VALUES (?,?,0,0)").run(user,"partida-1");
     const economy=new EconomiaPlazaPreview({query,db:source,levels,coins:null,mercado:null,roulette,quota:{} as Quota,now:()=>now,
       trivia:loadTriviaSettings(),questionLevels:{"pregunta-1":"facil"},questionTotals:{facil:1,medio:0,dificil:0},timeZone:"America/Santiago"});
     expect(await economy.syncTrivia()).toBe(1);
     const row=preview.prepare("SELECT aplicado,xp FROM actividad_aciertos_preview").get() as {aplicado:number;xp:number};
-    expect(row.aplicado).toBe(1);expect(row.xp).toBe(20);
+    expect(row.aplicado).toBe(1);
+    const trivia=loadTriviaSettings();
+    const base=answerXp(trivia,levels.settings,{xp:10000,dailyAvg:0,streak:1,multiplier:1});
+    const expected=Math.min(Math.round(base*2*2),dailyCap(trivia,levels.settings,10000,1));
+    expect(row.xp).toBe(expected);
     const profile=preview.prepare("SELECT xp_base,tope FROM actividad_perfiles_preview WHERE papu_id=? AND partida=?").get(user,"partida-1") as {xp_base:number;tope:number};
     expect(profile.xp_base).toBeGreaterThan(0);expect(profile.tope).toBeGreaterThan(0);
     const saved=preview.prepare("SELECT estado FROM mundo_sandbox WHERE papu_id=?").get(user) as {estado:string};
-    const state=JSON.parse(saved.estado) as {xp:number;wallet:{gratis:number};triviaSuperadas:string[];triviaPremios:string[]};
-    expect(state.xp).toBe(row.xp);expect(state.triviaSuperadas).toContain("pregunta-1");
-    expect(state.triviaPremios).toContain("facil");expect(state.wallet.gratis).toBe(1);
+    const ledger=JSON.parse(saved.estado) as {xp:number;wallet:{gratis:number};triviaSuperadas:string[];triviaPremios:string[]};
+    expect(ledger.xp).toBe(10000+row.xp);expect(ledger.triviaSuperadas).toContain("pregunta-1");
+    expect(ledger.triviaPremios).toContain("facil");expect(ledger.wallet.gratis).toBe(1);
     expect(await economy.syncTrivia()).toBe(0);
     const again=preview.prepare("SELECT estado FROM mundo_sandbox WHERE papu_id=?").get(user) as {estado:string};
     expect(JSON.parse(again.estado).xp).toBe(row.xp);
