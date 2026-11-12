@@ -11,7 +11,7 @@ import { existsSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { CORE_BOT_IDS, loadConfig, loadDotEnv } from "../src/config";
 import { toCardEquip } from "../src/coins/equip";
-import { loadCatalog, loadCoinSettings } from "../src/coins/rules";
+import { loadCatalog, loadCoinSettings, priceOf } from "../src/coins/rules";
 import { CoinService } from "../src/coins/service";
 import { loadMercadoSettings } from "../src/mercado/rules";
 import { MercadoService } from "../src/mercado/service";
@@ -171,7 +171,7 @@ function main(): void {
         soloLectura: true,
         objetos: (vitrina?.objetos ?? []).flatMap((id) => {
           const o = coins?.byId.get(id);
-          return o ? [{ id: o.id, nombre: o.nombre, descripcion: o.descripcion, rareza: o.rareza, precio: null, owned: owned.has(o.id) }] : [];
+          return o ? [{ id: o.id, nombre: o.nombre, descripcion: o.descripcion, rareza: o.rareza, precio: priceOf(coins!.settings, o), owned: owned.has(o.id) }] : [];
         }),
       },
     };
