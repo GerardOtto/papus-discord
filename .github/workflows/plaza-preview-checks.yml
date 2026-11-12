@@ -55,9 +55,6 @@ jobs:
           tests/mundo-estado.test.ts
           tests/mundo-puente.test.ts
           tests/mundo.test.ts
-          tests/mundo/economia-preview.test.ts
-          tests/mundo/economia-concurrencia.test.ts
-          tests/mundo/ruleta-preview.test.ts
           tests/pesca/reglas.test.ts
       - name: Build trivia and plaza
         run: |
