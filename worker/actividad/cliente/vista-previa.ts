@@ -36,7 +36,7 @@ const ESTADOS: Record<string, Vista> = {
   pregunta: base({
     fase: "pregunta",
     jugadores: [j("teto", "GyroP", { racha: 3, respondio: true }), j("miku", "Wicho el Bicho", { respondio: true }), j("luka", "wiwi"), j("neru", "Mango9374", { vivo: false })],
-    pregunta: { n: 4, nonce: "a", dificultad: "medio", tipo: "opciones", texto: "👾 Pixelado a propósito. ¿Quién es?", opciones, media: { tipo: "imagen", url: "muestra.webp" }, segundos: 20, restante: 12_000, elecciones: [["teto"], [], ["miku"], []] },
+    pregunta: { n: 4, nonce: "a", dificultad: "medio", tema: "siluetas", tipo: "opciones", texto: "👾 Pixelado a propósito. ¿Quién es?", opciones, media: { tipo: "imagen", url: "muestra.webp" }, segundos: 20, restante: 12_000, elecciones: [["teto"], [], ["miku"], []] },
   }),
   acierto: base({
     fase: "revelar",
