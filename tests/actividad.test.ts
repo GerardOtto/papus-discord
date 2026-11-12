@@ -396,6 +396,17 @@ describe("XP de la trivia multijugador", () => {
     expect(t.sala.vista("ana").pregunta!.tema).toBe(tema);
   });
 
+  it("permite revertir la activación de Baguette si el rescate ya no aplica", () => {
+    const t=setup([op("a"),op("b")]);
+    t.unir("ana");
+    t.sala.setConsumibles("ana",{celular:0,guitarra:0,zanahoria:0,baguette:1});
+    t.sala.empezar("ana");
+    t.sala.activarBaguette("ana");
+    expect(t.sala.baguetteActiva("ana")).toBe(true);
+    t.sala.desactivarBaguette("ana");
+    expect(t.sala.baguetteActiva("ana")).toBe(false);
+  });
+
   it("la Baguette rescata hasta dos fallos conservando la racha en una partida compartida", () => {
     const t=setup([op("a"),op("b"),op("c"),op("d")]);
     t.unir("ana");
