@@ -244,8 +244,6 @@ async function main(): Promise<void> {
         ruletas: roulette.status(id).left,
       };
     },
-    // Las tarjetas públicas también se generan desde el puente canónico, sin un segundo consumidor de acciones.
-    tarjetaPublica: async (id) => app?.tarjetaPublica(id) ?? null,
     log,
   });
 
