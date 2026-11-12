@@ -391,7 +391,8 @@ describe("EconomiaPlazaPreview", () => {
 
   it("transfers a gifted roulette spin only between sandbox ledgers", async () => {
     const source=openDb(":memory:"),preview=openDb(":memory:");abiertos.push(source,preview);
-    preview.exec("CREATE TABLE mundo_sandbox (papu_id TEXT PRIMARY KEY, estado TEXT NOT NULL, revision INTEGER NOT NULL DEFAULT 0, actualizado_at INTEGER NOT NULL)");\n    preview.exec("CREATE TABLE actividad_perfiles (papu_id TEXT PRIMARY KEY, xp_base INTEGER NOT NULL DEFAULT 0, tope INTEGER NOT NULL DEFAULT 0, pedido_at INTEGER NOT NULL DEFAULT 0, actualizado_at INTEGER NOT NULL DEFAULT 0)");
+    preview.exec("CREATE TABLE mundo_sandbox (papu_id TEXT PRIMARY KEY, estado TEXT NOT NULL, revision INTEGER NOT NULL DEFAULT 0, actualizado_at INTEGER NOT NULL)");
+    preview.exec("CREATE TABLE actividad_perfiles (papu_id TEXT PRIMARY KEY, xp_base INTEGER NOT NULL DEFAULT 0, tope INTEGER NOT NULL DEFAULT 0, pedido_at INTEGER NOT NULL DEFAULT 0, actualizado_at INTEGER NOT NULL DEFAULT 0)");
     const query:D1Query=async <T>(sql:string,...params:unknown[]):Promise<T[]>=>{const st=preview.prepare(sql);if(/RETURNING/i.test(sql)||/^\\s*SELECT/i.test(sql))return st.all(...(params as never[])) as unknown as T[];st.run(...(params as never[]));return [];};
     const sender="123456789012345678",recipient="223456789012345678",now=Date.parse("2026-11-12T12:00:00-03:00"),day="2026-11-12";
     const state=(uses:number)=>({version:1,xp:100,wallet:{ganadas:0,compradas:0,ecos:0,gratis:0,gratisRaro:0,gratisLeg:0,sobres:0,sinEpica:0,sinLegendaria:0,hoy:0},inventario:[],consumibles:{"regalo-rin-len":uses},comprasMercado:[],ruletaDia:day,ruletaUsadas:0,pescaAt:0,cuotaExtraDia:day,cuotaExtra:0,cuotaUsada:0});
