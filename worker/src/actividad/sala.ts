@@ -149,7 +149,7 @@ export class SalaTrivia implements DurableObject {
     await this.env.DB.prepare(
       "INSERT INTO actividad_perfiles (papu_id, pedido_at) VALUES (?, ?) ON CONFLICT(papu_id) DO UPDATE SET pedido_at = excluded.pedido_at",
     )
-      .bind(papu, now)
+      .bind(papu, now + 2)
       .run();
     await this.leerPerfiles([papu]);
   }
