@@ -37,6 +37,8 @@ interface EstadoSandbox {
   cuotaExtra: number;
   cuotaUsada: number;
   subioDia?: string;
+  microfonoDia?: string;
+  microfonoMinutos?: number;
 }
 interface FilaSandbox { papu_id: string; estado: string; revision: number }
 const ceroWallet = (): WalletSandbox => ({ ganadas: 0, compradas: 0, ecos: 0, gratis: 0, gratisRaro: 0, gratisLeg: 0, sobres: 0, sinEpica: 0, sinLegendaria: 0, hoy: 0 });
@@ -96,8 +98,11 @@ export class EconomiaPlazaPreview {
     const used = state?.ruletaDia === day ? state.ruletaUsadas : 0;
     const real = this.d.roulette.status(userId, now);
     const nivelYaContado = real.missions.some((m) => m.id === "nivel" && m.done);
-    const extra = state?.subioDia === day && !nivelYaContado ? 1 : 0;
-    return Math.max(0, real.left + extra - used);
+    const extraNivel = state?.subioDia === day && !nivelYaContado ? 1 : 0;
+    const voz = real.missions.find((m) => m.id === "voz");
+    const vozActual = this.d.levels.store.dayStats(userId, day).vozMin;
+    const extraMicrofono = state?.microfonoDia === day && !!state.microfonoMinutos && !!voz && !voz.done && vozActual >= state.microfonoMinutos ? 1 : 0;
+    return Math.max(0, real.left + extraNivel + extraMicrofono - used);
   }
 
   private inicial(userId: string): EstadoSandbox {
@@ -213,13 +218,17 @@ export class EconomiaPlazaPreview {
     const disponibles = this.d.mercado.vitrina(now);
     const objetos = disponibles.map((o) => {
       const permanente = PERMANENTES.includes(o.efecto);
+      const usos = state.consumibles[o.id] ?? 0;
       const owned = o.efecto === "objeto"
         ? state.inventario.includes(o.objeto!)
-        : permanente && state.comprasMercado.includes(o.id);
+        : CONSUMIBLES.includes(o.efecto)
+          ? usos > 0
+          : permanente && state.comprasMercado.includes(o.id);
+      const microfonoActivo = o.efecto === "microfono" && state.microfonoDia === this.d.roulette.dayOf(now);
       return {
         id: o.id, nombre: o.nombre, emoji: o.emoji, descripcion: o.descripcion,
         rareza: permanente ? "contrabando" : "raro", precio: o.precio,
-        usos: state.consumibles[o.id] ?? 0, owned,
+        usos, owned, activable: o.efecto === "microfono" && usos > 0 && !microfonoActivo, activo: microfonoActivo,
       };
     });
     return ok({
@@ -283,6 +292,25 @@ export class EconomiaPlazaPreview {
     });
   }
 
+  /** Activa un consumible localmente. En preview solo se implementan efectos que no requieren Discord. */
+  private async usarConsumible(userId: string, datos: unknown): Promise<Resultado> {
+    if (!this.d.mercado) return error("El inventario de consumibles no está habilitado.");
+    const id = datos && typeof datos === "object" ? (datos as { id?: unknown }).id : null;
+    if (id !== "microfono-meiko") return error("Ese consumible todavía no tiene una acción disponible en la Plaza.");
+    const objeto = this.d.mercado.byId.get(id);
+    if (!objeto || objeto.efecto !== "microfono" || !objeto.vozMinutos) return error("El Micrófono de Meiko no está configurado.");
+    return this.cambiar(userId, (s) => {
+      const day = this.d.roulette.dayOf(this.now());
+      if (s.microfonoDia === day) return { result: error("El Micrófono de Meiko ya está activo por hoy."), changed: false };
+      const usos = s.consumibles[id] ?? 0;
+      if (usos <= 0) return { result: error("No te quedan usos del Micrófono de Meiko."), changed: false };
+      s.consumibles[id] = usos - 1;
+      s.microfonoDia = day;
+      s.microfonoMinutos = objeto.vozMinutos;
+      return { result: ok({ mensaje: `🎤 Micrófono activado: la misión de voz pide ${objeto.vozMinutos} minutos hoy.`, usos: s.consumibles[id], sandbox: true }) };
+    });
+  }
+
   private async pescar(userId: string): Promise<Resultado> {
     const now = this.now();
     if (!this.d.levels.canEarn(userId, now)) return error("Neru te bloqueó temporalmente la XP; hoy no puedes obtener recompensas. 🚫");
@@ -321,16 +349,27 @@ export class EconomiaPlazaPreview {
     const estado = ruletaEstado(this.d.roulette, userId, real);
     const nivelYaContado = real.missions.some((m) => m.id === "nivel" && m.done);
     const misionNivelSandbox = state.subioDia === day && !nivelYaContado;
-    const misiones = estado.misiones.map((m) => m.id === "nivel" && misionNivelSandbox ? { ...m, hecha: true, actual: m.meta } : m);
+    const vozActual = this.d.levels.store.dayStats(userId, day).vozMin;
+    const microfonoActivo = state.microfonoDia === day && !!state.microfonoMinutos;
+    const misiones = estado.misiones.map((m) => {
+      if (m.id === "nivel" && misionNivelSandbox) return { ...m, hecha: true, actual: m.meta };
+      if (m.id === "voz" && microfonoActivo) {
+        const meta = state.microfonoMinutos!;
+        return { ...m, nombre: `${meta} min en voz`, meta, actual: Math.min(vozActual, meta), hecha: vozActual >= meta };
+      }
+      return m;
+    });
+    const voz = real.missions.find((m) => m.id === "voz");
+    const misionVozSandbox = microfonoActivo && !!voz && !voz.done && vozActual >= state.microfonoMinutos!;
     return ok({
       ...estado,
       misiones,
-      tiradas: Math.max(0, real.left + (misionNivelSandbox ? 1 : 0) - used),
+      tiradas: Math.max(0, real.left + (misionNivelSandbox ? 1 : 0) + (misionVozSandbox ? 1 : 0) - used),
       usadas: real.used + used,
       sandbox: true,
       soloLectura: false,
       simulacion: false,
-      extras: [...estado.extras, "🧪 Las tiradas y premios se guardan en el progreso aislado de la Plaza; no afectan Discord."],
+      extras: [...estado.extras, ...(microfonoActivo ? [`🎤 Micrófono de Meiko activo: hoy la misión pide ${state.microfonoMinutos} min (progreso consultado en modo lectura).`] : []), "🧪 Las tiradas y premios se guardan en el progreso aislado de la Plaza; no afectan Discord."],
     });
   }
 
@@ -344,7 +383,10 @@ export class EconomiaPlazaPreview {
       if (s.ruletaDia !== day) { s.ruletaDia = day; s.ruletaUsadas = 0; }
       const nivelYaContado = real.missions.some((m) => m.id === "nivel" && m.done);
       const misionNivelSandbox = s.subioDia === day && !nivelYaContado;
-      const disponibles = real.left + (misionNivelSandbox ? 1 : 0);
+      const voz = real.missions.find((m) => m.id === "voz");
+      const vozActual = this.d.levels.store.dayStats(userId, day).vozMin;
+      const misionVozSandbox = s.microfonoDia === day && !!s.microfonoMinutos && !!voz && !voz.done && vozActual >= s.microfonoMinutos;
+      const disponibles = real.left + (misionNivelSandbox ? 1 : 0) + (misionVozSandbox ? 1 : 0);
       if (s.ruletaUsadas >= disponibles) return { result: error("No te quedan tiradas disponibles. Cumple una misión y vuelve a intentarlo."), changed: false };
       const premios = this.d.roulette.settings.premios.map((p) => p.tipo === "sobre" && !this.d.coins ? { ...p, peso: 0 } : p);
       const index = pickPrize({ premios }, this.rnd);
@@ -421,6 +463,7 @@ export class EconomiaPlazaPreview {
         return this.datosMercado(state);
       },
       "mercado.comprar": (papu, datos) => this.comprarMercado(papu.id, datos),
+      "mercado.usar": (papu, datos) => this.usarConsumible(papu.id, datos),
     };
   }
 }
