@@ -96,8 +96,8 @@ export class EconomiaPlazaPreview {
   xp(userId: string): number | null { return this.cache.get(userId)?.xp ?? null; }
   /** Sincroniza aciertos al ledger preview con idempotencia dentro del mismo CAS que aplica las recompensas. */
   async syncTrivia(): Promise<number> {
-    const rows = await this.d.query<{ id: number; partida: string; papu_id: string; pregunta: string; racha: number }>(
-      "SELECT id, partida, papu_id, pregunta, racha FROM actividad_aciertos WHERE aplicado = 0 ORDER BY id LIMIT 200",
+    const rows = await this.d.query<{ id: number; partida: string; papu_id: string; pregunta: string; racha: number; multiplicador?: number }>(
+      "SELECT id, partida, papu_id, pregunta, racha, multiplicador FROM actividad_aciertos WHERE aplicado = 0 ORDER BY id LIMIT 200",
     );
     let applied = 0;
     for (const row of rows) {
