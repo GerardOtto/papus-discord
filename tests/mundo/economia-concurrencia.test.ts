@@ -4,7 +4,6 @@ import type { D1Query } from "../../src/cloud/d1";
 import { loadLevelSettings } from "../../src/levels/rules";
 import { LevelService } from "../../src/levels/service";
 import { EconomiaPlazaPreview } from "../../src/mundo/economia-preview";
-import { loadRouletteSettings } from "../../src/ruleta/rules";
 import { RouletteService } from "../../src/ruleta/service";
 import type { Quota } from "../../src/quota/quota";
 import { loadTriviaSettings } from "../../src/trivia/rules";
