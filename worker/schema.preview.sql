@@ -12,6 +12,7 @@ CREATE TABLE IF NOT EXISTS actividad_aciertos (
   aplicado INTEGER NOT NULL DEFAULT 0, xp INTEGER, multiplicador INTEGER NOT NULL DEFAULT 1
 );
 CREATE INDEX IF NOT EXISTS preview_actividad_aciertos_pendientes ON actividad_aciertos (aplicado, id);
+CREATE UNIQUE INDEX IF NOT EXISTS preview_actividad_aciertos_unicos ON actividad_aciertos (partida, papu_id, pregunta);
 CREATE TABLE IF NOT EXISTS mundo_menciones (
   id INTEGER PRIMARY KEY AUTOINCREMENT, sala TEXT NOT NULL, papu_id TEXT NOT NULL,
   papu_nombre TEXT NOT NULL, texto TEXT NOT NULL, bots TEXT NOT NULL,
