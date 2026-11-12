@@ -159,8 +159,12 @@ export class SalaMundo implements DurableObject {
     }
 
     if (m.t === "accion") {
-      // En preview las acciones solo llegan al puente aislado, que debe operar en modo lectura/sandbox.
-      if (now - (ficha.accionAt ?? 0) < ACCION_MIN_MS || !esAccion(m.accion) || !Number.isInteger(m.ref)) return;
+      if (!esAccion(m.accion) || !Number.isInteger(m.ref)) return;
+      // El Worker impide transacciones en preview incluso si el puente se configura por error.
+      if (this.env.MUNDO_PREVIEW === "1" && (m.accion === "ruleta.girar" || m.accion === "tienda.comprar" || m.accion === "mercado.comprar")) {
+        return this.enviar(ws, { t: "accion", ref: m.ref, accion: m.accion, resultado: { ok: false, motivo: "El preview es de solo lectura: no se consumen tiradas, monedas ni objetos." } });
+      }
+      if (now - (ficha.accionAt ?? 0) < ACCION_MIN_MS) return;
       ficha.accionAt = now;
       ws.serializeAttachment(ficha);
       const datos = JSON.stringify(m.datos ?? null);
