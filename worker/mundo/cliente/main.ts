@@ -92,6 +92,7 @@ interface Otro {
   desfase: number;
   aspecto: Aspecto;
   perfil?: { nivel: number; prestigio: number };
+  sentado: boolean;
   tarjeta: HTMLImageElement;
   tarjetaHasta: number;
 }
@@ -233,7 +234,7 @@ const FICHAS: Record<ZonaId, string> = {
   ruleta: "🎰 <b>Ruleta grande</b><br>Gírala con las tiradas de tus misiones del día (las mismas que en Discord).",
   escuela: "🏫 <b>Escuela de la trivia</b><br>Abre una partida multijugador con los Papus que entren a la misma sala.",
   estanque: "🎣 <b>Estanque</b><br>Lanza la caña, pesca un pez y gana XP según su tamaño: 5%, 10% o 20% de tu barra.",
-  fogata: "🔥 <b>Fogata</b><br>Un lugar para sentarse con otros Papus y Vocaloids.",
+  fogata: "🔥 <b>Fogata</b><br>Descansa junto al fuego y comparte el momento con los demás Papus.",
   altar: "💍 <b>Altar de bodas</b><br>Próximamente: aquí queda la boda más reciente.",
   fama: "🏆 <b>Salón de la fama</b><br>Próximamente: los Papus de más nivel y los récords.",
   sorteo: "🎁 <b>Sorteo de GyroP</b><br>Próximamente: la cuenta regresiva del sorteo y cómo entrar.",
@@ -241,6 +242,7 @@ const FICHAS: Record<ZonaId, string> = {
 /** Lugares que se pueden usar desde su ficha (boton o tecla F). */
 const USAR: Partial<Record<ZonaId, { texto: string; abrir: () => void }>> = {
   ruleta: { texto: "🎰 Abrir la ruleta", abrir: () => abrirRuleta() },\n  estanque: { texto: "🎣 Pescar", abrir: () => abrirPesca() },
+  fogata: { texto: "🔥 Sentarse", abrir: () => alternarFogata() },
   escuela: {
     texto: "🧠 Jugar trivia multijugador",
     abrir: () => {
@@ -277,7 +279,7 @@ function crearOtro(papu: PapuPublico): Otro {
   tarjeta.alt = `Tarjeta de nivel de ${papu.nombre}`;
   tarjeta.hidden = true;
   etiqueta.prepend(tarjeta);
-  const otro: Otro = { p, nombre: papu.nombre, objetivo: { ...papu }, etiqueta, burbujas: etiqueta.querySelector(".burbujas")!, mensajes: [], desfase: Math.random(), aspecto: papu.aspecto, tarjeta, tarjetaHasta: 0 };
+  const otro: Otro = { p, nombre: papu.nombre, objetivo: { ...papu }, etiqueta, burbujas: etiqueta.querySelector(".burbujas")!, mensajes: [], desfase: Math.random(), aspecto: papu.aspecto, sentado: false, tarjeta, tarjetaHasta: 0 };
   etiqueta.addEventListener("click", () => abrirPerfil(otro));
   etiqueta.addEventListener("keydown", (e) => {
     if (e.key === "Enter" || e.key === " ") { e.preventDefault(); abrirPerfil(otro); }
@@ -380,6 +382,11 @@ function recibirTarjetaCompartida(m: Extract<Aviso, { t: "tarjeta-compartida" }>
   if (o) mostrarTarjetaCabeza(o, cache.src);
 }
 
+function alternarFogata(): void {
+  if (!mio) return;
+  enviar({ t: "sentarse", sentado: !mio.sentado });
+}
+
 function recibir(m: Aviso): void {
   if (m.t === "error" && modoWeb && m.texto.startsWith("No pude comprobar")) return entrada(true);
   if (m.t === "error") return error(m.texto);
@@ -410,6 +417,13 @@ function recibir(m: Aviso): void {
   }
   if (m.t === "sale") return quitar(m.id);
   if (m.t === "stats") return stats(m);
+  if (m.t === "fogata") {
+    const o = m.id === yo ? mio : otros.get(m.id);
+    if (!o) return;
+    o.sentado = m.sentado;
+    decir(o, m.sentado ? "🔥 Se sentó junto a la fogata" : "Se levantó de la fogata");
+    return;
+  }
   if (m.t === "perfil") return perfil(m);
   if (m.t === "tarjeta") return recibirTarjeta(m);
   if (m.t === "tarjeta-compartida") return recibirTarjetaCompartida(m);
@@ -831,7 +845,8 @@ function cuadro(): void {
     if (cerca) {
       // La ficha de la foto del servidor (quien pelea, si el mercado esta abierto…) gana a la fija.
       const usar = USAR[cerca.id];
-      const html = (vivas.fichas[cerca.id] ?? FICHAS[cerca.id]) + (usar ? `<button class="usar" type="button" data-usar="${cerca.id}">${usar.texto} <kbd>F</kbd></button>` : "");
+      const textoUsar = cerca.id === "fogata" && mio?.sentado ? "🔥 Levantarse" : usar?.texto;
+      const html = (vivas.fichas[cerca.id] ?? FICHAS[cerca.id]) + (usar ? `<button class="usar" type="button" data-usar="${cerca.id}">${textoUsar} <kbd>F</kbd></button>` : "");
       if (c.dataset.html !== html) c.innerHTML = html;
       c.dataset.html = html;
       c.dataset.id = cerca.id;
