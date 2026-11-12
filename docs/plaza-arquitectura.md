@@ -25,6 +25,7 @@ La Plaza 3D es una segunda interfaz del servidor de Discord. Discord y la Plaza 
 
 - La Plaza no calcula XP, niveles ni saldos.
 - El Worker no concede recompensas ni descuenta monedas.
+- Las tarjetas públicas quedan deshabilitadas en esta interfaz hasta que sus tablas se incorporen mediante una migración controlada del esquema canónico.
 - El backend revalida usuario, datos, permisos, cooldowns y reglas.
 - La respuesta de éxito se entrega después de la operación del servicio canónico.
 - Los perfiles son snapshots derivados del backend; nunca se usan como fuente de verdad.
