@@ -175,7 +175,7 @@ describe("EconomiaPlazaPreview", () => {
       JSON.stringify({
         version: 1, xp: 0,
         wallet: { ganadas: 10_000_000, compradas: 0, ecos: 0, gratis: 0, gratisRaro: 0, gratisLeg: 0, sobres: 0, sinEpica: 0, sinLegendaria: 0, hoy: 0 },
-        inventario: [], consumibles: { "microfono-meiko": 2 }, comprasMercado: ["disquete-adachi-rei"],
+        inventario: [], consumibles: { "microfono-meiko": 2, "atun-luka": 1 }, comprasMercado: ["disquete-adachi-rei"],
         ruletaDia: "2026-11-11", ruletaUsadas: 0, pescaAt: 0, disqueteProcesadoDia: "2026-11-11", ruletaGuardadas: 0,
         cuotaExtraDia: "2026-11-12", cuotaExtra: 0, cuotaUsada: 0, subioDia: "",
       }),
@@ -187,7 +187,7 @@ describe("EconomiaPlazaPreview", () => {
     const roulette = new RouletteService({ db: source, settings: loadRouletteSettings(), levels, quota, timeZone: "America/Santiago", now: () => now });
     const marketSettings = loadMercadoSettings();
     const mercado = new MercadoService({ db: source, settings: marketSettings, coins, quota, roulette, timeZone: "America/Santiago", now: () => now });
-    const economy = new EconomiaPlazaPreview({ query, db: source, levels, coins, mercado, roulette, quota, now: () => now, rnd: () => 0.1 });
+    const economy = new EconomiaPlazaPreview({ query, db: source, levels, coins, mercado, roulette, quota, now: () => now, rnd: (() => { let roll = 0; return () => roll++ === 0 ? 0.01 : 0.4; })() });
     const papu = { id: userId, nombre: "Papu" };
     const usar = economy.acciones()["mercado.usar"]!;
     const activar = await usar(papu, { id: "microfono-meiko" });
@@ -206,6 +206,26 @@ describe("EconomiaPlazaPreview", () => {
     expect(consumibles.usos).toBe(2);
     const ledger = await query<{ estado: string }>("SELECT estado FROM mundo_sandbox WHERE papu_id = ?", userId);
     expect(JSON.parse(ledger[0]!.estado).consumibles["microfono-meiko"]).toBe(1);
+
+    const girar = economy.acciones()["ruleta.girar"]!;
+    const descartar = economy.acciones()["ruleta.descartar"]!;
+    const primerGiro = await girar(papu, null);
+    expect(primerGiro.ok).toBe(true);
+    if (!primerGiro.ok) return;
+    expect((primerGiro.datos as { atun?: { girosRestantes: number } }).atun?.girosRestantes).toBe(2);
+    const primerIndex = (primerGiro.datos as { giro: { index: number } }).giro.index;
+    const primerDescarte = await descartar(papu, null);
+    expect(primerDescarte.ok).toBe(true);
+    if (!primerDescarte.ok) return;
+    expect((primerDescarte.datos as { giro: { index: number }; atun: { girosRestantes: number } }).giro.index).not.toBe(primerIndex);
+    expect((primerDescarte.datos as { atun: { girosRestantes: number } }).atun.girosRestantes).toBe(1);
+    const segundoDescarte = await descartar(papu, null);
+    expect(segundoDescarte.ok).toBe(true);
+    if (segundoDescarte.ok) expect((segundoDescarte.datos as { atun: { girosRestantes: number } }).atun.girosRestantes).toBe(0);
+    const tercerDescarte = await descartar(papu, null);
+    expect(tercerDescarte.ok).toBe(false);
+    const ledgerFinal = await query<{ estado: string }>("SELECT estado FROM mundo_sandbox WHERE papu_id = ?", userId);
+    expect(JSON.parse(ledgerFinal[0]!.estado).consumibles["atun-luka"]).toBe(0);
   });
 
 
