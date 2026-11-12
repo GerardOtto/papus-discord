@@ -15,6 +15,7 @@ export interface PreguntaPool {
   dificultad: Dificultad;
   /** Para revisar que el pool tenga de todo (opciones-canciones, texto-adivinanzas, audio-opciones, imagen-silueta…). */
   categoria: string;
+  tema?: string;
   texto: string;
   respuesta: string;
   /** opciones: las incorrectas (3, o 1 en verdadero o falso). */
@@ -85,6 +86,8 @@ export interface Vista {
     restante: number;
     /** Quien eligio cada opcion (ids), en vivo. */
     elecciones: string[][];
+    ocultas?: number[];
+    temas?: { tema: string; n: number }[];
   };
   revelar?: {
     correcta: number;
@@ -104,6 +107,7 @@ export interface Vista {
     preguntas: number;
   };
   aviso?: string;
+  consumibles?: { celular: number; guitarra: number; zanahoria: number; baguette: number; guitarraActiva: boolean };
 }
 
 /** Mensajes de la pagina a la sala. */
@@ -112,4 +116,5 @@ export type Pedido =
   | { t: "configurar"; modo?: Modo; eleccion?: Eleccion }
   | { t: "empezar" }
   | { t: "responder"; nonce: string; opcion?: number; texto?: string }
-  | { t: "otra" };
+  | { t: "otra" }
+  | { t: "consumible"; objeto: "celular" | "guitarra" | "zanahoria"; tema?: string };
