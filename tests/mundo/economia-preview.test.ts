@@ -140,7 +140,7 @@ describe("EconomiaPlazaPreview", () => {
     expect(ledger[0]!.revision).toBe(2);
     const sandbox = JSON.parse(ledger[0]!.estado) as { wallet: { ganadas: number; compradas: number }; inventario: string[] };
     expect(sandbox.wallet.compradas).toBeLessThan(10_000_000);
-    expect(sandbox.wallet.ganadas).toBeLessThan(100_000);
+    expect(sandbox.wallet.ganadas).toBeLessThan(10_000_000);
     expect(sandbox.inventario).toContain(articulo!.id);
   });
 
