@@ -1050,7 +1050,7 @@ type TipoCatalogo = "tienda" | "mercado";
 function pintarCatalogo(tipo: TipoCatalogo, datos: Record<string, unknown>): string {
   const objetos = Array.isArray(datos.objetos) ? datos.objetos as { id: string; nombre: string; descripcion: string; rareza?: string; emoji?: string; precio: number | null; usos?: number | null; owned: boolean }[] : [];
   const soloLectura = datos.soloLectura === true;
-  const abierto = datos.abierta;
+  const abierto = tipo === "mercado" ? datos.abierto : datos.abierta;
   const wallet = datos.wallet && typeof datos.wallet === "object" ? datos.wallet as { ganadas?: number; compradas?: number } : null;
   const monedero = wallet ? `<p class="v-pie">🪙 Ganadas: <b>${wallet.ganadas ?? 0}</b> · Compradas: <b>${wallet.compradas ?? 0}</b></p>` : "";
   const estado = tipo === "mercado"
