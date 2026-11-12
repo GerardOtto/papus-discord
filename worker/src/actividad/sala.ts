@@ -91,6 +91,7 @@ export class SalaTrivia implements DurableObject {
       if (!res.ok) return this.enviar(ws, { error: res.motivo });
       this.sockets.set(ws, p.id);
       await this.pedirPerfil(p.id);
+      if (this.env.MUNDO_PREVIEW === "1") this.sala.setConsumibles(p.id, await this.estadoConsumibles(p.id));
       return this.despues();
     }
     let aviso: string | undefined;
