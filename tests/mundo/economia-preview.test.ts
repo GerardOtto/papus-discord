@@ -128,7 +128,7 @@ describe("EconomiaPlazaPreview", () => {
     expect(mercadoEstado.ok).toBe(true);
     if (!mercadoEstado.ok) return;
     expect((mercadoEstado.datos as { abierto: boolean }).abierto).toBe(true);
-    const articuloMercado = (mercadoEstado.datos as { objetos: { id: string }[] }).objetos[0];
+    const articuloMercado = (mercadoEstado.datos as { objetos: { id: string; owned: boolean }[] }).objetos.find((o) => !o.owned);
     expect(articuloMercado).toBeDefined();
     const compraMercado = await actions["mercado.comprar"]!(papu, { id: articuloMercado!.id });
     expect(compraMercado.ok).toBe(true);
