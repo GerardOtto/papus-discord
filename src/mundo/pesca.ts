@@ -28,7 +28,7 @@ export function accionPesca(
   afterAward?: (change: NonNullable<ReturnType<LevelService["bonus"]>>) => Promise<void>,
 ): Atender {
   const ultimoLance = new Map<string, number>();
-  return (papu) => {
+  return async (papu) => {
     const t = now();
     const ultimo = ultimoLance.get(papu.id) ?? 0;
     if (t - ultimo < COOLDOWN_MS) {
