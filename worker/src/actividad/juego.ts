@@ -104,6 +104,7 @@ export class Sala {
   private readonly ocultas = new Map<string, { nonce: string; indices: number[] }>();
   private readonly guitarras = new Set<string>();
   private readonly zanahorias = new Map<string, string>();
+  private zanahoriaRonda = "";
   private readonly now: () => number;
   private readonly rnd: () => number;
 
@@ -119,8 +120,8 @@ export class Sala {
   usarCelular(id: string, nonce: string): boolean { if(!this.puedeCelular(id,nonce))return false;const r=this.ronda!,wrong=r.opciones.map((_,i)=>i).filter(i=>i!==r.correcta);for(let i=wrong.length-1;i>0;i--){const j=Math.floor(this.rnd()*(i+1));[wrong[i],wrong[j]]=[wrong[j]!,wrong[i]!];}this.ocultas.set(id,{nonce,indices:wrong.slice(0,2)});return true; }
   puedeGuitarra(id:string,nonce:string):boolean {const j=this.jugadores.get(id);return !!this.ronda&&this.fase==="pregunta"&&this.ronda.nonce===nonce&&!!j?.juega&&(this.modo==="cooperativo"||j.vivo)&&!this.guitarras.has(id)&&(this.extras.get(id)?.guitarra??0)>0;}
   usarGuitarra(id:string,nonce:string):boolean {if(!this.puedeGuitarra(id,nonce))return false;this.guitarras.add(id);return true;}
-  puedeZanahoria(id:string,nonce:string,tema:string):boolean {const j=this.jugadores.get(id);return !!this.ronda&&this.fase==="pregunta"&&this.ronda.nonce===nonce&&!!j?.juega&&(this.modo==="cooperativo"||j.vivo)&&this.zanahorias.get(id)!==nonce&&(this.extras.get(id)?.zanahoria??0)>0&&this.orden.some(q=>(q.tema??q.categoria)===tema);}
-  usarZanahoria(id:string,nonce:string,tema:string):boolean {if(!this.puedeZanahoria(id,nonce,tema))return false;const i=this.orden.findIndex(q=>(q.tema??q.categoria)===tema);const [q]=this.orden.splice(i,1);this.orden.unshift(q!);this.zanahorias.set(id,nonce);return true;}
+  puedeZanahoria(id:string,nonce:string,tema:string):boolean {const j=this.jugadores.get(id);return !!this.ronda&&this.fase==="pregunta"&&this.ronda.nonce===nonce&&!!j?.juega&&(this.modo==="cooperativo"||j.vivo)&&this.zanahoriaRonda!==nonce&&(this.extras.get(id)?.zanahoria??0)>0&&this.orden.some(q=>(q.tema??q.categoria)===tema);}
+  usarZanahoria(id:string,nonce:string,tema:string):boolean {if(!this.puedeZanahoria(id,nonce,tema))return false;const i=this.orden.findIndex(q=>(q.tema??q.categoria)===tema);const [q]=this.orden.splice(i,1);this.orden.unshift(q!);this.zanahorias.set(id,nonce);this.zanahoriaRonda=nonce;return true;}
   pendientesRescateBaguette(): string[] { if(this.fase!=="revelar"||!this.ronda?.resultados)return [];return Object.entries(this.ronda.resultados).filter(([id,r])=>!r.ok&&!r.salvado&&(this.jugadores.get(id)?.rescatesBaguette??2)<2).map(([id])=>id); }
   baguetteActiva(id:string):boolean {return !!this.jugadores.get(id)?.baguetteActiva;}
   activarBaguette(id:string):void {const j=this.jugadores.get(id);if(j)j.baguetteActiva=true;}
