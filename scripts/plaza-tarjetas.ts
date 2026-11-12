@@ -116,7 +116,7 @@ async function main(): Promise<void> {
         prestigio: record.prestige,
         restante: Number.isFinite(restante) ? restante : null,
         limite: Number.isFinite(limite) ? limite : null,
-        ruletas: Math.max(0, roulette.status(id).left - (economia?.ruletasUsadas(id) ?? 0)),
+        ruletas: economia?.ruletasDisponibles(id) ?? roulette.status(id).left,
       };
     },
     tarjetaPublica: async (id) => {
