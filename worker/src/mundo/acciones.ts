@@ -5,7 +5,7 @@
 // Funciones puras: las comparten la sala, la pagina y las pruebas.
 
 /** Acciones que la plaza le puede pedir al bot. */
-export const ACCIONES = ["ruleta.estado", "ruleta.girar"] as const;
+export const ACCIONES = ["ruleta.estado", "ruleta.girar", "pesca.capturar"] as const;
 export type Accion = (typeof ACCIONES)[number];
 export const esAccion = (a: unknown): a is Accion => typeof a === "string" && (ACCIONES as readonly string[]).includes(a);
 
