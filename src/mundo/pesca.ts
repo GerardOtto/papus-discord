@@ -60,7 +60,6 @@ export function accionPesca(
         texto: textoRecompensaPesca(recompensa),
         nivelAntes,
         nivelDespues: levels.snapshot(papu.id).level,
-        xpTotal: despues,
         cooldownMs: COOLDOWN_MS,
       },
     };
