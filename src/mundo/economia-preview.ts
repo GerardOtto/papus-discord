@@ -785,7 +785,11 @@ export class EconomiaPlazaPreview {
     if (real.blocked) return error("🚫 Neru te dio un machetazo: sin ruleta por ahora.");
     return this.cambiar(userId, (s) => {
       if (s.ruletaDia !== day) { s.ruletaDia = day; s.ruletaUsadas = 0; }
-      s.atunPendiente = undefined;
+      if (s.atunPendiente?.day === day) {
+        return { result: error("Primero acepta el premio pendiente o descártalo con el Atún de Luka."), changed: false };
+      }
+      // Un pendiente de ayer ya quedó aplicado; solo se limpia, nunca se revierte al cambiar de día.
+      if (s.atunPendiente) s.atunPendiente = undefined;
       const nivelYaContado = real.missions.some((m) => m.id === "nivel" && m.done);
       const misionNivelSandbox = s.subioDia === day && !nivelYaContado;
       const voz = real.missions.find((m) => m.id === "voz");
