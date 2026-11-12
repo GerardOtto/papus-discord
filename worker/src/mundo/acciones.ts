@@ -59,7 +59,7 @@ export interface Giro {
   origen: "plaza" | "discord";
 }
 
-/** Lo que devuelve "ruleta.girar" cuando salio bien: el giro, el premio en palabras y las tiradas que quedan. */
+/** Lo que devuelve "ruleta.girar": giro y texto; `simulado` identifica los resultados DEMO sin premio. */
 export interface RuletaGiro {
   giro: Giro;
   /** "+312 XP (¡subió al nivel 13!)" */
