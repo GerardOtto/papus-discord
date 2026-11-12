@@ -19,6 +19,28 @@ export const CHAT_MAX = 120;
 export const CHAT_MIN_MS = 250;
 export const MAX_PAPUS = 40;
 
+/** La fogata tiene seis asientos compartidos; el índice se reserva por conexión activa. */
+export const ASIENTOS_FOGATA = 6;
+
+export function asientoDisponible(ocupados: Iterable<number>): number | null {
+  const usados = new Set([...ocupados].filter((n) => Number.isInteger(n) && n >= 0 && n < ASIENTOS_FOGATA));
+  for (let i = 0; i < ASIENTOS_FOGATA; i++) if (!usados.has(i)) return i;
+  return null;
+}
+
+/** Pose mirando hacia el centro de la fogata. Rechaza índices fuera del rango para no crear asientos fantasma. */
+export function poseAsientoFogata(fogata: { x: number; z: number }, asiento: number): Pose | null {
+  if (!Number.isInteger(asiento) || asiento < 0 || asiento >= ASIENTOS_FOGATA) return null;
+  const angulo = (asiento / ASIENTOS_FOGATA) * Math.PI * 2 + 0.3;
+  return {
+    x: fogata.x + Math.cos(angulo) * 3,
+    z: fogata.z + Math.sin(angulo) * 3,
+    r: angulo + Math.PI,
+    a: 0,
+    m: 0,
+  };
+}
+
 /** Opciones de personalizacion (la pagina las dibuja; la sala solo valida el indice). */
 export const ASPECTOS = {
   ropa: ["#39c5bb", "#d4344a", "#e8a0c8", "#f2d541", "#3b6fd9", "#7a4fd6", "#4a9a4a", "#2b2b33"],
