@@ -38,6 +38,8 @@ export interface RuletaEstado {
   soloLectura?: boolean;
   /** Solo preview: permite probar la animación con giros ficticios, sin tiradas ni recompensas. */
   simulacion?: boolean;
+  /** Preview público: transacciones persistentes en un ledger aislado; nunca escriben en producción. */
+  sandbox?: boolean;
   tiradas: number;
   usadas: number;
   bloqueada: boolean;
