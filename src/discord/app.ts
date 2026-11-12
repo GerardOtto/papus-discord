@@ -588,6 +588,9 @@ export class PapusApp {
           }
           return { ok: true, datos: { mensaje: `¡Compraste ${coins.byId.get(id)?.nombre ?? id}!`, wallet: compra.wallet } };
         };
+      } else {
+        mundo.acciones["tienda.estado"] = () => ({ ok: false, motivo: "La Tienda Shaula está desactivada en este servidor." });
+        mundo.acciones["tienda.comprar"] = () => ({ ok: false, motivo: "La Tienda Shaula está desactivada en este servidor." });
       }
 
       // Mercado negro de Neru: respeta su horario, vitrina diaria y pago exclusivo con monedas ganadas.
@@ -626,6 +629,9 @@ export class PapusApp {
           }
           return { ok: true, datos: { mensaje: `¡Compraste ${compra.objeto.nombre}! ${rol}`, wallet: compra.wallet } };
         };
+      } else {
+        mundo.acciones["mercado.estado"] = () => ({ ok: false, motivo: "El Mercado Negro no está configurado en este servidor." });
+        mundo.acciones["mercado.comprar"] = () => ({ ok: false, motivo: "El Mercado Negro no está configurado en este servidor." });
       }
       // Registro del chat de la plaza en #plaza-papus (solo lectura), en mensajes agrupados y sin avisar a nadie.
       mundo.onChat = async (lineas) => {
