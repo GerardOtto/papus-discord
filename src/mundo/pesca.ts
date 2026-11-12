@@ -3,6 +3,7 @@
 import type { Atender } from "./puente";
 import { kvGet, kvSet, type Db } from "../db/database";
 import type { LevelService } from "../levels/service";
+import { progress } from "../levels/rules";
 import { recompensaPesca, textoRecompensaPesca, type TamanoPez } from "../pesca/reglas";
 
 const COOLDOWN_MS = 30_000;
@@ -42,13 +43,14 @@ export function accionPesca(
     }
 
     const antes = levels.store.get(papu.id).xp;
-    const nivelAntes = levels.snapshot(papu.id).level;
+    const nivelAntes = progress(levels.settings, antes).level;
     const tamano = elegir(rnd);
     const recompensa = recompensaPesca(levels.settings, antes, tamano);
     if (!recompensa) return { ok: false, motivo: "No pude calcular la captura. Inténtalo de nuevo." };
 
     const cambio = recompensa.xp > 0 ? levels.bonus(papu.id, recompensa.xp, t) : null;
-    if (recompensa.xp > 0 && levels.store.get(papu.id).xp < antes + recompensa.xp) {
+    const xpDespues = levels.store.get(papu.id).xp;
+    if (recompensa.xp > 0 && xpDespues < antes + recompensa.xp) {
       return { ok: false, motivo: "No pude aplicar la XP de la captura. No se consumió el tiempo de espera; inténtalo de nuevo." };
     }
     if (cambio && afterAward) await afterAward(cambio).catch(() => {});
@@ -61,7 +63,7 @@ export function accionPesca(
         porcentaje: Math.round(recompensa.porcentaje * 100),
         texto: textoRecompensaPesca(recompensa),
         nivelAntes,
-        nivelDespues: levels.snapshot(papu.id).level,
+        nivelDespues: progress(levels.settings, xpDespues).level,
         cooldownMs: COOLDOWN_MS,
       },
     };
