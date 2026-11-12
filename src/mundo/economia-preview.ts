@@ -402,7 +402,11 @@ export class EconomiaPlazaPreview {
     const proxima = proximaApertura(settings, now);
     const abierto = settings.activo && abierta(hoy, now);
     const disponibles = this.d.mercado.vitrina(now);
-    const objetos = disponibles.map((o) => {
+    const idsVitrina = new Set(disponibles.map((o) => o.id));
+    const inventarioVisible = settings.objetos.filter((o) =>
+      !idsVitrina.has(o.id) && ((CONSUMIBLES.includes(o.efecto) && (state.consumibles[o.id] ?? 0) > 0) ||
+        (PERMANENTES.includes(o.efecto) && state.comprasMercado.includes(o.id))));
+    const objetos = [...disponibles, ...inventarioVisible].map((o) => {
       const permanente = PERMANENTES.includes(o.efecto);
       const usos = state.consumibles[o.id] ?? 0;
       const owned = o.efecto === "objeto"
