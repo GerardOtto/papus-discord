@@ -46,11 +46,15 @@ async function iniciar(): Promise<void> {
     hola = { t: "hola", token: tok.access_token };
     instancia = sdk.instanceId;
     canal = sdk.channelId ?? "";
-  } else {
-    if (!cfg.prueba) return mostrarError("Abre la trivia desde Discord: en un canal de voz, toca 🚀 Actividades.");
+  } else if (cfg.prueba) {
     const nombre = prompt("Modo de prueba: ¿tu nombre?") || "Papu";
-    hola = { t: "hola", prueba: { id: `prueba-${nombre.replace(/\W/g, "").slice(0, 12) || "papu"}`, nombre } };
+    hola = { t: "hola", prueba: { id: `prueba-${nombre.replace(/\\W/g, "").slice(0, 12) || "papu"}`, nombre } };
     instancia = params.get("sala") ?? "prueba";
+  } else {
+    // Desde la Plaza web: SalaTrivia valida la cookie HttpOnly de la sesion OAuth.
+    // Todos comparten la instancia "plaza" salvo que se indique otra en la URL.
+    hola = { t: "hola" };
+    instancia = params.get("sala") ?? "plaza";
   }
   conectar(instancia, canal, hola, 0);
 }
