@@ -26,6 +26,7 @@ import { StrikeStore } from "../src/moderation/strikes";
 import { loadRouletteSettings } from "../src/ruleta/rules";
 import { RouletteService } from "../src/ruleta/service";
 import { EconomiaPlazaPreview } from "../src/mundo/economia-preview";
+import { loadQuestions, loadTriviaSettings } from "../src/trivia/rules";
 
 const ROOT = path.resolve(import.meta.dirname, "..");
 const CADA_MS = 3_000;
@@ -127,7 +128,11 @@ async function main(): Promise<void> {
     },
     log,
   });
-  economia = new EconomiaPlazaPreview({ query, db, levels, coins, mercado, roulette, quota });
+  const triviaSettings = loadTriviaSettings();
+  const triviaQuestions = loadQuestions(triviaSettings);
+  const questionLevels = Object.fromEntries(triviaQuestions.map((q) => [q.id, q.level]));
+  const questionTotals = Object.fromEntries((["facil", "medio", "dificil"] as const).map((d) => [d, triviaQuestions.filter((q) => q.level === d).length])) as Record<"facil" | "medio" | "dificil", number>;
+  economia = new EconomiaPlazaPreview({ query, db, levels, coins, mercado, roulette, quota, trivia: triviaSettings, questionLevels, questionTotals, timeZone: config.quotaTimeZone });
   await economia.preload();
   puente.acciones = economia.acciones();
   log(`✔ mundoPreview listo: D1 ${databaseId.slice(0, 8)}… (preview), base en solo lectura: ${dataDir}`);
@@ -140,6 +145,7 @@ async function main(): Promise<void> {
     ocupado = true;
     void puente
       .sync()
+      .then(async () => { await economia?.syncTrivia(); })
       .then(() => {
         if (fallos) log(`✔ sincronización recuperada tras ${fallos} fallo(s)`);
         fallos = 0;
