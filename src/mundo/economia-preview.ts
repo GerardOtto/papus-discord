@@ -291,6 +291,17 @@ export class EconomiaPlazaPreview {
       try { pendientes = (JSON.parse(row.estado) as EstadoSandbox).regalosPendientes ?? {}; } catch { continue; }
       for (const [id, regalo] of Object.entries(pendientes)) {
         if (!/^\d{5,25}$/.test(regalo.para) || regalo.para === row.papu_id) continue;
+        if (regalo.day !== this.d.roulette.dayOf(this.now())) {
+          // Si no se entregó antes de medianoche, caduca como en Discord y se devuelve el uso al remitente.
+          await this.cambiar(row.papu_id, (origen) => {
+            if (!origen.regalosPendientes?.[id]) return { result: undefined, changed: false };
+            delete origen.regalosPendientes[id];
+            if (!Object.keys(origen.regalosPendientes).length) delete origen.regalosPendientes;
+            origen.consumibles["regalo-rin-len"] = (origen.consumibles["regalo-rin-len"] ?? 0) + 1;
+            return { result: undefined };
+          });
+          continue;
+        }
         await this.cambiar(regalo.para, (destino) => {
           destino.regalosRecibidos ??= [];
           if (destino.regalosRecibidos.includes(id)) return { result: undefined, changed: false };
