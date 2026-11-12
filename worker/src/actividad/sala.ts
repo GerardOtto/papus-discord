@@ -195,12 +195,19 @@ export class SalaTrivia implements DurableObject {
       if (this.rescatandoBaguette.has(id)) continue;
       this.rescatandoBaguette.add(id);
       try {
-        if (!this.sala.baguetteActiva(id)) {
+        const nuevoUso = !this.sala.baguetteActiva(id);
+        if (nuevoUso) {
           if (!await this.modificarUso(id, "baguette-teto", -1)) continue;
           this.sala.activarBaguette(id);
           this.sala.setConsumibles(id, await this.estadoConsumibles(id));
         }
-        this.sala.rescatarBaguette(id);
+        // Si la ronda avanzó mientras D1 confirmaba el débito, devuelve el uso y no deja
+        // la Baguette activada para una partida en la que no rescató a nadie.
+        if (!this.sala.rescatarBaguette(id) && nuevoUso) {
+          this.sala.desactivarBaguette(id);
+          await this.modificarUso(id, "baguette-teto", 1);
+          this.sala.setConsumibles(id, await this.estadoConsumibles(id));
+        }
       } finally {
         this.rescatandoBaguette.delete(id);
       }
