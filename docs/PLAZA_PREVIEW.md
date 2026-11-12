@@ -58,3 +58,19 @@ La trivia existente también se sirve en `/actividad/` desde este Worker preview
 - [ ] El comando de despliegue usa explícitamente `wrangler.preview.toml`.
 
 No usar `npm run worker:deploy`: ese script registra comandos y cambia los endpoints de interacción de Miku y Luka.
+
+
+## Tarjetas de nivel en el preview
+
+La Plaza puede mostrar la misma tarjeta que genera `/nivel`, sin incluir la cuota diaria ni las tiradas privadas.
+La generación se ejecuta bajo demanda en el proceso Node del bot y almacena temporalmente la imagen en el D1 aislado del preview.
+
+Para habilitar el puente en el equipo donde se ejecuta el bot, agrega al `.env`:
+
+```dotenv
+PLAZA_PREVIEW_D1_DATABASE_ID=<ID de la base papus-plaza-preview>
+```
+
+El puente reutiliza `CLOUDFLARE_DEPLOY_TOKEN` y `CLOUDFLARE_ACCOUNT_ID`, pero solo escribe en el ID explícito anterior. Si la variable no existe, no se conecta al preview. No cambies `worker/wrangler.toml` ni ejecutes el despliegue de producción.
+
+Las tarjetas se generan al solicitarlas, se cachean durante 60 segundos y se envían solo a quien las pidió. La imagen pública excluye la cuota diaria. El botón ⭐ o la tecla P muestra la tarjeta propia sobre el personaje durante cinco segundos; al pulsar el nombre de otro Papu se abre su tarjeta completa.
