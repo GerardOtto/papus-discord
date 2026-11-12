@@ -1061,6 +1061,9 @@ async function descartarAtun(): Promise<void> {
     return;
   }
   miGiro = r.datos as RuletaGiro;
+  if (vistaRuleta.estado && !miGiro.simulado) {
+    vistaRuleta.estado = { ...vistaRuleta.estado, tiradas: miGiro.tiradas, atunPendiente: miGiro.atun ? { girosRestantes: miGiro.atun.girosRestantes } : undefined };
+  }
   vistaRuleta.mio = { fase: "pidiendo" };
   faseMia();
 }
@@ -1075,7 +1078,14 @@ async function girarRuleta(): Promise<void> {
     return pintarRuleta();
   }
   miGiro = r.datos as RuletaGiro;
-  if (vistaRuleta.estado && !miGiro.simulado) vistaRuleta.estado = { ...vistaRuleta.estado, tiradas: miGiro.tiradas, usadas: vistaRuleta.estado.usadas + 1 };
+  if (vistaRuleta.estado && !miGiro.simulado) {
+    vistaRuleta.estado = {
+      ...vistaRuleta.estado,
+      tiradas: miGiro.tiradas,
+      usadas: vistaRuleta.estado.usadas + 1,
+      atunPendiente: miGiro.atun ? { girosRestantes: miGiro.atun.girosRestantes } : undefined,
+    };
+  }
   faseMia();
 }
 
