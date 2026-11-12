@@ -4,8 +4,8 @@
 // ruleta de la plaza muestra los giros de a uno, para todos, en el orden en que llegaron (de la plaza o de Discord).
 // Funciones puras: las comparten la sala, la pagina y las pruebas.
 
-/** Acciones que la plaza le puede pedir al bot. */
-export const ACCIONES = ["ruleta.estado", "ruleta.girar"] as const;
+/** Allowlist de acciones: el Worker valida el identificador y el bot revalida usuario, datos y permisos. Las transacciones se ejecutan en el backend canónico; el Worker solo transporta comandos. */
+export const ACCIONES = ["ruleta.estado", "ruleta.girar", "ruleta.descartar", "ruleta.aceptar", "pesca.capturar", "tienda.estado", "tienda.comprar", "mercado.estado", "mercado.comprar", "mercado.usar"] as const;
 export type Accion = (typeof ACCIONES)[number];
 export const esAccion = (a: unknown): a is Accion => typeof a === "string" && (ACCIONES as readonly string[]).includes(a);
 
@@ -34,8 +34,13 @@ export interface Casilla {
 
 /** Panel de la ruleta de un Papu (lo mismo que /ruleta en Discord). */
 export interface RuletaEstado {
+  /** El preview muestra el progreso real y puede habilitar giros de demostración sin recompensas. */
+  soloLectura?: boolean;
+  /** Solo preview: permite probar la animación con giros ficticios, sin tiradas ni recompensas. */
+  simulacion?: boolean;
   tiradas: number;
   usadas: number;
+  atunPendiente?: { girosRestantes: number; premio?: string; aplicado?: boolean };
   bloqueada: boolean;
   misiones: Mision[];
   /** Notas del mercado negro (Micrófono de Meiko, Disquete, regalos de Rin y Len, Atún de Luka). */
@@ -55,12 +60,15 @@ export interface Giro {
   origen: "plaza" | "discord";
 }
 
-/** Lo que devuelve "ruleta.girar" cuando salio bien: el giro, el premio en palabras y las tiradas que quedan. */
+/** Lo que devuelve "ruleta.girar": giro y texto; `simulado` identifica los resultados DEMO sin premio. */
 export interface RuletaGiro {
+  atun?: { girosRestantes: number; usos: number };
   giro: Giro;
   /** "+312 XP (¡subió al nivel 13!)" */
   texto: string;
   tiradas: number;
+  /** Resultado de demostración: no consumió una tirada ni concedió un premio. */
+  simulado?: boolean;
 }
 
 /** Resultado de una accion: lo que devuelve el bot, o un motivo si no se pudo. */

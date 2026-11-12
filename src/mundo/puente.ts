@@ -30,7 +30,7 @@ const LOTE = 10;
 /** Mensajes del chat por vuelta para #plaza-papus. */
 const LOTE_CHAT = 60;
 /** Cada cuanto se revisa la foto del servidor para la plaza. */
-const ESTADO_MS = 60_000;
+const ESTADO_MS = 5_000;
 /** Acciones por vuelta. */
 const LOTE_ACCIONES = 10;
 /** Cada cuanto se borran los eventos y acciones viejos (de mas de un dia). */
@@ -118,6 +118,8 @@ export interface MundoDeps {
   bots: readonly BotId[];
   owners: Pick<ReadonlySet<string>, "has">;
   stats: (papuId: string) => MundoStats;
+  /** Renderiza la misma tarjeta de /nivel, sin cuota privada. */
+  tarjetaPublica?: (papuId: string) => Promise<{ data: Buffer; gif: boolean } | null>;
   now?: () => number;
   log?: (msg: string) => void;
 }
@@ -147,12 +149,15 @@ export class MundoPuente {
   estado: (() => EstadoMundo) | null = null;
   /** Acciones de la plaza que sabe atender el bot (las demas responden "aun no"). Las conecta Discord. */
   acciones: Partial<Record<Accion, Atender>> = {};
+  /** Renderizador público de /nivel; el bot principal lo conecta al arrancar. */
+  tarjetaPublica: MundoDeps["tarjetaPublica"];
   private estadoAt = 0;
   private estadoHuella = "";
   private limpiezaAt = 0;
 
   constructor(private readonly d: MundoDeps) {
     this.now = d.now ?? Date.now;
+    this.tarjetaPublica = d.tarjetaPublica;
     this.conversation = d.makeConversation(this.port());
   }
 
@@ -161,18 +166,32 @@ export class MundoPuente {
    * plano), acciones, perfiles pedidos y chat para #plaza-papus. Ademas la foto del servidor cada minuto.
    */
   async sync(): Promise<number> {
+    const corteAcciones = this.now() - ACCION_VENCE_MS;
     const [hay] = await this.d.query<{
       menciones: number;
       acciones: number;
+      accionesInterrumpidas: number;
       perfiles: number;
       chat: number;
     }>(
       `SELECT
         (SELECT COUNT(*) FROM mundo_menciones WHERE tomado = 0) AS menciones,
         (SELECT COUNT(*) FROM mundo_acciones WHERE tomado = 0) AS acciones,
+        (SELECT COUNT(*) FROM mundo_acciones WHERE tomado = 1 AND creado_at <= ?) AS accionesInterrumpidas,
         (SELECT COUNT(*) FROM mundo_perfiles WHERE pedido_at >= actualizado_at) AS perfiles,
         (SELECT COUNT(*) FROM mundo_chat WHERE publicado = 0) AS chat`,
+      corteAcciones,
     );
+    // Si el proceso se reinició después de reclamar una acción, no puede quedar
+    // pendiente para siempre. No se reejecuta a ciegas: el ledger pudo confirmarla
+    // antes de la caída, así que se devuelve un resultado de recuperación explícito.
+    if (hay?.accionesInterrumpidas) {
+      await this.d.query(
+        "UPDATE mundo_acciones SET tomado = 2, resultado = ? WHERE tomado = 1 AND creado_at <= ?",
+        JSON.stringify({ ok: false, motivo: "La acción se interrumpió antes de confirmar su respuesta. Revisa tu progreso antes de repetirla." }),
+        corteAcciones,
+      );
+    }
     let rows: Mencion[] = [];
     if (hay?.menciones) {
       rows = await this.d.query<Mencion>(
@@ -196,6 +215,10 @@ export class MundoPuente {
       for (const p of pedidos) await this.guardarPerfil(p.papu_id);
     }
     if (hay?.chat) await this.registro();
+    if (this.tarjetaPublica) {
+      const [pendientes] = await this.d.query<{ total: number }>("SELECT COUNT(*) AS total FROM mundo_tarjeta_pedidos WHERE estado = 0");
+      if (pendientes?.total) await this.generarTarjetas();
+    }
     await this.publicarEstado();
     await this.limpiar();
     return rows.length;
@@ -287,9 +310,15 @@ export class MundoPuente {
     const viejo = this.now() - DIA_MS;
     await this.d.query("DELETE FROM mundo_eventos WHERE creado_at < ?", viejo);
     await this.d.query("DELETE FROM mundo_acciones WHERE creado_at < ?", viejo);
+    if (this.tarjetaPublica) {
+      await this.d.query("DELETE FROM mundo_tarjeta_pedidos WHERE creado_at < ? AND entregado = 1", viejo);
+      const tarjetasViejas = this.now() - 7 * DIA_MS;
+      await this.d.query("DELETE FROM mundo_tarjeta_partes WHERE papu_id IN (SELECT papu_id FROM mundo_tarjetas WHERE actualizado_at < ?)", tarjetasViejas);
+      await this.d.query("DELETE FROM mundo_tarjetas WHERE actualizado_at < ?", tarjetasViejas);
+    }
   }
 
-  /** Cada minuto: la foto del servidor, solo si cambio algo (asi casi no escribe en la base). */
+  /** Cada cinco segundos: publica cambios del servidor, solo si cambió el contenido. */
   private async publicarEstado(): Promise<void> {
     if (!this.estado || this.now() - this.estadoAt < ESTADO_MS) return;
     this.estadoAt = this.now();
@@ -406,6 +435,47 @@ export class MundoPuente {
     );
   }
 
+  /** Genera tarjetas solo bajo demanda y las guarda en el D1 de esta instancia (preview o producción). */
+  private async generarTarjetas(): Promise<void> {
+    const pedidos = await this.d.query<{ papu_id: string }>(
+      "SELECT DISTINCT papu_id FROM mundo_tarjeta_pedidos WHERE estado = 0 ORDER BY papu_id LIMIT 10",
+    );
+    for (const { papu_id } of pedidos) {
+      try {
+        const [cache] = await this.d.query<{ actualizado_at: number }>(
+          "SELECT actualizado_at FROM mundo_tarjetas WHERE papu_id = ?",
+          papu_id,
+        );
+        if (cache && this.now() - cache.actualizado_at < 60_000) {
+          await this.d.query("UPDATE mundo_tarjeta_pedidos SET estado = 1 WHERE papu_id = ? AND estado = 0", papu_id);
+          continue;
+        }
+        if (!this.tarjetaPublica) throw new Error("El renderizador de tarjetas no está conectado.");
+        const card = await this.tarjetaPublica(papu_id);
+        if (!card?.data?.length) throw new Error("No se pudo generar la tarjeta.");
+        if (card.data.length > 600_000) throw new Error("La tarjeta supera el tamaño permitido para la Plaza.");
+        const encoded = card.data.toString("base64");
+        const partes = encoded.match(/.{1,16000}/g) ?? [];
+        await this.d.query("DELETE FROM mundo_tarjetas WHERE papu_id = ?", papu_id);
+        await this.d.query("DELETE FROM mundo_tarjeta_partes WHERE papu_id = ?", papu_id);
+        for (let i = 0; i < partes.length; i++) {
+          await this.d.query(
+            "INSERT INTO mundo_tarjeta_partes (papu_id, parte, datos) VALUES (?, ?, ?)",
+            papu_id, i, partes[i]!,
+          );
+        }
+        await this.d.query(
+          "INSERT INTO mundo_tarjetas (papu_id, mime, actualizado_at) VALUES (?, ?, ?) ON CONFLICT(papu_id) DO UPDATE SET mime = excluded.mime, actualizado_at = excluded.actualizado_at",
+          papu_id, card.gif ? "image/gif" : "image/png", this.now(),
+        );
+        await this.d.query("UPDATE mundo_tarjeta_pedidos SET estado = 1 WHERE papu_id = ? AND estado = 0", papu_id);
+      } catch (e) {
+        this.d.log?.(`✘ mundo: tarjeta de ${papu_id}: ${(e as Error)?.message ?? e}`);
+        await this.d.query("UPDATE mundo_tarjeta_pedidos SET estado = 2 WHERE papu_id = ? AND estado = 0", papu_id).catch(() => {});
+      }
+    }
+  }
+
   private async guardarPerfil(papuId: string): Promise<void> {
     const s = /^\d{5,25}$/.test(papuId)
       ? this.d.stats(papuId)
@@ -468,10 +538,18 @@ export function mundoFromEnv(
   env: NodeJS.ProcessEnv,
   deps: Omit<MundoDeps, "query">,
   root = path.resolve(import.meta.dirname, "../.."),
+  databaseIdOverride?: string,
 ): MundoPuente | null {
   const token = env.CLOUDFLARE_DEPLOY_TOKEN?.trim();
   const accountId = env.CLOUDFLARE_ACCOUNT_ID?.trim();
-  const databaseId = workerDatabaseId(root);
+  const produccionId = workerDatabaseId(root);
+  const solicitado = databaseIdOverride?.trim();
+  // Cinturón de seguridad: nunca permitir que el puente llamado "preview" apunte al D1 de producción.
+  if (solicitado && produccionId && solicitado === produccionId) {
+    deps.log?.("⚠ Plaza preview desactivada: su D1 coincide con el D1 de producción.");
+    return null;
+  }
+  const databaseId = solicitado || produccionId;
   if (!token || !accountId || !databaseId) return null;
   return new MundoPuente({
     ...deps,

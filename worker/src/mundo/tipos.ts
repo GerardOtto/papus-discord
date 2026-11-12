@@ -33,8 +33,12 @@ export type Pedido =
   | ({ t: "mov" } & Pose)
   | { t: "chat"; texto: string }
   | { t: "aspecto"; aspecto: Aspecto }
+  /** Se sienta o se levanta junto a la fogata. */
+  | { t: "sentarse"; sentado: boolean }
   /** Le pide al bot algo de un comando (ruleta…); `ref` vuelve con el resultado. */
   | { t: "accion"; accion: Accion; datos?: unknown; ref: number }
+  /** Solicita la tarjeta pública de un Papu conectado. */
+  | { t: "tarjeta"; papu: string; ref: number; compartir?: boolean }
   /** Salto a una zona (/ruleta lleva a la ruleta grande). */
   | { t: "ir"; lugar: string };
 
@@ -50,6 +54,8 @@ export type Aviso =
   | ({ t: "mov"; id: string; s?: 1 } & Pose)
   | { t: "chat"; id: string; texto: string }
   | { t: "aspecto"; id: string; aspecto: Aspecto }
+  /** Estado social de cada Papu en la fogata. */
+  | { t: "fogata"; id: string; sentado: boolean }
   /** Movimiento rechazado (muy rapido o fuera del mapa): la pagina vuelve a esta pose. */
   | ({ t: "corrige" } & Pose)
   | { t: "aviso"; texto: string }
@@ -58,6 +64,12 @@ export type Aviso =
   | ({ t: "vocaloid"; bot: string; papu: string } & Respuesta)
   /** Nivel y cuota del dia del Papu (null = sin limite). */
   | { t: "stats"; nivel: number; prestigio: number; restante: number | null; limite: number | null; ruletas: number }
+  /** Datos publicos de perfil (nunca incluye cuota, monedas ni tiradas). */
+  | { t: "perfil"; id: string; nivel: number; prestigio: number }
+  /** Tarjeta pública generada por el bot; nunca incluye cuota ni tiradas. */
+  | { t: "tarjeta"; ref: number; papu: string; estado: "lista" | "error"; mime?: string; datos?: string; motivo?: string }
+  /** Tarjeta propia anunciada a todos los miembros conectados de esta misma sala. */
+  | { t: "tarjeta-compartida"; ref: number; papu: string; mime: string; datos: string }
   /** Resultado de una accion pedida por este Papu. */
   | { t: "accion"; ref: number; accion: Accion; resultado: Resultado }
   /** La ruleta grande: el giro de ahora y la fila (de la plaza y de Discord). */

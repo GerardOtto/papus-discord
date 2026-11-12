@@ -57,6 +57,7 @@ import { TiendaDiscord } from "./tienda";
 import { toCardEquip } from "../coins/equip";
 import type { DatosBanco } from "../coins/images";
 import type { CoinService } from "../coins/service";
+import { priceOf } from "../coins/rules";
 import { TriviaDiscord } from "./trivia";
 import { MangoDiscord } from "./mango";
 import { pardonedFromLog, type MangoService } from "../services/mango";
@@ -65,6 +66,7 @@ import type { ActividadTrivia } from "../trivia/actividad";
 import { armarEstado } from "../mundo/estado";
 import { agruparLineas, lineasRegistro, type MundoPuente } from "../mundo/puente";
 import { accionesRuleta, giroPlaza } from "../mundo/ruleta";
+import { accionPesca } from "../mundo/pesca";
 import type { TriviaService } from "../trivia/service";
 import type { RouletteService, SpinResult } from "../ruleta/service";
 import type { SorteoService } from "../sorteo/service";
@@ -482,6 +484,8 @@ export class PapusApp {
     }
     if (this.d.mundo) {
       const mundo = this.d.mundo;
+      // Las tarjetas públicas reutilizan el render de /nivel y ocultan datos privados (cuota); D1 solo cachea el PNG.
+      mundo.tarjetaPublica = (userId) => this.tarjetaPublica(userId);
       // Un @ respondido en la plaza da la misma XP que en Discord (la del mensaje y la de la respuesta del Vocaloid).
       mundo.onAnswered = async (userId, text) => {
         const base = await this.levels.onMessage(userId, text, {});
@@ -543,6 +547,90 @@ export class PapusApp {
           void mundo.evento("aviso", { texto }, userId);
         };
       }
+      // Pesca de la Plaza: usa la XP real y la misma LevelService; el Worker no concede recompensas.
+      mundo.acciones["pesca.capturar"] = accionPesca(
+        this.d.levels,
+        this.d.db,
+        Date.now,
+        Math.random,
+        async (change) => this.levels.handle(change, {}, { quiet: true }),
+      );
+      // Tienda Shaula: usa el mismo monedero, vitrina y compra que el sistema de Discord.
+      if (this.d.coins) {
+        const coins = this.d.coins;
+        mundo.acciones["tienda.estado"] = (papu) => {
+          const vitrina = coins.vitrina();
+          const owned = coins.owned(papu.id);
+          return {
+            ok: true,
+            datos: {
+              abierta: !!vitrina,
+              wallet: coins.wallet(papu.id),
+              objetos: (vitrina?.objetos ?? []).flatMap((id) => {
+                const o = coins.byId.get(id);
+                return o ? [{ id: o.id, nombre: o.nombre, descripcion: o.descripcion, rareza: o.rareza, precio: priceOf(coins.settings, o), owned: owned.has(o.id) }] : [];
+              }),
+            },
+          };
+        };
+        mundo.acciones["tienda.comprar"] = (papu, datos) => {
+          const id = datos && typeof datos === "object" && "id" in datos && typeof (datos as { id?: unknown }).id === "string" ? (datos as { id: string }).id : "";
+          if (!id) return { ok: false, motivo: "Elige un objeto válido de la vitrina." };
+          const compra = coins.buy(papu.id, id);
+          if (!compra.ok) {
+            const motivos: Record<string, string> = {
+              "no_alcanza_ganadas": "No tienes suficientes Shaula-coins ganadas para ese objeto.",
+              "no_alcanza": "No tienes suficientes Shaula-coins.",
+            };
+            return { ok: false, motivo: motivos[compra.motivo] ?? compra.motivo };
+          }
+          return { ok: true, datos: { mensaje: `¡Compraste ${coins.byId.get(id)?.nombre ?? id}!`, wallet: compra.wallet } };
+        };
+      } else {
+        mundo.acciones["tienda.estado"] = () => ({ ok: false, motivo: "La Tienda Shaula está desactivada en este servidor." });
+        mundo.acciones["tienda.comprar"] = () => ({ ok: false, motivo: "La Tienda Shaula está desactivada en este servidor." });
+      }
+
+      // Mercado negro de Neru: respeta su horario, vitrina diaria y pago exclusivo con monedas ganadas.
+      if (this.d.mercado) {
+        const mercado = this.d.mercado;
+        mundo.acciones["mercado.estado"] = (papu) => {
+          const estado = mercado.estado();
+          const objetos = mercado.vitrina().map((o) => ({
+            id: o.id, nombre: o.nombre, emoji: o.emoji, descripcion: o.descripcion,
+            precio: o.precio, usos: o.usos ?? null, owned: mercado.tiene(papu.id, o),
+          }));
+          return { ok: true, datos: { ...estado, objetos, wallet: this.d.coins?.wallet(papu.id) ?? null } };
+        };
+        mundo.acciones["mercado.comprar"] = async (papu, datos) => {
+          const id = datos && typeof datos === "object" && "id" in datos && typeof (datos as { id?: unknown }).id === "string" ? (datos as { id: string }).id : "";
+          if (!id) return { ok: false, motivo: "Elige un objeto válido del mercado." };
+          const compra = mercado.comprar(papu.id, id);
+          if (!compra.ok) {
+            const motivos: Record<string, string> = {
+              cerrado: "El mercado negro está cerrado.",
+              no_existe: "Ese objeto no existe.",
+              no_esta: "Ese objeto no está en la vitrina de hoy.",
+              ya_lo_tienes: "Ya tienes ese objeto.",
+              no_alcanza: "No tienes suficientes Shaula-coins ganadas.",
+            };
+            return { ok: false, motivo: motivos[compra.motivo] ?? "No se pudo completar la compra." };
+          }
+          let rol = "El objeto quedó en tu inventario.";
+          if (compra.rol) {
+            try {
+              await this.grantRole(papu.id, compra.rol, "Compra en el mercado negro desde la Plaza");
+              rol = `También recibiste el rol ${compra.rol}.`;
+            } catch {
+              rol = "La compra se guardó, pero no pude asignar el rol. Contacta al staff para que lo revise.";
+            }
+          }
+          return { ok: true, datos: { mensaje: `¡Compraste ${compra.objeto.nombre}! ${rol}`, wallet: compra.wallet } };
+        };
+      } else {
+        mundo.acciones["mercado.estado"] = () => ({ ok: false, motivo: "El Mercado Negro no está configurado en este servidor." });
+        mundo.acciones["mercado.comprar"] = () => ({ ok: false, motivo: "El Mercado Negro no está configurado en este servidor." });
+      }
       // Registro del chat de la plaza en #plaza-papus (solo lectura), en mensajes agrupados y sin avisar a nadie.
       mundo.onChat = async (lineas) => {
         const ch = this.guild ? findTextChannel(this.guild, CHANNELS.plaza) : null;
@@ -582,6 +670,12 @@ export class PapusApp {
   private stopping = false;
   private readonly tipNudges = new Map<string, number>();
   private readonly tickets: TicketStore;
+
+  /** Renderiza la tarjeta original de /nivel en modo público (sin cuota diaria). */
+  async tarjetaPublica(userId: string): Promise<{ data: Buffer; gif: boolean } | null> {
+    if (!this.levels) return null;
+    return this.levels.publicCard(userId);
+  }
 
   async stop(): Promise<void> {
     if (this.stopping) return;

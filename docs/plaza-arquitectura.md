@@ -1,0 +1,55 @@
+# Arquitectura de la Plaza
+
+## Principio
+
+La Plaza 3D es una segunda interfaz del servidor de Discord. Discord y la Plaza leen y modifican el mismo estado canónico de Papus. La base D1 configurada en `worker/wrangler.toml` es el transporte y estado compartido de la Plaza; los servicios del bot y su SQLite siguen siendo la autoridad para XP, niveles, cuota, monedas, inventario, ruleta, pesca y mercado.
+
+## Conexión efectiva
+
+- El Worker principal y el Worker de interfaz de Plaza usan el mismo identificador D1 canónico.
+- El Worker de Plaza no contiene una economía ni un ledger de usuario alternativo.
+- El bot principal crea `MundoPuente` contra el D1 canónico y consulta la cola de acciones cada pocos segundos.
+- Los handlers de `MundoPuente` ejecutan `LevelService`, `RouletteService`, `CoinService` y `MercadoService`, es decir, los mismos servicios que atienden Discord.
+- Después de una acción confirmada, el puente vuelve a publicar el perfil canónico. Los eventos de Discord se entregan a los clientes conectados.
+- La separación del Worker de interfaz mantiene aislados el despliegue, el dominio y los Durable Objects; no separa los datos de Papus.
+
+## Flujo de una acción
+
+1. El cliente se autentica con Discord y envía un comando tipado al Durable Object.
+2. El Worker valida identidad, allowlist, tamaño y frecuencia; escribe una solicitud en `mundo_acciones` del D1 canónico.
+3. El bot principal reclama la solicitud y ejecuta el handler contra los servicios reales de Papus.
+4. El bot persiste el resultado y actualiza el perfil; el Durable Object entrega la respuesta al usuario.
+5. La interfaz vuelve a leer los perfiles/eventos compartidos. Un refresco periódico de perfiles activos recoge también cambios originados en Discord.
+
+## Consistencia
+
+- La Plaza no calcula XP, niveles ni saldos.
+- El Worker no concede recompensas ni descuenta monedas.
+- Las tarjetas públicas reutilizan `LevelsDiscord.publicCard`: muestran el diseño, avatar y objetos equipados de `/nivel`, pero nunca la cuota privada. D1 solo conserva una caché temporal de la imagen y una cola de solicitudes; no contiene progreso ni inventario.
+- El backend revalida usuario, datos, permisos, cooldowns y reglas.
+- La respuesta de éxito se entrega después de la operación del servicio canónico.
+- Los perfiles son snapshots derivados del backend; nunca se usan como fuente de verdad.
+- La presencia y las poses pueden ser efímeras. La economía y la progresión permanecen en los servicios de Papus.
+- Los endpoints de estado no deben almacenar respuestas en caché, para evitar mostrar snapshots vencidos.
+
+## Tarjetas públicas
+
+- `mundo_tarjetas` guarda MIME y fecha de la imagen pública renderizada; `mundo_tarjeta_partes` almacena el Base64 fragmentado para respetar límites de D1/WebSocket; `mundo_tarjeta_pedidos` coordina solicitudes y entregas.
+- Las imágenes se generan en el proceso principal de Papus con el mismo renderizador y equipo de `/nivel`; la cuota diaria se elimina antes de renderizar.
+- La caché se invalida tras 60 segundos y se limpia después de siete días. El Worker solo transporta solicitudes y entrega imágenes.
+- La migración aditiva está en `worker/migrations/0001_mundo_tarjetas.sql`. Debe aplicarse una vez al D1 canónico antes de habilitar `MUNDO_TARJETAS=1`; el workflow de preview no ejecuta migraciones.
+
+## Despliegue y seguridad
+
+- `papus-plaza-preview` es un Worker separado y su despliegue no publica ni reemplaza `papus-bots`.
+- Su binding `DB` se resuelve desde el identificador de `worker/wrangler.toml`; no se acepta una base aislada como sustituto del estado del servidor.
+- El workflow aplica solo la migración aditiva de caché de tarjetas públicas; no crea bases D1 ni modifica tablas de economía/progresión.
+- No ejecutar `worker:deploy`, no fusionar este PR y no modificar el despliegue del bot principal desde el workflow de Plaza.
+
+## Criterios de aceptación
+
+- Un cambio de XP, nivel, cuota o ruleta realizado en Discord aparece en los perfiles de la Plaza tras el siguiente ciclo de refresco.
+- Una acción iniciada en la Plaza se procesa mediante los mismos servicios y reglas que Discord.
+- Dos acciones concurrentes no pueden sobrepasar los límites que imponen los servicios canónicos.
+- La reconexión recupera perfiles y eventos actuales desde D1 y los servicios centrales.
+- Ninguna recompensa, saldo o inventario se mantiene en un ledger paralelo.

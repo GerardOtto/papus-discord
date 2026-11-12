@@ -36,7 +36,7 @@ const ESTADOS: Record<string, Vista> = {
   pregunta: base({
     fase: "pregunta",
     jugadores: [j("teto", "GyroP", { racha: 3, respondio: true }), j("miku", "Wicho el Bicho", { respondio: true }), j("luka", "wiwi"), j("neru", "Mango9374", { vivo: false })],
-    pregunta: { n: 4, nonce: "a", dificultad: "medio", tipo: "opciones", texto: "👾 Pixelado a propósito. ¿Quién es?", opciones, media: { tipo: "imagen", url: "muestra.webp" }, segundos: 20, restante: 12_000, elecciones: [["teto"], [], ["miku"], []] },
+    pregunta: { n: 4, nonce: "a", dificultad: "medio", tema: "siluetas", tipo: "opciones", texto: "👾 Pixelado a propósito. ¿Quién es?", opciones, media: { tipo: "imagen", url: "muestra.webp" }, segundos: 20, restante: 12_000, elecciones: [["teto"], [], ["miku"], []] },
   }),
   acierto: base({
     fase: "revelar",
@@ -49,14 +49,14 @@ const ESTADOS: Record<string, Vista> = {
     yo: "miku",
     modo: "cooperativo",
     jugadores: [j("teto", "GyroP", { aciertos: 2, xp: 50 }), j("miku", "Wicho el Bicho", { fallo: true, aciertos: 1, xp: 25 }), j("luka", "wiwi", { aciertos: 2, xp: 48 })],
-    pregunta: { n: 3, nonce: "b", dificultad: "facil", tipo: "texto", texto: "Tengo taladros en el pelo y me encanta el pan. ¿Quién soy?", opciones: [], segundos: 45, restante: 0, elecciones: [] },
+    pregunta: { n: 3, nonce: "b", dificultad: "facil", tema: "personajes", tipo: "texto", texto: "Tengo taladros en el pelo y me encanta el pan. ¿Quién soy?", opciones: [], segundos: 45, restante: 0, elecciones: [] },
     revelar: { correcta: -1, respuesta: "Kasane Teto", resultados: { teto: { ok: true, xp: 25, texto: "teto" }, miku: { ok: false, xp: 0, texto: "miku" }, luka: { ok: true, xp: 23, texto: "kasane teto" } }, caen: [], nadieCae: false, restante: 4000 },
   }),
   escribir: base({
     fase: "pregunta",
     modo: "cooperativo",
     jugadores: [j("teto", "GyroP", { racha: 2 }), j("miku", "Wicho el Bicho", { respondio: true }), j("luka", "wiwi", { fallo: true })],
-    pregunta: { n: 2, nonce: "c", dificultad: "dificil", tipo: "texto", texto: "✍️🎧 Escribe el nombre de esta canción.", opciones: [], media: { tipo: "audio", url: "" }, segundos: 45, restante: 3_000, elecciones: [] },
+    pregunta: { n: 2, nonce: "c", dificultad: "dificil", tema: "audio", tipo: "texto", texto: "✍️🎧 Escribe el nombre de esta canción.", opciones: [], media: { tipo: "audio", url: "" }, segundos: 45, restante: 3_000, elecciones: [] },
   }),
   fin: base({
     fase: "fin",

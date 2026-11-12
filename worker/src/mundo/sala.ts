@@ -6,14 +6,14 @@
 // Un @ a un Vocaloid de la plaza (@Teto) queda en D1 (mundo_menciones) y lo responde el bot con la misma cuota, cola y
 // LLM que en Discord (src/mundo/puente.ts). Mientras haya algo pendiente, una alarma revisa D1 cada 2 s y entrega las
 // respuestas como burbujas; sin pendientes no hay alarma y el objeto vuelve a dormir.
-// Acciones (/ruleta…, acciones.ts): igual que los @, quedan en D1 (mundo_acciones) y el bot las ejecuta con las reglas
-// de Discord. Mientras haya Papus conectados, un latido cada 5 s lee lo que paso en Discord (mundo_eventos: giros de la
+// Acciones (/ruleta…, acciones.ts): quedan en el D1 canónico (mundo_acciones) y el bot principal las ejecuta
+// mediante los mismos servicios de negocio que atienden Discord. Mientras haya Papus conectados, un latido cada 5 s lee lo que paso en Discord (mundo_eventos: giros de la
 // ruleta, "ya tienes una tirada"). La cola de la ruleta grande vive en el almacenamiento del objeto.
 import moderacion from "../../../config/moderacion.json";
 import { RuleSet, type ModerationSettings } from "../../../src/moderation/rules";
 import { identificar } from "../actividad/identidad";
 import { ACCION_MIN_MS, ACCION_VENCE_MS, avanzar, COLA_VACIA, esAccion, formar, GIRO_MS, proximoCambio, type ColaRuleta, type Giro, type Resultado, type RuletaGiro } from "./acciones";
-import { aparicion, ASPECTO_INICIAL, CHAT_MIN_MS, destino, HISTORIAL, leerPose, limpiarChat, MAX_PAPUS, mencionados, MOV_MIN_MS, moverValido, validarAspecto } from "./juego";
+import { aparicion, asientoDisponible, ASPECTO_INICIAL, CHAT_MIN_MS, destino, HISTORIAL, leerPose, limpiarChat, MAX_PAPUS, mencionados, MOV_MIN_MS, moverValido, poseAsientoFogata, validarAspecto, ZONAS } from "./juego";
 import type { Aspecto, Aviso, PapuPublico, Pedido, Respuesta } from "./tipos";
 import { simular } from "./simulado";
 import { COOKIE_TOKEN, leerCookie } from "./web";
@@ -22,6 +22,8 @@ export interface MundoEnv {
   DB: D1Database;
   GUILD_ID: string;
   ACTIVIDAD_PRUEBA?: string;
+  /** Habilita la entrega de tarjetas públicas en la interfaz de preview; nunca cambia la fuente de datos. */
+  MUNDO_TARJETAS?: string;
 }
 
 /** Lo que guarda cada socket. `id` null = aun no dijo quien es. */
@@ -33,14 +35,20 @@ interface Ficha {
   chatAt: number;
   /** Ultima accion pedida (ms). */
   accionAt?: number;
+  sentado?: boolean;
+  asiento?: number;
   /** Ultimo perfil (nivel y cuota) que se le mostro. */
   statsAt?: number;
+  /** Ultima version de los perfiles publicos enviados a este socket. */
+  perfilesAt?: Record<string, number>;
   /** Navegador: token de Discord de la cookie (solo hasta comprobar quien es). */
   token?: string;
 }
 
 /** Cada cuanto revisa D1 la alarma mientras espera respuestas o perfiles. */
 const REVISION_MS = 2000;
+/** Refresca perfiles conectados desde el backend para reflejar también cambios originados en Discord. */
+const PROFILE_REFRESH_MS = 10_000;
 /** Despues de esto deja de esperar una mencion (el bot la descarta igual a los 2 min). */
 const ESPERA_MS = 120_000;
 /** Con Papus conectados y nada pendiente: cada cuanto mira si paso algo en Discord. */
@@ -86,7 +94,7 @@ export class SalaMundo implements DurableObject {
     const now = Date.now();
 
     if (m.t === "mov") {
-      if (now - ficha.movAt < MOV_MIN_MS) return;
+      if (ficha.sentado || now - ficha.movAt < MOV_MIN_MS) return;
       const pose = leerPose(m as unknown as Record<string, unknown>);
       if (!pose) return;
       if (!moverValido(papu, pose, now - ficha.movAt)) {
@@ -119,16 +127,49 @@ export class SalaMundo implements DurableObject {
       return;
     }
 
+    if (m.t === "tarjeta") {
+      if (this.env.MUNDO_TARJETAS !== "1") return this.enviar(ws, { t: "tarjeta", ref: m.ref, papu: m.papu, estado: "error", motivo: "Las tarjetas públicas no están habilitadas." });
+      if (!Number.isSafeInteger(m.ref) || m.ref < 1 || !/^[0-9]{5,25}$/.test(m.papu)) return;
+      const compartir = m.compartir === true;
+      if (compartir && m.papu !== papu.id) return this.enviar(ws, { t: "tarjeta", ref: m.ref, papu: m.papu, estado: "error", motivo: "Solo puedes compartir tu propia tarjeta." });
+      const objetivo = this.conectados().find((c) => c.ficha.papu?.id === m.papu);
+      if (!objetivo) return this.enviar(ws, { t: "tarjeta", ref: m.ref, papu: m.papu, estado: "error", motivo: "Ese Papu ya no está conectado a la Plaza." });
+      const sala = await this.sala();
+      // Una tarjeta fresca se sirve desde D1 en esta misma interacción, sin esperar el polling del puente Node.
+      const meta = await this.env.DB.prepare("SELECT mime, actualizado_at FROM mundo_tarjetas WHERE papu_id = ?")
+        .bind(m.papu).first<{ mime: string; actualizado_at: number }>();
+      if (meta && now - meta.actualizado_at < 60_000) {
+        const partes = await this.env.DB.prepare("SELECT datos FROM mundo_tarjeta_partes WHERE papu_id = ? ORDER BY parte")
+          .bind(m.papu).all<{ datos: string }>();
+        const datos = partes.results.map((p) => p.datos).join("");
+        if (datos && datos.length <= 900_000) {
+          const aviso: Aviso = compartir
+            ? { t: "tarjeta-compartida", ref: m.ref, papu: m.papu, mime: meta.mime, datos }
+            : { t: "tarjeta", ref: m.ref, papu: m.papu, estado: "lista", mime: meta.mime, datos };
+          if (compartir) this.todos(aviso);
+          else this.enviar(ws, aviso);
+          return;
+        }
+      }
+      await this.env.DB.prepare("INSERT INTO mundo_tarjeta_pedidos (sala, solicitante_id, papu_id, ref, creado_at) VALUES (?, ?, ?, ?, ?)")
+        // ref negativo identifica el broadcast sin cambiar el esquema D1 ni confundir una visita al propio perfil.
+        .bind(sala, papu.id, m.papu, compartir ? -m.ref : m.ref, now).run();
+      this.enviar(ws, { t: "aviso", texto: "Preparando la tarjeta de nivel… 🪄" });
+      return this.programar();
+    }
+
     if (m.t === "accion") {
-      if (now - (ficha.accionAt ?? 0) < ACCION_MIN_MS || !esAccion(m.accion) || !Number.isInteger(m.ref)) return;
+      if (!esAccion(m.accion) || !Number.isInteger(m.ref)) return;
+      if (now - (ficha.accionAt ?? 0) < ACCION_MIN_MS) return;
       ficha.accionAt = now;
       ws.serializeAttachment(ficha);
       const datos = JSON.stringify(m.datos ?? null);
       if (datos.length > 500) return;
       const sala = await this.sala();
-      // En el PC (wrangler dev) el bot no lee la base local: la sala hace de bot con datos de ejemplo, y el resultado
-      // queda listo en D1 para que siga el mismo camino que en produccion.
-      const simulado = this.env.ACTIVIDAD_PRUEBA === "1" && papu.id.startsWith("prueba-") ? JSON.stringify(simular(m.accion, papu)) : null;
+      // Las acciones siempre se procesan en el D1 canónico; wrangler dev usa datos ficticios solo con ACTIVIDAD_PRUEBA.
+      const simulado = this.env.ACTIVIDAD_PRUEBA === "1" && papu.id.startsWith("prueba-")
+        ? JSON.stringify(simular(m.accion, papu))
+        : null;
       await this.env.DB.prepare("INSERT INTO mundo_acciones (sala, papu_id, papu_nombre, accion, datos, ref, creado_at, tomado, resultado) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)")
         .bind(sala, papu.id, papu.nombre, m.accion, datos, m.ref, now, simulado ? 2 : 0, simulado)
         .run();
@@ -140,9 +181,41 @@ export class SalaMundo implements DurableObject {
       if (!pose || now - ficha.movAt < MOV_MIN_MS) return;
       Object.assign(papu, pose);
       ficha.movAt = now;
+      const estabaSentado = ficha.sentado === true;
+      ficha.sentado = false;
+      delete ficha.asiento;
       ws.serializeAttachment(ficha);
+      if (estabaSentado) this.todos({ t: "fogata", id: papu.id, sentado: false }, ws);
       this.enviar(ws, { t: "corrige", ...pose });
       return this.todos({ t: "mov", id: papu.id, ...pose, s: 1 }, ws);
+    }
+
+    if (m.t === "sentarse") {
+      const fogata = ZONAS.find((z) => z.id === "fogata");
+      if (!fogata || Math.hypot(papu.x - fogata.x, papu.z - fogata.z) > 9) {
+        return this.enviar(ws, { t: "aviso", texto: "Acércate a la fogata para sentarte junto a los demás. 🔥" });
+      }
+      if (m.sentado) {
+        if (ficha.sentado) return;
+        const asiento = asientoDisponible(this.conectados().flatMap((c) => c.ficha.asiento === undefined ? [] : [c.ficha.asiento]));
+        if (asiento === null) return this.enviar(ws, { t: "aviso", texto: "Todos los troncos están ocupados. Espera a que alguien se levante. 🔥" });
+        const pose = poseAsientoFogata(fogata, asiento);
+        if (!pose) return this.enviar(ws, { t: "aviso", texto: "No pude reservar un tronco. Inténtalo de nuevo. 🔥" });
+        ficha.sentado = true;
+        ficha.asiento = asiento;
+        Object.assign(papu, pose);
+        ficha.movAt = now;
+        ws.serializeAttachment(ficha);
+        this.enviar(ws, { t: "corrige", x: papu.x, z: papu.z, r: papu.r, a: 0, m: 0 });
+        this.todos({ t: "mov", id: papu.id, x: papu.x, z: papu.z, r: papu.r, a: 0, m: 0 }, ws);
+      } else {
+        if (!ficha.sentado) return;
+        ficha.sentado = false;
+        delete ficha.asiento;
+        ws.serializeAttachment(ficha);
+      }
+      this.todos({ t: "fogata", id: papu.id, sentado: ficha.sentado });
+      return;
     }
 
     if (m.t === "aspecto") {
@@ -180,6 +253,7 @@ export class SalaMundo implements DurableObject {
     const papu: PapuPublico = { id: quien.id, nombre: quien.nombre, aspecto: validarAspecto(m.aspecto) ?? ASPECTO_INICIAL, ...aparicion() };
     ws.serializeAttachment({ id: quien.id, papu, movAt: Date.now(), chatAt: 0 } satisfies Ficha);
     this.enviar(ws, { t: "bienvenida", yo: quien.id, papus: [...presentes, papu] });
+    for (const c of this.conectados()) if (c.ficha.sentado) this.enviar(ws, { t: "fogata", id: c.ficha.papu!.id, sentado: true });
     this.enviar(ws, this.avisoRuleta(await this.ruleta()));
     this.todos({ t: "entra", papu }, ws);
     await this.guardarAspecto(papu.id, papu.aspecto);
@@ -252,13 +326,35 @@ export class SalaMundo implements DurableObject {
     if (hay?.respuestas) await this.entregarRespuestas(sala);
     if (hay?.listas) await this.entregarAcciones(sala);
     if (hay?.eventos) await this.leerEventos(eventoId);
+    const tarjetas = this.env.MUNDO_TARJETAS === "1"
+      ? await this.env.DB.prepare("SELECT COUNT(*) AS cantidad FROM mundo_tarjeta_pedidos WHERE sala = ? AND (estado = 0 OR (estado > 0 AND entregado = 0))").bind(sala).first<{ cantidad: number }>()
+      : null;
+    if (tarjetas?.cantidad) await this.entregarTarjetas(sala);
     await this.moverRuleta();
+    await this.solicitarRefrescoPerfiles(ahora);
     const perfiles = await this.entregarPerfiles();
-    const pendiente = (hay?.menciones ?? 0) + (hay?.acciones ?? 0) + perfiles > 0;
+    const pendiente = (hay?.menciones ?? 0) + (hay?.acciones ?? 0) + (tarjetas?.cantidad ?? 0) + perfiles > 0;
     const cuando = [pendiente ? ahora + REVISION_MS : null, this.conectados().length ? ahora + LATIDO_MS : null, proximoCambio(await this.ruleta())].filter(
       (x): x is number => x !== null,
     );
     if (cuando.length) await this.state.storage.setAlarm(Math.max(ahora + 250, Math.min(...cuando)));
+  }
+
+  /**
+   * Pide al bot una foto reciente de cada usuario conectado. Así, los cambios hechos desde Discord
+   * (XP, cuota, nivel y tiradas) llegan a la Plaza aunque el usuario no ejecute una acción aquí.
+   */
+  private async solicitarRefrescoPerfiles(ahora: number): Promise<void> {
+    if (ahora - (await this.state.storage.get<number>("perfilesAt") ?? 0) < PROFILE_REFRESH_MS) return;
+    const conectados = this.conectados();
+    if (!conectados.length) return;
+    const unicos = [...new Set(conectados.map((c) => c.ficha.papu!.id))];
+    for (const id of unicos) {
+      await this.env.DB.prepare(
+        "INSERT INTO mundo_perfiles (papu_id, pedido_at) VALUES (?, ?) ON CONFLICT(papu_id) DO UPDATE SET pedido_at = excluded.pedido_at",
+      ).bind(id, ahora).run();
+    }
+    await this.state.storage.put("perfilesAt", ahora);
   }
 
   /** Respuestas de los Vocaloids a los @. */
@@ -296,12 +392,44 @@ export class SalaMundo implements DurableObject {
       } catch {
         resultado = { ok: false, motivo: "No me llegó la respuesta. Inténtalo de nuevo." };
       }
-      if (r.accion === "ruleta.girar" && resultado.ok) {
+      if ((r.accion === "ruleta.girar" || r.accion === "ruleta.descartar") && resultado.ok) {
         const g = resultado.datos as RuletaGiro;
         await this.girar({ ...g.giro, papu: r.papu_id, nombre: r.papu_nombre, origen: "plaza" });
         await this.registrar(null, "teto", "teto", `🎰 ${r.papu_nombre} giró la ruleta grande: ${g.texto}`);
       }
       for (const c of this.conectados()) if (c.ficha.papu?.id === r.papu_id) this.enviar(c.ws, { t: "accion", ref: r.ref, accion: r.accion, resultado });
+    }
+  }
+
+  /** Entrega las tarjetas ya generadas por el puente. Solo al Papu que las solicitó. */
+  private async entregarTarjetas(sala: string): Promise<void> {
+    await this.env.DB.prepare("UPDATE mundo_tarjeta_pedidos SET estado = 2 WHERE sala = ? AND estado = 0 AND creado_at < ?").bind(sala, Date.now() - 30_000).run();
+    const { results } = await this.env.DB.prepare(
+      "SELECT id, solicitante_id, papu_id, ref, estado, creado_at FROM mundo_tarjeta_pedidos WHERE sala = ? AND entregado = 0 AND estado > 0 ORDER BY id LIMIT 10",
+    ).bind(sala).all<{ id: number; solicitante_id: string; papu_id: string; ref: number; estado: number; creado_at: number }>();
+    for (const pedido of results) {
+      const compartida = pedido.ref < 0;
+      const ref = Math.abs(pedido.ref);
+      const cliente = this.conectados().find((c) => c.ficha.papu?.id === pedido.solicitante_id);
+      if (!cliente && !compartida) {
+        if (Date.now() - pedido.creado_at > 60_000) await this.env.DB.prepare("UPDATE mundo_tarjeta_pedidos SET entregado = 1 WHERE id = ?").bind(pedido.id).run();
+        continue;
+      }
+      if (pedido.estado === 2) {
+        if (cliente) this.enviar(cliente.ws, { t: "tarjeta", ref, papu: pedido.papu_id, estado: "error", motivo: "No pude generar la tarjeta. Inténtalo de nuevo en un momento." });
+      } else {
+        const meta = await this.env.DB.prepare("SELECT mime FROM mundo_tarjetas WHERE papu_id = ?").bind(pedido.papu_id).first<{ mime: string }>();
+        const partes = await this.env.DB.prepare("SELECT datos FROM mundo_tarjeta_partes WHERE papu_id = ? ORDER BY parte").bind(pedido.papu_id).all<{ datos: string }>();
+        const datos = partes.results.map((p) => p.datos).join("");
+        if (!meta || !datos || datos.length > 900_000) {
+          if (cliente) this.enviar(cliente.ws, { t: "tarjeta", ref, papu: pedido.papu_id, estado: "error", motivo: "La tarjeta todavía no está disponible. Inténtalo de nuevo." });
+        } else if (compartida) {
+          this.todos({ t: "tarjeta-compartida", ref, papu: pedido.papu_id, mime: meta.mime, datos });
+        } else if (cliente) {
+          this.enviar(cliente.ws, { t: "tarjeta", ref, papu: pedido.papu_id, estado: "lista", mime: meta.mime, datos });
+        }
+      }
+      await this.env.DB.prepare("UPDATE mundo_tarjeta_pedidos SET entregado = 1 WHERE id = ?").bind(pedido.id).run();
     }
   }
 
@@ -388,10 +516,18 @@ export class SalaMundo implements DurableObject {
       if (p.pedido_at >= p.actualizado_at && p.pedido_at > reciente) pendientes++;
       if (!p.actualizado_at) continue;
       for (const c of conectados) {
-        if (c.ficha.papu!.id !== p.papu_id || (c.ficha.statsAt ?? 0) >= p.actualizado_at) continue;
-        c.ficha.statsAt = p.actualizado_at;
-        c.ws.serializeAttachment(c.ficha);
-        this.enviar(c.ws, { t: "stats", nivel: p.nivel, prestigio: p.prestigio, restante: p.restante, limite: p.limite, ruletas: p.ruletas ?? 0 });
+        c.ficha.perfilesAt ??= {};
+        if ((c.ficha.perfilesAt[p.papu_id] ?? 0) < p.actualizado_at) {
+          c.ficha.perfilesAt[p.papu_id] = p.actualizado_at;
+          c.ws.serializeAttachment(c.ficha);
+          this.enviar(c.ws, { t: "perfil", id: p.papu_id, nivel: p.nivel, prestigio: p.prestigio });
+        }
+        if (c.ficha.papu!.id === p.papu_id && (c.ficha.statsAt ?? 0) < p.actualizado_at) {
+          c.ficha.statsAt = p.actualizado_at;
+          c.ws.serializeAttachment(c.ficha);
+          // Cuota y tiradas solo se envian al propio Papu.
+          this.enviar(c.ws, { t: "stats", nivel: p.nivel, prestigio: p.prestigio, restante: p.restante, limite: p.limite, ruletas: p.ruletas ?? 0 });
+        }
       }
     }
     return pendientes;
@@ -400,6 +536,7 @@ export class SalaMundo implements DurableObject {
   private salir(ws: WebSocket): void {
     const ficha = ws.deserializeAttachment() as Ficha | null;
     if (!ficha?.id) return;
+    if (ficha.sentado) this.todos({ t: "fogata", id: ficha.id, sentado: false }, ws);
     ws.serializeAttachment({ id: null, movAt: 0, chatAt: 0 } satisfies Ficha);
     this.todos({ t: "sale", id: ficha.id }, ws);
   }

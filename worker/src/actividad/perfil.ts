@@ -6,12 +6,14 @@ export interface Perfil {
   base: number;
   tope: number;
   at: number;
+  /** Preview: perfil asociado a una partida concreta o vacío para el lobby. */
+  partida?: string;
 }
 
 /** XP de un acierto como la calcula Teto (answerXp: base del Papu por el bono de racha), recortada a su tope del dia. */
-export function xpDeAcierto(p: Perfil, racha: number, r: Pool["racha"]): number {
-  const factor = 1 + r.bono * Math.min(Math.max(0, racha - 1), r.tope);
-  return Math.max(0, Math.min(Math.round(p.base * factor), p.tope));
+export function xpDeAcierto(p: Perfil, racha: number, r: Pool["racha"], multiplicador = 1): number {
+  const rachaFactor = 1 + r.bono * Math.min(Math.max(0, racha - 1), r.tope);
+  return Math.max(0, Math.min(Math.round(p.base * rachaFactor * Math.max(1, multiplicador)), p.tope));
 }
 
 /** Avatar del Papu servido por el worker (dentro de Discord la pagina solo puede pedir a su propio dominio). */

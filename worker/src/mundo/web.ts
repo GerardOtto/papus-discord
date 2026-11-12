@@ -28,8 +28,8 @@ export function leerCookie(header: string | null, nombre: string): string | null
 }
 
 /** Encabezado Set-Cookie de /mundo (HttpOnly, SameSite=Lax; Secure si el sitio es https). maxAge 0 = borrarla. */
-export function cookie(nombre: string, valor: string, opts: { maxAge: number; https: boolean }): string {
-  return [`${nombre}=${encodeURIComponent(valor)}`, "Path=/mundo", "HttpOnly", "SameSite=Lax", `Max-Age=${Math.max(0, Math.floor(opts.maxAge))}`, ...(opts.https ? ["Secure"] : [])].join("; ");
+export function cookie(nombre: string, valor: string, opts: { maxAge: number; https: boolean; path?: string }): string {
+  return [`${nombre}=${encodeURIComponent(valor)}`, `Path=${opts.path ?? "/mundo"}`, "HttpOnly", "SameSite=Lax", `Max-Age=${Math.max(0, Math.floor(opts.maxAge))}`, ...(opts.https ? ["Secure"] : [])].join("; ");
 }
 
 /** Direccion de regreso del OAuth (hay que registrarla en el portal de Discord, en OAuth2 > Redirects). */
@@ -39,7 +39,7 @@ export function urlRegreso(origen: string): string {
 
 /** Pagina de Discord donde el Papu acepta entrar. */
 export function urlAutorizar(clientId: string, origen: string, estado: string): string {
-  const q = new URLSearchParams({ client_id: clientId, response_type: "code", redirect_uri: urlRegreso(origen), scope: SCOPES.join(" "), state: estado, prompt: "none" });
+  const q = new URLSearchParams({ client_id: clientId, response_type: "code", redirect_uri: urlRegreso(origen), scope: SCOPES.join(" "), state: estado });
   return `https://discord.com/oauth2/authorize?${q}`;
 }
 

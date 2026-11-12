@@ -60,14 +60,14 @@ export async function mundo(request: Request, env: MundoApiEnv): Promise<Respons
     });
     const j = (await r.json().catch(() => ({}))) as { access_token?: string; expires_in?: number };
     if (!r.ok || !j.access_token) return volverAlMundo([borrarEstado]);
-    return volverAlMundo([borrarEstado, cookie(COOKIE_TOKEN, j.access_token, { maxAge: j.expires_in ?? 604_800, https })]);
+    return volverAlMundo([borrarEstado, cookie(COOKIE_TOKEN, j.access_token, { maxAge: j.expires_in ?? 604_800, https, path: "/" }), cookie(COOKIE_TOKEN, "", { maxAge: 0, https })]);
   }
 
   if (ruta === "sesion" && request.method === "GET") {
     return Response.json({ conectado: !!leerCookie(request.headers.get("Cookie"), COOKIE_TOKEN), entrar: !!(env.TETO_CLIENT_ID && env.TETO_CLIENT_SECRET) });
   }
 
-  if (ruta === "salir" && request.method === "GET") return volverAlMundo([cookie(COOKIE_TOKEN, "", { maxAge: 0, https })]);
+  if (ruta === "salir" && request.method === "GET") return volverAlMundo([cookie(COOKIE_TOKEN, "", { maxAge: 0, https, path: "/" }), cookie(COOKIE_TOKEN, "", { maxAge: 0, https })]);
 
   // Foto del servidor para las zonas (la deja el bot) y el aspecto de los Papus que salen en ella (altar y podios).
   if (ruta === "estado" && request.method === "GET") {
@@ -89,7 +89,7 @@ export async function mundo(request: Request, env: MundoApiEnv): Promise<Respons
         if (a) aspectos[r.papu_id] = a;
       }
     }
-    return Response.json({ estado, aspectos }, { headers: { "Cache-Control": "public, max-age=60" } });
+    return Response.json({ estado, aspectos }, { headers: { "Cache-Control": "no-store" } });
   }
 
   // Lo demas lo atiende la trivia, con la misma ruta bajo /actividad/api/.

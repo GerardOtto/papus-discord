@@ -132,8 +132,9 @@ async function main(): Promise<void> {
   const peleas = coins && peleaSettings.activo ? new PeleaService({ db, settings: peleaSettings, coins }) : null;
   // Trivia de los Papus (config/trivia.json, PLAN §3.4): preguntas fijas revisadas por el codigo; XP por acierto.
   const triviaSettings = loadTriviaSettings();
+  const triviaQuestions = loadQuestions(triviaSettings);
   // Superar todas las preguntas de una dificultad da su sobre de la tienda (comun, raro o legendario).
-  const trivia = new TriviaService({ db, settings: triviaSettings, questions: loadQuestions(triviaSettings), levels, giveSobre: coins ? (id, tipo, n) => coins.giveSobres(id, tipo, n) : undefined, timeZone: config.quotaTimeZone });
+  const trivia = new TriviaService({ db, settings: triviaSettings, questions: triviaQuestions, levels, giveSobre: coins ? (id, tipo, n) => coins.giveSobres(id, tipo, n) : undefined, timeZone: config.quotaTimeZone });
   log(`Trivia: ${trivia.total} preguntas`);
   // Hitos de aciertos (7 nov. 2026): una sola vez, quienes ya tenian avance reciben los sobres de los hitos que pasaron.
   for (const h of trivia.seedMilestones()) log(`🎁 Trivia: hitos iniciales de ${h.userId} en ${h.level}: ${h.aciertos} aciertos → ${h.sobres} sobre(s)`);
@@ -245,6 +246,7 @@ async function main(): Promise<void> {
     },
     log,
   });
+
   app = new PapusApp({
     config,
     db,

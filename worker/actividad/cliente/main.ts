@@ -46,11 +46,15 @@ async function iniciar(): Promise<void> {
     hola = { t: "hola", token: tok.access_token };
     instancia = sdk.instanceId;
     canal = sdk.channelId ?? "";
-  } else {
-    if (!cfg.prueba) return mostrarError("Abre la trivia desde Discord: en un canal de voz, toca 🚀 Actividades.");
+  } else if (cfg.prueba) {
     const nombre = prompt("Modo de prueba: ¿tu nombre?") || "Papu";
-    hola = { t: "hola", prueba: { id: `prueba-${nombre.replace(/\W/g, "").slice(0, 12) || "papu"}`, nombre } };
+    hola = { t: "hola", prueba: { id: `prueba-${nombre.replace(/\\W/g, "").slice(0, 12) || "papu"}`, nombre } };
     instancia = params.get("sala") ?? "prueba";
+  } else {
+    // Desde la Plaza web: SalaTrivia valida la cookie HttpOnly de la sesion OAuth.
+    // Todos comparten la instancia "plaza" salvo que se indique otra en la URL.
+    hola = { t: "hola" };
+    instancia = params.get("sala") ?? "plaza";
   }
   conectar(instancia, canal, hola, 0);
 }
@@ -181,6 +185,10 @@ app.addEventListener("click", (e) => {
   else if (b.dataset.eleccion) enviar({ t: "configurar", eleccion: b.dataset.eleccion as Eleccion });
   else if (b.dataset.accion === "empezar") (estado.aviso = ""), enviar({ t: "empezar" });
   else if (b.dataset.accion === "otra") enviar({ t: "otra" });
+  else if (b.dataset.consumible && vista?.pregunta) {
+    const tema = (document.getElementById("tema-zanahoria") as HTMLSelectElement | null)?.value;
+    enviar({ t: "consumible", objeto: b.dataset.consumible as "celular" | "guitarra" | "zanahoria", nonce: vista.pregunta.nonce, ...(tema ? { tema } : {}) });
+  }
 });
 
 app.addEventListener("submit", (e) => {

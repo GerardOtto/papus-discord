@@ -34,7 +34,7 @@ const op = (id: string, extra: Partial<PreguntaPool> = {}): PreguntaPool => ({
 });
 const tx = (id: string): PreguntaPool => ({ ...op(id), tipo: "texto", respuesta: "Kasane Teto", otras: [], aceptadas: ["Kasane Teto", "teto"] });
 
-function setup(preguntas: PreguntaPool[] = [op("a"), op("b"), op("c"), op("d")], xp: (p: string, r: number) => number | null = (_p, r) => 10 * r) {
+function setup(preguntas: PreguntaPool[] = [op("a"), op("b"), op("c"), op("d")], xp: (p: string, r: number, factor?: number) => number | null = (_p, r, factor = 1) => 10 * r * factor) {
   let now = 1_000_000;
   const sala = new Sala({ pool: preguntas, now: () => now, rnd: seededRng(3), xp });
   const unir = (...ids: string[]) => ids.forEach((id) => sala.unir({ id, nombre: id.toUpperCase(), avatar: "x.png" }));
@@ -73,7 +73,11 @@ describe("sala de la trivia multijugador", () => {
     expect(v.revelar!.correcta).toBe(bien);
     expect(v.revelar!.resultados.ana).toMatchObject({ ok: true, xp: 10 });
     expect(v.revelar!.resultados.beto).toMatchObject({ ok: false, xp: 0 });
-    expect(t.sala.sacarAciertos()).toEqual([{ papu: "ana", pregunta: v.pregunta!.texto.slice(1, -1), dificultad: "facil", racha: 1, xp: 10 }]);
+    const aciertos = [{ papu: "ana", pregunta: v.pregunta!.texto.slice(1, -1), dificultad: "facil" as const, racha: 1, xp: 10 }];
+    expect(t.sala.sacarAciertos()).toEqual(aciertos);
+    // Si D1 rechaza el batch, el Durable Object puede devolver los registros al buffer sin perderlos.
+    t.sala.devolverAciertos(aciertos);
+    expect(t.sala.sacarAciertos()).toEqual(aciertos);
     expect(t.sala.sacarAciertos()).toEqual([]);
   });
 
@@ -302,6 +306,7 @@ describe("XP de la trivia multijugador", () => {
     }
     expect(xpDeAcierto({ base: 50, tope: 7, at: 0 }, 3, S.racha)).toBe(7);
     expect(xpDeAcierto({ base: 50, tope: -3, at: 0 }, 3, S.racha)).toBe(0);
+    expect(xpDeAcierto({ base: 50, tope: 100, at: 0 }, 1, S.racha, 2)).toBe(100);
   });
 
   it("avatar del Papu: el del servidor, el suyo o el de Discord por defecto", () => {
@@ -372,4 +377,68 @@ describe("XP de la trivia multijugador", () => {
     expect(perfil.tope).toBe(0);
     expect(perfil.actualizado_at).toBeGreaterThan(NOON - 5);
   });
+  it("aplica Celular por jugador, Guitarra al doble y Zanahoria a la siguiente pregunta compartida", () => {
+    const t=setup([op("a",{tema:"actual"}),op("b",{tema:"personajes"}),op("c",{tema:"audio"})],(_p,_r,f)=>f??1);
+    t.unir("ana","beto");
+    t.sala.setConsumibles("ana",{celular:1,guitarra:1,zanahoria:1,baguette:0});
+    t.sala.empezar("ana");
+    const o=t.opciones();
+    expect(t.sala.usarCelular("ana",o.nonce)).toBe(true);
+    expect(t.sala.vista("ana").pregunta!.ocultas).toHaveLength(2);
+    expect(t.sala.vista("beto").pregunta!.ocultas).toEqual([]);
+    expect(t.sala.usarGuitarra("ana",o.nonce)).toBe(true);
+    const tema = t.sala.vista("ana").pregunta!.temas![0]!.tema;
+    expect(t.sala.usarZanahoria("ana",o.nonce,tema)).toBe(true);
+    t.sala.responder("ana",o.nonce,{opcion:o.bien});
+    t.sala.responder("beto",o.nonce,{opcion:o.bien});
+    expect(t.sala.sacarAciertos().find(a=>a.papu==="ana")?.factor).toBe(2);
+    siguiente(t);
+    expect(t.sala.vista("ana").pregunta!.tema).toBe(tema);
+  });
+
+  it("valida el inicio de una partida sin arrancar el reloj ni cambiar la sala", () => {
+    const t=setup([op("a"),op("b")]);
+    t.unir("ana");
+    expect(t.sala.puedeEmpezar("otro").ok).toBe(false);
+    expect(t.sala.puedeEmpezar("ana").ok).toBe(true);
+    expect(t.sala.fase).toBe("sala");
+  });
+
+  it("permite revertir la activación de Baguette si el rescate ya no aplica", () => {
+    const t=setup([op("a"),op("b")]);
+    t.unir("ana");
+    t.sala.setConsumibles("ana",{celular:0,guitarra:0,zanahoria:0,baguette:1});
+    t.sala.empezar("ana");
+    t.sala.activarBaguette("ana");
+    expect(t.sala.baguetteActiva("ana")).toBe(true);
+    t.sala.desactivarBaguette("ana");
+    expect(t.sala.baguetteActiva("ana")).toBe(false);
+  });
+
+  it("la Baguette rescata hasta dos fallos conservando la racha en una partida compartida", () => {
+    const t=setup([op("a"),op("b"),op("c"),op("d")]);
+    t.unir("ana");
+    t.sala.setConsumibles("ana",{celular:0,guitarra:0,zanahoria:0,baguette:1});
+    t.sala.empezar("ana");
+    let o=t.opciones();
+    t.sala.responder("ana",o.nonce,{opcion:o.bien});
+    siguiente(t);
+    o=t.opciones();
+    t.sala.responder("ana",o.nonce,{opcion:o.mal});
+    expect(t.sala.pendientesRescateBaguette()).toEqual(["ana"]);
+    t.sala.activarBaguette("ana");
+    expect(t.sala.rescatarBaguette("ana")).toBe(true);
+    expect(t.sala.vista("ana").revelar!.resultados.ana).toMatchObject({ok:false,salvado:true});
+    expect(t.sala.vista("ana").jugadores[0]).toMatchObject({vivo:true,racha:1});
+    siguiente(t);
+    o=t.opciones();
+    t.sala.responder("ana",o.nonce,{opcion:o.mal});
+    expect(t.sala.rescatarBaguette("ana")).toBe(true);
+    expect(t.sala.vista("ana").jugadores[0]).toMatchObject({vivo:true,racha:1});
+    siguiente(t);
+    o=t.opciones();
+    t.sala.responder("ana",o.nonce,{opcion:o.mal});
+    expect(t.sala.pendientesRescateBaguette()).toEqual([]);
+  });
+
 });

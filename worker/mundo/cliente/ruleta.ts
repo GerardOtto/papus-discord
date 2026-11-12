@@ -140,11 +140,17 @@ export function htmlRuleta(v: VistaRuleta): string {
   if (v.error) return `<p class="v-error">${esc(v.error)}</p>`;
   const e = v.estado;
   if (!e) return `<p class="v-cargando">Preguntándole a Teto por tus misiones… 🎰</p>`;
+  const soloLectura = e.soloLectura === true;
+  const simulacion = e.simulacion === true;
   const cabeza = e.bloqueada
     ? `<span class="v-chip rojo">🚫 Neru te dio un machetazo: sin ruleta por ahora</span>`
-    : e.tiradas > 0
-      ? `<span class="v-chip verde">🎟️ ${e.tiradas} ${e.tiradas === 1 ? "tirada" : "tiradas"} para hoy</span>`
-      : `<span class="v-chip">${e.usadas >= e.misiones.length ? "¡Ya giraste todas las de hoy! Vuelven mañana." : "Cumple una misión y gana una tirada"}</span>`;
+    : simulacion
+      ? `<span class="v-chip">🧪 Simulación · sin premios reales</span>`
+      : soloLectura
+        ? `<span class="v-chip">📋 Progreso real · vista previa</span>`
+        : e.tiradas > 0
+          ? `<span class="v-chip verde">🎟️ ${e.tiradas} ${e.tiradas === 1 ? "tirada" : "tiradas"} para hoy</span>`
+          : `<span class="v-chip">${e.usadas >= e.misiones.length ? "¡Ya giraste todas las de hoy! Vuelven mañana." : "Cumple una misión y gana una tirada"}</span>`;
   const misiones = e.misiones
     .map(
       (m) => `<li class="v-mision${m.hecha ? " hecha" : ""}">
@@ -170,17 +176,24 @@ export function htmlRuleta(v: VistaRuleta): string {
               ? `<p class="v-error">${esc(mio.motivo)}</p>`
               : "";
   const ocupada = v.ahora ? `<p class="v-nota">🎡 Girando ahora: <b>${esc(v.ahora.nombre)}</b>${v.ahora.origen === "discord" ? " (desde Discord)" : ""}${v.fila ? ` · ${v.fila} en la fila` : ""}</p>` : "";
-  const puede = !e.bloqueada && e.tiradas > 0 && mio?.fase !== "pidiendo";
+  const puede = !e.bloqueada && !["pidiendo", "fila", "girando"].includes(mio?.fase ?? "") && (simulacion || (!soloLectura && e.tiradas > 0));
+  const premios = soloLectura && !simulacion ? "" : `<h3 class="v-seccion">${simulacion ? "Casillas de demostración" : "Premios"}</h3><ul class="v-casillas">${casillas}</ul>`;
+  const controles = soloLectura && !simulacion ? "" : `${estadoGiro}${ocupada}
+    ${e.atunPendiente ? `<span class="v-chip">🐟 Premio reservado: ${esc(e.atunPendiente.premio ?? "Premio pendiente")} · ${e.atunPendiente.aplicado === false ? "sin acreditar" : "ya acreditado"}</span><button class="v-boton" data-accion="aceptar-atun">✓ Aceptar premio</button>` : ""}${e.atunPendiente?.girosRestantes ? `<button class="v-boton" data-accion="descartar-atun">🐟 Descartar premio y volver a girar (${e.atunPendiente.girosRestantes})</button>` : ""}
+    ${!e.atunPendiente ? `<button class="v-boton" data-accion="girar" ${puede ? "" : "disabled"}>🎰 ${simulacion ? "Probar giro" : puede ? `Girar (${e.tiradas})` : "Sin tiradas"}</button>` : ""}`;
+  const pie = simulacion
+    ? "Puedes probar la animación con premios de demostración. No se consume una tirada, no se entrega el premio y no cambia tu progreso."
+    : soloLectura
+      ? "El avance se consulta desde la base original. Esta vista previa es de solo lectura: no consume tiradas ni modifica XP o recompensas."
+      : `Una tirada por misión, hasta ${e.misiones.length} al día; se reinician a medianoche (hora de Chile). Premios: XP, mensajes extra con los Vocaloids por hoy (con tu cuota llena, se vuelven XP) y sobres. Si alguien más está girando, tu giro espera su turno.`;
   return `
     <div class="v-cabeza">${cabeza}</div>
     <h3 class="v-seccion">Misiones de hoy</h3>
     <ul class="v-misiones">${misiones}</ul>
     ${extras}
-    <h3 class="v-seccion">Premios</h3>
-    <ul class="v-casillas">${casillas}</ul>
-    ${estadoGiro}${ocupada}
-    <button class="v-boton" data-accion="girar" ${puede ? "" : "disabled"}>🎰 ${puede ? `Girar (${e.tiradas})` : "Sin tiradas"}</button>
-    <p class="v-pie">Una tirada por misión, hasta ${e.misiones.length} al día; se reinician a medianoche (hora de Chile). Premios: XP, mensajes extra con los Vocaloids por hoy (con tu cuota llena, se vuelven XP) y sobres. Si alguien más está girando, tu giro espera su turno.</p>`;
+    ${premios}
+    ${controles}
+    <p class="v-pie">${pie}</p>`;
 }
 
 /** Texto sobre la rueda: quien gira (y despues su premio) y quienes esperan. */

@@ -1,0 +1,40 @@
+# Worker de interfaz de Plaza. Su namespace y URL son independientes,
+# pero DB apunta deliberadamente al mismo D1 canónico que usa el bot Papus.
+# No crear una base de datos ni ejecutar migraciones desde este archivo.
+name = "papus-plaza-preview"
+main = "src/preview.ts"
+compatibility_date = "2026-10-01"
+compatibility_flags = ["nodejs_compat"]
+
+[assets]
+directory = "public"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "papus"
+database_id = "REEMPLAZAR_CON_EL_ID_DE_LA_BASE_PAPUS"
+
+[vars]
+GUILD_ID = "REEMPLAZAR_CON_ID_DEL_SERVIDOR"
+TETO_CLIENT_ID = "REEMPLAZAR_CON_CLIENT_ID_DE_TETO"
+ACTIVIDAD_PRUEBA = "0"
+MUNDO_TARJETAS = "1"
+
+[[durable_objects.bindings]]
+name = "SALAS"
+class_name = "SalaTrivia"
+
+[[migrations]]
+tag = "preview-v1-trivia"
+new_sqlite_classes = ["SalaTrivia"]
+
+[[durable_objects.bindings]]
+name = "MUNDOS"
+class_name = "SalaMundo"
+
+[[migrations]]
+tag = "preview-v2-mundo"
+new_sqlite_classes = ["SalaMundo"]
+
+[observability]
+enabled = true

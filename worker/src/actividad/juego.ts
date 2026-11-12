@@ -26,6 +26,7 @@ export interface Acierto {
   dificultad: Dificultad;
   racha: number;
   xp: number | null;
+  factor?: number;
 }
 
 interface Jugador {
@@ -40,11 +41,15 @@ interface Jugador {
   aciertos: number;
   xp: number;
   orden: number;
+  rachaFallida: number;
+  baguetteActiva: boolean;
+  rescatesBaguette: number;
 }
 
 interface Respuesta {
   opcion?: number;
   texto?: string;
+  salvado?: boolean;
 }
 
 interface Ronda {
@@ -67,7 +72,7 @@ export interface SalaDeps {
   now?: () => number;
   rnd?: () => number;
   /** XP de un acierto con esa racha (null = aun no se sabe; Teto la calcula igual al aplicarla). */
-  xp?: (papu: string, racha: number) => number | null;
+  xp?: (papu: string, racha: number, factor?: number) => number | null;
   /** Ruta de los archivos de imagen y audio. */
   mediaBase?: string;
 }
@@ -95,6 +100,11 @@ export class Sala {
   private finInfo: Vista["fin"] | null = null;
   private contador = 0;
   private aciertos: Acierto[] = [];
+  private readonly extras = new Map<string, { celular: number; guitarra: number; zanahoria: number; baguette: number }>();
+  private readonly ocultas = new Map<string, { nonce: string; indices: number[] }>();
+  private readonly guitarras = new Set<string>();
+  private readonly zanahorias = new Map<string, string>();
+  private zanahoriaRonda = "";
   private readonly now: () => number;
   private readonly rnd: () => number;
 
@@ -105,6 +115,18 @@ export class Sala {
 
   // ───────────────────────── Papus ─────────────────────────
 
+  setConsumibles(id: string, x: { celular: number; guitarra: number; zanahoria: number; baguette: number }): void { this.extras.set(id, x); }
+  puedeCelular(id: string, nonce: string): boolean { const r=this.ronda,j=this.jugadores.get(id); return !!r&&this.fase==="pregunta"&&r.nonce===nonce&&!!j?.juega&&(this.modo==="cooperativo"||j.vivo)&&r.pregunta.tipo==="opciones"&&r.opciones.length>=4&&!r.respuestas.has(id)&&this.ocultas.get(id)?.nonce!==nonce&&(this.extras.get(id)?.celular??0)>0; }
+  usarCelular(id: string, nonce: string): boolean { if(!this.puedeCelular(id,nonce))return false;const r=this.ronda!,wrong=r.opciones.map((_,i)=>i).filter(i=>i!==r.correcta);for(let i=wrong.length-1;i>0;i--){const j=Math.floor(this.rnd()*(i+1));[wrong[i],wrong[j]]=[wrong[j]!,wrong[i]!];}this.ocultas.set(id,{nonce,indices:wrong.slice(0,2)});return true; }
+  puedeGuitarra(id:string,nonce:string):boolean {const j=this.jugadores.get(id);return !!this.ronda&&this.fase==="pregunta"&&this.ronda.nonce===nonce&&!!j?.juega&&(this.modo==="cooperativo"||j.vivo)&&!this.guitarras.has(id)&&(this.extras.get(id)?.guitarra??0)>0;}
+  usarGuitarra(id:string,nonce:string):boolean {if(!this.puedeGuitarra(id,nonce))return false;this.guitarras.add(id);return true;}
+  puedeZanahoria(id:string,nonce:string,tema:string):boolean {const j=this.jugadores.get(id);return !!this.ronda&&this.fase==="pregunta"&&this.ronda.nonce===nonce&&!!j?.juega&&(this.modo==="cooperativo"||j.vivo)&&this.zanahoriaRonda!==nonce&&(this.extras.get(id)?.zanahoria??0)>0&&this.orden.some(q=>(q.tema??q.categoria)===tema);}
+  usarZanahoria(id:string,nonce:string,tema:string):boolean {if(!this.puedeZanahoria(id,nonce,tema))return false;const i=this.orden.findIndex(q=>(q.tema??q.categoria)===tema);const [q]=this.orden.splice(i,1);this.orden.unshift(q!);this.zanahorias.set(id,nonce);this.zanahoriaRonda=nonce;return true;}
+  pendientesRescateBaguette(): string[] { if(this.fase!=="revelar"||!this.ronda?.resultados)return [];return Object.entries(this.ronda.resultados).filter(([id,r])=>!r.ok&&!r.salvado&&(this.jugadores.get(id)?.rescatesBaguette??2)<2).map(([id])=>id); }
+  baguetteActiva(id:string):boolean {return !!this.jugadores.get(id)?.baguetteActiva;}
+  activarBaguette(id:string):void {const j=this.jugadores.get(id);if(j)j.baguetteActiva=true;}
+  desactivarBaguette(id:string):void {const j=this.jugadores.get(id);if(j)j.baguetteActiva=false;}
+  rescatarBaguette(id:string):boolean {const j=this.jugadores.get(id),r=this.ronda?.resultados?.[id];if(this.fase!=="revelar"||!j||!r||r.ok||r.salvado||!j.baguetteActiva||j.rescatesBaguette>=2)return false;j.rescatesBaguette++;j.racha=j.rachaFallida;j.vivo=true;j.fallo=false;r.salvado=true;if(this.ronda?.caen)this.ronda.caen=this.ronda.caen.filter(x=>x!==id);return true;}
   /** Entra (o vuelve) un Papu. Si la partida ya empezo y no jugaba, mira hasta la siguiente. */
   unir(p: { id: string; nombre: string; avatar: string }): { ok: boolean; motivo?: string } {
     const prev = this.jugadores.get(p.id);
@@ -113,7 +135,7 @@ export class Sala {
     } else {
       if (this.jugadores.size >= MAX_JUGADORES) return { ok: false, motivo: `La sala está llena (${MAX_JUGADORES} Papus).` };
       const enJuego = this.fase === "pregunta" || this.fase === "revelar";
-      this.jugadores.set(p.id, { ...p, conectado: true, juega: !enJuego, vivo: !enJuego, fallo: false, racha: 0, aciertos: 0, xp: 0, orden: this.contador++ });
+      this.jugadores.set(p.id, { ...p, conectado: true, juega: !enJuego, vivo: !enJuego, fallo: false, racha: 0, aciertos: 0, xp: 0, orden: this.contador++, rachaFallida: 0, baguetteActiva: false, rescatesBaguette: 0 });
     }
     if (!this.host || !this.jugadores.get(this.host)?.conectado) this.host = p.id;
     return { ok: true };
@@ -164,16 +186,24 @@ export class Sala {
   }
 
   /** Empieza la partida con todos los conectados (solo el anfitrion). */
-  empezar(by: string): { ok: boolean; motivo?: string } {
+  puedeEmpezar(by: string): { ok: boolean; motivo?: string } {
     if (by !== this.host) return { ok: false, motivo: "Solo el anfitrión puede empezar." };
     if (this.fase !== "sala" && this.fase !== "fin") return { ok: false, motivo: "La partida ya empezó." };
     const preguntas = this.d.pool.filter((q) => this.eleccion === "mezcla" || q.dificultad === this.eleccion);
     if (!preguntas.length) return { ok: false, motivo: "No hay preguntas de esa dificultad." };
+    return { ok: true };
+  }
+
+  empezar(by: string): { ok: boolean; motivo?: string } {
+    const permiso = this.puedeEmpezar(by);
+    if (!permiso.ok) return permiso;
+    const preguntas = this.d.pool.filter((q) => this.eleccion === "mezcla" || q.dificultad === this.eleccion);
     for (const j of this.jugadores.values()) {
       if (!j.conectado) this.jugadores.delete(j.id);
-      else Object.assign(j, { juega: true, vivo: true, fallo: false, racha: 0, aciertos: 0, xp: 0 });
+      else Object.assign(j, { juega: true, vivo: true, fallo: false, racha: 0, aciertos: 0, xp: 0, rachaFallida: 0, baguetteActiva: false, rescatesBaguette: 0 });
     }
     this.empezaron = this.jugadores.size;
+    this.guitarras.clear(); this.ocultas.clear(); this.zanahorias.clear();
     this.orden = barajar(preguntas, this.rnd);
     this.jugadas = 0;
     this.finInfo = null;
@@ -247,10 +277,12 @@ export class Sala {
       if (ok) {
         j.racha++;
         j.aciertos++;
-        xp = this.d.xp ? this.d.xp(j.id, j.racha) : null;
+        const factor = this.guitarras.has(j.id) ? 2 : 1;
+        xp = this.d.xp ? this.d.xp(j.id, j.racha, factor) : null;
         if (xp) j.xp += xp;
-        this.aciertos.push({ papu: j.id, pregunta: q.id, dificultad: q.dificultad, racha: j.racha, xp });
+        this.aciertos.push({ papu: j.id, pregunta: q.id, dificultad: q.dificultad, racha: j.racha, xp, ...(factor > 1 ? { factor } : {}) });
       } else {
+        j.rachaFallida = j.racha;
         j.racha = 0;
         fallaron.push(j);
       }
@@ -313,6 +345,11 @@ export class Sala {
     return a;
   }
 
+  /** Devuelve al buffer los aciertos si D1 no confirmó su escritura. */
+  devolverAciertos(aciertos: readonly Acierto[]): void {
+    if (aciertos.length) this.aciertos = [...aciertos, ...this.aciertos];
+  }
+
   /** Ids de quienes juegan la partida en curso. */
   ids(): string[] {
     return [...this.jugadores.values()].filter((j) => j.conectado).map((j) => j.id);
@@ -347,9 +384,12 @@ export class Sala {
         n: r.n,
         nonce: r.nonce,
         dificultad: q.dificultad,
+        tema: q.tema ?? q.categoria,
         tipo: q.tipo,
         texto: q.texto,
         opciones: r.opciones,
+        ocultas: this.ocultas.get(yo)?.nonce===r.nonce ? this.ocultas.get(yo)!.indices : [],
+        temas: [...new Set(this.orden.map(q=>q.tema??q.categoria))].map(tema=>({tema,n:this.orden.filter(q=>(q.tema??q.categoria)===tema).length})).sort((a,b)=>b.n-a.n),
         ...(q.media ? { media: { tipo: q.media.tipo, url: `${this.d.mediaBase ?? "media/"}${q.media.archivo}` } } : {}),
         segundos: q.segundos,
         restante: Math.max(0, r.deadline - t),
@@ -367,6 +407,7 @@ export class Sala {
         };
       }
     }
+    v.consumibles = { celular:this.extras.get(yo)?.celular??0, guitarra:this.extras.get(yo)?.guitarra??0, zanahoria:this.extras.get(yo)?.zanahoria??0, baguette:this.extras.get(yo)?.baguette??0, guitarraActiva:this.guitarras.has(yo) };
     if (this.fase === "fin" && this.finInfo) v.fin = this.finInfo;
     return v;
   }

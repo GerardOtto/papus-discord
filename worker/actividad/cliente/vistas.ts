@@ -89,13 +89,14 @@ export function pregunta(v: Vista): string {
     const yaElegi = p.elecciones.findIndex((ids) => ids.includes(v.yo));
     cuerpo = `<div class="opciones${p.opciones.length === 2 ? " dos" : ""}">${p.opciones
       .map((o, k) => {
-        const clase = r ? (k === r.correcta ? "correcta" : yaElegi === k ? "mal" : "apagada") : yaElegi === k ? "mia" : "";
+        const oculta = !r && (p.ocultas ?? []).includes(k);
+        const clase = r ? (k === r.correcta ? "correcta" : yaElegi === k ? "mal" : "apagada") : oculta ? "apagada" : yaElegi === k ? "mia" : "";
         const caras = (p.elecciones[k] ?? []).map((id) => {
           const nueva = !estado.caras.has(`${p.nonce}:${id}`);
           estado.caras.add(`${p.nonce}:${id}`);
           return cara(quien(v, id), nueva ? "cara nueva" : "cara");
         });
-        return `<button class="opcion ${clase}" data-opcion="${k}" ${!juego || yaElegi >= 0 || r ? "disabled" : ""}><span class="letra">${LETRAS[k]}</span><span class="txt">${esc(o)}</span><span class="caras">${caras.join("")}</span></button>`;
+        return `<button class="opcion ${clase}" data-opcion="${k}" ${!juego || yaElegi >= 0 || r || oculta ? "disabled" : ""}><span class="letra">${LETRAS[k]}</span><span class="txt">${oculta ? "••••••••" : esc(o)}</span><span class="caras">${caras.join("")}</span></button>`;
       })
       .join("")}</div>`;
   } else if (!r) {
@@ -106,9 +107,16 @@ export function pregunta(v: Vista): string {
     cuerpo += `<div class="respondieron">${v.jugadores.filter((j) => j.respondio).map((j) => cara(j)).join("")}</div>`;
   } else {
     cuerpo = `<ul class="lista">${Object.entries(r.resultados)
-      .map(([id, res]) => `<li>${cara(quien(v, id))} <b>${esc(quien(v, id)?.nombre ?? "")}</b> ${res.ok ? "✅" : "❌"} <i>${esc(res.texto ?? "(sin respuesta)")}</i><span class="num">${res.ok && res.xp ? `+${fmt(res.xp)} XP` : ""}</span></li>`)
+      .map(([id, res]) => `<li>${cara(quien(v, id))} <b>${esc(quien(v, id)?.nombre ?? "")}</b> ${res.ok ? "✅" : res.salvado ? "🥖" : "❌"} <i>${res.salvado ? "Baguette: racha conservada" : esc(res.texto ?? "(sin respuesta)")}</i><span class="num">${res.ok && res.xp ? `+${fmt(res.xp)} XP` : ""}</span></li>`)
       .join("")}</ul>`;
   }
+  const extras = v.consumibles;
+  const yaRespondio = !!v.jugadores.find((j) => j.id === v.yo)?.respondio;
+  const herramientas = !r && juego && extras ? `<div class="grupo" style="margin:12px 0">
+    ${extras.celular && !yaRespondio && p.tipo === "opciones" && p.opciones.length >= 4 ? `<button data-consumible="celular">📱 Neru 50/50 · ${extras.celular}</button>` : ""} ${extras.baguette ? `<span class="chip">🥖 Baguette automática · ${extras.baguette} partida(s), 2 rescates</span>` : ""}
+    ${extras.guitarra && !extras.guitarraActiva ? `<button data-consumible="guitarra">🎸 Doble XP · ${extras.guitarra}</button>` : extras.guitarraActiva ? `<span class="chip">🎸 Guitarra activa · doble XP</span>` : ""}
+    ${extras.zanahoria && p.temas?.length ? `<label class="chip">🥕 Gumi <select id="tema-zanahoria">${p.temas.map(t=>`<option value="${esc(t.tema)}">${esc(t.tema)} (${t.n})</option>`).join("")}</select><button data-consumible="zanahoria">Elegir tema · ${extras.zanahoria}</button></label>` : ""}
+  </div>` : "";
   let resultado = "";
   if (r) {
     const xp = mia?.ok ? (mia.xp ? `<span class="xp">+${fmt(mia.xp)} XP</span>` : mia.xp === null ? `<span class="nota"> (Teto está calculando tu XP)</span>` : "") : "";
@@ -138,6 +146,7 @@ export function pregunta(v: Vista): string {
     <p class="pregunta">${esc(p.texto)}</p>
     <div id="media"></div>
     ${cuerpo}
+    ${herramientas}
     ${resultado}
     ${mirando}
     ${jugadores(v)}`;

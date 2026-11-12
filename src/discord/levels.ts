@@ -21,7 +21,8 @@ import {
 import { BOT_IDS, type BotId } from "../config";
 import { kvGet, kvSet, type Db } from "../db/database";
 import { logError, type LogFn } from "../log";
-import { normalizeBackground, renderCardAny, type BackgroundFit, type CardData, type CardEquip } from "../levels/card";
+import { normalizeBackground, renderCard, renderCardAny, type BackgroundFit, type CardData, type CardEquip } from "../levels/card";
+import { cardBackground, cardDataFrom, fetchAvatar } from "../levels/card-data";
 import { podiumBots, renderRanking, RANKING_TOP, type RankingRow } from "../levels/ranking";
 import { activeEvents, eventEnd, nickWithLevel, stripNickTag } from "../levels/rules";
 import type { LevelChange, LevelService, Standing } from "../levels/service";
@@ -33,7 +34,6 @@ import { avisoPing } from "./avisos";
 import { CHANNELS, channelKey, findTextChannel } from "./channels";
 
 const MAX_UPLOAD_BYTES = 8 * 1024 * 1024;
-const ASSETS = path.resolve(import.meta.dirname, "../../assets/bots");
 /** Ranking automático de cada día: canal y hora (de la zona de la cuota, Chile). */
 const RANKING_CANAL = "ranking";
 const RANKING_HORA = 12;
@@ -295,9 +295,7 @@ export class LevelsDiscord {
   // ───────────────────────── tarjeta ─────────────────────────
 
   private background(userId: string, fondo: string | null): Buffer | null {
-    const file =
-      fondo === "propia" ? path.join(this.cardsDir, `${userId}.png`) : fondo?.startsWith("bot:") ? path.join(ASSETS, `${fondo.slice(4)}_banner.png`) : null;
-    return file && existsSync(file) ? readFileSync(file) : null;
+    return cardBackground(this.d.dataDir, userId, fondo);
   }
 
   private get cardsDir(): string {
@@ -310,6 +308,15 @@ export class LevelsDiscord {
     return renderCardAny(await this.cardData(userId), e);
   }
 
+  /** Tarjeta pública para la Plaza: conserva el diseño y los objetos de /nivel, pero oculta la cuota diaria. */
+  async publicCard(userId: string): Promise<{ data: Buffer; gif: boolean }> {
+    const equip = (await this.d.equipment?.(userId).catch((err) => (logError("objetos de la tarjeta", err), {} as CardEquip))) ?? {};
+    const data = await this.cardData(userId);
+    data.quota = null;
+    // La Plaza muestra una imagen estática para mantener el payload WebSocket acotado; el aspecto del objeto queda igual.
+    return { data: await renderCard(data, equip), gif: false };
+  }
+
   async cardData(userId: string): Promise<CardData> {
     const guild = this.d.guild();
     const mb = await guild.members.fetch(userId).catch(() => null);
@@ -319,23 +326,15 @@ export class LevelsDiscord {
     const position = this.standings().find((st) => st.userId === userId)?.position ?? snap.position;
     const left = this.d.quota.remaining(userId);
     const limit = this.d.quota.limitFor(userId) + this.d.quota.extra(userId);
-    return {
-      name: stripNickTag(mb?.displayName ?? user.displayName),
+    return cardDataFrom(snap, {
+      displayName: mb?.displayName ?? user.displayName,
       avatar,
-      level: snap.level,
-      max: snap.max,
-      prestige: snap.prestige,
-      into: snap.into,
-      needed: snap.needed,
-      tier: snap.rank.estilo,
-      rankName: snap.rank.nombre,
       position,
       quota: Number.isFinite(limit) ? { left, limit } : null,
-      frase: snap.card.frase,
-      accent: snap.card.color ?? this.d.defaultAccent,
+      defaultAccent: this.d.defaultAccent,
       background: this.background(userId, snap.card.fondo),
       multiplier: this.d.levels.multiplier(),
-    };
+    });
   }
 
   /** /nivel: tarjeta propia (con botones de apodo y prestigio) o de otro Papu. */
@@ -624,12 +623,6 @@ export class LevelsDiscord {
 }
 
 const fmtMult = (n: number) => String(n).replace(".", ",");
-
-async function fetchAvatar(url: string): Promise<Buffer | null> {
-  return fetch(url)
-    .then(async (r) => (r.ok ? Buffer.from(await r.arrayBuffer()) : null))
-    .catch(() => null);
-}
 
 /** Nombre del Papu sin la etiqueta de nivel: su apodo, o su nombre de cuenta. */
 function baseName(mb: GuildMember): string {

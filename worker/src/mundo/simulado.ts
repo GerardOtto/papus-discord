@@ -16,6 +16,40 @@ const TITULOS: Record<string, [string, string]> = {
   sobre: ["¡Un sobre común!", "gratis, en la tienda de Shaula-coins"],
 };
 
+const ultimoGiroPreview = new Map<string, number>();
+const ESPERA_GIRO_PREVIEW_MS = 5_000;
+
+/** Giro puramente visual del preview: no consulta ni modifica RouletteService. */
+export function simularRuletaPreview(
+  papu: { id: string; nombre: string },
+  now: () => number = Date.now,
+  rnd: () => number = Math.random,
+): Resultado {
+  const t = now();
+  const ultimo = ultimoGiroPreview.get(papu.id) ?? 0;
+  if (t - ultimo < ESPERA_GIRO_PREVIEW_MS) {
+    return { ok: false, motivo: `Espera ${Math.ceil((ESPERA_GIRO_PREVIEW_MS - (t - ultimo)) / 1000)} s para probar otro giro.` };
+  }
+  if (!casillas.length) return { ok: false, motivo: "La ruleta no tiene casillas configuradas." };
+  const index = Math.min(casillas.length - 1, Math.floor(Math.max(0, Math.min(0.999999, rnd())) * casillas.length));
+  const premio = ruleta.premios[index]!;
+  ultimoGiroPreview.set(papu.id, t);
+  const datos: RuletaGiro = {
+    giro: {
+      papu: papu.id,
+      nombre: papu.nombre,
+      index,
+      titulo: `🧪 DEMO · ${premio.etiqueta}`,
+      subtitulo: "Resultado simulado · sin premio real",
+      origen: "plaza",
+    },
+    texto: `Simulación: ${premio.nombre}. No se consumió una tirada ni se entregó una recompensa.`,
+    tiradas: 0,
+    simulado: true,
+  };
+  return { ok: true, datos };
+}
+
 export function simular(accion: Accion, papu: { id: string; nombre: string }): Resultado {
   const n = usadas.get(papu.id) ?? 0;
   const estado = (u: number): RuletaEstado => ({
