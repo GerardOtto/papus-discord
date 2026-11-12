@@ -122,7 +122,7 @@ export class SalaTrivia implements DurableObject {
       }
     }
     else if (m.t === "responder") this.sala.responder(id, m.nonce, m);
-    else if (m.t === "otra") this.sala.otra(id);
+    else if (m.t === "otra") { if (this.iniciando) aviso = "La partida se está preparando; espera un momento."; else this.sala.otra(id); }
     else if (m.t === "consumible") await this.usarConsumible(id,m,ws);
     if (aviso) this.enviar(ws, { aviso });
     await this.despues();
