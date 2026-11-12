@@ -171,8 +171,13 @@ export class SalaTrivia implements DurableObject {
     const aciertos = this.sala.sacarAciertos();
     if (aciertos.length) {
       const now = Date.now();
-      const stmt = this.env.DB.prepare("INSERT INTO actividad_aciertos (partida, papu_id, pregunta, dificultad, racha, xp_mostrada, canal, creado_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
-      this.state.waitUntil(this.env.DB.batch(aciertos.map((a) => stmt.bind(this.partida, a.papu, a.pregunta, a.dificultad, a.racha, a.xp, this.canal, now))).then(() => undefined, (e) => console.error("actividad: aciertos a D1", e)));
+      const preview = this.env.MUNDO_PREVIEW === "1";
+      const stmt = preview
+        ? this.env.DB.prepare("INSERT INTO actividad_aciertos (partida, papu_id, pregunta, dificultad, racha, xp_mostrada, canal, creado_at, multiplicador) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)")
+        : this.env.DB.prepare("INSERT INTO actividad_aciertos (partida, papu_id, pregunta, dificultad, racha, xp_mostrada, canal, creado_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
+      this.state.waitUntil(this.env.DB.batch(aciertos.map((a) => preview
+        ? stmt.bind(this.partida, a.papu, a.pregunta, a.dificultad, a.racha, a.xp, this.canal, now, a.factor)
+        : stmt.bind(this.partida, a.papu, a.pregunta, a.dificultad, a.racha, a.xp, this.canal, now))).then(() => undefined, (e) => console.error("actividad: aciertos a D1", e)));
     }
     for (const [ws, id] of this.sockets) if (id) this.enviar(ws, { vista: this.sala.vista(id) });
     if (this.timer) clearTimeout(this.timer);
