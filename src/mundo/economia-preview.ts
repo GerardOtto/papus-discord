@@ -293,6 +293,22 @@ export class EconomiaPlazaPreview {
     }
   }
 
+  /** Cuota visible del preview, incluyendo reinicios y extras del ledger sin modificar quota_usage real. */
+  cuotaRestante(userId: string): number | null | undefined {
+    const state = this.cache.get(userId);
+    if (!state) return undefined;
+    const now = this.now();
+    const date = new Date(now);
+    const day = dayKey(date, this.d.timeZone);
+    const limit = this.d.quota.limitFor(userId, date);
+    if (!Number.isFinite(limit)) return null;
+    const extraBase = this.d.quota.extra(userId, date);
+    const usedBase = this.d.quota.used(userId, date);
+    const resetBase = state.cuotaResetDia === day ? state.cuotaResetBase ?? 0 : 0;
+    const usedEffective = Math.max(0, usedBase - resetBase);
+    const extraSandbox = state.cuotaExtraDia === day ? state.cuotaExtra : 0;
+    return Math.max(0, limit + extraBase + extraSandbox - usedEffective - state.cuotaUsada);
+  }
   ruletasUsadas(userId: string): number {
     const state = this.cache.get(userId);
     if (!state || state.ruletaDia !== this.d.roulette.dayOf(this.now())) return 0;
