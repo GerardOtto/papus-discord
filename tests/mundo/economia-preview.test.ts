@@ -292,6 +292,36 @@ describe("EconomiaPlazaPreview", () => {
     expect(JSON.parse(again.estado).xp).toBe(row.xp);
   });
 
+  it("usa el promedio de XP no-trivia sandbox de días anteriores al calcular la trivia", async () => {
+    const source=openDb(":memory:"), preview=openDb(":memory:"); abiertos.push(source,preview);
+    preview.exec(`
+      CREATE TABLE mundo_sandbox (papu_id TEXT PRIMARY KEY, estado TEXT NOT NULL, revision INTEGER NOT NULL DEFAULT 0, actualizado_at INTEGER NOT NULL);
+      CREATE TABLE mundo_perfiles (papu_id TEXT PRIMARY KEY, pedido_at INTEGER NOT NULL DEFAULT 0);
+      CREATE TABLE actividad_perfiles_preview (papu_id TEXT NOT NULL, partida TEXT NOT NULL DEFAULT '', xp_base INTEGER NOT NULL DEFAULT 0, tope INTEGER NOT NULL DEFAULT 0, pedido_at INTEGER NOT NULL DEFAULT 0, actualizado_at INTEGER NOT NULL DEFAULT 0, PRIMARY KEY (papu_id, partida));
+      CREATE TABLE actividad_aciertos_preview (id INTEGER PRIMARY KEY AUTOINCREMENT, partida TEXT NOT NULL, papu_id TEXT NOT NULL, pregunta TEXT NOT NULL, dificultad TEXT NOT NULL, racha INTEGER NOT NULL, xp_mostrada INTEGER, canal TEXT, creado_at INTEGER NOT NULL, aplicado INTEGER NOT NULL DEFAULT 0, xp INTEGER, multiplicador INTEGER NOT NULL DEFAULT 1);
+    `);
+    const query:D1Query=async <T>(sql:string,...params:unknown[]):Promise<T[]>=>{
+      const st=preview.prepare(sql);
+      if(/RETURNING/i.test(sql)||/^\\s*SELECT/i.test(sql))return st.all(...(params as never[])) as unknown as T[];
+      st.run(...(params as never[]));return [];
+    };
+    const user="123456789012345678",now=Date.parse("2026-11-12T12:00:00-03:00"),day="2026-11-12";
+    const state={version:1,xp:0,wallet:{ganadas:0,compradas:0,ecos:0,gratis:0,gratisRaro:0,gratisLeg:0,sobres:0,sinEpica:0,sinLegendaria:0,hoy:0},inventario:[],consumibles:{},comprasMercado:[],ruletaDia:day,ruletaUsadas:0,pescaAt:0,cuotaExtraDia:day,cuotaExtra:0,cuotaUsada:0,monedasDia:"2026-11-11",xpSandboxNoTriviaDia:10000,xpSandboxNoTriviaDiaKey:"2026-11-11",xpSandboxNoTriviaHistorial:{},triviaDia:"2026-11-11",triviaXpDia:0,triviaPartidasDia:[]};
+    preview.prepare("INSERT INTO mundo_sandbox (papu_id,estado,revision,actualizado_at) VALUES (?,?,0,?)").run(user,JSON.stringify(state),now);
+    preview.prepare("INSERT INTO actividad_aciertos_preview (partida,papu_id,pregunta,dificultad,racha,creado_at,multiplicador) VALUES (?,?,?,?,?,?,1)").run("partida-dia-actual",user,"pregunta-promedio","facil",1,now);
+    const levels=new LevelService({db:source,settings:loadLevelSettings(),timeZone:"America/Santiago"});
+    const economy=new EconomiaPlazaPreview({query,db:source,levels,coins:null,mercado:null,roulette:{dayOf:()=>day} as unknown as RouletteService,quota:{} as Quota,now:()=>now,
+      trivia:loadTriviaSettings(),questionLevels:{"pregunta-promedio":"facil"},questionTotals:{facil:100,medio:100,dificil:100},timeZone:"America/Santiago"});
+    expect(await economy.syncTrivia()).toBe(1);
+    const row=preview.prepare("SELECT xp FROM actividad_aciertos_preview").get() as {xp:number};
+    expect(row.xp).toBeGreaterThan(10);
+    const saved=preview.prepare("SELECT estado FROM mundo_sandbox WHERE papu_id=?").get(user) as {estado:string};
+    const next=JSON.parse(saved.estado) as {xpSandboxNoTriviaDia:number;xpSandboxNoTriviaDiaKey:string;xpSandboxNoTriviaHistorial:Record<string,number>};
+    expect(next.xpSandboxNoTriviaDia).toBe(0);
+    expect(next.xpSandboxNoTriviaDiaKey).toBe(day);
+    expect(next.xpSandboxNoTriviaHistorial["2026-11-11"]).toBe(10000);
+  });
+
   it("PC de Adachi reinicia topes y contadores solo en el ledger sandbox", async () => {
     const source=openDb(":memory:"), preview=openDb(":memory:"); abiertos.push(source,preview);
     preview.exec("CREATE TABLE mundo_sandbox (papu_id TEXT PRIMARY KEY, estado TEXT NOT NULL, revision INTEGER NOT NULL DEFAULT 0, actualizado_at INTEGER NOT NULL); CREATE TABLE mundo_perfiles (papu_id TEXT PRIMARY KEY, pedido_at INTEGER NOT NULL DEFAULT 0)");
