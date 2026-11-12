@@ -41,7 +41,7 @@ interface EstadoSandbox {
   microfonoMinutos?: number;
   disqueteProcesadoDia?: string;
   ruletaGuardadas?: number;
-  atunPendiente?: { day: string; index: number; giros: number; gastoUso: boolean; xp: number; mensajes: number; sobres: number; subioAntes?: string };
+  atunPendiente?: { day: string; index: number; giros: number; gastoUso: boolean; xp: number; mensajes: number; sobres: number; subioAntes?: string; nivelAntes: number };
 }
 interface FilaSandbox { papu_id: string; estado: string; revision: number }
 const ceroWallet = (): WalletSandbox => ({ ganadas: 0, compradas: 0, ecos: 0, gratis: 0, gratisRaro: 0, gratisLeg: 0, sobres: 0, sinEpica: 0, sinLegendaria: 0, hoy: 0 });
@@ -428,7 +428,7 @@ export class EconomiaPlazaPreview {
   }
 
   private aplicarPremio(state: EstadoSandbox, userId: string, day: string, now: number, index: number): {
-    xp: number; mensajes: number; sobres: number; titulo: string; subtitulo: string; texto: string; subioAntes?: string;
+    xp: number; mensajes: number; sobres: number; titulo: string; subtitulo: string; texto: string; subioAntes?: string; nivelAntes: number;
   } | null {
     const premio = this.d.roulette.settings.premios[index];
     if (!premio || (premio.tipo === "sobre" && !this.d.coins)) return null;
@@ -478,7 +478,7 @@ export class EconomiaPlazaPreview {
     const texto = premio.tipo === "xp" ? `+${xp} XP en tu progreso de prueba.`
       : premio.tipo === "cuota" || premio.tipo === "cuota_llena" ? `+${mensajes} mensajes de cuota de prueba.`
       : `${sobres} sobre(s) añadidos al monedero de prueba.`;
-    return { xp, mensajes, sobres, titulo, subtitulo, texto, subioAntes };
+    return { xp, mensajes, sobres, titulo, subtitulo, texto, subioAntes, nivelAntes: levelBefore };
   }
 
   private async girarRuleta(userId: string, nombre: string): Promise<Resultado> {
@@ -506,7 +506,7 @@ export class EconomiaPlazaPreview {
       const atun = this.d.mercado?.byId.get("atun-luka");
       const usosAtun = s.consumibles["atun-luka"] ?? 0;
       if (atun?.efecto === "atun" && usosAtun > 0 && (atun.giros ?? 0) > 0) {
-        s.atunPendiente = { day, index, giros: 0, gastoUso: false, xp: aplicado.xp, mensajes: aplicado.mensajes, sobres: aplicado.sobres, subioAntes: aplicado.subioAntes };
+        s.atunPendiente = { day, index, giros: 0, gastoUso: false, xp: aplicado.xp, mensajes: aplicado.mensajes, sobres: aplicado.sobres, subioAntes: aplicado.subioAntes, nivelAntes: aplicado.nivelAntes };
       }
       const girosRestantes = s.atunPendiente ? Math.max(0, (atun?.giros ?? 0) - s.atunPendiente.giros) : 0;
       return {
@@ -538,7 +538,8 @@ export class EconomiaPlazaPreview {
       s.xp = Math.max(0, s.xp - pending.xp);
       if (s.cuotaExtraDia === day) s.cuotaExtra = Math.max(0, s.cuotaExtra - pending.mensajes);
       s.wallet.gratis = Math.max(0, s.wallet.gratis - pending.sobres);
-      if (pending.subioAntes !== undefined) s.subioDia = pending.subioAntes;
+      if (progress(this.d.levels.settings, s.xp).level > pending.nivelAntes) s.subioDia = day;
+      else if (pending.subioAntes !== undefined) s.subioDia = pending.subioAntes;
       else if (s.subioDia === day) s.subioDia = "";
       const premios = this.d.roulette.settings.premios.map((p) => p.tipo === "sobre" && !this.d.coins ? { ...p, peso: 0 } : p);
       const index = pickPrize({ premios }, this.rnd);
@@ -546,7 +547,7 @@ export class EconomiaPlazaPreview {
       if (!aplicado) return { result: error("No pude sortear un nuevo premio."), changed: false };
       const giros = pending.giros + 1;
       const gastoUso = true;
-      s.atunPendiente = { day, index, giros, gastoUso, xp: aplicado.xp, mensajes: aplicado.mensajes, sobres: aplicado.sobres, subioAntes: pending.subioAntes };
+      s.atunPendiente = { day, index, giros, gastoUso, xp: aplicado.xp, mensajes: aplicado.mensajes, sobres: aplicado.sobres, subioAntes: pending.subioAntes, nivelAntes: pending.nivelAntes };
       const usos = s.consumibles["atun-luka"] ?? 0;
       const nivelYaContado = real.missions.some((m) => m.id === "nivel" && m.done);
       const misionNivelSandbox = s.subioDia === day && !nivelYaContado;
