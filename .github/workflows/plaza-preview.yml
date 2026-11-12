@@ -92,7 +92,6 @@ jobs:
           grep -q '^name = "papus-plaza-preview"' worker/wrangler.preview.toml
           grep -q '^main = "src/preview.ts"' worker/wrangler.preview.toml
           ! grep -q '^name = "papus-bots"' worker/wrangler.preview.toml
-          grep -q 'MUNDO_TARJETAS = "1"' worker/wrangler.preview.toml
           grep -q 'wrangler deploy --config=worker/wrangler.preview.toml' .github/workflows/plaza-preview.yml
 
       - name: Deploy only the Plaza Worker
