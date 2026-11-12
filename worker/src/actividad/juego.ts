@@ -26,7 +26,7 @@ export interface Acierto {
   dificultad: Dificultad;
   racha: number;
   xp: number | null;
-  factor: number;
+  factor?: number;
 }
 
 interface Jugador {
@@ -271,7 +271,7 @@ export class Sala {
         const factor = this.guitarras.has(j.id) ? 2 : 1;
         xp = this.d.xp ? this.d.xp(j.id, j.racha, factor) : null;
         if (xp) j.xp += xp;
-        this.aciertos.push({ papu: j.id, pregunta: q.id, dificultad: q.dificultad, racha: j.racha, xp, factor });
+        this.aciertos.push({ papu: j.id, pregunta: q.id, dificultad: q.dificultad, racha: j.racha, xp, ...(factor > 1 ? { factor } : {}) });
       } else {
         j.rachaFallida = j.racha;
         j.racha = 0;
