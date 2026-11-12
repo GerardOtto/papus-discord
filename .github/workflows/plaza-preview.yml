@@ -87,6 +87,13 @@ jobs:
           test -n "$PREVIEW_TETO_CLIENT_SECRET"
           printf '%s' "$PREVIEW_TETO_CLIENT_SECRET" | npx wrangler secret put TETO_CLIENT_SECRET --config=worker/wrangler.preview.toml
 
+      - name: Verify isolated preview target
+        run: |
+          grep -q '^name = "papus-plaza-preview"' worker/wrangler.preview.toml
+          grep -q '^main = "src/preview.ts"' worker/wrangler.preview.toml
+          grep -q 'MUNDO_PREVIEW = "1"' worker/wrangler.preview.toml
+          ! grep -q '^name = "papus-bots"' worker/wrangler.preview.toml
+          ! grep -q 'worker:deploy' package.json
       - name: Deploy only papus-plaza-preview
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
