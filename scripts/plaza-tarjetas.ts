@@ -65,12 +65,12 @@ function main(): void {
     ? new CoinService({ db, settings: coinSettings, catalog: loadCatalog(), timeZone: config.quotaTimeZone })
     : null;
 
+  // Solo consulta misiones reales. No se conecta la acción de girar: este proceso abre SQLite en solo lectura.
+  const roulette = new RouletteService({ db, settings: loadRouletteSettings(), levels, quota, timeZone: config.quotaTimeZone });
+
   const mercado = coins
     ? new MercadoService({ db, settings: loadMercadoSettings(), coins, quota, roulette, timeZone: config.quotaTimeZone })
     : null;
-
-  // Solo consulta misiones reales. No se conecta la acción de girar: este proceso abre SQLite en solo lectura.
-  const roulette = new RouletteService({ db, settings: loadRouletteSettings(), levels, quota, timeZone: config.quotaTimeZone });
 
   let acento = ACENTO_TETO;
   try {
