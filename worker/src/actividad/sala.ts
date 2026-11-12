@@ -98,7 +98,8 @@ export class SalaTrivia implements DurableObject {
     if (m.t === "configurar") this.sala.configurar(id, m);
     else if (m.t === "empezar") aviso = this.sala.empezar(id).motivo;
     else if (m.t === "responder") this.sala.responder(id, m.nonce, m);
-    else if (m.t === "otra") this.sala.otra(id);\n    else if (m.t === "consumible") await this.usarConsumible(id,m,ws);
+    else if (m.t === "otra") this.sala.otra(id);
+    else if (m.t === "consumible") await this.usarConsumible(id,m,ws);
     if (aviso) this.enviar(ws, { aviso });
     await this.despues();
   }
