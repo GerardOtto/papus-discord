@@ -651,7 +651,9 @@ export class EconomiaPlazaPreview {
         const vozActual = this.d.levels.store.dayStats(userId, cursor).vozMin;
         const microfono = s.microfonoDia === cursor && !!s.microfonoMinutos && !!voz && !voz.done && vozActual >= s.microfonoMinutos ? 1 : 0;
         const usadas = s.ruletaDia === cursor ? s.ruletaUsadas : 0;
-        guardadas = Math.max(0, guardadas + real.left + nivel + microfono - usadas);
+        const reset = s.ruletaResetDia === cursor ? s.ruletaResetUsadas ?? 0 : 0;
+        const regalos = s.ruletaRegaloDia === cursor ? s.ruletaRegalos ?? 0 : 0;
+        guardadas = Math.max(0, guardadas + real.left + reset + regalos + nivel + microfono - usadas);
         cursor = this.siguienteDia(cursor);
       }
       s.ruletaGuardadas = guardadas;
