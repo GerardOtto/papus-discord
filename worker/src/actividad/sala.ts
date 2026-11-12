@@ -37,7 +37,6 @@ export class SalaTrivia implements DurableObject {
     this.sala = new Sala({
       pool: POOL.preguntas,
       xp: (papu, racha) => {
-        if (this.env.MUNDO_PREVIEW === "1") return 0;
         const p = this.perfiles.get(papu);
         if (!p) return null;
         const xp = xpDeAcierto(p, racha, POOL.racha);
@@ -91,7 +90,7 @@ export class SalaTrivia implements DurableObject {
       const res = this.sala.unir(p);
       if (!res.ok) return this.enviar(ws, { error: res.motivo });
       this.sockets.set(ws, p.id);
-      if (this.env.MUNDO_PREVIEW !== "1") await this.pedirPerfil(p.id);
+      await this.pedirPerfil(p.id);
       return this.despues();
     }
     let aviso: string | undefined;
@@ -131,10 +130,10 @@ export class SalaTrivia implements DurableObject {
     const fase = this.sala.fase;
     if (fase === "pregunta" && this.faseAnterior !== "pregunta" && this.faseAnterior !== "revelar") this.partida = `${Date.now().toString(36)}-${this.state.id.toString().slice(0, 8)}`;
     // Al empezar cada pregunta se refrescan los perfiles (Teto pudo recalcularlos al aplicar la XP).
-    if (this.env.MUNDO_PREVIEW !== "1" && fase === "pregunta" && this.faseAnterior !== "pregunta") this.state.waitUntil(this.leerPerfiles(this.sala.ids()).catch(() => {}));
+    if (fase === "pregunta" && this.faseAnterior !== "pregunta") this.state.waitUntil(this.leerPerfiles(this.sala.ids()).catch(() => {}));
     this.faseAnterior = fase;
     const aciertos = this.sala.sacarAciertos();
-    if (aciertos.length && this.env.MUNDO_PREVIEW !== "1") {
+    if (aciertos.length) {
       const now = Date.now();
       const stmt = this.env.DB.prepare("INSERT INTO actividad_aciertos (partida, papu_id, pregunta, dificultad, racha, xp_mostrada, canal, creado_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
       this.state.waitUntil(this.env.DB.batch(aciertos.map((a) => stmt.bind(this.partida, a.papu, a.pregunta, a.dificultad, a.racha, a.xp, this.canal, now))).then(() => undefined, (e) => console.error("actividad: aciertos a D1", e)));
