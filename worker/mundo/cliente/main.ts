@@ -796,13 +796,14 @@ function cuadro(): void {
   const dt = Math.min(reloj.getDelta(), 0.1);
   const t = reloj.elapsedTime;
   const ahora = performance.now();
-  if (mio && document.activeElement !== chatInput && !ventana.abierta) mover(dt);
+  if (mio && !mio.sentado && document.activeElement !== chatInput && !ventana.abierta) mover(dt);
   else pose.a = 0;
 
   if (mio) {
     mio.p.raiz.position.set(pose.x, 0, pose.z);
     mio.p.raiz.rotation.y = girar(mio.p.raiz.rotation.y, pose.r, Math.min(1, dt * 14));
     mio.p.animar(t, pose.a as Andar, !!pose.m, mio.desfase);
+    mio.p.raiz.scale.y = mio.sentado ? 0.72 : 1;
     // Manda la pose cada 200 ms, solo si cambio (quieto no gasta nada).
     const cambio = Math.hypot(pose.x - enviada.x, pose.z - enviada.z) > 0.05 || Math.abs(pose.r - enviada.r) > 0.05 || pose.a !== enviada.a || pose.m !== enviada.m;
     if (cambio && ahora - ultimoEnvio >= ENVIO_MS) {
