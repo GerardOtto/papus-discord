@@ -25,7 +25,7 @@ import { loadModerationSettings } from "../src/moderation/rules";
 import { StrikeStore } from "../src/moderation/strikes";
 import { loadRouletteSettings } from "../src/ruleta/rules";
 import { RouletteService } from "../src/ruleta/service";
-import { ruletaEstado } from "../src/mundo/ruleta";
+import { accionesRuletaPreview } from "../src/mundo/ruleta-preview";
 import { recompensaPesca, textoRecompensaPesca, type TamanoPez } from "../src/pesca/reglas";
 
 const ROOT = path.resolve(import.meta.dirname, "..");
@@ -126,15 +126,8 @@ function main(): void {
     },
     log,
   });
-  // La ventana de la ruleta funciona como panel de misiones, pero nunca consume tiradas ni aplica premios.
-  puente.acciones["ruleta.estado"] = (papu) => {
-    const status = roulette.status(papu.id);
-    const estado = ruletaEstado(roulette, papu.id, status);
-    return {
-      ok: true,
-      datos: { ...estado, tiradas: 0, usadas: 0, extras: [], soloLectura: true },
-    };
-  };
+  // La ruleta usa el progreso real y permite girar solo para mostrar la animación, sin consumir tiradas ni aplicar premios.
+  Object.assign(puente.acciones, accionesRuletaPreview(roulette));
   // Pesca de prueba: calcula la recompensa con XP real, pero NUNCA la escribe en SQLite.
   const ultimoLance = new Map<string, number>();
   puente.acciones["pesca.capturar"] = (papu) => {
