@@ -17,7 +17,7 @@ El D1 solo transporta comandos, perfiles públicos, eventos y estado de sala. No
 
 En GitHub Actions, crear el entorno `plaza-preview` y configurar:
 
-- `CLOUDFLARE_API_TOKEN`: token con permisos para desplegar el Worker de interfaz y administrar sus secretos.
+- `CLOUDFLARE_API_TOKEN`: token con permisos para desplegar el Worker de interfaz, administrar sus secretos y ejecutar cambios D1 (Workers Scripts Edit, D1 Edit).
 - `CLOUDFLARE_ACCOUNT_ID`: cuenta Cloudflare.
 - `PREVIEW_GUILD_ID`: ID del servidor.
 - `PREVIEW_TETO_CLIENT_ID`: ID de la aplicación OAuth de Teto.
