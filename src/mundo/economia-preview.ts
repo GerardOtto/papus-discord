@@ -529,31 +529,6 @@ export class EconomiaPlazaPreview {
   private async usarConsumible(userId: string, datos: unknown): Promise<Resultado> {
     if (!this.d.mercado) return error("El inventario de consumibles no está habilitado.");
     const id = datos && typeof datos === "object" ? (datos as { id?: unknown }).id : null;
-    if (id === "regalo-rin-len") {
-      const to = datos && typeof datos === "object" ? (datos as { para?: unknown }).para : null;
-      if(typeof to!=="string"||!/^[0-9]{5,25}$/.test(to))return error("Indica el ID de Discord del Papu que recibirá la tirada.");
-      if(to===userId)return error("No puedes regalarte una tirada a ti mismo.");
-      const now=this.now(),day=this.d.roulette.dayOf(now);
-      if(!this.d.levels.canEarn(to,now)||this.d.roulette.status(to,now).blocked)return error("Ese Papu no puede recibir una tirada ahora.");
-      const regalo=await this.cambiar(userId,(s)=>{
-        const usos=s.consumibles[id]??0;
-        if(usos<=0)return {result:false,changed:false};
-        s.consumibles[id]=usos-1;return {result:true};
-      });
-      if(!regalo)return error("No te quedan usos del regalo de Rin y Len.");
-      try {
-        await this.cambiar(to,(s)=>{
-          if(s.ruletaRegaloDia!==day){s.ruletaRegaloDia=day;s.ruletaRegalos=0;}
-          s.ruletaRegalos=(s.ruletaRegalos??0)+1;
-          return {result:undefined};
-        });
-      } catch(e) {
-        await this.cambiar(userId,(s)=>{s.consumibles[id]=(s.consumibles[id]??0)+1;return {result:undefined};}).catch(()=>{});
-        return error("No pude entregar la tirada; devolví el uso del regalo. Inténtalo de nuevo.");
-      }
-      await this.d.query("UPDATE mundo_perfiles SET pedido_at = ? WHERE papu_id = ?",now+2,to).catch(()=>{});
-      return ok({mensaje:"🎁 ¡Tirada enviada! La recibirá en su ruleta de prueba de hoy.",sandbox:true});
-    }
     if (id === "pc-adachi-rei") {
       const now=this.now(), day=dayKey(new Date(now),this.d.timeZone);
       const spins=this.d.roulette.status(userId,now).used;
