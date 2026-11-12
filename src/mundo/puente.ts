@@ -293,6 +293,12 @@ export class MundoPuente {
     const viejo = this.now() - DIA_MS;
     await this.d.query("DELETE FROM mundo_eventos WHERE creado_at < ?", viejo);
     await this.d.query("DELETE FROM mundo_acciones WHERE creado_at < ?", viejo);
+    if (this.d.tarjetaPublica) {
+      await this.d.query("DELETE FROM mundo_tarjeta_pedidos WHERE creado_at < ? AND entregado = 1", viejo);
+      const tarjetasViejas = this.now() - 7 * DIA_MS;
+      await this.d.query("DELETE FROM mundo_tarjeta_partes WHERE papu_id IN (SELECT papu_id FROM mundo_tarjetas WHERE actualizado_at < ?)", tarjetasViejas);
+      await this.d.query("DELETE FROM mundo_tarjetas WHERE actualizado_at < ?", tarjetasViejas);
+    }
   }
 
   /** Cada minuto: la foto del servidor, solo si cambio algo (asi casi no escribe en la base). */
@@ -519,7 +525,14 @@ export function mundoFromEnv(
 ): MundoPuente | null {
   const token = env.CLOUDFLARE_DEPLOY_TOKEN?.trim();
   const accountId = env.CLOUDFLARE_ACCOUNT_ID?.trim();
-  const databaseId = databaseIdOverride?.trim() || workerDatabaseId(root);
+  const produccionId = workerDatabaseId(root);
+  const solicitado = databaseIdOverride?.trim();
+  // Cinturón de seguridad: nunca permitir que el puente llamado "preview" apunte al D1 de producción.
+  if (solicitado && produccionId && solicitado === produccionId) {
+    deps.log?.("⚠ Plaza preview desactivada: su D1 coincide con el D1 de producción.");
+    return null;
+  }
+  const databaseId = solicitado || produccionId;
   if (!token || !accountId || !databaseId) return null;
   return new MundoPuente({
     ...deps,
