@@ -420,6 +420,7 @@ export class EconomiaPlazaPreview {
       tiradas: Math.max(0, real.left + (misionNivelSandbox ? 1 : 0) + (misionVozSandbox ? 1 : 0) + (state.ruletaGuardadas ?? 0) - used),
       usadas: real.used + used,
       sandbox: true,
+      atunPendiente: state.atunPendiente?.day === day ? { girosRestantes: Math.max(0, (this.d.mercado?.byId.get("atun-luka")?.giros ?? 0) - state.atunPendiente.giros) } : undefined,
       soloLectura: false,
       simulacion: false,
       extras: [...estado.extras, ...(microfonoActivo ? [`🎤 Micrófono de Meiko activo: hoy la misión pide ${state.microfonoMinutos} min (progreso consultado en modo lectura).`] : []), ...(state.comprasMercado.includes("disquete-adachi-rei") ? [`💾 Disquete de Adachi Rei: ${state.ruletaGuardadas ?? 0} tiradas guardadas para hoy.`] : []), "🧪 Las tiradas y premios se guardan en el progreso aislado de la Plaza; no afectan Discord."],
@@ -522,6 +523,7 @@ export class EconomiaPlazaPreview {
     const now = this.now();
     const day = this.d.roulette.dayOf(now);
     const real = this.d.roulette.status(userId, now);
+    if (!this.d.levels.canEarn(userId, now) || real.blocked) return error("Neru bloqueó la ruleta: no puedes descartar premios ahora.");
     return this.cambiar(userId, (s) => {
       const pending = s.atunPendiente;
       const objeto = this.d.mercado?.byId.get("atun-luka");
