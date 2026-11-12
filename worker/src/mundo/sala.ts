@@ -326,7 +326,7 @@ export class SalaMundo implements DurableObject {
     if (hay?.respuestas) await this.entregarRespuestas(sala);
     if (hay?.listas) await this.entregarAcciones(sala);
     if (hay?.eventos) await this.leerEventos(eventoId);
-    const tarjetas = this.env.MUNDO_PREVIEW === "1"
+    const tarjetas = this.env.MUNDO_TARJETAS === "1"
       ? await this.env.DB.prepare("SELECT COUNT(*) AS cantidad FROM mundo_tarjeta_pedidos WHERE sala = ? AND (estado = 0 OR (estado > 0 AND entregado = 0))").bind(sala).first<{ cantidad: number }>()
       : null;
     if (tarjetas?.cantidad) await this.entregarTarjetas(sala);
