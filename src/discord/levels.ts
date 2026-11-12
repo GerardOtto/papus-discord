@@ -21,7 +21,7 @@ import {
 import { BOT_IDS, type BotId } from "../config";
 import { kvGet, kvSet, type Db } from "../db/database";
 import { logError, type LogFn } from "../log";
-import { normalizeBackground, renderCardAny, type BackgroundFit, type CardData, type CardEquip } from "../levels/card";
+import { normalizeBackground, renderCard, renderCardAny, type BackgroundFit, type CardData, type CardEquip } from "../levels/card";
 import { podiumBots, renderRanking, RANKING_TOP, type RankingRow } from "../levels/ranking";
 import { activeEvents, eventEnd, nickWithLevel, stripNickTag } from "../levels/rules";
 import type { LevelChange, LevelService, Standing } from "../levels/service";
@@ -308,6 +308,15 @@ export class LevelsDiscord {
   async card(userId: string, equip?: CardEquip): Promise<{ data: Buffer; gif: boolean }> {
     const e = equip ?? (await this.d.equipment?.(userId).catch((err) => (logError("objetos de la tarjeta", err), {} as CardEquip))) ?? {};
     return renderCardAny(await this.cardData(userId), e);
+  }
+
+  /** Tarjeta pública para la Plaza: conserva el diseño y los objetos de /nivel, pero oculta la cuota diaria. */
+  async publicCard(userId: string): Promise<{ data: Buffer; gif: boolean }> {
+    const equip = (await this.d.equipment?.(userId).catch((err) => (logError("objetos de la tarjeta", err), {} as CardEquip))) ?? {};
+    const data = await this.cardData(userId);
+    data.quota = null;
+    // La Plaza muestra una imagen estática para mantener el payload WebSocket acotado; el aspecto del objeto queda igual.
+    return { data: await renderCard(data, equip), gif: false };
   }
 
   async cardData(userId: string): Promise<CardData> {
