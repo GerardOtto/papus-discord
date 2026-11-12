@@ -118,6 +118,12 @@ export class EconomiaPlazaPreview {
 
   xp(userId: string): number | null { return this.cache.get(userId)?.xp ?? null; }
 
+  /** Solicita al puente del preview que refresque el nivel/cuota visibles tras una acción sandbox. */
+  private async refrescarPerfil(userId: string, result: Resultado): Promise<Resultado> {
+    if (result.ok) await this.d.query("UPDATE mundo_perfiles SET pedido_at = ? WHERE papu_id = ?", this.now() + 2, userId).catch(() => {});
+    return result;
+  }
+
   /** Acredita o revierte en el ledger la parte de monedas ganadas por XP de actividad sandbox. */
   private recalcularMonedasActividad(state: EstadoSandbox, userId: string, day: string, deltaXp = 0): number {
     if (!this.d.coins) return 0;
@@ -281,6 +287,7 @@ export class EconomiaPlazaPreview {
       });
       // Si el proceso se cae después del CAS, el resultado guardado permite reintentar sin duplicar XP ni sobres.
       await this.d.query("UPDATE actividad_aciertos_preview SET aplicado = 1, xp = ? WHERE id = ? AND aplicado = 0", Number(gained ?? 0), row.id);
+      if (Number(gained ?? 0) > 0) await this.d.query("UPDATE mundo_perfiles SET pedido_at = ? WHERE papu_id = ?", this.now() + 2, row.papu_id).catch(() => {});
       applied++;
     }
     await this.entregarRegalos();
@@ -993,11 +1000,11 @@ export class EconomiaPlazaPreview {
 
   acciones(): Partial<Record<Accion, Atender>> {
     return {
-      "ruleta.estado": (papu) => this.estadoRuleta(papu.id),
-      "ruleta.girar": (papu) => this.girarRuleta(papu.id, papu.nombre),
-      "ruleta.descartar": (papu) => this.descartarAtun(papu.id, papu.nombre),
-      "ruleta.aceptar": (papu) => this.aceptarAtun(papu.id),
-      "pesca.capturar": (papu) => this.pescar(papu.id),
+      "ruleta.estado": async (papu) => this.refrescarPerfil(papu.id, await this.estadoRuleta(papu.id)),
+      "ruleta.girar": async (papu) => this.refrescarPerfil(papu.id, await this.girarRuleta(papu.id, papu.nombre)),
+      "ruleta.descartar": async (papu) => this.refrescarPerfil(papu.id, await this.descartarAtun(papu.id, papu.nombre)),
+      "ruleta.aceptar": async (papu) => this.refrescarPerfil(papu.id, await this.aceptarAtun(papu.id)),
+      "pesca.capturar": async (papu) => this.refrescarPerfil(papu.id, await this.pescar(papu.id)),
       "tienda.estado": async (papu) => {
         const { state } = await this.cargar(papu.id);
         return this.datosTienda(state);
@@ -1008,7 +1015,7 @@ export class EconomiaPlazaPreview {
         return this.datosMercado(state);
       },
       "mercado.comprar": (papu, datos) => this.comprarMercado(papu.id, datos),
-      "mercado.usar": (papu, datos) => this.usarConsumible(papu.id, datos),
+      "mercado.usar": async (papu, datos) => this.refrescarPerfil(papu.id, await this.usarConsumible(papu.id, datos)),
     };
   }
 }
