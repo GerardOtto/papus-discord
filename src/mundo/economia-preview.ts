@@ -14,6 +14,8 @@ import type { Quota } from "../quota/quota";
 import type { RouletteService } from "../ruleta/service";
 import { pickPrize, prizeXp } from "../ruleta/rules";
 import { progress } from "../levels/rules";
+import { answerXp, dailyCap, type Dificultad, type TriviaSettings } from "../trivia/rules";
+import { dayKey } from "../time";
 import { recompensaPesca, textoRecompensaPesca, type TamanoPez } from "../pesca/reglas";
 import { ruletaEstado } from "./ruleta";
 import type { Accion, Resultado } from "../../worker/src/mundo/acciones";
@@ -42,6 +44,7 @@ interface EstadoSandbox {
   disqueteProcesadoDia?: string;
   ruletaGuardadas?: number;
   atunPendiente?: { day: string; index: number; giros: number; gastoUso: boolean; xp: number; mensajes: number; sobres: number; subioAntes?: string; nivelAntes: number };
+  triviaDia?: string; triviaXpDia?: number; triviaPartidasDia?: string[]; triviaSuperadas?: string[]; triviaPremios?: string[]; triviaHitos?: Partial<Record<Dificultad, { aciertos: number; premios: number }>>; triviaAciertosAplicados?: number[];
 }
 interface FilaSandbox { papu_id: string; estado: string; revision: number }
 const ceroWallet = (): WalletSandbox => ({ ganadas: 0, compradas: 0, ecos: 0, gratis: 0, gratisRaro: 0, gratisLeg: 0, sobres: 0, sinEpica: 0, sinLegendaria: 0, hoy: 0 });
@@ -59,6 +62,10 @@ export interface EconomiaPlazaPreviewDeps {
   quota: Quota;
   now?: () => number;
   rnd?: () => number;
+  trivia: TriviaSettings;
+  questionLevels: Record<string, Dificultad>;
+  questionTotals: Record<Dificultad, number>;
+  timeZone: string;
 }
 
 /**
@@ -87,6 +94,87 @@ export class EconomiaPlazaPreview {
   }
 
   xp(userId: string): number | null { return this.cache.get(userId)?.xp ?? null; }
+  /** Sincroniza aciertos al ledger preview con idempotencia dentro del mismo CAS que aplica las recompensas. */
+  async syncTrivia(): Promise<number> {
+    const rows = await this.d.query<{ id: number; partida: string; papu_id: string; pregunta: string; racha: number }>(
+      "SELECT id, partida, papu_id, pregunta, racha FROM actividad_aciertos WHERE aplicado = 0 ORDER BY id LIMIT 200",
+    );
+    let applied = 0;
+    for (const row of rows) {
+      await this.cambiar(row.papu_id, (s) => {
+        s.triviaAciertosAplicados ??= [];
+        if (s.triviaAciertosAplicados.includes(row.id)) return { result: undefined, changed: false };
+        const now = this.now(), day = this.d.roulette.dayOf(now);
+        if (s.triviaDia !== day) { s.triviaDia = day; s.triviaXpDia = 0; s.triviaPartidasDia = []; }
+        s.triviaPartidasDia ??= []; s.triviaSuperadas ??= []; s.triviaPremios ??= []; s.triviaHitos ??= {};
+        const runKey = `${row.partida}:${row.papu_id}`;
+        if (!s.triviaPartidasDia.includes(runKey)) s.triviaPartidasDia.push(runKey);
+        const withXp = s.triviaPartidasDia.indexOf(runKey) < this.d.trivia.limites.partidasConXp;
+        let gained = 0;
+        if (withXp && this.d.levels.canEarn(row.papu_id, now)) {
+          const from = dayKey(new Date(now - this.d.trivia.xp.dias * 86400000), this.d.timeZone);
+          const avg = (this.d.db.prepare("SELECT AVG(xp - trivia) AS avg FROM xp_dia WHERE user_id = ? AND day >= ? AND day < ? AND xp - trivia > 0").get(row.papu_id, from, day) as {avg:number|null}|undefined)?.avg ?? 0;
+          const multiplier = this.d.levels.multiplier(new Date(now));
+          const full = answerXp(this.d.trivia, this.d.levels.settings, { xp:s.xp, dailyAvg:avg, streak:Math.max(1,row.racha), multiplier });
+          const cap = dailyCap(this.d.trivia, this.d.levels.settings, s.xp, multiplier);
+          gained = Math.max(0, Math.min(full, cap - (s.triviaXpDia ?? 0)));
+          const before = progress(this.d.levels.settings, s.xp).level;
+          s.xp += gained; s.triviaXpDia = (s.triviaXpDia ?? 0) + gained;
+          if (progress(this.d.levels.settings, s.xp).level > before) s.subioDia = day;
+        }
+        const level = this.d.questionLevels[row.pregunta];
+        if (level) {
+          const h = s.triviaHitos[level] ?? {aciertos:0,premios:0};
+          if (!s.triviaSuperadas.includes(row.pregunta)) s.triviaSuperadas.push(row.pregunta);
+          if (this.d.levels.canEarn(row.papu_id, now)) {
+            h.aciertos++;
+            const milestone = this.d.trivia.dificultades[level].hito;
+            const due = milestone ? Math.floor(h.aciertos / milestone.cada) : 0;
+            if (due > h.premios) {
+              const n=due-h.premios; h.premios=due;
+              if (milestone!.premio==="comun") s.wallet.gratis+=n;
+              else if (milestone!.premio==="raro") s.wallet.gratisRaro+=n;
+              else s.wallet.gratisLeg+=n;
+            }
+          }
+          s.triviaHitos[level]=h;
+          const count=(d:Dificultad)=>s.triviaSuperadas!.filter(id=>this.d.questionLevels[id]===d).length;
+          if (count(level)>=this.d.questionTotals[level] && !s.triviaPremios.includes(level)) {
+            s.triviaPremios.push(level); const prize=this.d.trivia.dificultades[level].premio;
+            if(prize==="comun")s.wallet.gratis++; else if(prize==="raro")s.wallet.gratisRaro++; else s.wallet.gratisLeg++;
+          }
+          const all=(["facil","medio","dificil"] as Dificultad[]).every(d=>this.d.questionTotals[d]>0&&count(d)>=this.d.questionTotals[d]);
+          if(all&&!s.triviaPremios.includes("todas")) {
+            s.triviaPremios.push("todas"); const p=this.d.trivia.secreto.sobres;
+            if(p.tipo==="comun")s.wallet.gratis+=p.cantidad; else if(p.tipo==="raro")s.wallet.gratisRaro+=p.cantidad; else s.wallet.gratisLeg+=p.cantidad;
+          }
+        }
+        s.triviaAciertosAplicados.push(row.id);
+        if(s.triviaAciertosAplicados.length>1000)s.triviaAciertosAplicados=s.triviaAciertosAplicados.slice(-800);
+        return {result:gained};
+      });
+      await this.d.query("UPDATE actividad_aciertos SET aplicado = 1, xp = COALESCE(xp_mostrada, 0) WHERE id = ?",row.id);
+      applied++;
+    }
+    await this.syncTriviaProfiles();
+    return applied;
+  }
+
+  private async syncTriviaProfiles(): Promise<void> {
+    const rows=await this.d.query<{papu_id:string}>("SELECT papu_id FROM actividad_perfiles WHERE pedido_at >= actualizado_at LIMIT 50");
+    for(const {papu_id} of rows) {
+      const {state}=await this.cargar(papu_id), now=this.now(), day=this.d.roulette.dayOf(now);
+      if(state.triviaDia!==day){state.triviaDia=day;state.triviaXpDia=0;state.triviaPartidasDia=[];}
+      const runs=state.triviaPartidasDia?.length??0, withXp=runs<this.d.trivia.limites.partidasConXp;
+      const from=dayKey(new Date(now-this.d.trivia.xp.dias*86400000),this.d.timeZone);
+      const avg=(this.d.db.prepare("SELECT AVG(xp - trivia) AS avg FROM xp_dia WHERE user_id = ? AND day >= ? AND day < ? AND xp - trivia > 0").get(papu_id,from,day) as {avg:number|null}|undefined)?.avg??0;
+      const multiplier=this.d.levels.multiplier(new Date(now)), eligible=this.d.levels.canEarn(papu_id,now);
+      const base=eligible?answerXp(this.d.trivia,this.d.levels.settings,{xp:state.xp,dailyAvg:avg,streak:1,multiplier}):0;
+      const tope=withXp&&eligible?Math.max(0,dailyCap(this.d.trivia,this.d.levels.settings,state.xp,multiplier)-(state.triviaXpDia??0)):0;
+      await this.d.query("UPDATE actividad_perfiles SET xp_base = ?, tope = ?, pedido_at = 0, actualizado_at = ? WHERE papu_id = ?",base,tope,now+1,papu_id);
+    }
+  }
+
 
   ruletasUsadas(userId: string): number {
     const state = this.cache.get(userId);
