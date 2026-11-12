@@ -433,6 +433,7 @@ export class MundoPuente {
         if (card.data.length > 600_000) throw new Error("La tarjeta supera el tamaño permitido para la Plaza.");
         const encoded = card.data.toString("base64");
         const partes = encoded.match(/.{1,16000}/g) ?? [];
+        await this.d.query("DELETE FROM mundo_tarjetas WHERE papu_id = ?", papu_id);
         await this.d.query("DELETE FROM mundo_tarjeta_partes WHERE papu_id = ?", papu_id);
         for (let i = 0; i < partes.length; i++) {
           await this.d.query(
