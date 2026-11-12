@@ -58,6 +58,8 @@ export type Aviso =
   | ({ t: "vocaloid"; bot: string; papu: string } & Respuesta)
   /** Nivel y cuota del dia del Papu (null = sin limite). */
   | { t: "stats"; nivel: number; prestigio: number; restante: number | null; limite: number | null; ruletas: number }
+  /** Datos publicos de perfil (nunca incluye cuota, monedas ni tiradas). */
+  | { t: "perfil"; id: string; nivel: number; prestigio: number }
   /** Resultado de una accion pedida por este Papu. */
   | { t: "accion"; ref: number; accion: Accion; resultado: Resultado }
   /** La ruleta grande: el giro de ahora y la fila (de la plaza y de Discord). */
