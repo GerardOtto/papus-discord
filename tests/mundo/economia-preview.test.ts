@@ -241,7 +241,7 @@ describe("EconomiaPlazaPreview", () => {
     const source=openDb(":memory:"), preview=openDb(":memory:"); abiertos.push(source,preview);
     preview.exec(`CREATE TABLE mundo_sandbox (papu_id TEXT PRIMARY KEY, estado TEXT NOT NULL, revision INTEGER NOT NULL DEFAULT 0, actualizado_at INTEGER NOT NULL);
       CREATE TABLE actividad_perfiles (papu_id TEXT PRIMARY KEY, xp_base INTEGER NOT NULL DEFAULT 0, tope INTEGER NOT NULL DEFAULT 0, pedido_at INTEGER NOT NULL DEFAULT 0, actualizado_at INTEGER NOT NULL DEFAULT 0);
-      CREATE TABLE actividad_aciertos (id INTEGER PRIMARY KEY AUTOINCREMENT, partida TEXT NOT NULL, papu_id TEXT NOT NULL, pregunta TEXT NOT NULL, dificultad TEXT NOT NULL, racha INTEGER NOT NULL, xp_mostrada INTEGER, canal TEXT, creado_at INTEGER NOT NULL, aplicado INTEGER NOT NULL DEFAULT 0, xp INTEGER);`);
+      CREATE TABLE actividad_aciertos (id INTEGER PRIMARY KEY AUTOINCREMENT, partida TEXT NOT NULL, papu_id TEXT NOT NULL, pregunta TEXT NOT NULL, dificultad TEXT NOT NULL, racha INTEGER NOT NULL, multiplicador INTEGER NOT NULL DEFAULT 1, xp_mostrada INTEGER, canal TEXT, creado_at INTEGER NOT NULL, aplicado INTEGER NOT NULL DEFAULT 0, xp INTEGER, multiplicador INTEGER NOT NULL DEFAULT 1);`);
     const query:D1Query=async <T>(sql:string,...params:unknown[]):Promise<T[]>=>{
       const st=preview.prepare(sql);
       if(/RETURNING/i.test(sql)||/^\s*SELECT/i.test(sql))return st.all(...(params as never[])) as unknown as T[];
@@ -250,7 +250,7 @@ describe("EconomiaPlazaPreview", () => {
     const user="123456789012345678", now=Date.parse("2026-11-12T12:00:00-03:00");
     const levels=new LevelService({db:source,settings:loadLevelSettings(),timeZone:"America/Santiago"});
     const roulette={dayOf:()=>"2026-11-12"} as unknown as RouletteService;
-    preview.prepare("INSERT INTO actividad_aciertos (partida,papu_id,pregunta,dificultad,racha,creado_at) VALUES (?,?,?,?,?,?)").run("partida-1",user,"pregunta-1","facil",1,now);
+    preview.prepare("undefined").run("partida-1",user,"pregunta-1","facil",1,now,2);
     preview.prepare("INSERT INTO actividad_perfiles (papu_id,pedido_at,actualizado_at) VALUES (?,?,0)").run(user,now);
     const economy=new EconomiaPlazaPreview({query,db:source,levels,coins:null,mercado:null,roulette,quota:{} as Quota,now:()=>now,
       trivia:loadTriviaSettings(),questionLevels:{"pregunta-1":"facil"},questionTotals:{facil:1,medio:0,dificil:0},timeZone:"America/Santiago"});
