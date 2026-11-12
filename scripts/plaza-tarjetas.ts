@@ -33,7 +33,7 @@ const ACENTO_TETO = "#d43c4c";
 
 const log = (msg: string) => console.log(`${new Date().toISOString()} ${msg}`);
 
-function main(): void {
+async function main(): Promise<void> {
   if (process.env.PAPUS_ENV_FILE) loadDotEnv(process.env.PAPUS_ENV_FILE);
   // Solo hacen falta el token de Teto y el servidor; loadConfig exige los de los 4 Vocaloids principales.
   for (const id of CORE_BOT_IDS) process.env[`DISCORD_TOKEN_${id.toUpperCase()}`] ||= "sin-usar";
@@ -165,9 +165,7 @@ function main(): void {
   process.on("SIGINT", () => salir("SIGINT"));
 }
 
-try {
-  main();
-} catch (e) {
+void main().catch((e) => {
   log(`✘ ${(e as Error)?.message ?? e}`);
   process.exit(1);
-}
+});
