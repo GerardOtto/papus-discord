@@ -302,6 +302,7 @@ describe("XP de la trivia multijugador", () => {
     }
     expect(xpDeAcierto({ base: 50, tope: 7, at: 0 }, 3, S.racha)).toBe(7);
     expect(xpDeAcierto({ base: 50, tope: -3, at: 0 }, 3, S.racha)).toBe(0);
+    expect(xpDeAcierto({ base: 50, tope: 100, at: 0 }, 1, S.racha, 2)).toBe(100);
   });
 
   it("avatar del Papu: el del servidor, el suyo o el de Discord por defecto", () => {
