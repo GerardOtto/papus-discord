@@ -181,13 +181,11 @@ export function htmlRuleta(v: VistaRuleta): string {
   const controles = soloLectura && !simulacion ? "" : `${estadoGiro}${ocupada}
     ${e.atunPendiente ? `<span class="v-chip">🐟 Premio reservado: ${esc(e.atunPendiente.premio ?? "Premio pendiente")} · ${e.atunPendiente.aplicado === false ? "sin acreditar" : "ya acreditado"}</span><button class="v-boton" data-accion="aceptar-atun">✓ Aceptar premio</button>` : ""}${e.atunPendiente?.girosRestantes ? `<button class="v-boton" data-accion="descartar-atun">🐟 Descartar premio y volver a girar (${e.atunPendiente.girosRestantes})</button>` : ""}
     ${!e.atunPendiente ? `<button class="v-boton" data-accion="girar" ${puede ? "" : "disabled"}>🎰 ${simulacion ? "Probar giro" : puede ? `Girar (${e.tiradas})` : "Sin tiradas"}</button>` : ""}`;
-  const pie = sandbox
-    ? "Las tiradas consumen las misiones disponibles y aplican XP, sobres o cuota al progreso aislado de la Plaza. Los cambios persisten en el preview, pero nunca modifican tu cuenta de Discord."
-    : simulacion
-      ? "Puedes probar la animación con premios de demostración. No se consume una tirada, no se entrega el premio y no cambia tu progreso."
+  const pie = simulacion
+    ? "Puedes probar la animación con premios de demostración. No se consume una tirada, no se entrega el premio y no cambia tu progreso."
     : soloLectura
       ? "El avance se consulta desde la base original. Esta vista previa es de solo lectura: no consume tiradas ni modifica XP o recompensas."
-    : `Una tirada por misión, hasta ${e.misiones.length} al día; se reinician a medianoche (hora de Chile). Premios: XP, mensajes extra con los Vocaloids por hoy (con tu cuota llena, se vuelven XP) y sobres. Si alguien más está girando, tu giro espera su turno.`;
+      : `Una tirada por misión, hasta ${e.misiones.length} al día; se reinician a medianoche (hora de Chile). Premios: XP, mensajes extra con los Vocaloids por hoy (con tu cuota llena, se vuelven XP) y sobres. Si alguien más está girando, tu giro espera su turno.`;
   return `
     <div class="v-cabeza">${cabeza}</div>
     <h3 class="v-seccion">Misiones de hoy</h3>
