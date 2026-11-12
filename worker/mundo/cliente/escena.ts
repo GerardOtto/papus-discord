@@ -156,6 +156,32 @@ function stand(nombre: string, color: string, oscuro: boolean): THREE.Group {
   const madera = oscuro ? "#3a2a2a" : "#b98552";
   g.add(caja(3, 1.1, 1.4, madera), caja(3.04, 0.35, 1.44, color, 0, 0.9));
   for (const x of [-1.4, 1.4]) for (const z of [-0.6, 0.6]) g.add(caja(0.12, 2.6, 0.12, madera, x, 1.3, z));
+  const maderaVitrina = oscuro ? "#211927" : "#f4e1bd";
+  const metalVitrina = oscuro ? "#8d68a8" : "#e4c47e";
+  g.add(caja(2.9, 1.82, 0.16, maderaVitrina, 0, 1.82, -0.55));
+  g.add(caja(2.72, 0.1, 0.58, madera, 0, 1.34, -0.18));
+  g.add(caja(2.72, 0.1, 0.58, madera, 0, 2.03, -0.18));
+  for (const x of [-1.38, 1.38]) g.add(caja(0.12, 1.72, 0.62, metalVitrina, x, 1.78, -0.18));
+  const cajaExpuesta = (x: number, y: number, c: string) => {
+    const p = caja(0.42, 0.38, 0.34, c, x, y, -0.02);
+    p.rotation.y = x * 0.12;
+    g.add(p, caja(0.46, 0.07, 0.37, metalVitrina, x, y + 0.22, -0.02));
+  };
+  const frascoExpuesto = (x: number, y: number, c: string) => {
+    const p = cilindro(0.17, 0.2, 0.42, c, 7);
+    p.position.set(x, y, -0.02);
+    const tapa = cilindro(0.09, 0.09, 0.12, metalVitrina, 6);
+    tapa.position.set(x, y + 0.26, -0.02);
+    g.add(p, tapa);
+  };
+  cajaExpuesta(-0.88, 1.62, oscuro ? "#593b66" : "#f2c94c");
+  frascoExpuesto(0, 1.65, oscuro ? "#39c5bb" : "#ff8fb8");
+  cajaExpuesta(0.88, 1.62, oscuro ? "#2d5360" : "#3b6fd9");
+  cajaExpuesta(-0.88, 2.3, oscuro ? "#3d2b48" : "#e285b2");
+  frascoExpuesto(0.88, 2.31, oscuro ? "#e285b2" : "#39c5bb");
+  const piezaCentral = new THREE.Mesh(new THREE.IcosahedronGeometry(0.22, 0), material(oscuro ? "#b48cff" : "#f2c94c"));
+  piezaCentral.position.set(0, 2.36, -0.02);
+  g.add(piezaCentral);
   const toldo = new THREE.Group();
   for (let i = 0; i < 6; i++) {
     const raya = caja(0.52, 0.06, 1.9, i % 2 ? (oscuro ? "#111" : "#fff") : color, -1.3 + i * 0.52, 0);
@@ -266,6 +292,32 @@ function estanque(rnd: () => number): THREE.Group {
     n.position.set((rnd() < 0.5 ? -1 : 1) * (1.4 + rnd() * 2.6), 0.08, 1 + rnd() * 3);
     g.add(n);
   }
+  // Piedras de borde, ondas suaves y peces decorativos visibles bajo la superficie.
+  for (let i = 0; i < 16; i++) {
+    const a = (i / 16) * Math.PI * 2;
+    const roca = new THREE.Mesh(new THREE.DodecahedronGeometry(0.28 + rnd() * 0.12, 0), material(i % 2 ? "#a49d8d" : "#c3b69e"));
+    roca.position.set(Math.cos(a) * 6.15, 0.18, Math.sin(a) * 4.8 + 2);
+    roca.rotation.set(rnd() * 0.5, rnd() * 3, 0);
+    g.add(roca);
+  }
+  for (const [x, z] of [[-1.7, 0.7], [1.8, 2.4], [0.6, 4.2]] as const) {
+    const onda = new THREE.Mesh(new THREE.TorusGeometry(0.55, 0.025, 4, 16), new THREE.MeshBasicMaterial({ color: "#c9f5ff", transparent: true, opacity: 0.55 }));
+    onda.rotation.x = Math.PI / 2;
+    onda.position.set(x, 0.095, z);
+    g.add(onda);
+  }
+  for (let i = 0; i < 3; i++) {
+    const pez = new THREE.Group();
+    const cuerpo = new THREE.Mesh(new THREE.SphereGeometry(0.22, 7, 5), material(i === 1 ? "#f2c94c" : "#ff9f80"));
+    cuerpo.scale.set(1.35, 0.72, 0.72);
+    const cola = new THREE.Mesh(new THREE.ConeGeometry(0.16, 0.3, 4), material("#fff0b8"));
+    cola.rotation.z = Math.PI / 2;
+    cola.position.x = -0.34;
+    pez.add(cuerpo, cola);
+    pez.position.set(-1.8 + i * 1.65, 0.16, 1.7 + (i % 2) * 1.25);
+    pez.rotation.y = i % 2 ? Math.PI : 0;
+    g.add(pez);
+  }
   // Juncos en la orilla.
   for (let i = 0; i < 9; i++) {
     const a = rnd() * Math.PI * 2;
@@ -275,8 +327,8 @@ function estanque(rnd: () => number): THREE.Group {
     punta.position.set(j.position.x, 1.2, j.position.z);
     g.add(j, punta);
   }
-  const c = cartel("Estanque", "#39c5bb", "#fff", 3);
-  c.position.set(0, 3, 2);
+  const c = cartel("Estanque", "#247c9e", "#fff", 3.2);
+  c.position.set(0, 3.35, 2);
   g.add(c);
   return g;
 }
