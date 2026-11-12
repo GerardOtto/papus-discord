@@ -1,6 +1,8 @@
 name: Deploy isolated Plaza preview
 
 on:
+  push:
+    branches: [feature/plaza-beta]
   pull_request:
     branches: [main]
     paths:
