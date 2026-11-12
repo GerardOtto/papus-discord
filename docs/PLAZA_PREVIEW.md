@@ -73,7 +73,7 @@ PLAZA_PREVIEW_D1_DATABASE_ID=<ID de la base papus-plaza-preview>
 
 El puente reutiliza `CLOUDFLARE_DEPLOY_TOKEN` y `CLOUDFLARE_ACCOUNT_ID`, pero solo escribe en el ID explícito anterior. Si la variable no existe, no se conecta al preview. No cambies `worker/wrangler.toml` ni ejecutes el despliegue de producción.
 
-Las tarjetas se generan al solicitarlas, se cachean durante 60 segundos y se envían solo a quien las pidió. La imagen pública excluye la cuota diaria. El botón ⭐ o la tecla P muestra la tarjeta propia sobre el personaje durante cinco segundos; al pulsar el nombre de otro Papu se abre su tarjeta completa.
+Las tarjetas se generan bajo demanda y se cachean durante 60 segundos en D1. La tarjeta propia solicitada con ⭐ o P se distribuye a todos los Papus conectados a esa misma sala y aparece sobre su personaje durante cinco segundos; al pulsar el nombre de otro Papu se abre su tarjeta completa. Cada navegador mantiene una caché en memoria de hasta 12 tarjetas: 60 segundos de frescura y hasta 5 minutos de uso stale mientras se actualiza. La imagen pública excluye la cuota diaria. El Worker sirve directamente desde D1 las tarjetas frescas para evitar esperar el polling del puente.
 
 ## Puente aislado de tarjetas (sin tocar el bot de producción)
 

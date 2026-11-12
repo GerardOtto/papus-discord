@@ -36,7 +36,7 @@ export type Pedido =
   /** Le pide al bot algo de un comando (ruleta…); `ref` vuelve con el resultado. */
   | { t: "accion"; accion: Accion; datos?: unknown; ref: number }
   /** Solicita la tarjeta pública de un Papu conectado. */
-  | { t: "tarjeta"; papu: string; ref: number }
+  | { t: "tarjeta"; papu: string; ref: number; compartir?: boolean }
   /** Salto a una zona (/ruleta lleva a la ruleta grande). */
   | { t: "ir"; lugar: string };
 
@@ -64,6 +64,8 @@ export type Aviso =
   | { t: "perfil"; id: string; nivel: number; prestigio: number }
   /** Tarjeta pública generada por el bot; nunca incluye cuota ni tiradas. */
   | { t: "tarjeta"; ref: number; papu: string; estado: "lista" | "error"; mime?: string; datos?: string; motivo?: string }
+  /** Tarjeta propia anunciada a todos los miembros conectados de esta misma sala. */
+  | { t: "tarjeta-compartida"; ref: number; papu: string; mime: string; datos: string }
   /** Resultado de una accion pedida por este Papu. */
   | { t: "accion"; ref: number; accion: Accion; resultado: Resultado }
   /** La ruleta grande: el giro de ahora y la fila (de la plaza y de Discord). */

@@ -966,10 +966,10 @@ kbd {
   display: block;
   position: absolute;
   left: 50%;
-  bottom: calc(100% + 8px);
-  width: min(240px, 64vw);
+  bottom: calc(100% + 10px);
+  width: min(480px, 82vw);
   height: auto;
-  max-height: 100px;
+  max-height: min(200px, 28vh);
   object-fit: contain;
   opacity: 0;
   transform: translate(-50%, 8px) scale(.94);

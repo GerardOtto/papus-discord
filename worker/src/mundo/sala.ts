@@ -128,11 +128,30 @@ export class SalaMundo implements DurableObject {
     if (m.t === "tarjeta") {
       if (this.env.MUNDO_PREVIEW !== "1") return this.enviar(ws, { t: "tarjeta", ref: m.ref, papu: m.papu, estado: "error", motivo: "Las tarjetas estarán disponibles en el preview." });
       if (!Number.isSafeInteger(m.ref) || m.ref < 1 || !/^[0-9]{5,25}$/.test(m.papu)) return;
+      const compartir = m.compartir === true;
+      if (compartir && m.papu !== papu.id) return this.enviar(ws, { t: "tarjeta", ref: m.ref, papu: m.papu, estado: "error", motivo: "Solo puedes compartir tu propia tarjeta." });
       const objetivo = this.conectados().find((c) => c.ficha.papu?.id === m.papu);
       if (!objetivo) return this.enviar(ws, { t: "tarjeta", ref: m.ref, papu: m.papu, estado: "error", motivo: "Ese Papu ya no está conectado a la Plaza." });
       const sala = await this.sala();
+      // Una tarjeta fresca se sirve desde D1 en esta misma interacción, sin esperar el polling del puente Node.
+      const meta = await this.env.DB.prepare("SELECT mime, actualizado_at FROM mundo_tarjetas WHERE papu_id = ?")
+        .bind(m.papu).first<{ mime: string; actualizado_at: number }>();
+      if (meta && now - meta.actualizado_at < 60_000) {
+        const partes = await this.env.DB.prepare("SELECT datos FROM mundo_tarjeta_partes WHERE papu_id = ? ORDER BY parte")
+          .bind(m.papu).all<{ datos: string }>();
+        const datos = partes.results.map((p) => p.datos).join("");
+        if (datos && datos.length <= 900_000) {
+          const aviso: Aviso = compartir
+            ? { t: "tarjeta-compartida", ref: m.ref, papu: m.papu, mime: meta.mime, datos }
+            : { t: "tarjeta", ref: m.ref, papu: m.papu, estado: "lista", mime: meta.mime, datos };
+          if (compartir) this.todos(aviso);
+          else this.enviar(ws, aviso);
+          return;
+        }
+      }
       await this.env.DB.prepare("INSERT INTO mundo_tarjeta_pedidos (sala, solicitante_id, papu_id, ref, creado_at) VALUES (?, ?, ?, ?, ?)")
-        .bind(sala, papu.id, m.papu, m.ref, now).run();
+        // ref negativo identifica el broadcast sin cambiar el esquema D1 ni confundir una visita al propio perfil.
+        .bind(sala, papu.id, m.papu, compartir ? -m.ref : m.ref, now).run();
       this.enviar(ws, { t: "aviso", texto: "Preparando la tarjeta de nivel… 🪄" });
       return this.programar();
     }
@@ -335,21 +354,25 @@ export class SalaMundo implements DurableObject {
       "SELECT id, solicitante_id, papu_id, ref, estado, creado_at FROM mundo_tarjeta_pedidos WHERE sala = ? AND entregado = 0 AND estado > 0 ORDER BY id LIMIT 10",
     ).bind(sala).all<{ id: number; solicitante_id: string; papu_id: string; ref: number; estado: number; creado_at: number }>();
     for (const pedido of results) {
+      const compartida = pedido.ref < 0;
+      const ref = Math.abs(pedido.ref);
       const cliente = this.conectados().find((c) => c.ficha.papu?.id === pedido.solicitante_id);
-      if (!cliente) {
+      if (!cliente && !compartida) {
         if (Date.now() - pedido.creado_at > 60_000) await this.env.DB.prepare("UPDATE mundo_tarjeta_pedidos SET entregado = 1 WHERE id = ?").bind(pedido.id).run();
         continue;
       }
       if (pedido.estado === 2) {
-        this.enviar(cliente.ws, { t: "tarjeta", ref: pedido.ref, papu: pedido.papu_id, estado: "error", motivo: "No pude generar la tarjeta. Inténtalo de nuevo en un momento." });
+        if (cliente) this.enviar(cliente.ws, { t: "tarjeta", ref, papu: pedido.papu_id, estado: "error", motivo: "No pude generar la tarjeta. Inténtalo de nuevo en un momento." });
       } else {
         const meta = await this.env.DB.prepare("SELECT mime FROM mundo_tarjetas WHERE papu_id = ?").bind(pedido.papu_id).first<{ mime: string }>();
         const partes = await this.env.DB.prepare("SELECT datos FROM mundo_tarjeta_partes WHERE papu_id = ? ORDER BY parte").bind(pedido.papu_id).all<{ datos: string }>();
         const datos = partes.results.map((p) => p.datos).join("");
         if (!meta || !datos || datos.length > 900_000) {
-          this.enviar(cliente.ws, { t: "tarjeta", ref: pedido.ref, papu: pedido.papu_id, estado: "error", motivo: "La tarjeta todavía no está disponible. Inténtalo de nuevo." });
-        } else {
-          this.enviar(cliente.ws, { t: "tarjeta", ref: pedido.ref, papu: pedido.papu_id, estado: "lista", mime: meta.mime, datos });
+          if (cliente) this.enviar(cliente.ws, { t: "tarjeta", ref, papu: pedido.papu_id, estado: "error", motivo: "La tarjeta todavía no está disponible. Inténtalo de nuevo." });
+        } else if (compartida) {
+          this.todos({ t: "tarjeta-compartida", ref, papu: pedido.papu_id, mime: meta.mime, datos });
+        } else if (cliente) {
+          this.enviar(cliente.ws, { t: "tarjeta", ref, papu: pedido.papu_id, estado: "lista", mime: meta.mime, datos });
         }
       }
       await this.env.DB.prepare("UPDATE mundo_tarjeta_pedidos SET entregado = 1 WHERE id = ?").bind(pedido.id).run();

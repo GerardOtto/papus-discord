@@ -167,17 +167,59 @@ function abrirPerfil(o: Otro): void {
   solicitarTarjeta(o, "ventana");
 }
 
-function solicitarTarjeta(o: Otro, modo: "ventana" | "cabeza"): void {
+const TARJETA_FRESCA_MS = 60_000;
+const TARJETA_MAX_STALE_MS = 5 * 60_000;
+const TARJETA_CACHE_MAX = 12;
+interface TarjetaCache { src: string; at: number }
+const cacheTarjetas = new Map<string, TarjetaCache>();
+
+function guardarTarjetaCache(id: string, mime: string, datos: string): TarjetaCache {
+  const entry = { src: `data:${mime};base64,${datos}`, at: Date.now() };
+  cacheTarjetas.delete(id);
+  cacheTarjetas.set(id, entry);
+  while (cacheTarjetas.size > TARJETA_CACHE_MAX) cacheTarjetas.delete(cacheTarjetas.keys().next().value!);
+  return entry;
+}
+
+function mostrarTarjetaCabeza(o: Otro, src: string): void {
+  o.tarjeta.src = src;
+  o.tarjeta.hidden = false;
+  o.tarjeta.classList.remove("mostrar");
+  void o.tarjeta.offsetWidth;
+  o.tarjeta.classList.add("mostrar");
+  o.tarjetaHasta = performance.now() + 5000;
+}
+
+function mostrarTarjetaVentana(o: Otro, id: string, src: string): void {
+  const html = `<img class="tarjeta-completa" src="${src}" alt="Tarjeta de nivel de ${esc(o.nombre)}"><p class="v-pie">Tarjeta pública generada con el mismo diseño de /nivel. La cuota y las tiradas privadas no se incluyen.</p>`;
+  if (ventana.id === `perfil:${id}`) ventana.poner(`perfil:${id}`, html);
+  else ventana.abrir(`perfil:${id}`, `⭐ ${esc(o.nombre)}`, html);
+}
+
+/** Caché de sesión: muestra al instante y revalida en segundo plano; P también publica la tarjeta en la sala. */
+function solicitarTarjeta(o: Otro, modo: "ventana" | "cabeza", compartir = false): void {
   const id = o === mio ? yo : [...otros].find(([, v]) => v === o)?.[0];
   if (!id) return;
+  const cache = cacheTarjetas.get(id);
+  const edad = cache ? Date.now() - cache.at : Infinity;
+  const util = cache && edad <= TARJETA_MAX_STALE_MS ? cache : null;
+  if (util) {
+    cacheTarjetas.delete(id);
+    cacheTarjetas.set(id, util);
+    if (modo === "cabeza") mostrarTarjetaCabeza(o, util.src);
+    else mostrarTarjetaVentana(o, id, util.src);
+    if (edad <= TARJETA_FRESCA_MS && !compartir) return;
+  } else if (modo === "ventana") {
+    ventana.abrir(`perfil:${id}`, `⭐ ${esc(o.nombre)}`, `<p class="tarjeta-cargando">Preparando la tarjeta original de /nivel…</p><p class="v-nota">La imagen no incluye tu cuota ni tus tiradas privadas.</p>`);
+  }
+  if ([...tarjetasEsperando.values()].some((p) => p.o === o && p.modo === modo)) return;
   const ref = ++refs;
   tarjetasEsperando.set(ref, { o, modo });
-  if (modo === "ventana") ventana.abrir(`perfil:${id}`, `⭐ ${esc(o.nombre)}`, `<p class="tarjeta-cargando">Preparando la tarjeta original de /nivel…</p><p class="v-nota">La imagen no incluye tu cuota ni tus tiradas privadas.</p>`);
-  enviar({ t: "tarjeta", papu: id, ref });
+  enviar({ t: "tarjeta", papu: id, ref, compartir });
   window.setTimeout(() => {
     if (!tarjetasEsperando.delete(ref)) return;
-    if (modo === "ventana" && ventana.id === `perfil:${id}`) ventana.poner(`perfil:${id}`, `<p class="tarjeta-cargando">El bot aún no ha respondido. Comprueba que el puente del preview esté configurado.</p>`);
-    else aviso("La tarjeta no llegó a tiempo. Inténtalo otra vez.");
+    if (modo === "ventana" && ventana.id === `perfil:${id}` && !util) ventana.poner(`perfil:${id}`, `<p class="tarjeta-cargando">El puente del preview aún no ha respondido. Inténtalo de nuevo en un momento.</p>`);
+    else if (!util) aviso("La tarjeta no llegó a tiempo. Inténtalo otra vez.");
   }, 25_000);
 }
 
@@ -322,21 +364,20 @@ function recibirTarjeta(m: Extract<Aviso, { t: "tarjeta" }>): void {
   if (!pendiente) return;
   tarjetasEsperando.delete(m.ref);
   if (m.estado !== "lista" || !m.datos) {
-    if (pendiente.modo === "ventana") ventana.poner(`perfil:${m.papu}`, `<p class="tarjeta-cargando">${esc(m.motivo ?? "No pude cargar la tarjeta.")}</p>`);
-    else aviso(m.motivo ?? "No pude cargar tu tarjeta.");
+    if (pendiente.modo === "ventana" && ventana.id === `perfil:${m.papu}`) ventana.poner(`perfil:${m.papu}`, `<p class="tarjeta-cargando">${esc(m.motivo ?? "No pude cargar la tarjeta.")}</p>`);
+    else if (!cacheTarjetas.has(m.papu)) aviso(m.motivo ?? "No pude cargar tu tarjeta.");
     return;
   }
-  const src = `data:${m.mime ?? "image/png"};base64,${m.datos}`;
-  if (pendiente.modo === "cabeza") {
-    pendiente.o.tarjeta.src = src;
-    pendiente.o.tarjeta.hidden = false;
-    pendiente.o.tarjeta.classList.remove("mostrar");
-    void pendiente.o.tarjeta.offsetWidth;
-    pendiente.o.tarjeta.classList.add("mostrar");
-    pendiente.o.tarjetaHasta = performance.now() + 5000;
-  } else {
-    ventana.poner(`perfil:${m.papu}`, `<img class="tarjeta-completa" src="${src}" alt="Tarjeta de nivel de ${esc(pendiente.o.nombre)}"><p class="v-pie">Tarjeta pública generada con el mismo diseño de /nivel. La cuota y las tiradas privadas no se incluyen.</p>`);
-  }
+  const cache = guardarTarjetaCache(m.papu, m.mime ?? "image/png", m.datos);
+  if (pendiente.modo === "cabeza") mostrarTarjetaCabeza(pendiente.o, cache.src);
+  else if (ventana.id === `perfil:${m.papu}`) mostrarTarjetaVentana(pendiente.o, m.papu, cache.src);
+}
+
+function recibirTarjetaCompartida(m: Extract<Aviso, { t: "tarjeta-compartida" }>): void {
+  const cache = guardarTarjetaCache(m.papu, m.mime, m.datos);
+  if (m.papu === yo) tarjetasEsperando.delete(m.ref);
+  const o = m.papu === yo ? mio : otros.get(m.papu);
+  if (o) mostrarTarjetaCabeza(o, cache.src);
 }
 
 function recibir(m: Aviso): void {
@@ -371,6 +412,7 @@ function recibir(m: Aviso): void {
   if (m.t === "stats") return stats(m);
   if (m.t === "perfil") return perfil(m);
   if (m.t === "tarjeta") return recibirTarjeta(m);
+  if (m.t === "tarjeta-compartida") return recibirTarjetaCompartida(m);
   if (m.t === "accion") {
     esperando.get(m.ref)?.(m.resultado);
     esperando.delete(m.ref);
@@ -488,7 +530,7 @@ addEventListener("keydown", (e) => {
   }
   const k = e.key.toLowerCase();
   if (k === "m" && !e.repeat) alternarMontura();
-  if (k === "p" && !e.repeat && mio) solicitarTarjeta(mio, "cabeza");
+  if (k === "p" && !e.repeat && mio) solicitarTarjeta(mio, "cabeza", true);
   if (k === "v" && !e.repeat) alternarCamara();
   if (k === "f" && !e.repeat && cercaDe) USAR[cercaDe]?.abrir();
   teclas.add(k);
@@ -602,7 +644,7 @@ function alternarMontura(): void {
   $("btn-montura").classList.toggle("activo", !!pose.m);
 }
 $("btn-montura").addEventListener("click", alternarMontura);
-$("btn-tarjeta").addEventListener("click", () => { if (mio) solicitarTarjeta(mio, "cabeza"); });
+$("btn-tarjeta").addEventListener("click", () => { if (mio) solicitarTarjeta(mio, "cabeza", true); });
 
 // Joystick tactil: se arrastra desde cualquier punto del lienzo; lejos del centro = correr.
 const joy = { activo: false, id: -1, ox: 0, oy: 0, dx: 0, dy: 0 };
