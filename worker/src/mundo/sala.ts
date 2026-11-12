@@ -36,6 +36,7 @@ interface Ficha {
   /** Ultima accion pedida (ms). */
   accionAt?: number;
   sentado?: boolean;
+  asiento?: number;
   /** Ultimo perfil (nivel y cuota) que se le mostro. */
   statsAt?: number;
   /** Ultima version de los perfiles publicos enviados a este socket. */
@@ -91,7 +92,7 @@ export class SalaMundo implements DurableObject {
     const now = Date.now();
 
     if (m.t === "mov") {
-      if (now - ficha.movAt < MOV_MIN_MS) return;
+      if (ficha.sentado || now - ficha.movAt < MOV_MIN_MS) return;
       const pose = leerPose(m as unknown as Record<string, unknown>);
       if (!pose) return;
       if (!moverValido(papu, pose, now - ficha.movAt)) {
@@ -184,7 +185,11 @@ export class SalaMundo implements DurableObject {
       if (!pose || now - ficha.movAt < MOV_MIN_MS) return;
       Object.assign(papu, pose);
       ficha.movAt = now;
+      const estabaSentado = ficha.sentado === true;
+      ficha.sentado = false;
+      delete ficha.asiento;
       ws.serializeAttachment(ficha);
+      if (estabaSentado) this.todos({ t: "fogata", id: papu.id, sentado: false }, ws);
       this.enviar(ws, { t: "corrige", ...pose });
       return this.todos({ t: "mov", id: papu.id, ...pose, s: 1 }, ws);
     }
@@ -194,8 +199,27 @@ export class SalaMundo implements DurableObject {
       if (!fogata || Math.hypot(papu.x - fogata.x, papu.z - fogata.z) > 9) {
         return this.enviar(ws, { t: "aviso", texto: "Acércate a la fogata para sentarte junto a los demás. 🔥" });
       }
-      ficha.sentado = m.sentado === true;
-      ws.serializeAttachment(ficha);
+      if (m.sentado) {
+        const ocupados = new Set(this.conectados().flatMap((c) => c.ficha.asiento === undefined ? [] : [c.ficha.asiento]));
+        const asiento = Array.from({ length: 6 }, (_, i) => i).find((i) => !ocupados.has(i));
+        if (asiento === undefined) return this.enviar(ws, { t: "aviso", texto: "Todos los troncos están ocupados. Espera a que alguien se levante. 🔥" });
+        ficha.sentado = true;
+        ficha.asiento = asiento;
+        const angulo = (asiento / 6) * Math.PI * 2 + 0.3;
+        papu.x = fogata.x + Math.cos(angulo) * 3;
+        papu.z = fogata.z + Math.sin(angulo) * 3;
+        papu.r = angulo + Math.PI;
+        papu.a = 0;
+        papu.m = 0;
+        ficha.movAt = now;
+        ws.serializeAttachment(ficha);
+        this.enviar(ws, { t: "corrige", x: papu.x, z: papu.z, r: papu.r, a: 0, m: 0 });
+        this.todos({ t: "mov", id: papu.id, x: papu.x, z: papu.z, r: papu.r, a: 0, m: 0 }, ws);
+      } else {
+        ficha.sentado = false;
+        delete ficha.asiento;
+        ws.serializeAttachment(ficha);
+      }
       this.todos({ t: "fogata", id: papu.id, sentado: ficha.sentado });
       return;
     }
