@@ -6,6 +6,7 @@ import { Sala } from "./juego";
 import { identificar } from "./identidad";
 import { xpDeAcierto, type Perfil } from "./perfil";
 import type { Pedido, Pool } from "./tipos";
+import { COOKIE_TOKEN, leerCookie } from "../mundo/web";
 
 export interface SalaEnv {
   DB: D1Database;
@@ -21,6 +22,8 @@ const POOL = poolJson as unknown as Pool;
 export class SalaTrivia implements DurableObject {
   private readonly sala: Sala;
   private readonly sockets = new Map<WebSocket, string | null>();
+  /** Sesion OAuth HttpOnly al abrir la trivia desde la Plaza web. */
+  private readonly tokens = new Map<WebSocket, string>();
   private readonly perfiles = new Map<string, Perfil>();
   private timer: ReturnType<typeof setTimeout> | null = null;
   private canal: string | null = null;
@@ -52,10 +55,13 @@ export class SalaTrivia implements DurableObject {
     const [client, server] = Object.values(new WebSocketPair()) as [WebSocket, WebSocket];
     server.accept();
     this.sockets.set(server, null);
+    const token = leerCookie(request.headers.get("Cookie"), COOKIE_TOKEN);
+    if (token) this.tokens.set(server, token);
     server.addEventListener("message", (e) => void this.mensaje(server, String(e.data)).catch((err) => this.enviar(server, { error: String(err?.message ?? err) })));
     const cerrar = () => {
       const id = this.sockets.get(server);
       this.sockets.delete(server);
+      this.tokens.delete(server);
       // Si el mismo Papu sigue conectado desde otra pestaña, no sale.
       if (id && ![...this.sockets.values()].includes(id)) this.sala.salir(id);
       this.despues();
@@ -79,7 +85,7 @@ export class SalaTrivia implements DurableObject {
     const id = this.sockets.get(ws);
     if (!id) {
       if (m.t !== "hola") return;
-      const p = await identificar(m, this.env, "Esta trivia es del servidor de los Papus: entra al servidor para jugar. 🧠");
+      const p = await identificar({ ...m, token: m.token ?? this.tokens.get(ws) }, this.env, "Esta trivia es del servidor de los Papus: entra al servidor para jugar. 🧠");
       if (!p) return this.enviar(ws, { error: "No pude comprobar quién eres. Cierra y vuelve a abrir la Actividad." });
       if ("motivo" in p) return this.enviar(ws, { error: p.motivo });
       const res = this.sala.unir(p);
