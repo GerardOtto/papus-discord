@@ -648,6 +648,8 @@ export class EconomiaPlazaPreview {
     const actual = await this.cargar(userId);
     if (actual.state.atunPendiente) return error("Acepta o descarta primero el premio pendiente del Atún de Luka antes de usar otros consumibles.");
     if (id === "pc-adachi-rei") {
+      // Cierra los días anteriores antes de resetear ruletaDia; así el Disquete no pierde tiradas ya gastadas.
+      await this.actualizarDisquete(userId);
       const now=this.now(), day=dayKey(new Date(now),this.d.timeZone);
       const spins=this.d.roulette.status(userId,now).used;
       const quotaUsed=Math.max(0,this.d.quota.used(userId,new Date(now))-this.d.quota.donated(userId,new Date(now)));
@@ -1000,7 +1002,7 @@ export class EconomiaPlazaPreview {
 
   acciones(): Partial<Record<Accion, Atender>> {
     return {
-      "ruleta.estado": async (papu) => this.refrescarPerfil(papu.id, await this.estadoRuleta(papu.id)),
+      "ruleta.estado": (papu) => this.estadoRuleta(papu.id),
       "ruleta.girar": async (papu) => this.refrescarPerfil(papu.id, await this.girarRuleta(papu.id, papu.nombre)),
       "ruleta.descartar": async (papu) => this.refrescarPerfil(papu.id, await this.descartarAtun(papu.id, papu.nombre)),
       "ruleta.aceptar": async (papu) => this.refrescarPerfil(papu.id, await this.aceptarAtun(papu.id)),
