@@ -125,6 +125,17 @@ export class SalaMundo implements DurableObject {
       return;
     }
 
+    if (m.t === "tarjeta") {
+      if (!Number.isSafeInteger(m.ref) || m.ref < 1 || !/^\\d{5,25}$/.test(m.papu)) return;
+      const objetivo = this.conectados().find((c) => c.ficha.papu?.id === m.papu);
+      if (!objetivo) return this.enviar(ws, { t: "tarjeta", ref: m.ref, papu: m.papu, estado: "error", motivo: "Ese Papu ya no está conectado a la Plaza." });
+      const sala = await this.sala();
+      await this.env.DB.prepare("INSERT INTO mundo_tarjeta_pedidos (sala, solicitante_id, papu_id, ref, creado_at) VALUES (?, ?, ?, ?, ?)")
+        .bind(sala, papu.id, m.papu, m.ref, now).run();
+      this.enviar(ws, { t: "aviso", texto: "Preparando la tarjeta de nivel… 🪄" });
+      return this.programar();
+    }
+
     if (m.t === "accion") {
       if (this.env.MUNDO_PREVIEW === "1") return this.enviar(ws, { t: "accion", ref: Number.isInteger(m.ref) ? m.ref : 0, accion: m.accion, resultado: { ok: false, motivo: "Esta interacción todavía no está habilitada en el preview." } });
       if (now - (ficha.accionAt ?? 0) < ACCION_MIN_MS || !esAccion(m.accion) || !Number.isInteger(m.ref)) return;
@@ -252,16 +263,18 @@ export class SalaMundo implements DurableObject {
         (SELECT COUNT(*) FROM mundo_menciones WHERE sala = ?1 AND tomado < 2 AND creado_at > ?2) AS menciones,
         (SELECT COUNT(*) FROM mundo_acciones WHERE sala = ?1 AND tomado = 2 AND entregado = 0) AS listas,
         (SELECT COUNT(*) FROM mundo_acciones WHERE sala = ?1 AND tomado < 2 AND creado_at > ?3) AS acciones,
-        (SELECT COUNT(*) FROM mundo_eventos WHERE id > ?4) AS eventos`,
+        (SELECT COUNT(*) FROM mundo_eventos WHERE id > ?4) AS eventos,
+        (SELECT COUNT(*) FROM mundo_tarjeta_pedidos WHERE sala = ?1 AND (estado = 0 OR (estado > 0 AND entregado = 0))) AS tarjetas`,
     )
       .bind(sala, ahora - ESPERA_MS, ahora - ACCION_VENCE_MS, eventoId)
-      .first<{ respuestas: number; menciones: number; listas: number; acciones: number; eventos: number }>();
+      .first<{ respuestas: number; menciones: number; listas: number; acciones: number; eventos: number; tarjetas: number }>();
     if (hay?.respuestas) await this.entregarRespuestas(sala);
     if (hay?.listas) await this.entregarAcciones(sala);
     if (hay?.eventos) await this.leerEventos(eventoId);
+    if (hay?.tarjetas) await this.entregarTarjetas(sala);
     await this.moverRuleta();
     const perfiles = await this.entregarPerfiles();
-    const pendiente = (hay?.menciones ?? 0) + (hay?.acciones ?? 0) + perfiles > 0;
+    const pendiente = (hay?.menciones ?? 0) + (hay?.acciones ?? 0) + (hay?.tarjetas ?? 0) + perfiles > 0;
     const cuando = [pendiente ? ahora + REVISION_MS : null, this.conectados().length ? ahora + LATIDO_MS : null, proximoCambio(await this.ruleta())].filter(
       (x): x is number => x !== null,
     );
@@ -309,6 +322,30 @@ export class SalaMundo implements DurableObject {
         await this.registrar(null, "teto", "teto", `🎰 ${r.papu_nombre} giró la ruleta grande: ${g.texto}`);
       }
       for (const c of this.conectados()) if (c.ficha.papu?.id === r.papu_id) this.enviar(c.ws, { t: "accion", ref: r.ref, accion: r.accion, resultado });
+    }
+  }
+
+  /** Entrega las tarjetas ya generadas por el puente. Solo al Papu que las solicitó. */
+  private async entregarTarjetas(sala: string): Promise<void> {
+    const { results } = await this.env.DB.prepare(
+      "SELECT id, solicitante_id, papu_id, ref, estado FROM mundo_tarjeta_pedidos WHERE sala = ? AND entregado = 0 AND estado > 0 ORDER BY id LIMIT 10",
+    ).bind(sala).all<{ id: number; solicitante_id: string; papu_id: string; ref: number; estado: number }>();
+    for (const pedido of results) {
+      const cliente = this.conectados().find((c) => c.ficha.papu?.id === pedido.solicitante_id);
+      if (!cliente) continue;
+      if (pedido.estado === 2) {
+        this.enviar(cliente.ws, { t: "tarjeta", ref: pedido.ref, papu: pedido.papu_id, estado: "error", motivo: "No pude generar la tarjeta. Inténtalo de nuevo en un momento." });
+      } else {
+        const meta = await this.env.DB.prepare("SELECT mime FROM mundo_tarjetas WHERE papu_id = ?").bind(pedido.papu_id).first<{ mime: string }>();
+        const partes = await this.env.DB.prepare("SELECT datos FROM mundo_tarjeta_partes WHERE papu_id = ? ORDER BY parte").bind(pedido.papu_id).all<{ datos: string }>();
+        const datos = partes.results.map((p) => p.datos).join("");
+        if (!meta || !datos || datos.length > 900_000) {
+          this.enviar(cliente.ws, { t: "tarjeta", ref: pedido.ref, papu: pedido.papu_id, estado: "error", motivo: "La tarjeta todavía no está disponible. Inténtalo de nuevo." });
+        } else {
+          this.enviar(cliente.ws, { t: "tarjeta", ref: pedido.ref, papu: pedido.papu_id, estado: "lista", mime: meta.mime, datos });
+        }
+      }
+      await this.env.DB.prepare("UPDATE mundo_tarjeta_pedidos SET entregado = 1 WHERE id = ?").bind(pedido.id).run();
     }
   }
 
