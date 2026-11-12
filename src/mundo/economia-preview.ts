@@ -575,7 +575,7 @@ export class EconomiaPlazaPreview {
     }
     if (id === "regalo-rin-len") {
       const para = datos && typeof datos === "object" ? (datos as { para?: unknown }).para : null;
-      if (typeof para !== "string" || !/^\\d{5,25}$/.test(para)) return error("Indica el ID de Discord válido del Papu que recibirá la tirada.");
+      if (typeof para !== "string" || !/^[0-9]{5,25}$/.test(para)) return error("Indica el ID de Discord válido del Papu que recibirá la tirada.");
       if (para === userId) return error("Rin y Len no te dejan regalarte una tirada a ti mismo. 🍊🍌");
       const miembro = await this.d.query<{ papu_id: string }>("SELECT papu_id FROM mundo_perfiles WHERE papu_id = ?", para);
       if (!miembro.length) return error("Ese Papu debe haber entrado a la Plaza al menos una vez para recibir una tirada de prueba.");
