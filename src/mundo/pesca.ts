@@ -25,6 +25,7 @@ export function accionPesca(
   levels: LevelService,
   now: () => number = Date.now,
   rnd: () => number = Math.random,
+  afterAward?: (change: NonNullable<ReturnType<LevelService["bonus"]>>) => Promise<void>,
 ): Atender {
   const ultimoLance = new Map<string, number>();
   return (papu) => {
@@ -45,6 +46,7 @@ export function accionPesca(
 
     ultimoLance.set(papu.id, t);
     const cambio = recompensa.xp > 0 ? levels.bonus(papu.id, recompensa.xp, t) : null;
+    if (cambio && afterAward) await afterAward(cambio).catch(() => {});
     const despues = levels.store.get(papu.id).xp;
     return {
       ok: true,
@@ -56,6 +58,7 @@ export function accionPesca(
         nivelAntes: cambio?.from ?? levels.snapshot(papu.id).level,
         nivelDespues: cambio?.to ?? levels.snapshot(papu.id).level,
         xpTotal: despues,
+        cambio,
         cooldownMs: COOLDOWN_MS,
       },
     };
