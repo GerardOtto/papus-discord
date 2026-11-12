@@ -1033,8 +1033,12 @@ function abrirRuleta(): void {
 
 async function descartarAtun(): Promise<void> {
   if (vistaRuleta.mio?.fase === "pidiendo" || miGiro) return;
+  vistaRuleta.mio = { fase: "pidiendo" };
+  pintarRuleta();
   const r = await pedir("ruleta.descartar");
   if (!r.ok) {
+    vistaRuleta.mio = { fase: "error", motivo: r.motivo };
+    pintarRuleta();
     aviso(r.motivo);
     return;
   }
@@ -1236,6 +1240,7 @@ ventana.cuerpo.addEventListener("click", (e) => {
   const b = (e.target as HTMLElement).closest<HTMLButtonElement>("button[data-accion]");
   if (b?.dataset.accion === "girar" && !b.disabled) void girarRuleta();
   if (b?.dataset.accion === "pescar" && !b.disabled) void pescar();
+  if (b?.dataset.accion === "descartar-atun" && !b.disabled) void descartarAtun();
   const usar = (e.target as HTMLElement).closest<HTMLButtonElement>("button[data-usar-consumible]");
   if (usar?.dataset.usarConsumible) void usarConsumible(usar.dataset.usarConsumible);
   const compra = (e.target as HTMLElement).closest<HTMLButtonElement>("button[data-compra]");
