@@ -182,7 +182,7 @@ export function htmlRuleta(v: VistaRuleta): string {
   const puede = !e.bloqueada && !["pidiendo", "fila", "girando"].includes(mio?.fase ?? "") && (simulacion || (!soloLectura && e.tiradas > 0));
   const premios = soloLectura && !simulacion ? "" : `<h3 class="v-seccion">${sandbox ? "Premios del entorno de prueba" : simulacion ? "Casillas de demostración" : "Premios"}</h3><ul class="v-casillas">${casillas}</ul>`;
   const controles = soloLectura && !simulacion ? "" : `${estadoGiro}${ocupada}
-    ${e.atunPendiente?.girosRestantes ? `<button class="v-boton" data-accion="descartar-atun">🐟 Descartar premio y volver a girar (${e.atunPendiente.girosRestantes})</button>` : ""}
+    ${e.atunPendiente ? `<button class="v-boton" data-accion="aceptar-atun">✓ Aceptar premio</button>` : ""}${e.atunPendiente?.girosRestantes ? `<button class="v-boton" data-accion="descartar-atun">🐟 Descartar premio y volver a girar (${e.atunPendiente.girosRestantes})</button>` : ""}
     <button class="v-boton" data-accion="girar" ${puede ? "" : "disabled"}>🎰 ${simulacion ? "Probar giro" : puede ? `${e.atunPendiente ? "Aceptar premio y girar" : "Girar"} (${e.tiradas})` : "Sin tiradas"}</button>`;
   const pie = sandbox
     ? "Las tiradas consumen las misiones disponibles y aplican XP, sobres o cuota al progreso aislado de la Plaza. Los cambios persisten en el preview, pero nunca modifican tu cuenta de Discord."
