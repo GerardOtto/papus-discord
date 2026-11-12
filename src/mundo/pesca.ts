@@ -48,6 +48,9 @@ export function accionPesca(
     if (!recompensa) return { ok: false, motivo: "No pude calcular la captura. Inténtalo de nuevo." };
 
     const cambio = recompensa.xp > 0 ? levels.bonus(papu.id, recompensa.xp, t) : null;
+    if (recompensa.xp > 0 && levels.store.get(papu.id).xp < antes + recompensa.xp) {
+      return { ok: false, motivo: "No pude aplicar la XP de la captura. No se consumió el tiempo de espera; inténtalo de nuevo." };
+    }
     if (cambio && afterAward) await afterAward(cambio).catch(() => {});
     kvSet(db, clave, String(t));
     return {
