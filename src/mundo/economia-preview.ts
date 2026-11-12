@@ -192,6 +192,10 @@ export class EconomiaPlazaPreview {
       state.xpSandboxNoTriviaDia = 0;
       state.xpSandboxNoTriviaDiaKey = day;
     }
+    const conservarDesde = dayKey(new Date(this.now() - (this.d.trivia.xp.dias + 2) * 86_400_000), this.d.timeZone);
+    for (const fecha of Object.keys(state.xpSandboxNoTriviaHistorial ?? {})) {
+      if (fecha < conservarDesde) delete state.xpSandboxNoTriviaHistorial![fecha];
+    }
     if (incluirPromedio) state.xpSandboxNoTriviaDia = (state.xpSandboxNoTriviaDia ?? 0) + Math.max(0, xp);
     if (!this.d.coins || nivelDespues <= nivelAntes) return 0;
     const rangoAntes = rankFor(this.d.levels.settings, nivelAntes);
