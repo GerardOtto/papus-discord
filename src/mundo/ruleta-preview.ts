@@ -32,8 +32,8 @@ export function accionesRuletaPreview(
       const estado = roulette.status(papu.id);
       if (estado.blocked) return { ok: false, motivo: "🚫 Neru te bloqueó la ruleta: tampoco se permiten giros de prueba." };
       const t = now();
-      const ultimo = ultimoGiro.get(papu.id) ?? 0;
-      if (t - ultimo < COOLDOWN_MS) {
+      const ultimo = ultimoGiro.get(papu.id);
+      if (ultimo !== undefined && t - ultimo < COOLDOWN_MS) {
         return { ok: false, motivo: `Espera ${Math.ceil((COOLDOWN_MS - (t - ultimo)) / 1000)} s para probar otro giro.` };
       }
       const premios = roulette.settings.premios;
