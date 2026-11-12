@@ -28,9 +28,9 @@ describe("EconomiaPlazaPreview", () => {
     const query: D1Query = async <T>(sql: string, ...params: unknown[]): Promise<T[]> => {
       const statement = preview.prepare(sql);
       if (/^\\s*SELECT/i.test(sql) || /RETURNING/i.test(sql)) {
-        return statement.all(...params) as unknown as T[];
+        return statement.all(...(params as never[])) as unknown as T[];
       }
-      statement.run(...params);
+      statement.run(...(params as never[]));
       return [];
     };
     const levels = new LevelService({ db: source, settings: loadLevelSettings(), timeZone: "America/Santiago" });
