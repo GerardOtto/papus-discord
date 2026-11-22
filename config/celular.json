@@ -1,0 +1,8 @@
+{
+  "$comment": "Celular de Neru (PLAN §3.15). inicio = día del reto n.º 1 (hora de México). XP de los juegos diarios: aciertos de trivia según los intentos (tramos [hasta N intentos, aciertos]; después, minimo). silueta.bloques = tamaño del pixelado (px sobre 384) por intento fallido; el último nivel es la imagen clara.",
+  "inicio": "2026-11-17",
+  "zonaHoraria": "America/Mexico_City",
+  "xp": { "tramos": [[3, 3], [6, 2]], "minimo": 1 },
+  "silueta": { "lado": 384, "bloques": [48, 32, 22, 14, 8], "imagenesPorPersonaje": 4 },
+  "sesionHoras": 12
+}

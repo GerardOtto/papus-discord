@@ -1,18 +1,20 @@
 {
-  "$comment": "1vs1 de los Vocaloids (pedido de GyroP, 4 nov. 2026; docs/PLAN.md §3.7). Dos Vocaloids pelean por turnos al azar y los Papus apuestan Shaula-coins GANADAS (nunca compradas: nada pagado es azar, PLAN §3.6). Las apuestas no dan XP ni cuota (regla 1). Cambiar algo aquí no requiere tocar código; se aplica al reiniciar.",
+  "$comment": "1vs1 de los Vocaloids (pedido de GyroP, 4 nov. 2026; docs/PLAN.md §3.7). Dos Vocaloids pelean por turnos al azar y los Papus apuestan Shaulitas (se ganan jugando; ya no se venden, PLAN §3.6). Las apuestas no dan XP ni cuota (regla 1). Cambiar algo aquí no requiere tocar código; se aplica al reiniciar.",
   "activo": true,
 
-  "$apuestas": "minima/maxima = Shaula-coins por Papu y por pelea (se puede subir la apuesta hasta 'maxima', siempre al mismo Vocaloid). minutos = cuánto tiempo están abiertas antes de que empiece la pelea (5 desde el 8 nov. 2026, decisión de GyroP; ese mismo día fueron 10 por un pedido de los Papus en #ideas-y-opiniones, que con 3 no alcanzaban). margen = lo que se queda la casa en la cuota (0,05 = 5 %): saca monedas de circulación para que no se inflen. La cuota de cada Vocaloid sale de simular 'simulaciones' peleas: paga = (1 - margen) / probabilidad de ganar, entre cuotaMinima y cuotaMaxima.",
-  "apuestas": { "minima": 10, "maxima": 400, "minutos": 5, "margen": 0.05, "simulaciones": 4000, "cuotaMinima": 1.1, "cuotaMaxima": 5 },
+  "$apuestas": "minima/maxima = Shaulitas por Papu y por pelea (se puede subir la apuesta hasta 'maxima', siempre al mismo Vocaloid; 1.000 desde el 12 nov. 2026, pedido de GyroP; antes 400). minutos = cuánto tiempo están abiertas antes de que empiece la pelea (5 desde el 8 nov. 2026, decisión de GyroP; ese mismo día fueron 10 por un pedido de los Papus en #ideas-y-opiniones, que con 3 no alcanzaban). margen = lo que se queda la casa en la cuota (0,05 = 5 %): saca monedas de circulación para que no se inflen. La cuota de cada Vocaloid sale de simular 'simulaciones' peleas: paga = (1 - margen) / probabilidad de ganar, entre cuotaMinima y cuotaMaxima.",
+  "apuestas": { "minima": 10, "maxima": 1000, "minutos": 5, "margen": 0.05, "simulaciones": 4000, "cuotaMinima": 1.1, "cuotaMaxima": 5 },
 
   "$horarios": "Peleas automáticas (HH:MM en la zona 'zona'; desde el 8 nov. 2026 hora de México, donde está casi todo el público: antes 14:00 y 21:00 de Chile, que en noviembre son 11:00 y 18:00 de México, en horario de clases) en el canal 'canal' (si no existe, en 'respaldo'). La pareja sale al azar, sin repetir la anterior. GyroP puede lanzar otra cuando quiera con /pelea (y elegir a los dos). Solo hay una pelea a la vez. Al abrir las apuestas, Teto etiqueta el rol ⚔️ Ludópata (avisos de #tus-roles, config/servidor.json -> avisosPapu), otra vez cuando quedan 15 segundos (respondiendo al banner) y al final dice cuándo es la próxima.",
   "horarios": ["16:00", "21:00"],
   "zona": "America/Mexico_City",
-  "canal": "peleas",
+  "canal": "casino",
   "respaldo": "general",
 
-  "$pelea": "lineaMs = cada cuánto se agrega una línea al mensaje de la pelea. maxTurnos = si nadie cae antes, gana por puntos quien conserve más vida (en %). acciones = peso de cada acción al azar en cada turno (el especial se usa una sola vez por pelea; si es de curar, solo con menos del 60 % de vida). Si los dos eligen no atacar, se vuelve a sortear una vez (para que no haya turnos aburridos). Daño: ataque ±1; quien también ataca resta la mitad de su defensa (mínimo 1 de daño) y puede esquivar de reflejo (un tercio de su agilidad); bloquear deja la mitad del golpe menos la mitad de la defensa; esquivar acierta con la probabilidad 'agilidad' (%) y si falla recibe el golpe entero.",
-  "pelea": { "lineaMs": 1000, "maxTurnos": 20, "acciones": { "ataque": 45, "bloqueo": 20, "esquiva": 20, "especial": 15 } },
+  "$pelea": "lineaMs = cada cuánto avanza un turno en el marcador de la pelea (2000 desde el 18 nov. 2026, pedido de GyroP: el relato de una línea por segundo no se alcanzaba a leer; ahora es un marcador de texto con las caras, las barras y una línea corta, y el relato completo queda en el botón «📜 Ver relato»). maxTurnos = si nadie cae antes, gana por puntos quien conserve más vida (en %). acciones = peso de cada acción al azar en cada turno (el especial se usa una sola vez por pelea; si es de curar, solo con menos del 60 % de vida). Si los dos eligen no atacar, se vuelve a sortear una vez (para que no haya turnos aburridos). Daño: ataque ±1; quien también ataca resta la mitad de su defensa (mínimo 1 de daño) y puede esquivar de reflejo (un tercio de su agilidad); bloquear deja la mitad del golpe menos la mitad de la defensa; esquivar acierta con la probabilidad 'agilidad' (%) y si falla recibe el golpe entero.",
+  "$equipos": "2 contra 2 (idea de Wicho en #ideas-y-opiniones, salón de la fama; GyroP, 18 nov. 2026): modalidad alternativa del 1vs1, no un evento aparte. Cada pelea automática sale en equipos con 'probabilidad' (0 a 1); los Papus apuestan por un equipo. En cada turno se enfrenta un miembro en pie de cada equipo (al azar) con las reglas del 1vs1; pierde el equipo que se queda sin nadie en pie y, si se acaban los 'maxTurnos', gana el que conserva más vida en total (en %). La cuota sale de simular el 2vs2. /pelea modo:2vs2 la lanza a mano (GyroP, Mods y membresías).",
+  "equipos": { "probabilidad": 0.34, "maxTurnos": 30 },
+  "pelea": { "lineaMs": 2000, "maxTurnos": 20, "acciones": { "ataque": 45, "bloqueo": 20, "esquiva": 20, "especial": 15 } },
 
   "$luchadores": "28 luchadores (desde el 8 nov. 2026, pedido de GyroP): los 15 Vocaloids del servidor (nombre, color y avatar de su bot) e invitados con 'nombre', 'color' y 'grupo' (invitado = sale en los videos del canal; especial = invitado de GyroP). El avatar de un invitado va en assets/peleas/luchadores/<id>.png (npm run peleas:avatares); sin avatar no pelea (las imágenes de Don Ramón, Godzilla y Shaula las eligió GyroP). La wiki de #peleas sale de aquí (npm run peleas:wiki -- --apply). Estadísticas según el lore del motor (Proyecto1/config/autopilot/lore.json y content/lore-extra.json) y lo que se sabe de cada uno en el servidor; 'por' explica el porqué. Los números están equilibrados simulando todas las parejas (ninguna pasa de 80/20; las cuotas compensan el resto): si se cambian, conviene revisar con las pruebas (tests/peleas.test.ts). vida = HP; ataque y defensa = puntos; agilidad = % de esquivar con éxito. Los movimientos son fragmentos que se arman en la línea: 'Neru suelta un machetazo, pero Teto se cubre con una baguette'. ataque, bloqueo y esquiva: varias opciones (sale una al azar). especial: nombre, texto y 'dano' (golpe fuerte) o 'cura' (recupera vida). acciones = su estilo (pesos propios: los ágiles esquivan más, los resistentes bloquean más, los agresivos atacan más).",
   "luchadores": {
@@ -312,7 +314,7 @@
     },
     "shaula": {
       "nombre": "Shaula", "color": "#B0306A", "grupo": "especial",
-      "por": "Invitada especial de Re:Zero: la guardiana de la Torre de Vigilancia que siempre busca a su «Maestro». Pega durísimo, pero se cubre poco. (Las Shaula-coins le hacen honor.)",
+      "por": "Invitada especial de Re:Zero: la guardiana de la Torre de Vigilancia que siempre busca a su «Maestro». Pega durísimo, pero se cubre poco. (Las Shaulitas le hacen honor.)",
       "vida": 20, "ataque": 6, "defensa": 1, "agilidad": 30,
       "acciones": { "ataque": 55, "bloqueo": 15, "esquiva": 15, "especial": 15 },
       "movimientos": {
@@ -332,6 +334,42 @@
         "bloqueo": ["se cubre con su cáscara llena de púas", "aguanta como fruta tropical"],
         "esquiva": ["intenta rodar… es una piña", "se queda quieta y reza"],
         "especial": { "nombre": "Lengua picada", "texto": "es tan ácida que le pica la lengua a su rival", "dano": 9 }
+      }
+    },
+    "meowl": {
+      "nombre": "Meowl",
+      "color": "#C98B4E",
+      "grupo": "especial",
+      "por": "Invitado especial (sugerencia de Wiwi en #ideas-y-opiniones, salón de la fama, 16 nov. 2026): el meme del gato-búho, en su versión británica de sombrero de copa, monóculo y corbata. Ágil como gato y muy educado.",
+      "vida": 25,
+      "ataque": 4,
+      "defensa": 2,
+      "agilidad": 50,
+      "acciones": {
+        "ataque": 40,
+        "bloqueo": 15,
+        "esquiva": 35,
+        "especial": 10
+      },
+      "movimientos": {
+        "ataque": [
+          "lanza un zarpazo muy educado",
+          "da un picotazo de búho",
+          "golpea con su sombrero de copa"
+        ],
+        "bloqueo": [
+          "se acomoda el monóculo y lo resiste",
+          "se cubre con el sombrero de copa"
+        ],
+        "esquiva": [
+          "salta como gato",
+          "gira la cabeza como búho y lo esquiva"
+        ],
+        "especial": {
+          "nombre": "Very Splendid!",
+          "texto": "dice «Very splendid!», se ajusta la corbata y suelta un zarpazo de caballero",
+          "dano": 8
+        }
       }
     }
   }

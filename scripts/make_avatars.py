@@ -3,6 +3,12 @@
 Personajes que no estan en characters.json del motor (Ruko): paleta en content/lore-extra.json -> display.
 Tambien las figuras del podio de /ranking (<id>_figura.png).
 Uso: python scripts/make_avatars.py [ids] [--figuras]   (ENGINE_DIR por defecto ../Proyecto1; --figuras: solo las figuras)
+     python scripts/make_avatars.py [ids] --navidad   trajes de Navidad desde los renders de Diva-a-Render
+     (DIVA_DIR, por defecto ../Diva-a-Render/DivaRenders/output/navidad; salida assets/bots/navidad/, y los renders
+     a 1024 en assets/bots/navidad/renders/<id>_<reaccion>.png para las tarjetas personalizables).
+     python scripts/make_avatars.py --modelos   renders de los modelos nuevos con su traje propio (IA, flower, Adachi
+     Rei y Ruko; Diva-a-Render output/modelos_nuevos, looks base_*.json) a 1024 en assets/coleccion/renders/, para los
+     fondos de tarjeta de la temporada 2 (scripts/temporada2.ts).
 Para cambiar la cara de un bot, editar SPEC (archivo y recorte relativo al contenido visible de la imagen)."""
 import json
 import os
@@ -34,6 +40,22 @@ SPEC = {
     # ruko: imagenes en el motor (assets/characters/ruko, 20 oct. 2026); avatar = su cara de la imagen principal (GyroP).
     "ruko": {"avatar": ("feliz.png", 0.49, 0.125, 0.40), "banner": "emocionado.png", "figura": ("feliz.png", 0.5)},
 }
+# Navidad 2026 (12 nov.): renders de Diva-a-Render (busto 2048, trajes Santa del juego o cabezas sobre ellos).
+# Carpeta relativa a DIVA_DIR y codigo del personaje del juego que nombra los PNG (<codigo>_<reaccion>.png).
+NAVIDAD = {
+    "miku": "mik", "rin": "rin", "len": "len", "luka": "luk", "kaito": "kai", "meiko": "mei",
+    "teto": "_teto/tet", "neru": "_neru/ner", "haku": "_haku/hak", "gumi": "_gumi/mik", "gakupo": "_gakupo/kai",
+    "ia": "_ia/ner", "adachirei": "_adachirei/rin", "ruko": "_ruko/sak", "flower": "_flower/hak",
+}
+# Busto completo (2048): el avatar abarca todo el ancho para que entren el gorro y las manos; el banner amplia mas.
+NAVIDAD_SPEC = {"avatar": ("feliz", 0.50, 0.29, 1.0), "banner": "emocionado", "banner_escala": 1.3,
+                "figura": ("saludando", 1.0)}
+# Las 17 reacciones del motor (reaction_sets.py all): variedad de caras y poses para las tarjetas.
+NAVIDAD_REACCIONES = ("neutral", "feliz", "riendo", "emocionado", "saludando", "presumido", "nerd", "pensando",
+                      "enojado", "gritando", "decepcionado", "triste", "nervioso", "timido", "sorprendido",
+                      "shocked", "broma")
+DIVA = os.path.abspath(os.path.join(ROOT, os.environ.get("DIVA_DIR", "../Diva-a-Render/DivaRenders/output/navidad")))
+
 AVATAR = 1024
 BANNER = (1360, 480)
 FIGURA = 640  # alto maximo
@@ -86,11 +108,34 @@ def with_glow(img, color, radius=18):
 
 
 def source(cid, name):
+    if cid in NAVIDAD_ON:
+        folder = NAVIDAD[cid]
+        return os.path.join(DIVA, folder, f"{os.path.basename(folder)}_{name}.png")
     return os.path.join(ENGINE, "assets/characters", cid, name)
 
 
+NAVIDAD_ON = set()
+
+
+def spec_of(cid):
+    return NAVIDAD_SPEC if cid in NAVIDAD_ON else SPEC[cid]
+
+
+def keep_renders(cid):
+    """Copia los renders navidenos (1024, transparentes) para usarlos tambien en las tarjetas."""
+    out = os.path.join(OUT, "renders")
+    os.makedirs(out, exist_ok=True)
+    for r in NAVIDAD_REACCIONES:
+        if not os.path.exists(source(cid, r)):
+            print(f"  falta {cid} {r}")
+            continue
+        img = Image.open(source(cid, r)).convert("RGBA")
+        img.thumbnail((1024, 1024), Image.LANCZOS)
+        img.save(os.path.join(out, f"{cid}_{r}.png"), optimize=True)
+
+
 def make_avatar(cid, palette):
-    name, cx, cy, side = SPEC[cid]["avatar"]
+    name, cx, cy, side = spec_of(cid)["avatar"]
     img = visible(Image.open(source(cid, name)).convert("RGBA"))
     w, h = img.size
     s = int(min(w, h) * side)
@@ -115,9 +160,9 @@ def make_banner(cid, palette):
             if (i // 40 + j // 40) % 2 == 0:
                 d.ellipse((i, j, i + 5, j + 5), fill=light + (50,))
     bg.alpha_composite(dots)
-    pose = visible(Image.open(source(cid, SPEC[cid]["banner"])).convert("RGBA"))
+    pose = visible(Image.open(source(cid, spec_of(cid)["banner"])).convert("RGBA"))
     # De la cintura para arriba: la pose mide ~1,8 veces el alto del banner y se corta abajo.
-    scale = (h * 1.8) / pose.height
+    scale = (h * spec_of(cid).get("banner_escala", 1.8)) / pose.height
     pose = pose.resize((int(pose.width * scale), int(pose.height * scale)), Image.LANCZOS)
     pose = with_glow(pose, light, 14)
     layer = Image.new("RGBA", BANNER)
@@ -151,7 +196,7 @@ def fade_cut_edges(img, band=28):
 
 def make_figure(cid):
     """Figura recortada (PNG con transparencia) para el podio de /ranking: assets/bots/<id>_figura.png."""
-    name, keep = SPEC[cid]["figura"]
+    name, keep = spec_of(cid)["figura"]
     img = fade_cut_edges(visible(Image.open(source(cid, name)).convert("RGBA")))
     img = img.crop((0, 0, img.width, int(img.height * keep)))
     img = img.crop(img.getbbox())
@@ -160,13 +205,40 @@ def make_figure(cid):
     img.save(os.path.join(OUT, f"{cid}_figura.png"), optimize=True)
 
 
+# Modelos nuevos (mods de Mega Mix+ bajados por GyroP, 12 nov. 2026): codigo del personaje del juego que ocupan.
+MODELOS = {"ia": "ner", "adachirei": "rin", "ruko": "sak", "flower": "hak"}
+
+
+def copy_models():
+    src = os.path.join(os.path.dirname(DIVA), "modelos_nuevos")
+    out = os.path.join(ROOT, "assets", "coleccion", "renders")
+    os.makedirs(out, exist_ok=True)
+    for bot, code in MODELOS.items():
+        folder = os.path.join(src, code)
+        files = sorted(f for f in os.listdir(folder) if f.endswith(".png")) if os.path.isdir(folder) else []
+        for f in files:
+            img = Image.open(os.path.join(folder, f)).convert("RGBA")
+            img.thumbnail((1024, 1024), Image.LANCZOS)
+            img.save(os.path.join(out, f"{bot}_{f[len(code) + 1:]}"), optimize=True)
+        print(f"{'ok' if files else 'sin renders'} {bot} ({len(files)})")
+
+
 def main():
+    global OUT
+    if "--modelos" in sys.argv:
+        return copy_models()
+    navidad = "--navidad" in sys.argv
+    if navidad:
+        OUT = os.path.join(OUT, "navidad")
     chars = json.load(open(os.path.join(ENGINE, "config/characters.json"), encoding="utf-8"))["characters"]
     extra = json.load(open(os.path.join(ROOT, "content/lore-extra.json"), encoding="utf-8")).get("display", {})
     chars = {**extra, **chars}
     os.makedirs(OUT, exist_ok=True)
     only_figures = "--figuras" in sys.argv
-    for cid in [a for a in sys.argv[1:] if not a.startswith("--")] or SPEC:
+    for cid in [a for a in sys.argv[1:] if not a.startswith("--")] or (NAVIDAD if navidad else SPEC):
+        if navidad:
+            NAVIDAD_ON.add(cid)
+            keep_renders(cid)
         if not only_figures:
             palette = palette_of(chars[cid])
             make_avatar(cid, palette)

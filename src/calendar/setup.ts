@@ -31,7 +31,7 @@ export function finalVideos(deliveryDir: string, finalesPath: string, engineCale
 }
 
 /** null si falta algo (token de Cloudflare, worker sin desplegar o carpeta de entrega): el calendario queda apagado. */
-export function buildCalendar(opts: { db: Db; env: NodeJS.ProcessEnv; deliveryDir: string | null; engineDir: string }): { service: CalendarService; channel: string } | null {
+export function buildCalendar(opts: { db: Db; env: NodeJS.ProcessEnv; deliveryDir: string | null; engineDir: string }): { service: CalendarService; channel: string; publicar: boolean } | null {
   const token = opts.env.CLOUDFLARE_DEPLOY_TOKEN?.trim();
   const accountId = opts.env.CLOUDFLARE_ACCOUNT_ID?.trim();
   const databaseId = workerDatabaseId(ROOT);
@@ -50,5 +50,5 @@ export function buildCalendar(opts: { db: Db; env: NodeJS.ProcessEnv; deliveryDi
     honor: parseHonorSettings(votes.honor),
     settings,
   });
-  return { service, channel: settings.canal };
+  return { service, channel: settings.canal, publicar: settings.publicar !== false };
 }

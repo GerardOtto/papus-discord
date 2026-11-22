@@ -1,5 +1,5 @@
 // Mercado negro (PLAN §3.9, config/mercado.json): cuándo está abierto, inventario de consumibles, compras (solo con
-// Shaula-coins GANADAS, regla 1), usos y el PC de Adachi Rei. Todo el estado vive en SQLite (migración 16) y en kv (la
+// Shaulitas, que se ganan jugando), usos y el PC de Adachi Rei. Todo el estado vive en SQLite (migración 16) y en kv (la
 // apertura manual de GyroP). Sin Discord: src/discord/mercado.ts muestra el mercado, /consumibles y el aviso de Neru.
 import type { WeddingService } from "../bodas/service";
 import type { CoinService, Wallet } from "../coins/service";
@@ -194,7 +194,7 @@ export class MercadoService {
   // ───────────────────────── comprar ─────────────────────────
 
   /**
-   * Compra en el mercado (solo abierto): se paga con Shaula-coins GANADAS (las compradas no entran: nada pagado da cuota
+   * Compra en el mercado (solo abierto): se paga con Shaulitas (se ganan jugando; nada pagado da cuota
    * ni XP, regla 1). Consumibles: suma sus usos; adornos: van a la colección; rol: se lo pone Discord.
    */
   comprar(userId: string, objetoId: string, now = this.now()): ({ ok: true } & Compra) | { ok: false; motivo: CompraFail } {
@@ -205,7 +205,7 @@ export class MercadoService {
     if (!this.vitrina(now).some((x) => x.id === o.id)) return { ok: false, motivo: "no_esta" };
     return transaction(this.d.db, () => {
       if (this.tiene(userId, o)) return { ok: false as const, motivo: "ya_lo_tienes" as const };
-      const wallet = this.d.coins.spendGanadas(userId, o.precio, `mercado ${o.id}`);
+      const wallet = this.d.coins.spend(userId, o.precio, `mercado ${o.id}`);
       if (!wallet) return { ok: false as const, motivo: "no_alcanza" as const };
       if (CONSUMIBLES.includes(o.efecto))
         this.d.db
@@ -337,7 +337,7 @@ export class MercadoService {
       const now = new Date(t);
       const day = dayKey(now, this.d.timeZone);
       const prev = reinicioDe(this.d.db, userId, day);
-      const mensajes = Math.max(0, this.d.quota.used(userId, now) - this.d.quota.donated(userId, now));
+      const mensajes = Math.max(0, this.d.quota.spent(userId, now));
       this.d.quota.reset(userId, now);
       const ruleta = this.d.roulette?.spinsOn(userId, day) ?? 0;
       const partidas = this.d.trivia?.runsToday(userId, t) ?? 0;

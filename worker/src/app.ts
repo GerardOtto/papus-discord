@@ -1,21 +1,34 @@
 // Logica del worker de Cloudflare (24/7, aunque el PC de GyroP este apagado):
-// - Miku: cola de videos personalizados (/pedido, /mi-pedido, /cola), votaciones con encuesta (/votacion),
-//   calendario, estrenos y noticias;
-// - Luka: tips con fuente (/tip) y Salon de la Fama (/tip-usado);
+// - Miku: votaciones con encuesta (/votacion), calendario, estrenos y noticias (la cola de videos personalizados se
+//   quitó el 13 nov. 2026: GyroP los coordina por chat);
+// - Luka: sin comandos desde el 13 nov. 2026 (los tips se quitaron; el salon de la fama lo lleva Teto con ⭐);
 // - votacion semanal (config/votaciones.json): Miku la abre sola; el segundo lugar pasa a la ronda siguiente;
-// - tareas programadas: recordar y cerrar votaciones (ganador), alertas de plazo de pedidos.
-// Todo con frases fijas (regla 4, sin LLM ni cuota). Los datos de los pedidos nunca van a un LLM.
+// - tareas programadas: recordar y cerrar votaciones (ganador).
+// Todo con frases fijas (regla 4, sin LLM ni cuota).
 import lukaPhrases from "../../content/frases/luka.json";
 import mikuPhrases from "../../content/frases/miku.json";
 import moderation from "../../config/moderacion.json";
 import layout from "../../config/servidor.json";
 import votesConfig from "../../config/votaciones.json";
 import { RuleSet, type ModerationSettings } from "../../src/moderation/rules";
-import { renderBoard } from "../../src/orders/board";
-import { OCCASIONS, OrderError, OrderQueue, PRODUCTS, STATE_LABEL, type OccasionId, type Order, type OrderState, type ProductId } from "../../src/orders/queue";
-import type { Sql } from "../../src/orders/sql";
+import type { Sql } from "../../src/cloud/sql";
 import { advanceDeck, fill, type DeckState } from "../../src/phrases/deck-core";
-import { AVISOS_MENU_ID, avisosChange, COLOR_MENU_ID, colorKey, COUNTRY_MENU_ID, NO_COLOR, NO_COUNTRY } from "../../src/setup/color-menu";
+import { AVISOS_MENU_ID, avisosChange, colorKey, COUNTRY_MENU_ID, isColorMenu, NO_COLOR, NO_COUNTRY } from "../../src/setup/color-menu";
+import {
+  claveIdentidad,
+  ESCRIBIR,
+  IDENTIDAD_CAMPO_ID,
+  identidadModal,
+  opcionesDe,
+  queIdentidad,
+  QUITAR,
+  rolIdentidad,
+  tipoDeMenu,
+  tipoDeModal,
+  validarIdentidad,
+  type IdentidadConfig,
+  type IdentidadTipo,
+} from "../../src/setup/identidad";
 import {
   ideaText,
   nextRoundAt,
@@ -29,7 +42,21 @@ import {
   type RoundResult,
   type RoundSettings,
 } from "../../src/votes/rounds";
-import { channelKey, DiscordError, type BotKey, type DiscordApi } from "./discord";
+import { tituloDe, type NovedadEtiqueta } from "../../src/setup/novedades";
+import {
+  CUMPLE_BOTON_ID,
+  CUMPLE_CAMPOS,
+  CUMPLE_MODAL_ID,
+  CUMPLE_NO_ID,
+  CUMPLE_OK_ID,
+  cumpleConfirmar,
+  cumpleModal,
+  deClave,
+  fechaTexto,
+  leerFecha,
+  type Fecha,
+} from "../../src/setup/cumple";
+import { channelKey, type BotKey, type DiscordApi } from "./discord";
 
 export interface Option {
   name: string;
@@ -44,8 +71,14 @@ export interface Interaction {
   token: string;
   guild_id?: string;
   channel_id?: string;
-  /** Comando (type 2): name/options. Menu (type 3): custom_id/values. */
-  data?: { name?: string; options?: Option[]; custom_id?: string; values?: string[] };
+  /** Comando (type 2): name/options. Menu (type 3): custom_id/values. Ventanita (type 5): custom_id/components. */
+  data?: {
+    name?: string;
+    options?: Option[];
+    custom_id?: string;
+    values?: string[];
+    components?: { components?: { custom_id?: string; value?: string }[] }[];
+  };
   member?: { user: { id: string }; roles: string[] };
   user?: { id: string };
 }
@@ -53,6 +86,8 @@ export interface Interaction {
 export interface Reply {
   content?: string;
   embeds?: Record<string, unknown>[];
+  /** Botones (p. ej. confirmar el cumpleaños); [] los quita al editar. */
+  components?: Record<string, unknown>[];
 }
 
 export interface WorkerDeps {
@@ -85,18 +120,20 @@ const TIERS = (layout as { niveles: { rol: string }[] }).niveles.map((n) => chan
  * los bots nunca mencionan a @everyone (decision de GyroP, 18 oct. 2026).
  */
 export function audienceOf(canal: string): string[] {
-  for (const cat of (layout as { categorias: { leen: string; canales: { nombre: string; voz?: boolean }[] }[] }).categorias) {
-    if (!cat.canales.some((c) => !c.voz && channelKey(c.nombre) === canal)) continue;
-    if (cat.leen.startsWith("rol:")) return [channelKey(cat.leen.slice(4))];
-    const idx = TIERS.indexOf(channelKey(cat.leen));
+  for (const cat of (layout as { categorias: { leen: string; canales: { nombre: string; voz?: boolean; leen?: string }[] }[] }).categorias) {
+    const ch = cat.canales.find((c) => !c.voz && channelKey(c.nombre) === canal);
+    if (!ch) continue;
+    // Acceso del canal (PLAN §8: en 💎 Membresías cada canal tiene el suyo) o, si no, el de su categoría.
+    const leen = ch.leen ?? cat.leen;
+    if (leen.startsWith("rol:")) return [channelKey(leen.slice(4))];
+    const idx = TIERS.indexOf(channelKey(leen));
     return idx < 0 ? [] : TIERS.slice(idx);
   }
   return [];
 }
-const BOARD_KEY = "tablero_cola";
 const COMMAND_TIMEOUT_MS = 10_000;
 const SLOW_REPLY =
-  "Esto está tardando más de lo normal 🙈 Puede que se haya registrado igual: revísalo en un momento (por ejemplo con /mi-pedido) antes de intentarlo de nuevo.";
+  "Esto está tardando más de lo normal 🙈 Puede que se haya registrado igual: revísalo en un momento antes de intentarlo de nuevo.";
 const POLL_QUESTIONS: Record<string, string> = {
   votaciones: "¿Qué tema quieren para el próximo video?",
   "propuestas-de-temas": "¿Cuál eligen, Papus?",
@@ -104,7 +141,7 @@ const POLL_QUESTIONS: Record<string, string> = {
   "votacion-de-honor": "¿Qué video quieren que salga esta semana, Papus de honor?",
 };
 
-class UserError extends Error {}
+export class UserError extends Error {}
 
 interface RoundRow {
   id: number;
@@ -117,11 +154,11 @@ interface RoundRow {
 }
 
 export class PapusWorker {
-  readonly orders: OrderQueue;
   private readonly rules: RuleSet;
   private readonly now: () => number;
   private readonly rng: () => number;
-  private channelCache: Map<string, string> | null = null;
+  /** Canales de texto (0) y foros (15) por nombre sin emoji; los foros con sus etiquetas. */
+  private channelCache: Map<string, { id: string; foro: boolean; tags: { id: string; name: string }[] }> | null = null;
   private readonly rounds: RoundSettings;
   private readonly honor: HonorSettings;
 
@@ -131,15 +168,6 @@ export class PapusWorker {
     this.rounds = d.rounds ?? parseRoundSettings(votesConfig);
     this.honor = d.honor ?? parseHonorSettings(votesConfig.honor);
     this.rules = new RuleSet(moderation as ModerationSettings);
-    this.orders = new OrderQueue(
-      d.sql,
-      d.cast.map((c) => c.id),
-      (text) => {
-        const v = this.rules.check({ text, targetsSomeone: false, memberAgeHours: 1000, personalData: true });
-        return v && v.kind !== "mayusculas" ? v.detail : null;
-      },
-      this.now,
-    );
   }
 
   // ───────────────────────── interacciones ─────────────────────────
@@ -147,15 +175,26 @@ export class PapusWorker {
   /** Respuesta inmediata a Discord (en menos de 3 s) y el trabajo que se hace despues. */
   handle(bot: BotKey, i: Interaction): { response: Record<string, unknown>; work?: () => Promise<void> } {
     if (i.type === 1) return { response: { type: 1 } };
-    const isMenu = i.type === 3 && [COLOR_MENU_ID, COUNTRY_MENU_ID, AVISOS_MENU_ID].includes(i.data?.custom_id ?? "");
+    // Pronombres o genero con "Escribir los mios": se abre la ventanita al tiro (no se puede diferir).
+    const identidad = i.type === 3 ? tipoDeMenu(i.data?.custom_id) : null;
+    if (identidad && i.data?.values?.[0] === ESCRIBIR) return { response: { type: 9, data: identidadModal(IDENTIDAD, identidad) } };
+    // Cumpleaños (#tus-roles, 18 nov. 2026): el botón abre la ventanita al tiro; confirmar edita el mismo mensaje.
+    const cid = i.data?.custom_id ?? "";
+    if (i.type === 3 && cid === CUMPLE_BOTON_ID) return { response: { type: 9, data: cumpleModal() } };
+    const confirma = i.type === 3 && (cid.startsWith(`${CUMPLE_OK_ID}:`) || cid === CUMPLE_NO_ID);
+    const isMenu =
+      (i.type === 3 && (isColorMenu(i.data?.custom_id) || !!identidad || [COUNTRY_MENU_ID, AVISOS_MENU_ID].includes(i.data?.custom_id ?? ""))) ||
+      (i.type === 5 && (!!tipoDeModal(i.data?.custom_id) || cid === CUMPLE_MODAL_ID)) ||
+      confirma;
     if ((i.type !== 2 && !isMenu) || !i.data) return { response: { type: 4, data: { content: "No sé qué hacer con eso 🙈", flags: EPHEMERAL } } };
     return {
-      // Respuesta diferida y privada: el resultado se escribe despues, cuando termina el trabajo.
-      response: { type: 5, data: { flags: EPHEMERAL } },
+      // Respuesta diferida y privada: el resultado se escribe despues, cuando termina el trabajo. Un botón de
+      // confirmar edita su propio mensaje (type 6).
+      response: confirma ? { type: 6 } : { type: 5, data: { flags: EPHEMERAL } },
       work: async () => {
         let reply: Reply;
         // Tope de tiempo: si el comando se demora (Discord lento, base ocupada…), se responde igual con un aviso.
-        // El comando puede terminar despues (ej.: el pedido queda guardado); por eso el aviso pide revisar antes de repetir.
+        // El comando puede terminar despues (ej.: la votacion queda creada); por eso el aviso pide revisar antes de repetir.
         let timer: ReturnType<typeof setTimeout> | undefined;
         const timeout = new Promise<"timeout">((r) => (timer = setTimeout(() => r("timeout"), this.d.commandTimeoutMs ?? COMMAND_TIMEOUT_MS)));
         try {
@@ -163,8 +202,8 @@ export class PapusWorker {
           reply = r === "timeout" ? { content: SLOW_REPLY } : r;
           if (r === "timeout") console.error(`/${i.data?.name}: superó el tope de tiempo`);
         } catch (e) {
-          reply = { content: e instanceof UserError || e instanceof OrderError ? e.message : "Algo falló de mi lado. Inténtalo de nuevo en un rato 🙏" };
-          if (!(e instanceof UserError || e instanceof OrderError)) console.error(`/${i.data?.name}`, e);
+          reply = { content: e instanceof UserError ? e.message : "Algo falló de mi lado. Inténtalo de nuevo en un rato 🙏" };
+          if (!(e instanceof UserError)) console.error(`/${i.data?.name}`, e);
         } finally {
           clearTimeout(timer);
         }
@@ -183,162 +222,40 @@ export class PapusWorker {
   async route(bot: BotKey, i: Interaction): Promise<Reply> {
     const name = i.data!.name ?? "";
     const user = i.member?.user.id ?? i.user?.id ?? "";
-    if (i.type === 3 && i.data!.custom_id === COLOR_MENU_ID) return this.pickColor(user, i.member?.roles ?? [], i.data!.values?.[0] ?? NO_COLOR);
+    if (i.type === 3 && isColorMenu(i.data!.custom_id)) return this.pickColor(user, i.member?.roles ?? [], i.data!.values?.[0] ?? NO_COLOR);
     if (i.type === 3 && i.data!.custom_id === COUNTRY_MENU_ID) return this.pickCountry(user, i.member?.roles ?? [], i.data!.values?.[0] ?? NO_COUNTRY);
     if (i.type === 3 && i.data!.custom_id === AVISOS_MENU_ID) return this.pickAvisos(user, i.member?.roles ?? [], i.data!.values ?? []);
+    const cid = i.data!.custom_id ?? "";
+    if (i.type === 5 && cid === CUMPLE_MODAL_ID) {
+      const campo = (k: string) => (i.data!.components ?? []).flatMap((r) => r.components ?? []).find((c) => c.custom_id === k)?.value ?? "";
+      return this.cumplePedir(user, campo(CUMPLE_CAMPOS.dia), campo(CUMPLE_CAMPOS.mes));
+    }
+    if (i.type === 3 && cid === CUMPLE_NO_ID) return { content: "Listo, no guardé nada. Cuando quieras, vuelve a tocar **🎂 Registrar mi cumpleaños**.", components: [] };
+    if (i.type === 3 && cid.startsWith(`${CUMPLE_OK_ID}:`)) return this.cumpleGuardar(user, cid.slice(CUMPLE_OK_ID.length + 1));
+    const menuTipo = i.type === 3 ? tipoDeMenu(i.data!.custom_id) : null;
+    if (menuTipo) return this.pickIdentidad(user, i.member?.roles ?? [], menuTipo, i.data!.values?.[0] ?? QUITAR);
+    const modalTipo = i.type === 5 ? tipoDeModal(i.data!.custom_id) : null;
+    if (modalTipo) {
+      const campo = (i.data!.components ?? []).flatMap((r) => r.components ?? []).find((c) => c.custom_id === IDENTIDAD_CAMPO_ID);
+      return this.writeIdentidad(user, i.member?.roles ?? [], modalTipo, campo?.value ?? "");
+    }
     const o = new Options(i.data!.options ?? []);
     if (bot === "miku") {
-      if (name === "pedido") return this.pedido(user, i.member?.roles ?? [], o);
-      if (name === "mi-pedido") return this.miPedido(user);
       this.ownerOnly(user);
-      if (name === "cola") return this.cola(o);
       if (name === "votacion") return this.votacion(o);
-      if (name === "calendario") return this.post("miku", "calendario", "calendario", { texto: splitLines(o.str("texto", true)) });
       if (name === "estreno") return this.estreno(o);
-      if (name === "noticia") return this.post("miku", "anuncios", "noticia", { texto: o.str("texto", true) });
-    } else {
-      if (name === "tip") return this.tip(user, i.member?.roles ?? [], o);
-      this.ownerOnly(user);
-      if (name === "tip-usado") return this.tipUsado(o);
+      // #anuncios se juntó con #novedades (PLAN §8, 13 nov. 2026).
+      // #novedades es un foro desde el 13 nov. 2026: cada noticia es una publicación con su título.
+      if (name === "noticia") {
+        const texto = o.str("texto", true);
+        return this.postContent("miku", "novedades", await this.pick("miku", "noticia", { texto }), { titulo: tituloDe(texto, "📰 "), etiqueta: "Noticia" });
+      }
     }
     throw new UserError("Ese comando no existe (¿quedó viejo?).");
   }
 
   private ownerOnly(user: string): void {
     if (user !== this.d.ownerId) throw new UserError("Eso solo lo usa GyroP 🎤");
-  }
-
-  // ───────────────────────── cola de pedidos (Miku) ─────────────────────────
-
-  private async pedido(user: string, roles: string[], o: Options): Promise<Reply> {
-    if (user !== this.d.ownerId && !(await this.hasTier(roles, "triplebaka"))) {
-      return { content: "¡Ay, Papu! El video personalizado incluido es del nivel 💥 **Triple Baka** (ko-fi.com/tetociencia/tiers).\nTambién puedes pedir uno con un pago único en la tienda de Ko-fi 🎁" };
-    }
-    const can = await this.orders.canOrderTripleBaka(user);
-    if (!can.ok) {
-      return {
-        content:
-          can.reason === "activo"
-            ? `Ya tienes el pedido **#${can.order.id}** en curso (${STATE_LABEL[can.order.estado]}). Cuando se entregue podrás pedir el siguiente 🎁`
-            : `Ya pediste tu video de este mes ♡ El próximo lo puedes pedir desde el <t:${unix(can.nextAt)}:D>.`,
-      };
-    }
-    const order = await this.orders.create({
-      origen: "triple_baka",
-      papuId: user,
-      producto: "triple_baka",
-      ocasion: o.str("ocasion", true) as OccasionId,
-      para: o.str("para", true),
-      vocaloids: [o.str("vocaloid", true), o.str("vocaloid2")].filter((v): v is string => !!v),
-      detalles: o.str("detalles", true),
-      pronunciacion: o.str("pronunciacion"),
-      fechaLimite: o.str("fecha_limite"),
-      publicar: o.bool("publicar") ?? false,
-    });
-    const n = (await this.orders.position(order.id)) ?? 1;
-    await this.refreshBoard();
-    await this.notifyOwner(
-      `🎁 **Nuevo pedido #${order.id}** (Triple Baka) de <@${user}> · ${OCCASIONS[order.ocasion]} · plazo <t:${unix(order.plazoAt)}:D>${order.revisar ? `\n⚠️ Revisar: ${order.revisar}` : ""}\nDetalles: \`/cola detalle pedido:${order.id}\``,
-    );
-    return {
-      content: [
-        await this.pick("miku", "pedido_recibido", { papu: `<@${user}>`, n }),
-        "",
-        this.summary(order, false),
-        `📬 A más tardar el <t:${unix(order.plazoAt)}:D>. Te aviso cuando empiece y cuando esté listo.`,
-      ].join("\n"),
-    };
-  }
-
-  private async miPedido(user: string): Promise<Reply> {
-    const o = await this.orders.latestOf(user);
-    if (!o) return { content: "Todavía no tienes pedidos ♡ Si eres 💥 Triple Baka, pide tu video con **/pedido** 🎁" };
-    const pos = await this.orders.position(o.id);
-    const lines = [`**Pedido #${o.id}** · ${OCCASIONS[o.ocasion]} · ${STATE_LABEL[o.estado]}`];
-    if (pos) lines.push(`📍 Vas en el lugar **${pos}** de la cola · a más tardar el <t:${unix(o.plazoAt)}:D>`);
-    if (o.estado === "entregado" && o.entregadoAt) lines.push(`✅ Entregado el <t:${unix(o.entregadoAt)}:D>. Si hay un error en el nombre, avísale a GyroP hasta el <t:${unix(o.entregadoAt + 7 * DAY)}:D>.`);
-    if (o.estado === "rechazado") lines.push(`🚫 ${o.motivo ?? "No se pudo hacer."} Puedes pedir otro con **/pedido**.`);
-    if (o.origen === "triple_baka" && !pos) {
-      const can = await this.orders.canOrderTripleBaka(user);
-      if (can.ok) lines.push("🎁 Ya puedes pedir tu próximo video con **/pedido**.");
-      else if (can.reason === "mes") lines.push(`🗓️ Tu próximo video lo puedes pedir desde el <t:${unix(can.nextAt)}:D>.`);
-    }
-    return { content: lines.join("\n") };
-  }
-
-  private async cola(o: Options): Promise<Reply> {
-    const sub = o.sub();
-    if (sub === "ver") {
-      const active = await this.orders.active();
-      const text = active.length ? active.map((x, k) => `**${k + 1}. #${x.id}** ${this.summary(x, true, 160)}`).join("\n\n") : "La cola está vacía ✨";
-      return { embeds: [{ title: `🎁 Cola (${active.length})`, description: text.slice(0, 4000), color: this.d.colors.miku }] };
-    }
-    if (sub === "detalle") {
-      const x = await this.orders.get(o.int("pedido", true));
-      if (!x) throw new UserError("No existe ese pedido.");
-      return { embeds: [{ title: `Pedido #${x.id}`, description: this.summary(x, true).slice(0, 4000), color: this.d.colors.miku }] };
-    }
-    if (sub === "estado") {
-      const estado = o.str("estado", true) as OrderState;
-      const motivo = o.str("motivo") ?? (estado === "rechazado" ? "no cumple con las condiciones de los pedidos" : null);
-      const x = await this.orders.setState(o.int("pedido", true), estado, motivo);
-      await this.refreshBoard();
-      await this.notifyPapu(x);
-      return { content: `Listo: pedido **#${x.id}** → ${STATE_LABEL[x.estado]}.` };
-    }
-    if (sub === "agregar") {
-      const x = await this.orders.create({
-        origen: "tienda",
-        papuId: o.str("papu"),
-        comprador: o.str("comprador"),
-        producto: o.str("producto", true) as ProductId,
-        ocasion: o.str("ocasion", true) as OccasionId,
-        para: o.str("para", true),
-        vocaloids: ["vocaloid", "vocaloid2", "vocaloid3"].map((k) => o.str(k)).filter((v): v is string => !!v),
-        detalles: o.str("detalles", true),
-        pronunciacion: o.str("pronunciacion"),
-        fechaLimite: o.str("fecha_limite"),
-        publicar: o.bool("publicar") ?? false,
-      });
-      await this.refreshBoard();
-      return { content: `Pedido de la tienda **#${x.id}** en la cola, lugar **${await this.orders.position(x.id)}** · plazo <t:${unix(x.plazoAt)}:D>.${x.revisar ? `\n⚠️ Revisar: ${x.revisar}` : ""}` };
-    }
-    throw new UserError("Subcomando desconocido.");
-  }
-
-  /** Crea o edita el tablero fijado de Miku en #cola-de-pedidos (nunca muestra para quien es el video). */
-  async refreshBoard(): Promise<void> {
-    const ch = await this.channel("cola-de-pedidos");
-    if (!ch) return;
-    const b = renderBoard(await this.orders.active(), await this.orders.deliveredSince(30 * DAY));
-    const body = { embeds: [{ title: b.title, description: b.description, color: this.d.colors.miku, footer: { text: b.footer } }], allowed_mentions: { parse: [] } };
-    const saved = await this.kvGet(BOARD_KEY);
-    if (saved) {
-      try {
-        await this.d.discord.call("miku", "PATCH", `/channels/${ch}/messages/${saved}`, body);
-        return;
-      } catch (e) {
-        if (!(e instanceof DiscordError && e.status === 404)) throw e;
-      }
-    }
-    const msg = await this.d.discord.call<{ id: string }>("miku", "POST", `/channels/${ch}/messages`, body);
-    await this.d.discord.call("miku", "PUT", `/channels/${ch}/pins/${msg.id}`).catch(() => {});
-    await this.kvSet(BOARD_KEY, msg.id);
-  }
-
-  /** Avisa al Papu el cambio de estado por privado, o en #cola-de-pedidos si tiene los privados cerrados. */
-  private async notifyPapu(o: Order): Promise<void> {
-    if (!o.papuId) return;
-    const group = ({ en_produccion: "pedido_en_produccion", entregado: "pedido_entregado", rechazado: "pedido_rechazado" } as Record<string, string>)[o.estado];
-    if (!group) return;
-    const content = await this.pick("miku", group, { papu: `<@${o.papuId}>`, motivo: o.motivo ?? "" });
-    try {
-      const dm = await this.d.discord.call<{ id: string }>("miku", "POST", "/users/@me/channels", { recipient_id: o.papuId });
-      await this.d.discord.call("miku", "POST", `/channels/${dm.id}/messages`, { content });
-    } catch {
-      const ch = await this.channel("cola-de-pedidos");
-      if (ch) await this.d.discord.call("miku", "POST", `/channels/${ch}/messages`, { content, allowed_mentions: { users: [o.papuId] } });
-    }
   }
 
   // ───────────────────────── votaciones, calendario, anuncios (Miku) ─────────────────────────
@@ -581,23 +498,31 @@ export class PapusWorker {
     if (!/^https?:\/\/\S+$/.test(enlace)) throw new UserError("El enlace tiene que empezar con http:// o https://");
     const titulo = o.str("titulo", true);
     const content = `${await this.pick("miku", "estreno", { video: titulo })}\n${enlace}`;
-    const reply = await this.postContent("miku", "anuncios", content);
+    const reply = await this.postContent("miku", "novedades", content, { titulo: tituloDe(titulo, "🎬 Estreno: "), etiqueta: "Estreno" });
     // Hora feliz de XP (config/niveles.json -> estrenos): la abre el bot del PC al leer esta fila.
     await this.d.sql.run("INSERT INTO estrenos (titulo, at) VALUES (?, ?)", titulo, this.now());
     return { content: `${reply.content} La XP multiplicada empieza en cuanto el bot del PC lo lea (menos de un minuto si está encendido).` };
   }
 
-  /** Publica una frase del grupo en un canal (calendario, noticias). */
-  private async post(bot: BotKey, canal: string, group: string, vars: Record<string, string>): Promise<Reply> {
-    return this.postContent(bot, canal, await this.pick(bot, group, vars));
-  }
 
-  private async postContent(bot: BotKey, canal: string, content: string): Promise<Reply> {
-    const ch = await this.channel(canal);
+  /** Publica en un canal; si es un foro, abre una publicación con `foro.titulo` y su etiqueta. */
+  private async postContent(bot: BotKey, canal: string, content: string, foro?: { titulo: string; etiqueta: NovedadEtiqueta }): Promise<Reply> {
+    await this.channel(canal);
+    const ch = this.channelCache?.get(canal);
     if (!ch) throw new UserError(`No encuentro el canal #${canal}.`);
     const aviso = await this.audience(canal);
-    await this.d.discord.call(bot, "POST", `/channels/${ch}/messages`, { content: aviso.mention(content), allowed_mentions: aviso.allowed_mentions });
-    return { content: `Publicado en <#${ch}> ✨` };
+    const message = { content: aviso.mention(content), allowed_mentions: aviso.allowed_mentions };
+    if (!ch.foro) {
+      await this.d.discord.call(bot, "POST", `/channels/${ch.id}/messages`, message);
+      return { content: `Publicado en <#${ch.id}> ✨` };
+    }
+    const tag = ch.tags.find((t) => t.name === foro?.etiqueta)?.id;
+    const hilo = await this.d.discord.call<{ id: string }>(bot, "POST", `/channels/${ch.id}/threads`, {
+      name: foro?.titulo ?? tituloDe(content),
+      applied_tags: tag ? [tag] : [],
+      message,
+    });
+    return { content: `Publicado en <#${hilo.id}> ✨` };
   }
 
   // ───────────────────────── votacion de los Papus de honor (Miku) ─────────────────────────
@@ -733,6 +658,78 @@ export class PapusWorker {
     await this.d.sql.run("UPDATE rondas_honor SET estado = 'cerrada', ganador = ? WHERE id = ?", ganador.join(" | ") || null, round.id);
   }
 
+  // ───────────────────────── #tus-roles desde el celular de Neru (app Roles, PLAN §3.15) ─────────────────────────
+
+  private async rolesDelPapu(user: string): Promise<{ memberRoles: string[]; nombreDe: Map<string, string> }> {
+    const member = await this.d.discord.call<{ roles: string[] }>("miku", "GET", `/guilds/${this.d.guildId}/members/${user}`);
+    const roles = await this.d.discord.call<{ id: string; name: string; managed?: boolean }[]>("miku", "GET", `/guilds/${this.d.guildId}/roles`);
+    return { memberRoles: member.roles, nombreDe: new Map(roles.filter((r) => !r.managed).map((r) => [r.id, r.name])) };
+  }
+
+  /** Lo que tiene elegido en #tus-roles y las opciones (las mismas de los menús de Miku). */
+  async celularRoles(user: string): Promise<unknown> {
+    const { memberRoles, nombreDe } = await this.rolesDelPapu(user);
+    const tiene = new Set(memberRoles.map((id) => colorKey(nombreDe.get(id) ?? "")));
+    const identidad = await this.d.sql.all<{ tipo: string; nombre: string }>(
+      "SELECT p.tipo, r.nombre FROM identidad_papus p JOIN identidad_roles r ON r.role_id = p.role_id WHERE p.papu_id = ?",
+      user,
+    );
+    return {
+      colores: PALETTE.map((c) => ({ clave: colorKey(c.rol), nombre: c.rol.replace(/^🎨\s*/, ""), color: c.color, puesto: tiene.has(colorKey(c.rol)) })),
+      paises: COUNTRIES.map((p) => ({ clave: colorKey(p), nombre: p, puesto: tiene.has(colorKey(p)) })),
+      avisos: AVISOS.map((a) => ({ clave: colorKey(a.rol), nombre: a.rol, descripcion: a.descripcion, puesto: tiene.has(colorKey(a.rol)) })),
+      pronombres: { opciones: opcionesDe(IDENTIDAD, "pronombres").map((o) => ({ clave: claveIdentidad(o), nombre: o })), actual: identidad.find((x) => x.tipo === "pronombres")?.nombre ?? null },
+      genero: { opciones: opcionesDe(IDENTIDAD, "genero").map((o) => ({ clave: claveIdentidad(o), nombre: o })), actual: identidad.find((x) => x.tipo === "genero")?.nombre ?? null },
+    };
+  }
+
+  /** Cambia algo de #tus-roles con las mismas reglas que los menús. Devuelve el mensaje para el Papu (o UserError). */
+  async celularRolesElegir(user: string, d: { tipo?: string; valor?: string; valores?: string[]; texto?: string }): Promise<string> {
+    const { memberRoles } = await this.rolesDelPapu(user);
+    const texto = (r: Reply) => String(r.content ?? "").replace(/\*\*/g, "").split("\n")[0]!;
+    if (d.tipo === "color") return texto(await this.pickColor(user, memberRoles, String(d.valor ?? NO_COLOR)));
+    if (d.tipo === "pais") return texto(await this.pickCountry(user, memberRoles, String(d.valor ?? NO_COUNTRY)));
+    if (d.tipo === "avisos") return texto(await this.pickAvisos(user, memberRoles, Array.isArray(d.valores) ? d.valores.map(String).slice(0, 25) : []));
+    if (d.tipo === "pronombres" || d.tipo === "genero") {
+      if (typeof d.texto === "string" && d.texto.trim()) return texto(await this.writeIdentidad(user, memberRoles, d.tipo, d.texto.slice(0, 60)));
+      return texto(await this.pickIdentidad(user, memberRoles, d.tipo, String(d.valor ?? QUITAR)));
+    }
+    throw new UserError("No sé cambiar eso 🙈");
+  }
+
+  // ───────────────────────── cumpleaños (#tus-roles; 18 nov. 2026) ─────────────────────────
+
+  private async cumpleDe(user: string): Promise<Fecha | null> {
+    const r = await this.d.sql.get<{ dia: number; mes: number }>("SELECT dia, mes FROM cumpleanos WHERE papu_id = ?", user);
+    return r ? { dia: r.dia, mes: r.mes } : null;
+  }
+
+  private yaRegistrado(f: Fecha): Reply {
+    return { content: `🎂 Ya registraste tu cumpleaños: **${fechaTexto(f)}**. No se puede cambiar por tu cuenta; si te equivocaste, pídeselo a un Mod o a GyroP.`, components: [] };
+  }
+
+  /** La ventanita: revisa la fecha y pide confirmar (después ya no se cambia). */
+  private async cumplePedir(user: string, dia: string, mes: string): Promise<Reply> {
+    const ya = await this.cumpleDe(user);
+    if (ya) return this.yaRegistrado(ya);
+    const r = leerFecha(dia, mes);
+    if (!r.ok) throw new UserError(`❌ ${r.motivo}`);
+    return {
+      content: `🎂 ¿Tu cumpleaños es el **${fechaTexto(r.fecha)}**?
+> ⚠️ **Después no lo puedes cambiar** (solo un Mod o GyroP). Ese día Ruko te saluda en #general, ganas **XP ×2** todo el día y te llega la insignia del pastel 🎂.`,
+      components: cumpleConfirmar(r.fecha),
+    };
+  }
+
+  private async cumpleGuardar(user: string, clave: string): Promise<Reply> {
+    const f = deClave(clave);
+    if (!f) throw new UserError("Esa fecha no sirve. Vuelve a tocar **🎂 Registrar mi cumpleaños**.");
+    const ya = await this.cumpleDe(user);
+    if (ya) return this.yaRegistrado(ya);
+    await this.d.sql.run("INSERT OR IGNORE INTO cumpleanos (papu_id, dia, mes, creado_at, por) VALUES (?, ?, ?, ?, ?)", user, f.dia, f.mes, this.now(), user);
+    return { content: `🎂 ¡Listo! Tu cumpleaños quedó el **${fechaTexto(f)}**. Ruko lo avisará en #general unos días antes. ✨`, components: [] };
+  }
+
   // ───────────────────────── color del nombre (menu de Miku en #tus-roles) ─────────────────────────
 
   /** Deja al Papu con un solo color de la paleta (o ninguno). Los colores van sobre todos los roles: se ve aunque tenga nivel. */
@@ -762,6 +759,90 @@ export class PapusWorker {
     return { content: ["¡Listo! Ahora te aviso de esto ✨", ...lista, pie].join("\n") };
   }
 
+  // ───────────────────────── pronombres y genero (menus de Miku en #tus-roles) ─────────────────────────
+
+  /** Opcion de la lista o "Quitar" (escribir abre la ventanita en handle). */
+  private async pickIdentidad(user: string, memberRoles: string[], tipo: IdentidadTipo, value: string): Promise<Reply> {
+    if (value === QUITAR) return this.setIdentidad(user, memberRoles, tipo, null, false);
+    const texto = opcionesDe(IDENTIDAD, tipo).find((o) => claveIdentidad(o) === value);
+    if (!texto) throw new UserError("Esa opción ya no está en el menú 🙈");
+    return this.setIdentidad(user, memberRoles, tipo, texto, false);
+  }
+
+  /** Lo que escribio el Papu: pasa por el filtro fijo de Neru y la lista de burlas; si no pasa, se rechaza en privado. */
+  private async writeIdentidad(user: string, memberRoles: string[], tipo: IdentidadTipo, texto: string): Promise<Reply> {
+    const ofensivo = (t: string) => !!this.rules.check({ text: t, targetsSomeone: false, memberAgeHours: 1000, personalData: true })?.remove;
+    const v = validarIdentidad(IDENTIDAD, texto, ofensivo);
+    if (!v.ok) throw new UserError(`${v.motivo} Prueba con otro texto o elige una opción del menú ♡`);
+    // Si escribio algo que ya esta en la lista, usa ese rol (no cuenta como escrito).
+    const deLista = opcionesDe(IDENTIDAD, tipo).find((o) => claveIdentidad(o) === claveIdentidad(v.texto));
+    return this.setIdentidad(user, memberRoles, tipo, deLista ?? v.texto, !deLista);
+  }
+
+  /**
+   * Deja al Papu con un solo rol de ese tipo (o ninguno). Reutiliza el rol si otro ya lo tiene; si no, lo crea solo
+   * decorativo (sin permisos, sin color, no separado, no mencionable; Discord lo pone al fondo de la lista). Solo toca
+   * roles de identidad_roles: nunca otros roles del servidor.
+   */
+  private async setIdentidad(user: string, memberRoles: string[], tipo: IdentidadTipo, texto: string | null, escrito: boolean): Promise<Reply> {
+    const g = this.d.guildId;
+    const prev = await this.d.sql.get<{ role_id: string }>("SELECT role_id FROM identidad_papus WHERE papu_id = ? AND tipo = ?", user, tipo);
+    let target: string | null = null;
+    if (texto) {
+      const clave = claveIdentidad(texto);
+      const nombre = rolIdentidad(tipo, texto);
+      const roles = await this.d.discord.call<{ id: string }[]>("miku", "GET", `/guilds/${g}/roles`);
+      const known = await this.d.sql.get<{ role_id: string }>("SELECT role_id FROM identidad_roles WHERE tipo = ? AND clave = ?", tipo, clave);
+      if (known && roles.some((r) => r.id === known.role_id)) target = known.role_id;
+      else {
+        if (known) await this.d.sql.run("DELETE FROM identidad_roles WHERE role_id = ?", known.role_id); // lo borraron a mano
+        if (escrito) {
+          const n = await this.d.sql.get<{ n: number }>("SELECT COUNT(*) AS n FROM identidad_roles WHERE escrito = 1");
+          if ((n?.n ?? 0) >= IDENTIDAD.maxEscritos) {
+            throw new UserError("Ya hay muchos roles escritos a mano. Elige una opción del menú o pídele a GyroP que agregue la tuya 🙏");
+          }
+        }
+        const role = await this.d.discord.call<{ id: string }>("miku", "POST", `/guilds/${g}/roles`, {
+          name: nombre,
+          permissions: "0",
+          color: 0,
+          hoist: false,
+          mentionable: false,
+        });
+        target = role.id;
+        await this.d.sql.run(
+          "INSERT INTO identidad_roles (role_id, tipo, clave, nombre, escrito, creado_at) VALUES (?, ?, ?, ?, ?, ?)",
+          target,
+          tipo,
+          clave,
+          nombre,
+          escrito ? 1 : 0,
+          this.now(),
+        );
+      }
+      if (!memberRoles.includes(target)) await this.d.discord.call("miku", "PUT", `/guilds/${g}/members/${user}/roles/${target}`);
+      await this.d.sql.run("INSERT OR REPLACE INTO identidad_papus (papu_id, tipo, role_id) VALUES (?, ?, ?)", user, tipo, target);
+    } else {
+      await this.d.sql.run("DELETE FROM identidad_papus WHERE papu_id = ? AND tipo = ?", user, tipo);
+    }
+    if (prev && prev.role_id !== target) {
+      if (memberRoles.includes(prev.role_id)) await this.d.discord.call("miku", "DELETE", `/guilds/${g}/members/${user}/roles/${prev.role_id}`);
+      await this.dropIdentidadRole(prev.role_id);
+    }
+    if (!texto) return { content: `Listo: quité ${queIdentidad(tipo)} de tu perfil ♡` };
+    return { content: `¡Listo! Ahora tu perfil dice **${rolIdentidad(tipo, texto)}** ✨` };
+  }
+
+  /** Borra un rol escrito a mano cuando ya nadie lo tiene (los de la lista del menu se quedan). */
+  private async dropIdentidadRole(roleId: string): Promise<void> {
+    const row = await this.d.sql.get<{ escrito: number }>("SELECT escrito FROM identidad_roles WHERE role_id = ?", roleId);
+    if (!row?.escrito) return;
+    const usado = await this.d.sql.get<{ n: number }>("SELECT COUNT(*) AS n FROM identidad_papus WHERE role_id = ?", roleId);
+    if (usado?.n) return;
+    await this.d.discord.call("miku", "DELETE", `/guilds/${this.d.guildId}/roles/${roleId}`).catch((e) => console.error("borrar rol de identidad", e));
+    await this.d.sql.run("DELETE FROM identidad_roles WHERE role_id = ?", roleId);
+  }
+
   /** Le da al Papu un solo rol de `options` (o ninguno, con `none`) y le quita los demas. Devuelve el elegido. */
   private async pickOne(user: string, memberRoles: string[], options: string[], value: string, none: string, what: string): Promise<string | null> {
     const keyed = options.map((rol) => ({ rol, key: colorKey(rol) }));
@@ -780,72 +861,25 @@ export class PapusWorker {
     return choice?.rol ?? null;
   }
 
-  /** Aviso en #vitrina (lo que pasa en los canales de los niveles, sin regalar el contenido). */
-  private async toVitrina(content: string): Promise<void> {
-    const ch = await this.channel("vitrina");
-    if (ch) await this.d.discord.call("miku", "POST", `/channels/${ch}/messages`, { content, allowed_mentions: { parse: [] } });
-  }
+  /**
+   * Aviso en #vitrina (lo que pasa en los canales de los niveles, sin regalar el contenido). Desde el 13 nov. 2026
+   * #vitrina está en el Archivo (PLAN §8): ya no se publica nada.
+   */
+  private async toVitrina(_content: string): Promise<void> {}
 
   /** Enlaces a canales para las frases de la vitrina. */
   private async links(): Promise<Record<string, string>> {
-    const [niveles, votaciones] = await Promise.all([this.channel("niveles-ko-fi"), this.channel(this.rounds.canal)]);
+    const [niveles, votaciones] = await Promise.all([this.channel("membresias").then((c) => c ?? this.channel("niveles-ko-fi")), this.channel(this.rounds.canal)]);
     return { niveles: niveles ? `<#${niveles}>` : "ko-fi.com/tetociencia/tiers", votaciones: votaciones ? `<#${votaciones}>` : "#votaciones" };
-  }
-
-  // ───────────────────────── tips (Luka) ─────────────────────────
-
-  private async tip(user: string, roles: string[], o: Options): Promise<Reply> {
-    if (user !== this.d.ownerId && !(await this.hasTier(roles, "atun"))) {
-      return { content: "Los tips son del nivel 🐟 **Atún** y superiores (ko-fi.com/tetociencia/tiers). Exactly." };
-    }
-    const texto = o.str("texto", true).trim();
-    const fuente = o.str("fuente", true).trim();
-    if (!/^https?:\/\/\S+\.\S+/.test(fuente)) throw new UserError("La fuente tiene que ser un enlace (https://…). Sin fuente es un rumor, no un tip 🐟");
-    const v = this.rules.check({ text: texto, targetsSomeone: false, memberAgeHours: 1000, personalData: true });
-    if (v?.remove) throw new UserError(`No puedo publicar ese tip: ${v.detail}.`);
-    const ch = await this.channel("tips-y-curiosidades");
-    if (!ch) throw new UserError("No encuentro #tips-y-curiosidades.");
-    const r = await this.d.sql.run("INSERT INTO tips (papu_id, texto, fuente, creado_at) VALUES (?, ?, ?, ?)", user, texto, fuente, this.now());
-    const id = r.lastRowId;
-    const msg = await this.d.discord.call<{ id: string }>("luka", "POST", `/channels/${ch}/messages`, {
-      content: await this.pick("luka", "tip_recibido", { papu: `<@${user}>` }),
-      embeds: [{ title: `💡 Tip #${id}`, description: texto, color: this.d.colors.luka, fields: [{ name: "Fuente", value: fuente }] }],
-      allowed_mentions: { users: [user] },
-    });
-    await this.d.sql.run("UPDATE tips SET message_id = ? WHERE id = ?", msg.id, id);
-    return { content: `¡Gracias! Tu tip **#${id}** quedó en <#${ch}>. Si llega a un video, sales en los créditos y en el Salón de la Fama 🐟` };
-  }
-
-  private async tipUsado(o: Options): Promise<Reply> {
-    const id = o.int("tip", true);
-    const video = o.str("video", true);
-    const t = await this.d.sql.get<{ papu_id: string; texto: string; fuente: string; usado_at: number | null }>("SELECT * FROM tips WHERE id = ?", id);
-    if (!t) throw new UserError("No existe ese tip.");
-    if (t.usado_at) throw new UserError(`El tip #${id} ya está en el Salón de la Fama.`);
-    const ch = await this.channel("salon-de-la-fama");
-    if (!ch) throw new UserError("No encuentro #salón-de-la-fama.");
-    await this.d.discord.call("luka", "POST", `/channels/${ch}/messages`, {
-      content: await this.pick("luka", "tip_usado", { papu: `<@${t.papu_id}>`, video }),
-      embeds: [{ title: `🏆 Tip #${id}`, description: t.texto, color: this.d.colors.luka, fields: [{ name: "Fuente", value: t.fuente }] }],
-      allowed_mentions: { users: [t.papu_id] },
-    });
-    await this.d.sql.run("UPDATE tips SET usado_video = ?, usado_at = ? WHERE id = ?", video, this.now(), id);
-    return { content: `Listo: el tip #${id} está en <#${ch}> ✨` };
   }
 
   // ───────────────────────── tareas programadas ─────────────────────────
 
-  /** Cada 15 minutos: recordar y cerrar votaciones; alertas de plazo de los pedidos. */
+  /** Cada 15 minutos: recordar y cerrar votaciones. */
   async cron(): Promise<void> {
     await this.pollTasks();
     await this.roundTasks().catch((e) => console.error("votación semanal", e));
     await this.honorTasks().catch((e) => console.error("votación de honor", e));
-    for (const o of await this.orders.dueSoon()) {
-      const key = `aviso_plazo:${o.id}:${o.plazoAt}`;
-      if (await this.kvGet(key)) continue;
-      await this.kvSet(key, "1");
-      await this.notifyOwner(`⏰ El pedido **#${o.id}** (${OCCASIONS[o.ocasion]}) vence <t:${unix(o.plazoAt)}:R> · ${STATE_LABEL[o.estado]}`);
-    }
   }
 
   async pollTasks(): Promise<void> {
@@ -899,10 +933,16 @@ export class PapusWorker {
   /** Id de un canal por su nombre sin emoji ("votaciones", "salon-de-la-fama"…). */
   async channel(key: string): Promise<string | null> {
     if (!this.channelCache?.has(key)) {
-      const list = await this.d.discord.call<{ id: string; name: string; type: number }[]>("miku", "GET", `/guilds/${this.d.guildId}/channels`);
-      this.channelCache = new Map(list.filter((c) => c.type === 0).map((c) => [channelKey(c.name), c.id]));
+      const list = await this.d.discord.call<{ id: string; name: string; type: number; available_tags?: { id: string; name: string }[] }[]>(
+        "miku",
+        "GET",
+        `/guilds/${this.d.guildId}/channels`,
+      );
+      // Foros primero: si un texto y un foro se llaman igual, gana el texto (lo de siempre).
+      const usables = [...list.filter((c) => c.type === 15), ...list.filter((c) => c.type === 0)];
+      this.channelCache = new Map(usables.map((c) => [channelKey(c.name), { id: c.id, foro: c.type === 15, tags: c.available_tags ?? [] }]));
     }
-    return this.channelCache.get(key) ?? null;
+    return this.channelCache.get(key)?.id ?? null;
   }
 
   /** Mencion a los roles que ven el canal (audienceOf), solo esos: nunca @everyone ni @here. */
@@ -912,14 +952,6 @@ export class PapusWorker {
     const ids = roles.filter((r) => !r.managed && keys.has(channelKey(r.name))).map((r) => r.id);
     const prefix = ids.map((id) => `<@&${id}>`).join(" ");
     return { mention: (text) => (prefix ? `${prefix}\n${text}` : text), allowed_mentions: { parse: [], roles: ids } };
-  }
-
-  /** ¿Tiene el Papu ese nivel o uno superior? (los niveles son acumulativos; Ko-fi da solo el rol del nivel). */
-  private async hasTier(memberRoles: string[], minTier: string): Promise<boolean> {
-    const roles = await this.d.discord.call<{ id: string; name: string }[]>("miku", "GET", `/guilds/${this.d.guildId}/roles`);
-    const idx = TIERS.indexOf(minTier);
-    const allowed = new Set(TIERS.slice(idx));
-    return roles.some((r) => allowed.has(channelKey(r.name)) && memberRoles.includes(r.id));
   }
 
   /** Frase fija del mazo (sin repetir; estado en la base). */
@@ -949,22 +981,6 @@ export class PapusWorker {
     await this.d.sql.run("INSERT INTO kv (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value", key, value);
   }
 
-  private summary(o: Order, full: boolean, detailMax = 1000): string {
-    const names = Object.fromEntries(this.d.cast.map((c) => [c.id, c.name]));
-    const voc = o.vocaloids.map((v) => names[v] ?? v).join(", ");
-    const lines = [`${PRODUCTS[o.producto].label} · ${OCCASIONS[o.ocasion]} · 🎤 ${voc}`];
-    if (!full) return [...lines, `Para **${o.para}**`].join("\n");
-    lines[0] += ` · ${STATE_LABEL[o.estado]} · plazo <t:${unix(o.plazoAt)}:D>`;
-    lines.push(
-      `👤 ${o.origen === "tienda" ? `Tienda${o.comprador ? ` (${o.comprador})` : ""}${o.papuId ? ` · <@${o.papuId}>` : ""}` : `<@${o.papuId}>`} → para **${o.para}**${o.pronunciacion ? ` (se pronuncia: ${o.pronunciacion})` : ""}`,
-    );
-    if (o.detalles) lines.push(`📝 ${o.detalles.slice(0, detailMax)}`);
-    if (o.fechaLimite) lines.push(`📅 Fecha límite pedida: ${o.fechaLimite}`);
-    lines.push(o.publicar ? "📣 Se puede publicar en el canal" : "🔒 No publicar");
-    if (o.revisar) lines.push(`⚠️ Revisar: ${o.revisar}`);
-    if (o.motivo) lines.push(`💬 ${o.motivo}`);
-    return lines.join("\n");
-  }
 }
 
 export interface PollData {
@@ -974,6 +990,7 @@ export interface PollData {
 
 const PALETTE = (layout as { coloresPapu?: { colores: { rol: string; color: string }[] } }).coloresPapu?.colores ?? [];
 const COUNTRIES = (layout as { paisesPapu?: { paises: string[] } }).paisesPapu?.paises ?? [];
+const IDENTIDAD = (layout as unknown as { identidadPapu: IdentidadConfig }).identidadPapu;
 const AVISOS = (layout as { avisosPapu?: { avisos: { rol: string; descripcion: string }[] } }).avisosPapu?.avisos ?? [];
 
 const CANDIDATE_LABEL: Record<string, string> = { en_votacion: "🗳️ en votación", sigue: "🔁 sigue (2.º lugar)", espera: "⏳ en espera", ganador: "🏆 ganó" };

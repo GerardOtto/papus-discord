@@ -16,16 +16,20 @@ import {
   type Guild,
   type SendableChannels,
 } from "discord.js";
+import type { AmbientEvent } from "../ambiente/service";
 import { BOT_IDS, type BotId } from "../config";
 import type { CharacterInfo } from "../engine/reader";
 import { logError, type LogFn } from "../log";
 import { BANNER_STYLES, renderWeddingBanner } from "../bodas/banner";
-import { genderWords, isCorrect, weddingRole, weddingXp } from "../bodas/rules";
+import { genderWords, isBotBride, isCorrect, weddingRole, weddingXp, type BrideId } from "../bodas/rules";
 import type { ActiveRiddle, RiddleKind, WeddingService } from "../bodas/service";
 import { progress, rankFor, stripNickTag } from "../levels/rules";
 import type { LevelService } from "../levels/service";
 import type { Phrases } from "../phrases/catalog";
+import { marcoDe } from "../membresias/marco";
+import { viaLanzamiento, type LanzarPort } from "../membresias/service";
 import type { Quota } from "../quota/quota";
+import { dayKey } from "../time";
 import { avisoPing, canPingRoles } from "./avisos";
 import { channelKey, findTextChannel } from "./channels";
 import type { LevelsDiscord } from "./levels";
@@ -33,19 +37,27 @@ import type { LevelsDiscord } from "./levels";
 const ASSETS = path.resolve(import.meta.dirname, "../../assets/bots");
 
 export interface BodasDiscordDeps {
+  /** Ambiente casual (PLAN §3.13): otro Vocaloid comenta la boda o el divorcio en #general. */
+  ambient?: (e: AmbientEvent) => void;
   weddings: WeddingService;
   levels: LevelService;
   levelsDiscord: LevelsDiscord;
   quota: Quota;
   phrases: Phrases;
   characters: Record<BotId, CharacterInfo>;
-  online: readonly BotId[];
+  /** Quienes estan conectados (los Vocaloids y, si conecto, Mango9374). */
+  online: readonly BrideId[];
   owners: ReadonlySet<string>;
   /** GyroP o un Mod: pueden usar /boda. Sin esto, solo GyroP. */
   isStaff?: (userId: string) => Promise<boolean>;
-  clients: Partial<Record<BotId, Client>>;
+  /** Membresías: lanzan bodas con /boda (PLAN §2). Sin esto, solo GyroP y los Mods. */
+  lanzar?: LanzarPort;
+  /** Regala un sobre temático de la novia (PLAN §3.6); devuelve su nombre, o null si no tiene objetos. */
+  sobreTematico?: (userId: string, bot: BrideId) => string | null;
+  /** Clientes de Discord (los Vocaloids y Mango9374, que se casa desde el 12 nov. 2026). */
+  clients: Partial<Record<BrideId, Client>>;
   guild: () => Guild;
-  sendable: (bot: BotId, channelId: string) => Promise<SendableChannels>;
+  sendable: (bot: BrideId, channelId: string) => Promise<SendableChannels>;
   report: (text: string) => Promise<void>;
   timeZone: string;
   log: LogFn;
@@ -72,8 +84,13 @@ export class BodasDiscord {
     return this.d.weddings;
   }
 
-  private girlName(bot: BotId): string {
-    return this.w.settings.chicas[bot]?.nombre ?? this.d.characters[bot].displayName;
+  private girlName(bot: BrideId): string {
+    return this.w.settings.chicas[bot]?.nombre ?? (isBotBride(bot) ? this.d.characters[bot].displayName : bot);
+  }
+
+  /** Color (numero) del rol y del banner: el del motor o, para Mango9374, el de config/bodas.json. */
+  private colorOf(bot: BrideId): number {
+    return isBotBride(bot) ? this.d.characters[bot].color : parseInt((this.w.settings.chicas[bot]?.color ?? "#f2a33a").slice(1), 16);
   }
 
   /** "jueves 23 de octubre, 18:40" (hora de Chile) */
@@ -91,6 +108,15 @@ export class BodasDiscord {
       const expired = this.w.expire();
       if (expired) await this.closeUnanswered(expired).catch((e) => logError("adivinanza sin respuesta", e));
       await this.removeEndedRoles().catch((e) => logError("roles de boda vencidos", e));
+      // Boda lanzada por un Papu con membresía: sale a su hora (4 min después del aviso); mientras, nada más se abre.
+      const lanzada = this.w.pendingLaunch();
+      if (lanzada) {
+        if (Date.now() < lanzada.at || this.w.active()) return;
+        this.w.setPendingLaunch(null);
+        const bot = this.w.pickBride(this.d.online, lanzada.bot) ?? this.w.pickBride(this.d.online);
+        if (bot) await this.open(bot, "lanzada", lanzada.userId);
+        return;
+      }
       const inaugural = this.w.inauguralPending();
       if (inaugural && !this.w.active()) {
         const bot = this.w.pickBride(this.d.online, inaugural);
@@ -127,7 +153,7 @@ export class BodasDiscord {
   }
 
   /** La chica publica su adivinanza y Neru abre el hilo de respuestas debajo. */
-  private async open(bot: BotId, kind: RiddleKind): Promise<void> {
+  private async open(bot: BrideId, kind: RiddleKind, lanzadaPor?: string): Promise<void> {
     const s = this.w.settings;
     const channel = findTextChannel(this.d.guild(), s.canal);
     if (!channel) return void (await this.d.report(`⚠️ Bodas: no encuentro #${s.canal}.`));
@@ -137,6 +163,7 @@ export class BodasDiscord {
     const rules = [
       `> 💍 **Respondan en el hilo de abajo 🧵** (aquí afuera no cuenta). Quien acierte primero se casa con ${name} por **24 horas**.`,
       `> ✍️ ${s.intentos} intentos por Papu · ⏳ ${s.duracionMinutos} min · los casados no juegan hasta que termine su boda.`,
+      ...(lanzadaPor ? [`> 🎟️ Boda lanzada por <@${lanzadaPor}>.`] : []),
     ].join("\n");
     const ch = await this.d.sendable(bot, channel.id);
     // Aviso a los 💍 Rizzler (#tus-roles). La chica lo etiqueta si puede (rol Vocaloids); si no (Coro), lo hace Neru.
@@ -167,7 +194,7 @@ export class BodasDiscord {
     }
     this.w.opened({ bot, index, channelId: channel.id, messageId: msg.id, threadId }, kind);
     // Sin la respuesta: #registro-bots lo ven los Mods, que tambien juegan.
-    await this.d.report(`💍 ${name} dejó una adivinanza en #${s.canal}${kind === "inaugural" ? " (la inaugural)" : kind === "divorcio" ? " (tras su divorcio)" : kind === "manual" ? " (la pidió GyroP con /boda)" : ""}.`);
+    await this.d.report(`💍 ${name} dejó una adivinanza en #${s.canal}${kind === "inaugural" ? " (la inaugural)" : kind === "divorcio" ? " (tras su divorcio)" : kind === "manual" ? " (la pidió GyroP con /boda)" : kind === "lanzada" ? ` (la lanzó <@${lanzadaPor}> con su membresía)` : ""}.`);
   }
 
   // ───────────────────────── mensajes ─────────────────────────
@@ -196,12 +223,12 @@ export class BodasDiscord {
     return false;
   }
 
-  private async react(bot: BotId, channelId: string, messageId: string, emoji: string): Promise<void> {
+  private async react(bot: BrideId, channelId: string, messageId: string, emoji: string): Promise<void> {
     const ch = await this.d.sendable(bot, channelId).catch(() => null);
     if (ch && "messages" in ch) await (await ch.messages.fetch(messageId).catch(() => null))?.react(emoji).catch(() => {});
   }
 
-  private async say(bot: BotId, channelId: string, content: string, replyTo: string, users: string[] = []): Promise<void> {
+  private async say(bot: BrideId, channelId: string, content: string, replyTo: string, users: string[] = []): Promise<void> {
     const ch = await this.d.sendable(bot, channelId);
     await ch.send({ content, reply: { messageReference: replyTo, failIfNotExists: false }, allowedMentions: { users, repliedUser: false } });
   }
@@ -262,7 +289,14 @@ export class BodasDiscord {
     const after = this.d.levels.snapshot(m.authorId);
     this.w.marry(bot, m.authorId, m.authorName, gained);
     this.d.quota.reset(m.authorId);
-    this.d.log(`💍 ${m.authorName} se casó con ${name} (+${gained} XP)`);
+    const sobre = this.d.sobreTematico?.(m.authorId, bot) ?? null;
+    this.d.log(`💍 ${m.authorName} se casó con ${name} (+${gained} XP${sobre ? `, ${sobre}` : ""})`);
+    this.d.ambient?.({
+      tipo: "boda",
+      situacion: `${m.authorName} acaba de adivinar la adivinanza de ${name} y quedaron casados por 24 horas (las bodas del servidor son un juego).`,
+      bots: (BOT_IDS as readonly string[]).includes(bot) ? [bot as BotId] : [],
+      comenta: "otro",
+    });
 
     // En el hilo: quien gano y la respuesta; despues se cierra.
     await this.say(bot, m.channelId, `💍 ¡<@${m.authorId}> lo adivinó! La respuesta era **${answer}**. ¡Gracias por jugar, Papus!`, m.messageId, [m.authorId]).catch((e) => logError("boda (hilo)", e));
@@ -274,7 +308,7 @@ export class BodasDiscord {
     const banner = await this.banner(bot, m.authorId, m.authorName, before, after, gained, mult).catch((e) => (logError("banner de boda", e), null));
     const ch = await this.d.sendable(bot, r.channelId);
     await ch.send({
-      content: this.d.phrases.pick(bot, "boda_acierto", { papu: `<@${m.authorId}>` }),
+      content: this.d.phrases.pick(bot, "boda_acierto", { papu: `<@${m.authorId}>` }) + (sobre ? `\n🎁 Regalo de bodas: **${sobre}** (ábrelo en la tienda → Sobres).` : ""),
       files: banner ? [new AttachmentBuilder(banner, { name: "boda.png" })] : [],
       reply: { messageReference: r.messageId, failIfNotExists: false },
       allowedMentions: { users: [m.authorId], repliedUser: false },
@@ -304,8 +338,9 @@ export class BodasDiscord {
 
   /** /boda de GyroP o un Mod: la chica elegida (o la siguiente del mazo) deja su adivinanza ya, sin horario ni gastar las del dia. */
   async boda(i: ChatInputCommandInteraction): Promise<void> {
-    if (!this.d.owners.has(i.user.id) && !(await this.d.isStaff?.(i.user.id))) return void (await i.reply({ content: "¡Eso solo lo usan GyroP y los Mods! 🥖", flags: MessageFlags.Ephemeral }));
-    const chosen = i.options.getString("vocaloid") as BotId | null;
+    if (!this.d.owners.has(i.user.id) && !(await this.d.isStaff?.(i.user.id))) return this.bodaMembresia(i);
+    const chosen = i.options.getString("vocaloid") as BrideId | null;
+    if (this.w.pendingLaunch()) return void (await i.reply({ content: "Hay una boda lanzada por un Papu que sale en unos minutos. Espera a que termine.", flags: MessageFlags.Ephemeral }));
     const active = this.w.active();
     if (active) {
       return void (await i.reply({ content: `Ya hay una adivinanza abierta de ${this.girlName(active.bot)} (cierra ${this.until(active.endsAt)}). Espera a que termine.`, flags: MessageFlags.Ephemeral }));
@@ -326,6 +361,60 @@ export class BodasDiscord {
       this.busy = false;
     }
     await i.editReply(`¡Listo! ${this.girlName(bot)} dejó su adivinanza en #${this.w.settings.canal}. No gastó ninguna de las del día.`);
+  }
+
+  /**
+   * /boda de un Papu con membresía (PLAN §2; Atún y más): Teto avisa al momento a los 💍 Rizzler y la adivinanza sale
+   * `lanzar.bodaEsperaMin` minutos después, para que todos lleguen a tiempo. Quien la lanza juega como todos.
+   * Elegir a la Vocaloid es de 📱 Celular y más; si no, sale al azar.
+   */
+  private async bodaMembresia(i: ChatInputCommandInteraction): Promise<void> {
+    const l = this.d.lanzar;
+    const reply = (content: string) => i.reply({ content, flags: MessageFlags.Ephemeral });
+    if (!l) return void (await reply("¡Eso solo lo usan GyroP y los Mods! 🥖"));
+    const n = await l.nivel(i.user.id);
+    const day = dayKey(new Date(), this.d.timeZone);
+    const via = viaLanzamiento(l, n, 0, i.user.id, "boda", day, day);
+    if (!via) {
+      const dia = n?.bodas.dia ?? 0;
+      return void (await reply(
+        dia
+          ? `Ya lanzaste tus **${dia}** ${dia === 1 ? "boda" : "bodas"} de hoy. ¡Mañana hay más! 💍`
+          : "Lanzar bodas es un beneficio de las **membresías** de Ko-fi, desde 🐟 Atún. Mira #💎・membresías. 💍",
+      ));
+    }
+    if (this.w.pendingLaunch() || this.w.active()) return void (await reply("Ya hay una adivinanza abierta (o a punto de salir). Espera a que termine. 💍"));
+    let chosen = i.options.getString("vocaloid") as BrideId | null;
+    let nota = "";
+    if (chosen && !via.elige) {
+      nota = `\n-# Con ${n ? `${n.emoji} ${n.nombre}` : "tu nivel"} la Vocaloid sale al azar (elegirla es de 📱 Celular y más).`;
+      chosen = null;
+    }
+    if (chosen) {
+      if (!this.d.online.includes(chosen)) return void (await reply(`${this.girlName(chosen)} no está conectada.`));
+      const married = this.w.weddings().find((x) => x.bot === chosen);
+      if (married) return void (await reply(`${this.girlName(chosen)} está ${genderWords(this.w.settings, chosen).casado} con ${married.name} hasta el ${this.until(married.endsAt)}. Elige a otra.`));
+    }
+    const bot = this.w.pickBride(this.d.online, chosen);
+    if (!bot) return void (await reply("No hay ningún Vocaloid libre y conectado ahora. 💍"));
+    const channel = findTextChannel(this.d.guild(), this.w.settings.canal);
+    if (!channel) return void (await reply(`No encuentro #${this.w.settings.canal}.`));
+    await i.deferReply({ flags: MessageFlags.Ephemeral });
+    const espera = (this.d.lanzar?.membresias.settings.lanzar.bodaEsperaMin ?? 4) * 60_000;
+    const at = Date.now() + espera;
+    l.membresias.anotarLanzamiento(i.user.id, via.key, via.day);
+    this.w.setPendingLaunch({ bot, userId: i.user.id, at, nivel: n ? `${n.emoji} ${n.nombre}` : "" });
+    // Aviso a los 💍 Rizzler: lo da Teto (puede etiquetar roles).
+    const ping = avisoPing(this.d.guild(), "bodas");
+    const teto = await this.d.sendable("teto", channel.id).catch(() => null);
+    await teto
+      ?.send({
+        content: `${ping ? `🔔 ${ping.mention} ` : ""}💍 <@${i.user.id}>${n ? ` (${n.emoji} ${n.nombre})` : ""} lanzó una boda con **${this.girlName(bot)}**: la adivinanza sale aquí <t:${Math.floor(at / 1000)}:R>. ¡Prepárense!`,
+        allowedMentions: ping ? { roles: [ping.roleId] } : { parse: [] },
+      })
+      .catch((e) => logError("aviso de boda lanzada", e));
+    await this.d.report(`💍 <@${i.user.id}> lanzó una boda con ${this.girlName(bot)} (sale en ${espera / 60_000} min).`);
+    await i.editReply(`💍 ¡Listo! Avisé a los Rizzler: **${this.girlName(bot)}** deja su adivinanza en <#${channel.id}> <t:${Math.floor(at / 1000)}:R>. Tú también juegas: ¡prepárate!${nota}`);
   }
 
   // ───────────────────────── divorcio ─────────────────────────
@@ -360,6 +449,12 @@ export class BodasDiscord {
     const name = this.girlName(done.bot);
     await i.update({ content: `Listo: te divorciaste de ${name}. Conservas tu XP y tu cuota. Con ${genderWords(this.w.settings, done.bot).el} vuelves a jugar en ${this.w.settings.diasSinRepetir} días desde tu boda.`, components: [] });
     this.d.log(`💔 ${done.name} se divorció de ${name}`);
+    this.d.ambient?.({
+      tipo: "divorcio",
+      situacion: `${done.name} se acaba de divorciar de ${name} antes de que terminara su boda de 24 horas (las bodas del servidor son un juego). Si tú eres ${name}, haz un drama exagerado y en broma.`,
+      bots: (BOT_IDS as readonly string[]).includes(done.bot) ? [done.bot as BotId] : [],
+      comenta: "involucrado",
+    });
     await this.removeEndedRoles().catch((e) => logError("rol de boda (divorcio)", e));
     const channel = findTextChannel(this.d.guild(), this.w.settings.canal);
     if (channel) {
@@ -383,13 +478,13 @@ export class BodasDiscord {
    * ve), pero siempre bajo el rol de Neru: si quedara encima, Neru no podria silenciar a los casados (caso real del
    * 22 oct. 2026). Uno que ya existe y quedo sobre Neru se baja.
    */
-  private async giveRole(bot: BotId, userId: string): Promise<void> {
+  private async giveRole(bot: BrideId, userId: string): Promise<void> {
     const guild = await this.tetoGuild();
     const name = weddingRole(this.w.settings, bot);
     let role = guild.roles.cache.find((x) => channelKey(x.name) === channelKey(name));
     const created = !role;
     if (!role) {
-      role = await guild.roles.create({ name, colors: { primaryColor: this.d.characters[bot].color }, permissions: [], mentionable: false, hoist: false, reason: "Boda con una Vocaloid (24 h)" });
+      role = await guild.roles.create({ name, colors: { primaryColor: this.colorOf(bot) }, permissions: [], mentionable: false, hoist: false, reason: "Boda con una Vocaloid (24 h)" });
     }
     const neruId = this.d.clients.neru?.user?.id;
     const neru = neruId ? await guild.members.fetch(neruId).catch(() => null) : null;
@@ -417,7 +512,7 @@ export class BodasDiscord {
   // ───────────────────────── banner ─────────────────────────
 
   private async banner(
-    bot: BotId,
+    bot: BrideId,
     userId: string,
     papuName: string,
     before: ReturnType<LevelService["snapshot"]>,
@@ -447,7 +542,7 @@ export class BodasDiscord {
     const rank = rankFor(ls, after.level);
     return renderWeddingBanner({
       style: Math.floor(Math.random() * BANNER_STYLES),
-      bride: { name: this.d.characters[bot].displayName, color: `#${this.d.characters[bot].color.toString(16).padStart(6, "0")}`, figure: figure(bot) },
+      bride: { name: this.girlName(bot), color: `#${this.colorOf(bot).toString(16).padStart(6, "0")}`, figure: figure(bot) },
       crowd: others,
       papu: { name: stripNickTag(mb?.displayName ?? papuName), avatar },
       role: weddingRole(this.w.settings, bot),
@@ -457,6 +552,7 @@ export class BodasDiscord {
       multiplier: mult,
       date: new Intl.DateTimeFormat("es-CL", { day: "numeric", month: "short", year: "numeric", timeZone: this.d.timeZone }).format(new Date()),
       seed,
+      membresia: marcoDe(this.d.lanzar && mb ? this.d.lanzar.membresias.nivel(mb.roles.cache.map((r) => r.name)) : null),
     });
   }
 }

@@ -1,0 +1,30 @@
+{
+  "$comment": "Cumpleaños (ideas de wiwi y Ruko se acerca en #ideas-y-opiniones, salón de la fama; GyroP, 18 nov. 2026). Cada Papu registra su día y mes una sola vez con el botón de #tus-roles (lo atiende el worker y queda en D1, tabla cumpleanos); cambiarlo o borrarlo es de GyroP y los Mods con /cumple. Todos los días, desde 'hora' (zona de la cuota, Chile), 'bot' (Ruko; si no está conectada, 'respaldo') escribe en #'canal' los cumpleaños de hoy (con @ al Papu) y los de los próximos 'dias' días (sin @), de Papus y de Vocaloids; si no hay ninguno, no escribe nada. El Papu de cumpleaños gana XP ×'multiplicador' todo su día (se suma al de su membresía) y recibe la insignia 'insignia' (rareza exclusivo: no se vende ni sale en sobres) para siempre; si tiene un lugar de insignia libre, se le pone. Frases fijas de Ruko: cumple_hoy, cumple_vocaloid y cumple_proximos (sin LLM ni cuota).",
+  "activo": true,
+  "hora": 12,
+  "dias": 7,
+  "canal": "general",
+  "bot": "ruko",
+  "respaldo": "teto",
+  "multiplicador": 2,
+  "insignia": "insignia-cumpleanos",
+  "$vocaloids": "Cumpleaños de los Vocaloids (MM-DD): la fecha de lanzamiento oficial de su voz, que es la que celebra el fandom. Teto: 1 de abril (el lore del motor: nació como broma del Día de los Inocentes de 2008). null = sin fecha (no se anuncia). Las de Neru, Haku, flower, Adachi Rei y Ruko vienen de internet ('$fuentes'). Rin y Len comparten el 27 de diciembre (salen juntos en un mismo aviso).",
+  "vocaloids": {
+    "miku": "08-31",
+    "rin": "12-27",
+    "len": "12-27",
+    "luka": "01-30",
+    "kaito": "02-17",
+    "meiko": "11-05",
+    "gumi": "06-26",
+    "gakupo": "07-31",
+    "ia": "01-27",
+    "teto": "04-01",
+    "neru": "11-01",
+    "haku": "11-21",
+    "flower": "05-09",
+    "adachirei": "10-23",
+    "ruko": "11-17"
+  },
+  "$fuentes": "Fechas buscadas el 18 nov. 2026 (el motor no las tiene). Neru: 1 nov. 2007, su primera aparición en 2channel (pixiv, MyAnimeList). Haku: 21 nov. 2007, el día en que CaffEin la dibujó (Niconico Pedia, MyAnimeList). flower: 9 may. 2014, lanzamiento de v flower (Wikipedia). Adachi Rei: missile 39 no fijó un cumpleaños; propuso el 23 de octubre (lanzamiento de su voz REPLIVOICE, 2021; Moegirl); su UTAU salió el 18 jun. 2018. Ruko: 17 nov. 2008, el día de su lanzamiento (Baidu Baike, DiffSinger Wiki, NamuWiki)."
+}

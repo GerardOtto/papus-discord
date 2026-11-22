@@ -249,10 +249,20 @@ describe("config/servidor.json", () => {
     expect(cat!.leen).toBe("todos");
   });
 
-  it("la bóveda y la cola solo para Triple Baka; staff oculto", () => {
-    const cat = (n: string) => layout.categorias.find((c) => c.canales.some((x) => nameKey(x.nombre) === n))!;
-    expect(cat("boveda").leen).toBe("Triple Baka");
-    expect(cat("moderacion").leen).toBe("staff");
+  it("la bóveda solo para Triple Baka (acceso del canal); staff oculto; lo archivado conserva quién lo ve", () => {
+    const leen = (n: string) => {
+      const cat = layout.categorias.find((c) => c.canales.some((x) => nameKey(x.nombre) === n))!;
+      return nameKey(cat.canales.find((x) => nameKey(x.nombre) === n)!.leen ?? cat.leen);
+    };
+    expect(leen("boveda")).toBe("triple-baka");
+    expect(leen("moderacion")).toBe("staff");
+    expect(leen("cola-de-pedidos")).toBe("triple-baka");
+    expect(leen("registro-compras")).toBe("staff");
+    const archivo = layout.categorias.find((c) => nameKey(c.nombre) === "archivo")!;
+    for (const ch of archivo.canales) {
+      expect(ch.archivado, ch.nombre).toBe(true);
+      expect(ch.escriben, ch.nombre).toBe(false);
+    }
   });
 });
 

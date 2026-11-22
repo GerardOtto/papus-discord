@@ -4,6 +4,7 @@
 // (se conectan si tienen token).
 import {
   ActivityType,
+  AttachmentBuilder,
   ChannelType,
   ThreadAutoArchiveDuration,
   AutoModerationActionType,
@@ -11,9 +12,11 @@ import {
   AutoModerationRuleTriggerType,
   Client,
   Events,
+  Partials,
   GatewayIntentBits,
   MessageFlags,
   MessageType,
+  PermissionFlagsBits,
   REST,
   Routes,
   type AutoModerationActionOptions,
@@ -22,6 +25,8 @@ import {
   type Collection,
   type Guild,
   type GuildMember,
+  type PartialGuildMember,
+  type TextChannel,
   type Message,
   type SendableChannels,
 } from "discord.js";
@@ -37,7 +42,10 @@ import type { CalendarService } from "../calendar/service";
 import { emojiMarkup, linkEmojis } from "./emojis";
 import { specialRoleColor, type Especiales } from "../services/especiales";
 import { founderWindowOpen, needsFounder, type FounderSettings } from "../services/founders";
-import { GENERAL_CHAT_MS, type ChannelMessage, type CharlaPort, type GeneralChat } from "../services/charla";
+import { GENERAL_CHAT_MS, type ChannelMessage, type CharlaPort, type CharlaTalker, type GeneralChat } from "../services/charla";
+import { AMBIENT_TICK_MS, type AmbientEvent, type AmbientPort, type AmbientService } from "../ambiente/service";
+import { ADIVINANZAS_TICK_MS, type AdivinanzasPort, type AdivinanzasService } from "../adivinanzas/service";
+import { adivinanzasPort } from "./adivinanzas";
 import { nextPresenceBot, parseFarewell, startDecision, type FarewellRecord } from "../services/presence";
 import { shouldTease } from "../services/vitrina";
 import type { Quota } from "../quota/quota";
@@ -45,6 +53,9 @@ import type { LevelService } from "../levels/service";
 import { stripNickTag } from "../levels/rules";
 import { RuleSet } from "../moderation/rules";
 import { LevelsDiscord } from "./levels";
+import { publicarPecados } from "../pecados/discord";
+import { Comentarista } from "../pecados/comentarista";
+import { loadPecados } from "../pecados/rules";
 import { BodasDiscord } from "./bodas";
 import { RuletaDiscord } from "./ruleta";
 import { SorteoDiscord } from "./sorteo";
@@ -53,15 +64,34 @@ import { IntercambiosDiscord } from "./intercambios";
 import type { IntercambioService } from "../intercambios/service";
 import type { MercadoService } from "../mercado/service";
 import { PeleasDiscord } from "./peleas";
+import { CarrerasDiscord } from "./carreras";
+import { NemesisDiscord } from "./nemesis";
+import type { NemesisService } from "../nemesis/service";
 import { TiendaDiscord } from "./tienda";
 import { toCardEquip } from "../coins/equip";
-import type { DatosBanco } from "../coins/images";
+import type { CardEquip } from "../levels/card";
+import { premiarPrestigio } from "../levels/prestigio";
+import { SalonDeLaFama } from "./salon";
+import { TallerDiscord } from "./taller";
+import { FanartDiscord } from "./fanart";
+import { RedesStore } from "../fanart/redes";
+import { TallerService } from "../taller/service";
+import { marcoDe } from "../membresias/marco";
+import { multiplicadorXp } from "../membresias/rules";
+import type { LanzarPort, MembresiaService } from "../membresias/service";
 import type { CoinService } from "../coins/service";
 import { TriviaDiscord } from "./trivia";
 import { MangoDiscord } from "./mango";
+import { textoDespedida } from "../services/despedidas";
+import { CumpleDiscord } from "./cumple";
+import type { CumpleService } from "../cumpleanos/service";
+import type { AjedrezPuente } from "../ajedrez/puente";
 import { pardonedFromLog, type MangoService } from "../services/mango";
 import { DayStats, papuText, serverText } from "../services/estadisticas";
 import type { ActividadTrivia } from "../trivia/actividad";
+import type { PuenteCelular } from "../celular/puente";
+import { AppsCelular } from "./celular";
+import { NoSePuede } from "../celular/puente";
 import { armarEstado } from "../mundo/estado";
 import { agruparLineas, lineasRegistro, type MundoPuente } from "../mundo/puente";
 import { accionesRuleta, giroPlaza } from "../mundo/ruleta";
@@ -69,16 +99,26 @@ import type { TriviaService } from "../trivia/service";
 import type { RouletteService, SpinResult } from "../ruleta/service";
 import type { SorteoService } from "../sorteo/service";
 import type { PeleaService } from "../peleas/service";
+import type { CarreraService } from "../carreras/service";
+import type { Apostador } from "../carreras/images";
 import type { WeddingService } from "../bodas/service";
 import type { ModerationSettings } from "../moderation/rules";
 import { isTrivialReply, mentionedBots, type ChatPort, type ConversationService } from "../services/conversation";
-import type { AutoModHit, ModerationPort, ModerationService } from "../services/moderation";
+import { pickImage, type ImageAttachment } from "../llm/image";
+import type { AutoModHit, ModerationPort, ModerationService, NeruGif } from "../services/moderation";
 import { MAX_TICKETS_PER_DAY, TicketStore } from "../services/tickets";
 import { fillMentions, loadAnuncios, markAnuncio, mentionedUsernames, pendingAnuncios } from "../services/anuncios";
 import { planWelcomeCleanup, type WelcomeMessage } from "../services/welcome-cleanup";
 import { dayKey, nextDayStart } from "../time";
 import { CHANNELS, channelKey, chunk, findTextChannel } from "./channels";
 import { commandsFor, contextMenusFor, STRIKE_MENU, WARN_MENU } from "./commands";
+import { TarjetaWeb } from "./tarjeta-web";
+import path from "node:path";
+
+/** GIFs de Neru (assets/neru), adjuntos debajo de sus avisos. */
+const NERU_GIFS: Record<NeruGif, string> = {
+  advertencia: path.resolve(import.meta.dirname, "../../assets/neru/advertencia.gif"),
+};
 
 /**
  * Menciones por defecto de todos los bots: solo usuarios, nunca @everyone, @here ni roles. El rol Vocaloids tiene el
@@ -98,7 +138,8 @@ const INTENTS: Record<BotId, GatewayIntentBits[]> = {
     // Quien esta en voz con quien: XP por minuto en voz (niveles).
     GatewayIntentBits.GuildVoiceStates,
   ],
-  teto: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMembers],
+  // Reacciones: ⭐ de GyroP o un Mod lleva un mensaje al #salón-de-la-fama (src/discord/salon.ts).
+  teto: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMembers, GatewayIntentBits.GuildMessageReactions],
   miku: [GatewayIntentBits.Guilds],
   luka: [GatewayIntentBits.Guilds],
   gakupo: [GatewayIntentBits.Guilds],
@@ -138,6 +179,8 @@ const LOCAL_COMMAND_BOTS: CoreBotId[] = ["teto", "neru"];
 const HEARTBEAT_MS = 60_000;
 /** Cada cuanto Teto aplica la XP de la trivia multijugador (Actividad) y calcula los perfiles pedidos. */
 const ACTIVIDAD_MS = 8_000;
+/** Pedidos de las apps del celular de Neru (Mi tarjeta, Tienda…): la página espera la respuesta. */
+const CELULAR_PEDIDOS_MS = 2_000;
 /** El mundo se revisa mas seguido: un @ a un Vocaloid espera respuesta en vivo. */
 const MUNDO_MS = 3_000;
 const CALENDAR_EVERY_MS = 60 * 60_000;
@@ -162,9 +205,15 @@ export interface AppDeps {
   moderationSettings: ModerationSettings;
   /** Se crean con los puertos de esta app (necesitan los clientes conectados). */
   makeConversation: (port: ChatPort) => ConversationService;
+  /** Peso maximo (MB) de una imagen que los Vocaloids miran (PLAN §5.1); null = no ven imagenes. */
+  visionMaxMB?: number | null;
   makeModeration: (port: ModerationPort, exempt: () => ReadonlySet<string>) => ModerationService;
   /** Charla espontanea en #general (cada 20 min, src/services/charla.ts). */
   makeGeneralChat: (port: CharlaPort) => GeneralChat;
+  /** Ambiente casual (PLAN §3.13: reacciones, metiches, comentarios, preguntas al aire, momentos); null = apagado. */
+  makeAmbient?: (talker: CharlaTalker, port: AmbientPort) => AmbientService | null;
+  /** «¡Adivina, Papu!» (PLAN §3.17): adivinanzas al aire con pozo de Shaulitas; null = apagado. */
+  makeAdivinanzas?: (port: AdivinanzasPort) => { service: AdivinanzasService; rolSabelotodo: string; rolAviso: string | null } | null;
   /** Dueños (compartido con la cuota): aqui se agrega el dueño del servidor al conectar. */
   owners: Set<string>;
   /** Trato especial de un Papu concreto (config/especiales.json): sin cuota, su rol de adorno y su trato con un bot. */
@@ -191,22 +240,34 @@ export interface AppDeps {
   trivia?: TriviaService | null;
   /** Trivia multijugador (Actividad de Discord): XP de los aciertos guardados en D1 (null = sin token de Cloudflare). */
   actividad?: ActividadTrivia | null;
+  /** Celular de Neru (PLAN §3.15): XP de los retos del día y perfil (Shaulitas y tarjeta) en D1 (null = sin Cloudflare). */
+  celular?: PuenteCelular | null;
   /** Mundo de los Papus (Actividad 3D): @ a los Vocaloids de la plaza y nivel/cuota de cada Papu (null = sin Cloudflare). */
   mundo?: MundoPuente | null;
   /** Sorteo de GyroP (src/sorteo/; null = desactivado). */
   sorteo?: SorteoService | null;
-  /** 1vs1 de los Vocaloids con apuestas de Shaula-coins (src/peleas/; null = desactivado). */
+  /** 1vs1 de los Vocaloids con apuestas de Shaulitas (src/peleas/; null = desactivado). */
   peleas?: PeleaService | null;
-  /** Shaula-coins: tienda, sobres y objetos de la tarjeta (src/coins/; null = desactivada). */
+  /** Carreras de los Vocaloids con apuestas mutuas (src/carreras/; null = desactivado). PLAN §3.14. */
+  carreras?: CarreraService | null;
+  /** Ruleta de Némesis: ruleta rusa entre dos Papus con Shaulitas (src/nemesis/; null = desactivada). */
+  nemesis?: NemesisService | null;
+  /** Shaulitas: tienda, sobres y objetos de la tarjeta (src/coins/; null = desactivada). */
   coins?: CoinService | null;
-  /** Mercado negro: consumibles con monedas ganadas (src/mercado/; null = desactivado). */
+  /** Cumpleaños de los Papus y los Vocaloids (src/cumpleanos/; null = desactivado). */
+  cumple?: CumpleService | null;
+  /** Ajedrez del celular: apuestas y avisos de Neru (src/ajedrez/puente.ts; null = sin Cloudflare o sin tienda). */
+  ajedrez?: AjedrezPuente | null;
+  /** Mercado negro: consumibles con Shaulitas (src/mercado/; null = desactivado). */
   mercado?: MercadoService | null;
   /** Intercambios entre Papus (src/intercambios/; null = desactivados). */
   intercambios?: IntercambioService | null;
-  /** PayPal.me y cuenta en Chile de GyroP para vender monedas (del .env; null = no se ofrece). */
-  pagos?: { paypalMe: string | null; banco: DatosBanco | null };
+  /** Membresías de Ko-fi: XP, lanzar peleas y bodas, sobres temáticos, descuentos (src/membresias/; null sin tienda). */
+  membresias?: MembresiaService | null;
+  /** Personalizar la tarjeta en la web (PAPUS_WEB y TARJETA_CLAVE del .env; null = sin el botón). */
+  tarjetaWeb?: { base: string; clave: string } | null;
   /** Calendario automatico de #calendario (null = desactivado: falta el token de Cloudflare o la carpeta). */
-  calendar: { service: CalendarService; channel: string } | null;
+  calendar: { service: CalendarService; channel: string; publicar: boolean } | null;
   log: LogFn;
 }
 
@@ -220,13 +281,22 @@ export class PapusApp {
   private heartbeat: ReturnType<typeof setInterval> | null = null;
   private calendarTimer: ReturnType<typeof setInterval> | null = null;
   private actividadTimer: ReturnType<typeof setInterval> | null = null;
+  private celularTimer: ReturnType<typeof setInterval> | null = null;
+  private ajedrezTimer: ReturnType<typeof setInterval> | null = null;
+  private celularPedidosTimer: ReturnType<typeof setInterval> | null = null;
   private mundoTimer: ReturnType<typeof setInterval> | null = null;
   private rolesTimer: ReturnType<typeof setInterval> | null = null;
   private expiryTimer: ReturnType<typeof setTimeout> | null = null;
   private welcomeTimer: ReturnType<typeof setTimeout> | null = null;
   private chatTimer: ReturnType<typeof setInterval> | null = null;
   private generalChat!: GeneralChat;
+  private ambient: AmbientService | null = null;
+  private ambientTimer: ReturnType<typeof setInterval> | null = null;
+  private adivinanzas: AdivinanzasService | null = null;
+  private adivinanzasTimer: ReturnType<typeof setInterval> | null = null;
   private levels!: LevelsDiscord;
+  /** Desafío semanal de los 7 pecados (config/pecados.json). */
+  private readonly pecados = loadPecados();
   private bodas: BodasDiscord | null = null;
   private ruleta: RuletaDiscord | null = null;
   private trivia: TriviaDiscord | null = null;
@@ -234,7 +304,16 @@ export class PapusApp {
   private mercado: MercadoDiscord | null = null;
   private intercambios: IntercambiosDiscord | null = null;
   private peleas: PeleasDiscord | null = null;
+  private carreras: CarrerasDiscord | null = null;
+  /** Emojis de la aplicación de Teto (nombre → "<:x:id>"): las caras de los corredores de las carreras. */
+  private appEmojis = new Map<string, string>();
+  private nemesis: NemesisDiscord | null = null;
   private tienda: TiendaDiscord | null = null;
+  private cumple: CumpleDiscord | null = null;
+  /** Taller de los Papus: /aportar (PLAN §2; necesita las membresías). */
+  private taller: TallerDiscord | null = null;
+  /** #🎨・fanart: /redes y la respuesta de Teto en cada fanart (PLAN §8). */
+  private fanart: FanartDiscord | null = null;
   private readonly mango: MangoDiscord | null;
   /** Mensajes enviados por dia y los numeros que da Mango9374. */
   private readonly dayStats: DayStats;
@@ -245,9 +324,9 @@ export class PapusApp {
     // enforceNonce: si Discord crea el mensaje pero la confirmacion no llega, discord.js reintenta el envio; con el
     // nonce, Discord devuelve el mensaje que ya existe en vez de publicarlo dos veces (caso real del 21 oct. 2026: Miku
     // respondio dos veces lo mismo a los 8 @ de un Papu).
-    this.clients = Object.fromEntries(d.config.activeBots.map((id) => [id, new Client({ intents: INTENTS[id], enforceNonce: true, allowedMentions: { parse: [...SAFE_MENTIONS.parse], repliedUser: SAFE_MENTIONS.repliedUser } })])) as Record<BotId, Client>;
+    this.clients = Object.fromEntries(d.config.activeBots.map((id) => [id, new Client({ intents: INTENTS[id], ...(id === "teto" ? { partials: [Partials.Message, Partials.Channel, Partials.Reaction, Partials.GuildMember, Partials.User] } : {}), enforceNonce: true, allowedMentions: { parse: [...SAFE_MENTIONS.parse], repliedUser: SAFE_MENTIONS.repliedUser } })])) as Record<BotId, Client>;
     this.dayStats = new DayStats({ db: d.db, quota: d.quota, levels: d.levels, timeZone: d.config.quotaTimeZone, roulette: d.roulette, weddings: d.weddings, trivia: d.trivia, coins: d.coins, owners: d.owners });
-    const names = Object.fromEntries(BOT_IDS.map((b) => [b, d.characters[b].displayName]));
+    const names = { ...Object.fromEntries(BOT_IDS.map((b) => [b, d.characters[b].displayName])), mango: d.weddings?.settings.chicas.mango?.nombre ?? "Mango9374" };
     this.mango =
       d.mango && d.config.mangoToken
         ? new MangoDiscord({
@@ -307,25 +386,58 @@ export class PapusApp {
         const ch = findTextChannel(this.guild, CHANNELS.moderacion);
         return ch ? this.sendable("neru", ch.id) : null;
       },
-      // Objetos de las Shaula-coins en la tarjeta y bono por subir de nivel (PLAN §3.6).
-      equipment: this.d.coins ? (userId) => toCardEquip(this.d.coins!.equipped(userId), this.d.coins!.founderNumber(userId)) : undefined,
+      // Objetos de las Shaulitas en la tarjeta y bono por subir de nivel (PLAN §3.6).
+      equipment: this.d.coins ? (userId) => this.cardEquip(userId) : undefined,
       onLevelUp: this.d.coins ? (change) => void this.d.coins!.onLevelChange(change) : undefined,
+      membresia: (roles) => marcoDe(this.d.membresias?.nivel(roles)),
+      presentador: () => this.presentadorRanking(),
+      despuesDelRanking: (channelId, day) =>
+        publicarPecados(
+          { db: this.d.db, settings: this.pecados, phrases: this.d.phrases, timeZone: config.quotaTimeZone, sendable: (bot, id) => this.sendable(bot, id), report: (t) => this.report(t), log: this.d.log },
+          channelId,
+          day,
+        ),
+      premioPrestigio: this.d.coins ? (userId, stars) => premiarPrestigio(this.d.levels.settings, this.d.coins!, this.d.membresias ?? null, userId, stars) : undefined,
       log: this.d.log,
     });
+    // Gallerian (Kaito) comenta las ganancias de Shaulitas en la semana de la Avaricia (src/pecados/comentarista.ts).
+    if (this.d.coins) {
+      const comentarista = new Comentarista({
+        db: this.d.db,
+        settings: this.pecados,
+        phrases: this.d.phrases,
+        timeZone: config.quotaTimeZone,
+        canal: (nombre) => findTextChannel(this.guild, nombre)?.id ?? null,
+        canalNemesis: (id) => (this.d.db.prepare("SELECT canal FROM nemesis WHERE id = ?").get(id) as { canal: string | null } | undefined)?.canal ?? null,
+        esBot: (userId) => Object.values(this.clients).some((c) => c.user?.id === userId) || this.mango?.client.user?.id === userId,
+        sendable: (bot, channelId) => this.sendable(bot, channelId),
+        log: this.d.log,
+      });
+      this.d.coins.onGain = (userId, cantidad, motivo) => comentarista.onGain(userId, cantidad, motivo);
+    }
     if (this.d.weddings) {
       this.bodas = new BodasDiscord({
+        ambient: (e) => this.ambientEvent(e),
         weddings: this.d.weddings,
         levels: this.d.levels,
         levelsDiscord: this.levels,
         quota: this.d.quota,
         phrases: this.d.phrases,
         characters: this.d.characters,
-        online: config.activeBots,
+        // Mango9374 tambien se casa (pedido de GyroP, 12 nov. 2026) si conecto y esta en config/bodas.json.
+        online: mangoUp ? [...config.activeBots, "mango"] : config.activeBots,
         owners: this.d.owners,
         isStaff: (userId) => this.isStaff(userId),
-        clients: this.clients,
+        lanzar: this.lanzarPort(),
+        sobreTematico: this.d.coins ? (userId, bot) => this.d.coins!.regalarTematicoDe(userId, bot) : undefined,
+        clients: mangoUp ? { ...this.clients, mango: this.mango!.client } : this.clients,
         guild: () => this.guild,
-        sendable: (bot, channelId) => this.sendable(bot, channelId),
+        sendable: async (bot, channelId) => {
+          if (bot !== "mango") return this.sendable(bot, channelId);
+          const ch = await this.mango!.client.channels.fetch(channelId);
+          if (!ch?.isSendable()) throw new Error(`mango no puede escribir en el canal ${channelId}`);
+          return ch;
+        },
         report: (text) => this.report(text),
         timeZone: config.quotaTimeZone,
         log: this.d.log,
@@ -334,6 +446,7 @@ export class PapusApp {
     if (this.d.roulette) {
       this.ruleta = new RuletaDiscord({
         roulette: this.d.roulette,
+        membresia: (roles) => marcoDe(this.d.membresias?.nivel(roles)),
         levelsDiscord: this.levels,
         phrases: this.d.phrases,
         decks: this.d.decks,
@@ -347,6 +460,7 @@ export class PapusApp {
     }
     if (this.d.trivia) {
       this.trivia = new TriviaDiscord({
+        ambient: (e) => this.ambientEvent(e),
         trivia: this.d.trivia,
         levelsDiscord: this.levels,
         phrases: this.d.phrases,
@@ -375,12 +489,46 @@ export class PapusApp {
     }
     if (this.d.peleas) {
       this.peleas = new PeleasDiscord({
+        ambient: (e) => this.ambientEvent(e),
         peleas: this.d.peleas,
         phrases: this.d.phrases,
         db: this.d.db,
         characters: this.d.characters,
         owners: this.d.owners,
         isStaff: (userId) => this.isStaff(userId),
+        lanzar: this.lanzarPort(),
+        guild: () => this.guild,
+        sendable: (bot, channelId) => this.sendable(bot, channelId),
+        report: (text) => this.report(text),
+        timeZone: config.quotaTimeZone,
+        // Cara de cada luchador en el marcador (los emojis de las carreras: aplicación de Teto o del servidor).
+        cara: (id) => {
+          const nombre = this.d.carreras?.settings.corredores[id]?.emoji;
+          return nombre ? (this.appEmojis.get(nombre) ?? this.guild.emojis.cache.find((e) => e.name === nombre)?.toString() ?? null) : null;
+        },
+        log: this.d.log,
+      });
+    }
+    if (this.d.carreras) {
+      const carreras = this.d.carreras;
+      this.carreras = new CarrerasDiscord({
+        carreras,
+        phrases: this.d.phrases,
+        info: (id) => {
+          const ch = this.d.characters[id as BotId];
+          const l = this.d.peleas?.settings.luchadores[id];
+          return { nombre: ch?.displayName ?? l?.nombre ?? id, color: ch ? `#${ch.color.toString(16).padStart(6, "0")}` : (l?.color ?? "#ffb020") };
+        },
+        emoji: (name) => this.appEmojis.get(name) ?? this.guild.emojis.cache.find((e) => e.name === name)?.toString() ?? null,
+        papus: (ids) => this.apostadores(ids),
+        honor: () => this.papusDeHonor(),
+        peleaActiva: () => !!this.d.peleas?.active(),
+        ambient: (e) => this.ambientEvent(e),
+        pique: async (bot, target, situacion) => (await this.generalChat.tick({ force: true, bot, target, pique: situacion })) !== "skipped",
+        online: () => config.activeBots,
+        owners: this.d.owners,
+        isStaff: (userId) => this.isStaff(userId),
+        lanzar: this.lanzarPort(),
         guild: () => this.guild,
         sendable: (bot, channelId) => this.sendable(bot, channelId),
         report: (text) => this.report(text),
@@ -388,7 +536,74 @@ export class PapusApp {
         log: this.d.log,
       });
     }
-    if (this.d.coins) {
+    if (this.d.nemesis) {
+      this.nemesis = new NemesisDiscord({
+        ambient: (e) => this.ambientEvent(e),
+        membresia: (roles) => marcoDe(this.d.membresias?.nivel(roles)),
+        svc: this.d.nemesis,
+        phrases: this.d.phrases,
+        owners: this.d.owners,
+        isStaff: (userId) => this.isStaff(userId),
+        guild: () => this.guild,
+        sendable: (channelId, bot) => this.sendable(bot ?? "teto", channelId),
+        // Desafíos de los Vocaloids (14 nov. 2026): cualquier Vocaloid conectado puede retar a un Papu activo.
+        botOf: (userId) => this.botByUserId.get(userId),
+        houseBots: () => [...this.botByUserId.keys()],
+        timeZone: config.quotaTimeZone,
+        report: (text) => this.report(text),
+        log: this.d.log,
+      });
+    }
+    // Multiplicador de XP de las membresías (PLAN §2): según los roles de Ko-fi que tenga en el servidor. Y el de su
+    // cumpleaños (×2 todo el día, 18 nov. 2026): se multiplican.
+    if (this.d.membresias || this.d.cumple) {
+      const m = this.d.membresias;
+      const c = this.d.cumple;
+      this.d.levels.membershipBoost = (id) => {
+        const mb = m ? this.guild?.members.cache.get(id) : null;
+        return (mb ? multiplicadorXp(m!.nivel(mb.roles.cache.map((r) => r.name))) : 1) * (c?.boost(id) ?? 1);
+      };
+    }
+    if (this.d.cumple) {
+      this.cumple = new CumpleDiscord({
+        cumple: this.d.cumple,
+        coins: this.d.coins,
+        phrases: this.d.phrases,
+        guild: () => this.guild,
+        online: () => this.d.config.activeBots,
+        sendable: (bot, channelId) => this.sendable(bot, channelId),
+        displayName: (bot) => this.d.characters[bot].displayName,
+        owners: this.d.owners,
+        isStaff: (userId) => this.isStaff(userId),
+        report: (text) => this.report(text),
+        log: this.d.log,
+      });
+    }
+    if (this.d.membresias) {
+      const m = this.d.membresias;
+      this.taller = new TallerDiscord({
+        taller: new TallerService(this.d.db),
+        niveles: m.settings.niveles,
+        nivel: (id) => this.lanzarPort()!.nivel(id),
+        owners: this.d.owners,
+        isStaff: (userId) => this.isStaff(userId),
+        filtro: (text) => {
+          const v = new RuleSet(this.d.moderationSettings).check({ text, targetsSomeone: true, memberAgeHours: 1e6, personalData: true });
+          return v ? v.detail : null;
+        },
+        temporadaDesde: () => Date.parse(`${this.d.coins?.settings.temporada.desde ?? "2026-01-01"}T00:00:00-03:00`),
+        trivia: this.d.trivia ?? null,
+        weddings: this.d.weddings ?? null,
+        peleas: this.d.peleas ?? null,
+        nombreDe: (id) => this.d.characters[id as BotId]?.displayName ?? this.d.peleas?.settings.luchadores[id]?.nombre ?? (id === "mango" ? "Mango9374" : id),
+        teto: this.clients.teto,
+        guild: () => this.guild,
+        sendable: (channelId) => this.sendable("teto", channelId),
+        report: (text) => this.report(text),
+      });
+      this.taller.start();
+    }
+    if (this.d.coins && this.d.membresias) {
       this.tienda = new TiendaDiscord({
         coins: this.d.coins,
         levelsDiscord: this.levels,
@@ -397,10 +612,25 @@ export class PapusApp {
         owners: this.d.owners,
         clients: this.clients,
         online: config.activeBots,
-        pagos: this.d.pagos ?? { paypalMe: null, banco: null },
+        membresias: this.d.membresias!,
+        web: this.d.tarjetaWeb
+          ? new TarjetaWeb({
+              coins: this.d.coins,
+              store: this.d.levels.store,
+              cardData: (userId) => this.levels.cardData(userId),
+              founder: (userId) => this.d.coins!.founderNumber(userId),
+              base: this.d.tarjetaWeb.base,
+              clave: this.d.tarjetaWeb.clave,
+              log: (msg) => this.d.log(`⚠️ ${msg}`),
+            })
+          : null,
         guild: () => this.guild,
         sendable: (bot, channelId) => this.sendable(bot, channelId),
         report: (text) => this.report(text),
+        filtro: (text) => {
+          const v = new RuleSet(this.d.moderationSettings).check({ text, targetsSomeone: true, memberAgeHours: 1e6, personalData: true });
+          return v ? v.detail : null;
+        },
         log: this.d.log,
       });
     }
@@ -432,6 +662,8 @@ export class PapusApp {
         guild: () => this.guild,
         sendable: (bot, channelId) => this.sendable(bot, channelId),
         report: (text) => this.report(text),
+        timeZone: this.d.config.quotaTimeZone,
+        botName: (bot) => this.d.characters[bot].displayName,
         log: this.d.log,
       });
     }
@@ -457,6 +689,8 @@ export class PapusApp {
     if (lastSeen > 0) await this.reconnectTasks(lastSeen).catch((e) => logError("tareas de reconexión", e));
     await this.cleanWelcome().catch((e) => logError("limpieza de #bienvenida", e));
     await this.sendAnuncios().catch((e) => logError("avisos de una vez", e));
+    // #despedidas: Teto lo crea al arrancar si no existe (antes esperaba a que alguien se fuera).
+    await this.ensureFarewellChannel().catch((e) => logError("canal de despedidas", e));
     this.touchLastSeen();
     this.lastBeat = Date.now();
     this.heartbeat = setInterval(() => this.beat(), HEARTBEAT_MS);
@@ -465,20 +699,128 @@ export class PapusApp {
     this.chatTimer = setInterval(() => {
       if (!this.stopping) void this.generalChat.tick().catch((e) => logError("charla en #general", e));
     }, GENERAL_CHAT_MS);
+    this.ambient = this.d.makeAmbient?.(this.generalChat, this.ambientPort()) ?? null;
+    if (this.ambient) {
+      const ambient = this.ambient;
+      this.ambientTimer = setInterval(() => {
+        if (!this.stopping) void ambient.tick().catch((e) => logError("ambiente (reloj)", e));
+      }, AMBIENT_TICK_MS);
+    }
+    // «¡Adivina, Papu!» (PLAN §3.17): el reloj cada 5 s (pistas, pozo, final a los 2 min y el plan del día).
+    let rolSabelotodo = "🧠 Sabelotodo";
+    const adiv = this.d.makeAdivinanzas?.(
+      adivinanzasPort({ guild: () => this.guild, clients: this.clients, sendable: (bot, id) => this.sendable(bot, id), get rolSabelotodo() { return rolSabelotodo; }, log: this.d.log }),
+    ) ?? null;
+    if (adiv) {
+      rolSabelotodo = adiv.rolSabelotodo;
+      this.adivinanzas = adiv.service;
+      if (adiv.rolAviso) void this.ensurePlainRole(adiv.rolAviso, "Aviso de #tus-roles: ¡Adivina, Papu!").catch((e) => logError("rol de aviso de adivinanzas", e));
+      this.adivinanzasTimer = setInterval(() => {
+        if (!this.stopping) void adiv.service.tick().catch((e) => logError("adivinanzas al aire", e));
+      }, ADIVINANZAS_TICK_MS);
+    }
     if (this.d.actividad) {
       const actividad = this.d.actividad;
       actividad.onChange = (change, channelId) => this.levels.handle(change, channelId ? { channelId } : {});
       actividad.onPremio = async (userId, premio, channelId) => void (await this.trivia?.premioActividad(userId, premio, channelId));
       let busy = false;
+      let mecenasAt = 0;
       this.actividadTimer = setInterval(() => {
         if (busy || this.stopping) return;
         busy = true;
+        // Cada hora: «Con el apoyo de…» de la portada (membresías con nombrePortada: Celular y más; PLAN §2).
+        if (this.d.membresias && Date.now() - mecenasAt > 3_600_000) {
+          mecenasAt = Date.now();
+          const roles = new Set(this.d.membresias.settings.niveles.filter((n) => n.nombrePortada).map((n) => n.rol));
+          const nombres = new Set<string>();
+          for (const r of this.guild.roles.cache.values()) if (roles.has(r.name)) for (const mb of r.members.values()) if (!mb.user.bot && !this.d.owners.has(mb.id)) nombres.add(stripNickTag(mb.displayName));
+          void actividad.setMecenas([...nombres]).catch((e) => logError("portada de la trivia", e));
+        }
         void actividad
           .sync()
           .then((n) => n && this.d.log(`🧠 Trivia multijugador: XP de ${n} acierto(s) aplicada`))
           .catch((e) => logError("trivia multijugador", e))
           .finally(() => (busy = false));
       }, ACTIVIDAD_MS);
+    }
+    if (this.d.celular) {
+      const celular = this.d.celular;
+      celular.onChange = (change) => this.levels.handle(change, {});
+      celular.perfil = async (userId) => {
+        if (!(await this.guild.members.fetch(userId).catch(() => null))) return null;
+        return { shaulitas: this.d.coins?.wallet(userId).monedas ?? 0, tarjeta: await this.levels.cardPng(userId) };
+      };
+      const apps = new AppsCelular({
+        coins: this.d.coins ?? null,
+        store: this.d.levels.store,
+        cardData: (userId) => this.levels.cardData(userId),
+        founder: (userId) => this.d.coins?.founderNumber(userId) ?? null,
+        mercado: this.mercado,
+        tienda: this.tienda,
+        comercio: this.intercambios,
+        ruleta: this.ruleta
+          ? {
+              celularEstado: (userId) => this.ruleta!.celularEstado(userId),
+              girar: async (userId, accion, noSePuede) => {
+                const mb = await this.guild.members.fetch(userId).catch(() => null);
+                const nombre = stripNickTag(mb?.displayName ?? "Papu");
+                const avatar = mb?.user.displayAvatarURL({ extension: "png", size: 128 }) ?? "";
+                return this.ruleta!.celularGirar(userId, accion, nombre, avatar, noSePuede);
+              },
+            }
+          : null,
+        donar: {
+          estado: (userId) => {
+            const left = this.d.quota.dailyLeft(userId);
+            return { quedan: Number.isFinite(left) ? left : 0, tope: this.d.quota.donatedCap, sinLimite: !Number.isFinite(left) };
+          },
+          donar: (fromId, toId, n) => this.donarDesdeCelular(fromId, toId, n),
+        },
+        buscarPapus: async (q) => {
+          const found = await this.guild.members.search({ query: q, limit: 15 }).catch(() => null);
+          return found ? [...found.values()].filter((m) => !m.user.bot).map((m) => ({ id: m.id, nombre: stripNickTag(m.displayName) })) : [];
+        },
+      });
+      celular.manejar = (p) => apps.manejar(p);
+      // Pedidos de las apps (Mi tarjeta…): vuelta rápida, para que la página no espere.
+      let ocupado = false;
+      this.celularPedidosTimer = setInterval(() => {
+        if (ocupado || this.stopping) return;
+        ocupado = true;
+        void celular
+          .pedidos((msg) => this.d.log(`⚠️ ${msg}`))
+          .catch((e) => logError("pedidos del celular", e))
+          .finally(() => (ocupado = false));
+      }, CELULAR_PEDIDOS_MS);
+      let busy = false;
+      this.celularTimer = setInterval(() => {
+        if (busy || this.stopping) return;
+        busy = true;
+        void celular
+          .sync()
+          .then((r) => r.premios && this.d.log(`📱 Celular de Neru: XP de ${r.premios} reto(s) aplicada`))
+          .catch((e) => logError("celular de Neru", e))
+          .finally(() => (busy = false));
+      }, ACTIVIDAD_MS);
+    }
+    if (this.d.ajedrez) {
+      // Ajedrez (celular de Neru): cada 5 s Neru cobra y paga las apuestas y avisa retos y resultados en #general.
+      const ajedrez = this.d.ajedrez;
+      let ocupadoAj = false;
+      this.ajedrezTimer = setInterval(() => {
+        if (ocupadoAj || this.stopping) return;
+        ocupadoAj = true;
+        void ajedrez
+          .tick()
+          .then(async (avisos) => {
+            const general = avisos.length ? findTextChannel(this.guild, CHANNELS.general) : null;
+            if (!general) return;
+            const ch = await this.sendable("neru", general.id);
+            for (const a of avisos) await ch.send({ content: a.texto, allowedMentions: { users: a.menciones } });
+          })
+          .catch((e) => logError("ajedrez", e))
+          .finally(() => (ocupadoAj = false));
+      }, 5000);
     }
     if (this.d.mundo) {
       const mundo = this.d.mundo;
@@ -567,10 +909,15 @@ export class PapusApp {
       this.calendarTimer = setInterval(() => void this.updateCalendar().catch((e) => logError("calendario", e)), CALENDAR_EVERY_MS);
     }
     await this.report(`✅ Bots en línea (${[...config.activeBots, ...(mangoUp ? ["mango9374"] : [])].join(", ")}).`);
-    // Tienda de Shaula-coins: emojis, paquete de fundadores, menu fijado y vitrina del dia.
+    // Tienda de Shaulitas: emojis, paquete de fundadores, menu fijado y vitrina del dia.
     void this.tienda?.start().catch((e) => logError("tienda", e));
     // 1vs1: lo apostado en una pelea que quedo a medias (reinicio) se devuelve.
     void this.peleas?.start().catch((e) => logError("peleas", e));
+    // Carreras: las caras de los corredores (emojis de la aplicación de Teto) y lo apostado en una carrera a medias.
+    void this.loadAppEmojis()
+      .then(() => this.carreras?.start())
+      .catch((e) => logError("carreras", e));
+    void this.nemesis?.start().catch((e) => logError("ruleta de Némesis", e));
     // Mercado negro: rol del aviso y el mensaje de Neru (abre una hora al dia, a una hora sorpresa).
     void this.mercado?.start().catch((e) => logError("mercado negro", e));
     // Intercambios: el canal #centro-de-comercio (con su modo lento) y las ofertas vencidas.
@@ -580,7 +927,6 @@ export class PapusApp {
   }
 
   private stopping = false;
-  private readonly tipNudges = new Map<string, number>();
   private readonly tickets: TicketStore;
 
   async stop(): Promise<void> {
@@ -589,12 +935,19 @@ export class PapusApp {
     if (this.heartbeat) clearInterval(this.heartbeat);
     if (this.calendarTimer) clearInterval(this.calendarTimer);
     if (this.actividadTimer) clearInterval(this.actividadTimer);
+    if (this.celularTimer) clearInterval(this.celularTimer);
+    if (this.ajedrezTimer) clearInterval(this.ajedrezTimer);
+    if (this.celularPedidosTimer) clearInterval(this.celularPedidosTimer);
     if (this.mundoTimer) clearInterval(this.mundoTimer);
     if (this.rolesTimer) clearInterval(this.rolesTimer);
     if (this.expiryTimer) clearTimeout(this.expiryTimer);
     if (this.welcomeTimer) clearTimeout(this.welcomeTimer);
     if (this.chatTimer) clearInterval(this.chatTimer);
+    if (this.ambientTimer) clearInterval(this.ambientTimer);
+    if (this.adivinanzasTimer) clearInterval(this.adivinanzasTimer);
     this.peleas?.stop();
+    this.carreras?.stop();
+    this.nemesis?.stop();
     await this.farewell().catch((e) => logError("despedida", e));
     this.touchLastSeen();
     await Promise.all([...this.d.config.activeBots.map((id) => this.clients[id].destroy()), this.mango?.stop()]);
@@ -701,9 +1054,12 @@ export class PapusApp {
     if (!this.stopping) void this.bodas?.tick().catch((e) => logError("bodas", e));
     if (!this.stopping) void this.tienda?.tick().catch((e) => logError("tienda", e));
     if (!this.stopping) void this.peleas?.tick().catch((e) => logError("pelea automática", e));
+    if (!this.stopping) void this.carreras?.tick().catch((e) => logError("carrera automática", e));
+    if (!this.stopping) void this.nemesis?.tick().catch((e) => logError("ruleta de Némesis", e));
     if (!this.stopping) void this.mercado?.tick().catch((e) => logError("mercado negro", e));
     if (!this.stopping) void this.intercambios?.tick().catch((e) => logError("intercambios", e));
     if (!this.stopping) void this.levels.publishDailyRanking().catch((e) => logError("ranking del día", e));
+    if (!this.stopping) void this.cumple?.tick().catch((e) => logError("cumpleaños", e));
     if (gap < HEARTBEAT_MS * 3) return;
     this.d.log(`El PC despertó tras ${Math.round(gap / 60_000)} min de suspensión`);
     void (async () => {
@@ -717,6 +1073,30 @@ export class PapusApp {
   private wireEvents(): void {
     const neru = this.clients.neru;
     neru.on(Events.MessageCreate, (m) => void this.onMessage(m).catch((e) => logError("mensaje", e)));
+    // #salón-de-la-fama: ⭐ de GyroP o un Mod (PLAN §2).
+    const salon = new SalonDeLaFama({
+      db: this.d.db,
+      owners: this.d.owners,
+      isStaff: (userId) => this.isStaff(userId),
+      guild: () => this.guild,
+      sendable: (channelId) => this.sendable("teto", channelId),
+      report: (text) => this.report(text),
+    });
+    this.clients.teto.on(Events.MessageReactionAdd, (r, u) => void salon.onReaction(r, u).catch((e) => logError("salón de la fama", e)));
+    // #🎨・fanart: Teto responde cada publicación nueva con las redes del artista (PLAN §8).
+    this.fanart = new FanartDiscord({
+      redes: new RedesStore(this.d.db),
+      phrases: this.d.phrases,
+      tetoId: () => this.clients.teto.user?.id,
+      owners: this.d.owners,
+      isStaff: (userId) => this.isStaff(userId),
+      filtro: (text) => {
+        const v = new RuleSet(this.d.moderationSettings).check({ text, targetsSomeone: true, memberAgeHours: 1e6, personalData: false });
+        return v ? v.detail : null;
+      },
+      report: (text) => this.report(text),
+    });
+    this.clients.teto.on(Events.ThreadCreate, (t, nuevo) => void this.fanart?.onThreadCreate(t, nuevo).catch((e) => logError("fanart nuevo", e)));
     neru.on(Events.AutoModerationActionExecution, (exec) => {
       if (exec.action.type !== AutoModerationActionType.BlockMessage || exec.guild.id !== this.guild.id) return;
       const ruleName = exec.autoModerationRule?.name ?? "AutoMod";
@@ -728,6 +1108,11 @@ export class PapusApp {
       if (member.user.bot || member.guild.id !== this.guild.id) return;
       void this.welcome([member.id]).catch((e) => logError("bienvenida", e));
       void this.grantEveryone([member.id]).catch((e) => logError("rol Papu", e));
+    });
+    // #despedidas (idea de Flor_fino; GyroP, 18 nov. 2026): Teto avisa quién se fue, con frase fija.
+    this.clients.teto.on(Events.GuildMemberRemove, (member) => {
+      if (member.user.bot || member.guild.id !== this.guild.id) return;
+      void this.saySeFue(member).catch((e) => logError("despedida", e));
     });
     // Ko-fi da el rol del nivel; si es la primera semana, Teto agrega la insignia Fundador.
     this.clients.teto.on(Events.GuildMemberUpdate, (old, member) => {
@@ -743,12 +1128,12 @@ export class PapusApp {
     for (const id of this.d.config.activeBots) {
       this.clients[id].on(Events.InteractionCreate, (i) => {
         if (i.isChatInputCommand()) void this.onCommand(id, i).catch((e) => logError(`comando /${i.commandName}`, e));
-        else if (i.isAutocomplete() && i.commandName === "pelea") void this.peleas?.autocomplete(i).catch((e) => logError("autocompletar /pelea", e));
+        else if (i.isAutocomplete() && (i.commandName === "pelea" || i.commandName === "aportar")) void this.peleas?.autocomplete(i).catch((e) => logError("autocompletar /pelea", e));
         else if (i.isButton())
-          void (async () => (await this.trivia?.button(i)) || (await this.bodas?.button(i)) || (await this.ruleta?.button(i)) || (await this.sorteo?.button(i)) || (await this.peleas?.button(i)) || (await this.mercado?.button(i)) || (await this.intercambios?.button(i)) || (await this.tienda?.button(i)) || (await this.levels.button(i)))().catch((e) => logError(`botón ${i.customId}`, e));
+          void (async () => (await this.trivia?.button(i)) || (await this.bodas?.button(i)) || (await this.ruleta?.button(i)) || (await this.sorteo?.button(i)) || (await this.peleas?.button(i)) || (await this.carreras?.button(i)) || (await this.nemesis?.button(i)) || (await this.mercado?.button(i)) || (await this.intercambios?.button(i)) || (await this.tienda?.button(i)) || (await this.taller?.button(i)) || (await this.fanart?.button(i)) || (await this.levels.button(i)))().catch((e) => logError(`botón ${i.customId}`, e));
         else if (i.isUserSelectMenu()) void (async () => (await this.sorteo?.userSelect(i)) || (await this.mercado?.userSelect(i)) || (await this.intercambios?.userSelect(i)))().catch((e) => logError(`menú ${i.customId}`, e));
         else if (i.isStringSelectMenu()) void (async () => (await this.mercado?.select(i)) || (await this.intercambios?.select(i)) || (await this.trivia?.select(i)) || (await this.tienda?.select(i)))().catch((e) => logError(`menú ${i.customId}`, e));
-        else if (i.isModalSubmit()) void (async () => (await this.peleas?.modal(i)) || (await this.trivia?.modal(i)) || (await this.intercambios?.modal(i)))().catch((e) => logError(`formulario ${i.customId}`, e));
+        else if (i.isModalSubmit()) void (async () => (await this.peleas?.modal(i)) || (await this.carreras?.modal(i)) || (await this.trivia?.modal(i)) || (await this.intercambios?.modal(i)) || (await this.tienda?.modal(i)))().catch((e) => logError(`formulario ${i.customId}`, e));
         else if (id === "neru" && i.isMessageContextMenuCommand() && i.commandName === WARN_MENU)
           void this.warnFromMenu(i).catch((e) => logError("advertir (menú)", e));
         else if (id === "neru" && i.isMessageContextMenuCommand() && i.commandName === STRIKE_MENU)
@@ -770,6 +1155,7 @@ export class PapusApp {
       }
     }
     if (m.author.bot) return;
+    this.nemesis?.seen(m.author.id);
 
     // 1) Moderacion primero (reglas fijas, nunca el LLM).
     const replied = m.reference?.messageId ? await m.fetchReference().catch(() => null) : null;
@@ -813,18 +1199,31 @@ export class PapusApp {
       .catch((e) => (logError("bodas (mensaje)", e), false));
     if (boda) return;
 
+    // ¡Adivina, Papu! (PLAN §3.17): un intento de la adivinanza al aire de este canal (lo revisa el codigo, nunca el
+    // LLM). Si lo fue, no va a los Vocaloids ni gasta cuota.
+    const adivinanza = await this.adivinanzas
+      ?.onMessage({ channelId: m.channelId, messageId: m.id, authorId: m.author.id, authorName: this.speakerName(m), text: m.content, repliedTo: m.reference?.messageId ?? null })
+      .catch((e) => (logError("adivinanzas (mensaje)", e), false));
+    if (adivinanza) return;
+
     // Mango9374: frase fija a su @, una vez al dia por Papu (sin LLM ni cuota). Los Vocaloids nombrados en el mismo
     // mensaje contestan igual.
     await this.mango?.onMessage(m).catch((e) => logError("Mango9374", e));
+    void this.mango?.react(m).catch((e) => logError("Mango9374 (reacción)", e));
 
     // 2) Menciones a los bots (en orden; responder a un bot cuenta como mencionarlo).
     const bots = mentionedBots(m.content, this.botByUserId, replied?.author.bot ? replied.author.id : null);
-    if (bots.length === 0) {
-      await this.tipWithoutSource(m).catch((e) => logError("falta de fuente", e));
-      return;
-    }
-    // Responder a un bot con "XD" o un emoji, sin @, no es hablarle: no gasta cuota ni recibe respuesta.
-    if (mentionedBots(m.content, this.botByUserId).length === 0 && isTrivialReply(m.content)) return;
+    // Ambiente casual (PLAN §3.13): una reaccion con emoji o un Vocaloid metiche si lo nombran sin @ (sin cuota).
+    void this.ambient
+      ?.onMessage({ id: m.id, channelId: m.channelId, channelName: "name" in m.channel ? m.channel.name : "", authorName: this.speakerName(m), text: m.cleanContent, addressed: bots.length > 0 || targetsBot })
+      .catch((e) => logError("ambiente (mensaje)", e));
+    if (bots.length === 0) return;
+    // Imagen para los Vocaloids (PLAN §5.1): la del mensaje o, si no trae, la del mensaje al que responde ("@Teto
+    // ¿qué opinas de esto?" respondiendo a un dibujo). Nunca la de un mensaje de un bot.
+    const image = this.imageOf(m, replied);
+    // Responder a un bot con "XD" o un emoji, sin @, no es hablarle: no gasta cuota ni recibe respuesta. Con una imagen
+    // si lo es (le esta mostrando algo).
+    if (mentionedBots(m.content, this.botByUserId).length === 0 && isTrivialReply(m.content) && !(image && m.attachments.size)) return;
     const outcome = await this.conversation.handle({
       messageId: m.id,
       channelId: m.channelId,
@@ -834,13 +1233,14 @@ export class PapusApp {
       text: m.cleanContent,
       bots,
       history: () => this.history(m),
+      image,
     });
     if (outcome === "answered" || outcome === "partial") await this.levels.onBotReply(m.author.id, xpBase, ctx).catch((e) => logError("XP con Vocaloid", e));
   }
 
   /**
-   * /donar (pedido de GyroP, 31 oct. 2026): un Papu le cede mensajes de su cuota de hoy a otro (los pierde él). Al otro le
-   * llegan como extra del dia, solo hasta llenar su cuota. Sale publico para que el otro se entere.
+   * /donar (pedido de GyroP, 31 oct. 2026): un Papu le cede mensajes de su cuota diaria de hoy a otro (los pierde él). Al
+   * otro le llegan a su espacio de donados, con tope (14 nov. 2026). Sale publico para que el otro se entere.
    */
   private async donar(i: ChatInputCommandInteraction): Promise<void> {
     const to = i.options.getUser("papu", true);
@@ -850,39 +1250,73 @@ export class PapusApp {
     if (to.id === i.user.id) return void (await no("No puedes donarte a ti mismo, Papu. 🥖"));
     const r = this.d.quota.donate(i.user.id, to.id, n);
     if (!r.ok) {
-      const left = this.d.quota.remaining(i.user.id);
-      const room = this.d.quota.room(to.id);
+      const left = this.d.quota.dailyLeft(i.user.id);
+      const room = this.d.quota.donatedRoom(to.id);
+      const cap = this.d.quota.donatedCap;
       const why =
         r.motivo === "sin_limite"
           ? "Tus mensajes no tienen límite: es un regalo solo para ti, así que no se pueden donar. 💙"
           : r.motivo === "no_alcanza"
-            ? `Solo te ${left === 1 ? "queda **1 mensaje**" : `quedan **${left} mensajes**`} hoy: no alcanza para donar ${n}.`
+            ? `Solo se dona de tu cuota diaria, y te ${left === 1 ? "queda **1 mensaje**" : `quedan **${left} mensajes**`} hoy: no alcanza para donar ${n}. (Lo que te donaron a ti no se vuelve a regalar.)`
             : room > 0
-              ? `A ${to} solo le ${room === 1 ? "cabe **1 mensaje** más" : `caben **${room} mensajes** más`} hoy (no se puede pasar de su cuota diaria).`
-              : `${to} ya tiene su cuota del día llena: guárdalos para ti. 🥖`;
+              ? `A ${to} solo le ${room === 1 ? "cabe **1 donado** más" : `caben **${room} donados** más`} hoy (máximo ${cap} sin usar).`
+              : `${to} ya tiene sus **${cap} donados** del día sin usar: no le cabe más. Guárdalos para ti. 🥖`;
       return void (await no(why));
     }
     const left = this.d.quota.remaining(i.user.id);
+    const got = this.d.quota.donatedLeft(to.id);
     await i.reply({
-      content: `🎁 ${i.user} le regaló **${n} ${n === 1 ? "mensaje" : "mensajes"}** con los Vocaloids a ${to} (solo por hoy). ¡Qué buen Papu! 🥖\n-# A ${i.user.username} le ${left === 1 ? "queda 1" : `quedan ${left}`} hoy · /donar`,
+      content: `🎁 ${i.user} le regaló **${n} ${n === 1 ? "mensaje" : "mensajes"}** con los Vocaloids a ${to} (solo por hoy). ¡Qué buen Papu! 🥖\n-# A ${i.user.username} le ${left === 1 ? "queda 1" : `quedan ${left}`} hoy · ${to.username}: donados ${got}/${this.d.quota.donatedCap} · /donar`,
       allowedMentions: { users: [to.id] },
     });
     this.d.log(`🎁 ${i.user.username} donó ${n} mensajes a ${to.username}`);
   }
 
-  /** En #tips-y-curiosidades, un dato sin enlace recibe la frase de Luka "falta la fuente" (max. una cada 30 min por Papu). */
-  private async tipWithoutSource(m: Message): Promise<void> {
-    if (!("name" in m.channel) || channelKey(m.channel.name ?? "") !== "tips-y-curiosidades") return;
-    if (/https?:\/\//i.test(m.content) || m.content.trim().length < 15) return;
-    const last = this.tipNudges.get(m.author.id) ?? 0;
-    if (Date.now() - last < 30 * 60_000) return;
-    this.tipNudges.set(m.author.id, Date.now());
-    const ch = await this.sendable("luka", m.channelId);
-    await ch.send({
-      content: this.d.phrases.pick("luka", "falta_fuente", { papu: `<@${m.author.id}>` }),
-      reply: { messageReference: m.id, failIfNotExists: false },
-      allowedMentions: { users: [m.author.id] },
-    });
+  /**
+   * Donar desde el celular de Neru (PLAN §3.15): las mismas reglas que /donar; Teto lo anuncia en #general para que el
+   * otro se entere. Lanza NoSePuede con el motivo.
+   */
+  private async donarDesdeCelular(fromId: string, toId: string, n: number): Promise<string> {
+    const to = await this.guild.members.fetch(toId).catch(() => null);
+    if (!to) throw new NoSePuede("Ese Papu ya no está en el servidor.");
+    if (to.user.bot) throw new NoSePuede("Los Vocaloids no usan cuota: regálasela a un Papu.");
+    const r = this.d.quota.donate(fromId, toId, n);
+    if (!r.ok) {
+      const left = this.d.quota.dailyLeft(fromId);
+      const room = this.d.quota.donatedRoom(toId);
+      const cap = this.d.quota.donatedCap;
+      throw new NoSePuede(
+        r.motivo === "sin_limite"
+          ? "Tus mensajes no tienen límite: es un regalo solo para ti, así que no se pueden donar."
+          : r.motivo === "no_alcanza"
+            ? `Solo se dona de tu cuota diaria, y te ${left === 1 ? "queda 1 mensaje" : `quedan ${left} mensajes`} hoy.`
+            : room > 0
+              ? `A ${stripNickTag(to.displayName)} solo le ${room === 1 ? "cabe 1 donado" : `caben ${room} donados`} más hoy (máximo ${cap} sin usar).`
+              : `${stripNickTag(to.displayName)} ya tiene sus ${cap} donados del día sin usar.`,
+      );
+    }
+    const left = this.d.quota.remaining(fromId);
+    const got = this.d.quota.donatedLeft(toId);
+    const general = findTextChannel(this.guild, CHANNELS.general);
+    const ch = general ? await this.sendable("teto", general.id).catch(() => null) : null;
+    if (ch) {
+      await ch
+        .send({
+          content: `🎁 <@${fromId}> le regaló **${n} ${n === 1 ? "mensaje" : "mensajes"}** con los Vocaloids a <@${toId}> (solo por hoy) desde el 📱 celular de Neru. ¡Qué buen Papu! 🥖\n-# ${stripNickTag(to.displayName)}: donados ${got}/${this.d.quota.donatedCap} · /donar`,
+          allowedMentions: { users: [toId] },
+        })
+        .catch((e) => logError("anuncio de donar (celular)", e));
+    }
+    this.d.log(`🎁 ${fromId} donó ${n} mensajes a ${toId} (celular)`);
+    return `Listo: le regalaste ${n} ${n === 1 ? "mensaje" : "mensajes"} a ${stripNickTag(to.displayName)}. Te ${left === 1 ? "queda 1" : `quedan ${left}`} hoy.`;
+  }
+
+  /** Primera imagen que se puede mirar del mensaje, o del que responde si el suyo no trae (y no es de un bot). */
+  private imageOf(m: Message, replied: Message | null): ImageAttachment | null {
+    const max = this.d.visionMaxMB;
+    if (!max) return null;
+    const of = (x: Message) => pickImage([...x.attachments.values()].map((a) => ({ url: a.url, contentType: a.contentType, size: a.size })), max);
+    return of(m) ?? (replied && !replied.author.bot ? of(replied) : null);
   }
 
   private async history(m: Message) {
@@ -914,12 +1348,15 @@ export class PapusApp {
 
   private async onCommand(bot: BotId, i: ChatInputCommandInteraction): Promise<void> {
     if (bot === "teto" && i.commandName === "cuota") {
-      const left = this.d.quota.remaining(i.user.id);
-      const extra = this.d.quota.extra(i.user.id);
-      const limit = this.d.quota.limitFor(i.user.id) + extra;
+      const q = this.d.quota;
+      const left = q.remaining(i.user.id);
+      const limit = q.limitFor(i.user.id);
       const hours = Math.ceil((nextDayStart(new Date(), this.d.config.quotaTimeZone) - Date.now()) / 3_600_000);
       const text = Number.isFinite(left)
-        ? `Te quedan **${left} de ${limit}** mensajes con los Vocaloids hoy${extra ? ` (${extra} extra de la ruleta, el sorteo o regalos 🎁)` : ""} (se comparten entre todos los Vocaloids; cada @ cuenta uno). Se recargan en ~${hours} h, a medianoche de Chile. Tu cuota sube con tu nivel: míralo con /nivel. Puedes regalarle mensajes a otro Papu con /donar.`
+        ? `**Cuota diaria ${q.dailyLeft(i.user.id)}/${limit} - Donados ${q.donatedLeft(i.user.id)}/${q.donatedCap}**\n` +
+          `Te quedan **${left}** mensajes con los Vocaloids hoy (se comparten entre todos; cada @ cuenta uno, y se gastan primero los diarios). ` +
+          `Tu cuota diaria sube con tu nivel (/nivel) y la rellenan la ruleta y el sorteo. Los **donados** son los que te regalan otros Papus con /donar: te caben hasta ${q.donatedCap} sin usar. ` +
+          `Lo que recibes por /intercambio entra donde haya espacio: primero en tu cuota diaria y después en donados. Solo se dona de la cuota diaria. Todo se recarga en ~${hours} h, a medianoche de Chile.`
         : this.d.owners.has(i.user.id)
           ? "No tienes límite de mensajes (eres GyroP)."
           : "No tienes límite de mensajes con los Vocaloids: es un regalo de GyroP. 💙";
@@ -928,7 +1365,10 @@ export class PapusApp {
     }
     if (bot === "teto" && i.commandName === "donar") return this.donar(i);
     if (bot === "teto" && i.commandName === "nivel") return this.levels.nivel(i);
-    if (bot === "teto" && i.commandName === "tarjeta") return this.levels.tarjeta(i);
+    if (bot === "teto" && i.commandName === "tarjeta") {
+      if (!this.tienda) return void (await i.reply({ content: "La tienda está apagada, así que la tarjeta no se puede personalizar por ahora. 🥖", flags: MessageFlags.Ephemeral }));
+      return this.tienda.tarjeta(i);
+    }
     if (bot === "teto" && i.commandName === "ranking") return this.levels.ranking(i);
     if (bot === "teto" && i.commandName === "boda") {
       if (!this.bodas) return void (await i.reply({ content: "Las bodas están apagadas por ahora. 🥖", flags: MessageFlags.Ephemeral }));
@@ -942,9 +1382,33 @@ export class PapusApp {
       if (!this.tienda) return void (await i.reply({ content: "La tienda está cerrada por ahora. 🥖", flags: MessageFlags.Ephemeral }));
       return i.commandName === "tienda" ? this.tienda.tienda(i) : this.tienda.monedas(i);
     }
+    if (bot === "teto" && i.commandName === "redes") {
+      if (!this.fanart) return void (await i.reply({ content: "Aún estoy despertando. Inténtalo en un momento. 🥖", flags: MessageFlags.Ephemeral }));
+      return this.fanart.redes(i);
+    }
+    if (bot === "teto" && i.commandName === "aportar") {
+      if (!this.taller) return void (await i.reply({ content: "El taller está cerrado por ahora. ✍️", flags: MessageFlags.Ephemeral }));
+      return this.taller.aportar(i);
+    }
+    if (bot === "teto" && i.commandName === "color") {
+      if (!this.tienda) return void (await i.reply({ content: "La tienda está cerrada por ahora. 🥖", flags: MessageFlags.Ephemeral }));
+      return this.tienda.colorPropio(i);
+    }
     if (bot === "teto" && i.commandName === "pelea") {
       if (!this.peleas) return void (await i.reply({ content: "Las peleas están apagadas por ahora. 🥖", flags: MessageFlags.Ephemeral }));
       return this.peleas.pelea(i);
+    }
+    if (bot === "teto" && i.commandName === "cumple") {
+      if (!this.cumple) return void (await i.reply({ content: "Los cumpleaños están apagados por ahora. 🎂", flags: MessageFlags.Ephemeral }));
+      return this.cumple.command(i);
+    }
+    if (bot === "teto" && i.commandName === "carrera") {
+      if (!this.carreras) return void (await i.reply({ content: "Las carreras están apagadas por ahora. 🏇", flags: MessageFlags.Ephemeral }));
+      return this.carreras.carrera(i);
+    }
+    if (bot === "teto" && i.commandName === "nemesis") {
+      if (!this.nemesis) return void (await i.reply({ content: "La Ruleta de Némesis está cerrada por ahora. 🔫", flags: MessageFlags.Ephemeral }));
+      return this.nemesis.nemesis(i);
     }
     if (bot === "teto" && i.commandName === "sorteo") {
       if (!this.sorteo) return void (await i.reply({ content: "El sorteo está apagado por ahora. 🥖", flags: MessageFlags.Ephemeral }));
@@ -967,6 +1431,7 @@ export class PapusApp {
       return this.bodas.divorcio(i);
     }
     if (bot === "teto" && i.commandName === "publicar-ranking") return this.levels.publicarRanking(i);
+    if (bot === "teto" && i.commandName === "adivinanza") return this.lanzarAdivinanza(i);
     if (bot === "teto" && i.commandName === "evento") return this.levels.evento(i);
     if (bot === "teto" && i.commandName === "reiniciar-cuota") {
       if (!this.d.owners.has(i.user.id)) {
@@ -998,6 +1463,7 @@ export class PapusApp {
       const text: Record<typeof outcome, string> = {
         commented: "¡Listo! Un Vocaloid comentó la plática en #general.",
         asked: "¡Listo! Un Vocaloid le preguntó algo a otro en #general (y ya le contestó).",
+        drama: "¡Listo! Se armó un minidrama en #general entre dos Vocaloids.",
         fallback: "El LLM no respondió, así que fue una frase fija en #general.",
         skipped: "No se pudo: ya hay una charla en curso, o no encuentro #general.",
       };
@@ -1011,6 +1477,13 @@ export class PapusApp {
     if (bot === "neru" && i.commandName === "machetazo") {
       const target = i.options.getUser("papu", true);
       return this.manualStrike(i, target.id, target.bot, i.channelId, { motivo: i.options.getString("motivo") ?? undefined });
+    }
+    if (bot === "neru" && i.commandName === "celular") {
+      // Abre la Actividad de Neru en el canal (respuesta LAUNCH_ACTIVITY de Discord).
+      return void (await i.launchActivity().catch(async (e) => {
+        logError("abrir el celular de Neru", e);
+        await i.reply({ content: "uy, el celular no quiso prender aquí. ábrelo desde 🚀 Actividades en un canal de voz. 📱", flags: MessageFlags.Ephemeral }).catch(() => {});
+      }));
     }
     if (bot === "neru" && i.commandName === "machetear") {
       if (!this.mercado) return void (await i.reply({ content: "…el mercado negro está cerrado por ahora. 📱", flags: MessageFlags.Ephemeral }));
@@ -1147,6 +1620,104 @@ export class PapusApp {
       return null;
     }
     return owner ? "GyroP" : `Mod <@${i.user.id}>`;
+  }
+
+  /**
+   * Lo equipado en la tarjeta y, si su membresía lo permite (Baguette y más), su título propio en lugar del equipado
+   * (PLAN §2).
+   */
+  private async cardEquip(userId: string): Promise<CardEquip> {
+    const e = await toCardEquip(this.d.coins!.equipped(userId), this.d.coins!.founderNumber(userId));
+    const m = this.d.membresias;
+    const titulo = m?.titulo(userId);
+    const mb = titulo ? this.guild?.members.cache.get(userId) : undefined;
+    if (titulo && mb && m!.nivel(mb.roles.cache.map((r) => r.name))?.tituloPropio) e.titulo = { texto: titulo, color: "#FFD86B" };
+    return e;
+  }
+
+  /**
+   * Patrocinador del ranking (PLAN §2; su tarjeta al pie de la imagen desde el 18 nov. 2026): se turnan las membresías con `presentaRanking` (Baguette y más), en orden
+   * fijo, uno por publicación. null si no hay ninguno.
+   */
+  private async presentadorRanking(): Promise<string | null> {
+    const m = this.d.membresias;
+    if (!m) return null;
+    const roles = new Set(m.settings.niveles.filter((n) => n.presentaRanking).map((n) => n.rol));
+    const ids = new Set<string>();
+    for (const r of this.guild.roles.cache.values()) if (roles.has(r.name)) for (const id of r.members.keys()) if (!this.d.owners.has(id)) ids.add(id);
+    const lista = [...ids].sort();
+    if (!lista.length) return null;
+    const k = Number(kvGet(this.d.db, "ranking:presentador") ?? 0) % lista.length;
+    kvSet(this.d.db, "ranking:presentador", String(k + 1));
+    return lista[k]!;
+  }
+
+  /** Emojis de la aplicación de Teto (las caras de los corredores de las carreras, PLAN §3.14). */
+  private async loadAppEmojis(): Promise<void> {
+    const app = this.clients.teto?.application;
+    if (!app) return;
+    const emojis = await app.emojis.fetch();
+    this.appEmojis = new Map(emojis.map((e) => [e.name ?? "", e.toString()]));
+  }
+
+  /** Nombre, icono y membresía de los Papus que apostaron en una carrera (para el podio). */
+  private async apostadores(ids: string[]): Promise<Map<string, Apostador>> {
+    const out = new Map<string, Apostador>();
+    const niveles = this.d.membresias?.settings.niveles ?? [];
+    const members = ids.length ? await this.guild.members.fetch({ user: ids }).catch(() => null) : null;
+    await Promise.all(
+      ids.map(async (id) => {
+        const mb = members?.get(id) ?? null;
+        const n = mb ? (this.d.membresias?.nivel(mb.roles.cache.map((r) => r.name)) ?? null) : null;
+        const url = mb?.displayAvatarURL({ extension: "png", size: 64 });
+        const avatar = url ? await fetch(url).then((r) => (r.ok ? r.arrayBuffer() : null)).then((b) => (b ? Buffer.from(b) : null)).catch(() => null) : null;
+        out.set(id, { id, nombre: mb?.displayName ?? "Papu", avatar, marco: marcoDe(n), nivel: n ? niveles.indexOf(n) : -1 });
+      }),
+    );
+    return out;
+  }
+
+  /** Papus de honor (rol 🏅 del nivel 40) para las vallas del podio de las carreras: hasta 12 al azar, con su icono. */
+  private async papusDeHonor(): Promise<Apostador[]> {
+    const key = channelKey(this.d.levels.settings.honor.rol);
+    const role = this.guild.roles.cache.find((r) => channelKey(r.name) === key);
+    if (!role) return [];
+    const ids = [...role.members.keys()].sort(() => Math.random() - 0.5).slice(0, 12);
+    return [...(await this.apostadores(ids)).values()].map((p) => ({ ...p, marco: undefined, nivel: -1 }));
+  }
+
+  /** Membresías y prestigio para /pelea y /boda (PLAN §2): el nivel según sus roles y sus prestigios. */
+  private lanzarPort(): LanzarPort | undefined {
+    const m = this.d.membresias;
+    if (!m) return undefined;
+    return {
+      membresias: m,
+      nivel: async (id) => {
+        const mb = this.guild.members.cache.get(id) ?? (await this.guild.members.fetch(id).catch(() => null));
+        return mb ? m.nivel(mb.roles.cache.map((r) => r.name)) : null;
+      },
+      prestigio: (id) => this.d.levels.store.get(id).prestige,
+    };
+  }
+
+  /** /adivinanza (GyroP y Mods): un Vocaloid suelta ahora una adivinanza al aire en este canal. */
+  private async lanzarAdivinanza(i: ChatInputCommandInteraction): Promise<void> {
+    if (!(await this.isStaff(i.user.id))) return void (await i.reply({ content: "Eso solo lo pueden usar GyroP y los Mods. 🥖", flags: MessageFlags.Ephemeral }));
+    if (!this.adivinanzas) return void (await i.reply({ content: "¡Adivina, Papu! está apagado por ahora. 🥖", flags: MessageFlags.Ephemeral }));
+    if (this.adivinanzas.abierta()) return void (await i.reply({ content: "Ya hay una adivinanza corriendo: espera a que termine. 🧩", flags: MessageFlags.Ephemeral }));
+    await i.deferReply({ flags: MessageFlags.Ephemeral });
+    const vocaloid = i.options.getString("vocaloid") as BotId | null;
+    const id = await this.adivinanzas.soltar({ channelId: i.channelId, bot: vocaloid ?? undefined, dorada: i.options.getBoolean("dorada") ?? undefined });
+    await i.editReply(id ? "🧩 ¡Listo! Ya salió la adivinanza." : "No pude soltarla (¿el Vocaloid no está conectado o no puede escribir aquí?).");
+  }
+
+  /** Crea un rol sin color, sin permisos y no mencionable si no existe (avisos de #tus-roles). */
+  private async ensurePlainRole(name: string, reason: string): Promise<void> {
+    const guild = await this.clients.teto.guilds.fetch(this.guild.id);
+    await guild.roles.fetch();
+    if (guild.roles.cache.some((r) => channelKey(r.name) === channelKey(name))) return;
+    await guild.roles.create({ name, permissions: [], mentionable: false, hoist: false, reason });
+    this.d.log(`Rol ${name} creado`);
   }
 
   /** GyroP o un Mod: lanzan peleas y bodas, perdonan y aprueban fondos de tarjeta (pedido de GyroP, 8 nov. 2026). */
@@ -1316,13 +1887,69 @@ export class PapusApp {
       },
       reply: async (bot, replyTo, content) => {
         const ch = await this.sendable(bot, generalId());
-        await ch.send({ content: this.withEmojis(content), reply: { messageReference: replyTo, failIfNotExists: false }, allowedMentions: { parse: [], repliedUser: false } });
+        const msg = await ch.send({ content: this.withEmojis(content), reply: { messageReference: replyTo, failIfNotExists: false }, allowedMentions: { parse: [], repliedUser: false } });
+        return msg.id;
       },
       typing: (bot) => {
         const general = findTextChannel(this.guild, CHANNELS.general);
         return general ? this.chatPort().typing(bot, general.id) : () => {};
       },
       emojis: () => this.emojiNames(),
+    };
+  }
+
+  /** Un evento del servidor para el ambiente casual (sin esperar: nunca frena el juego que lo produjo). */
+  private ambientEvent(e: AmbientEvent): void {
+    void this.ambient?.onEvent(e).catch((err) => logError(`ambiente (${e.tipo})`, err));
+  }
+
+  private ambientPort(): AmbientPort {
+    const general = () => findTextChannel(this.guild, CHANNELS.general);
+    return {
+      react: (bot, channelId, messageId, emoji) => this.chatPort().react(bot, channelId, messageId, emoji),
+      reply: async (bot, channelId, messageId, content) => {
+        const ch = await this.sendable(bot, channelId);
+        await ch.send({ content: this.withEmojis(content), reply: { messageReference: messageId, failIfNotExists: false }, allowedMentions: { parse: [], repliedUser: false } });
+      },
+      history: async (channelId, messageId) => {
+        const ch = await this.clients.neru.channels.fetch(channelId).catch(() => null);
+        if (!ch || !ch.isTextBased() || !("messages" in ch)) return [];
+        const msgs = await ch.messages.fetch({ before: messageId, limit: HISTORY_LINES }).catch(() => null);
+        if (!msgs) return [];
+        return [...msgs.values()]
+          .reverse()
+          .filter((x) => x.cleanContent.trim())
+          .map((x) => {
+            const bot = this.botByUserId.get(x.author.id);
+            return { author: bot ? this.d.characters[bot].displayName : this.speakerName(x), text: x.cleanContent };
+          });
+      },
+      lastPapuInGeneral: async () => {
+        const ch = general();
+        if (!ch) return null;
+        const msgs = await ch.messages.fetch({ limit: 50 });
+        // Sin un Papu en los ultimos 50 mensajes, hace mucho que nadie escribe.
+        return [...msgs.values()].find((x) => !x.author.bot && !x.system)?.createdTimestamp ?? 0;
+      },
+      postGeneral: async (bot, content) => {
+        const ch = general();
+        if (!ch) return;
+        await (await this.sendable(bot, ch.id)).send({ content: this.withEmojis(content), allowedMentions: { parse: [] } });
+      },
+      postPoll: async (bot, content, emojis) => {
+        const ch = general();
+        if (!ch) return null;
+        const msg = await (await this.sendable(bot, ch.id)).send({ content, allowedMentions: { parse: [] } });
+        for (const e of emojis) await msg.react(e).catch((err) => logError(`reacción ${e} de la pregunta al aire`, err));
+        return { channelId: ch.id, messageId: msg.id };
+      },
+      pollCounts: async (channelId, messageId) => {
+        const ch = await this.clients.neru.channels.fetch(channelId).catch(() => null);
+        if (!ch || !ch.isTextBased() || !("messages" in ch)) return null;
+        const msg = await ch.messages.fetch(messageId).catch(() => null);
+        if (!msg) return null;
+        return Object.fromEntries(msg.reactions.cache.map((r) => [r.emoji.name ?? "", r.count]));
+      },
     };
   }
 
@@ -1340,10 +1967,11 @@ export class PapusApp {
         }
         await member.timeout(minutes * 60_000, reason);
       },
-      say: async (channelId, content, pingUserId, replyTo) => {
+      say: async (channelId, content, pingUserId, replyTo, gif) => {
         const ch = await this.sendable("neru", channelId);
         await ch.send({
           content,
+          ...(gif ? { files: [new AttachmentBuilder(NERU_GIFS[gif], { name: `${gif}.gif` })] } : {}),
           allowedMentions: { users: pingUserId ? [pingUserId] : [], repliedUser: false },
           ...(replyTo ? { reply: { messageReference: replyTo, failIfNotExists: false } } : {}),
         });
@@ -1411,6 +2039,41 @@ export class PapusApp {
   }
 
   // ───────────────────────── bienvenidas y reconexión ─────────────────────────
+
+  /** #👋・despedidas: Teto lo crea si falta (solo lectura, justo debajo de #bienvenida). */
+  private async ensureFarewellChannel(): Promise<TextChannel | null> {
+    const found = findTextChannel(this.guild, CHANNELS.despedidas);
+    if (found) return found;
+    const welcome = findTextChannel(this.guild, CHANNELS.bienvenida);
+    const g = await this.clients.teto.guilds.fetch(this.guild.id);
+    const ch = await g.channels.create({
+      name: "👋・despedidas",
+      type: ChannelType.GuildText,
+      topic: "Teto avisa aquí quién se fue del servidor. Solo lectura.",
+      parent: welcome?.parentId ?? null,
+      position: welcome ? welcome.position + 1 : undefined,
+      permissionOverwrites: [{ id: g.roles.everyone.id, deny: [PermissionFlagsBits.SendMessages, PermissionFlagsBits.CreatePublicThreads, PermissionFlagsBits.CreatePrivateThreads] }],
+      reason: "Canal de despedidas (idea de Flor_fino, 18 nov. 2026)",
+    });
+    await this.report(`👋 Creé el canal <#${ch.id}> para las despedidas (solo lectura). Revisa su lugar en la lista.`);
+    await this.guild.channels.fetch(ch.id).catch(() => null);
+    return findTextChannel(this.guild, CHANNELS.despedidas);
+  }
+
+  private async saySeFue(member: GuildMember | PartialGuildMember): Promise<void> {
+    // A los baneados no se les despide (eso es cosa de GyroP).
+    if (await this.guild.bans.fetch(member.id).then(() => true, () => false)) return;
+    const target = await this.ensureFarewellChannel();
+    if (!target) return;
+    const ch = await this.sendable("teto", target.id);
+    const lv = this.d.levels.level(member.id);
+    const content = textoDespedida(
+      (papu) => this.d.phrases.pick("teto", "se_fue", { papu }),
+      { nombre: member.displayName ?? member.user.globalName ?? member.user.username, usuario: member.user.username, entro: member.joinedTimestamp ?? null, nivel: lv.level, prestigio: lv.prestige },
+      Date.now(),
+    );
+    await ch.send({ content, allowedMentions: { parse: [] } });
+  }
 
   private async welcome(userIds: string[]): Promise<void> {
     const target = findTextChannel(this.guild, CHANNELS.bienvenida, CHANNELS.general);
@@ -1510,10 +2173,13 @@ export class PapusApp {
   private async updateCalendar(): Promise<void> {
     const cal = this.d.calendar;
     if (!cal) return;
+    const weeks = await cal.service.build();
+    // Los estrenos del calendario siguen dando XP doble aunque ya no se publique (PLAN §8: #calendario archivado el 13
+    // nov. 2026; para lo que no está en el calendario, /estreno de Miku).
+    this.d.levels.setReleases(cal.service.releases(weeks));
+    if (!cal.publicar) return;
     const target = findTextChannel(this.guild, cal.channel);
     if (!target) return;
-    const weeks = await cal.service.build();
-    this.d.levels.setReleases(cal.service.releases(weeks));
     const text = cal.service.render(weeks);
     const key = weeks[0]!.monday;
     const prev = JSON.parse(kvGet(this.d.db, CALENDAR_KEY) ?? "null") as { key: string; channelId: string; messageId: string; intro: string; text: string } | null;
@@ -1690,7 +2356,7 @@ export class PapusApp {
     const now = Date.now();
     if (!shouldTease(Number(kvGet(this.d.db, key) ?? NaN) || null, now)) return;
     kvSet(this.d.db, key, String(now));
-    const niveles = findTextChannel(this.guild, "niveles-ko-fi");
+    const niveles = findTextChannel(this.guild, "membresias", "niveles-ko-fi");
     const content = this.d.phrases.pick("teto", "vitrina_nuevo", { canal: `<#${ch.id}>`, nivel, niveles: niveles ? `<#${niveles.id}>` : "ko-fi.com/tetociencia/tiers" });
     await (await this.sendable("teto", vitrina.id)).send({ content, allowedMentions: { parse: [] } });
   }

@@ -1,0 +1,33 @@
+{
+  "$comment": "Beneficios de las membresías de Ko-fi (docs/PLAN.md §2; decisiones de GyroP del 13 nov. 2026, consultadas con los Papus). Los niveles son acumulativos y vale el más alto que tenga el Papu. Nada pagado es azar: los sobres de membresía se eligen (no se sortean) y nunca traen fondos con renders. Los bots siguen siendo iguales para todos y la cuota sale del nivel por participación (el multiplicador de XP solo hace subir más rápido). Cambiar algo aquí no requiere tocar código; se aplica al reiniciar.",
+  "activo": true,
+
+  "$niveles": "De menor a mayor. rol = nombre exacto del rol de Ko-fi en Discord. xp = multiplicador de toda la XP que gana (mensajes, voz, trivia, bodas, ruleta; no la de intercambios). peleas/bodas = cuántas puede lanzar al día (hora de Chile) y si elige a los personajes (si no, salen al azar); propio = puede ponerse a sí mismo como luchador. sobres = sobres temáticos de regalo cada 30 días: cantidad, cuántos objetos ve y cuántos elige; mitico = sobres míticos aparte (ve todas las míticas que le faltan y elige 1). recuperar = objetos de vitrinas pasadas que puede comprar cada 30 días. descuento = % en la tienda. vitrinaSiguiente = ve la vitrina que viene un día antes. tituloPropio = escribe el título de su tarjeta. insigniaExtra = un 4.º lugar de insignia. colorPropio = /color con hex propio. fondo = recibe el fondo de membresía de la temporada (fondoTemporada). presentaRanking = se turna para patrocinar el ranking diario (su tarjeta al pie de la imagen, sin nombrarlo; 18 nov. 2026). nombrePortada = su nombre en la portada de la trivia multijugador. banner = estilo de sus banners (basico, brillo, particulas, animado). color = el de su rol.",
+  "niveles": [
+    { "rol": "🥬 Puerro", "id": "puerro", "nombre": "Puerro", "emoji": "🥬", "color": "#39C5BB", "xp": 1.2, "peleas": { "dia": 1, "elige": false }, "bodas": { "dia": 0, "elige": false }, "carreras": { "dia": 1 }, "sobres": { "cantidad": 1, "ve": 5, "elige": 2, "mitico": 0 }, "recuperar": 1, "descuento": 10, "vitrinaSiguiente": true, "tituloPropio": false, "insigniaExtra": false, "colorPropio": false, "fondo": false, "presentaRanking": false, "nombrePortada": false, "banner": "basico" },
+    { "rol": "🐟 Atún", "id": "atun", "nombre": "Atún", "emoji": "🐟", "color": "#E285B2", "xp": 1.3, "peleas": { "dia": 1, "elige": false }, "bodas": { "dia": 1, "elige": false }, "carreras": { "dia": 1 }, "sobres": { "cantidad": 1, "ve": 6, "elige": 3, "mitico": 0 }, "recuperar": 2, "descuento": 15, "vitrinaSiguiente": true, "tituloPropio": false, "insigniaExtra": false, "colorPropio": false, "fondo": false, "presentaRanking": false, "nombrePortada": false, "banner": "basico" },
+    { "rol": "🥖 Baguette", "id": "baguette", "nombre": "Baguette", "emoji": "🥖", "color": "#E91E63", "xp": 1.4, "peleas": { "dia": 2, "elige": true }, "bodas": { "dia": 1, "elige": false }, "carreras": { "dia": 2 }, "sobres": { "cantidad": 1, "ve": 12, "elige": 4, "mitico": 0 }, "recuperar": 3, "descuento": 15, "vitrinaSiguiente": true, "tituloPropio": true, "insigniaExtra": true, "colorPropio": false, "fondo": true, "presentaRanking": true, "nombrePortada": false, "banner": "brillo" },
+    { "rol": "📱 Celular", "id": "celular", "nombre": "Celular", "emoji": "📱", "color": "#E8D44D", "xp": 1.5, "peleas": { "dia": 2, "elige": true }, "bodas": { "dia": 2, "elige": true }, "carreras": { "dia": 2 }, "sobres": { "cantidad": 2, "ve": 12, "elige": 5, "mitico": 0 }, "recuperar": 4, "descuento": 20, "vitrinaSiguiente": true, "tituloPropio": true, "insigniaExtra": true, "colorPropio": true, "fondo": true, "presentaRanking": true, "nombrePortada": true, "banner": "particulas" },
+    { "rol": "💥 Triple Baka", "id": "triple-baka", "nombre": "Triple Baka", "emoji": "💥", "color": "#9B6CFF", "xp": 1.75, "peleas": { "dia": 3, "elige": true, "propio": true }, "bodas": { "dia": 2, "elige": true }, "carreras": { "dia": 3 }, "sobres": { "cantidad": 2, "ve": 15, "elige": 5, "mitico": 1 }, "recuperar": 5, "descuento": 20, "vitrinaSiguiente": true, "tituloPropio": true, "insigniaExtra": true, "colorPropio": true, "fondo": true, "presentaRanking": true, "nombrePortada": true, "banner": "animado" }
+  ],
+
+  "$fondoTemporada": "Fondo animado de membresía de la temporada en curso (config/objetos.json, rareza membresia): lo reciben los niveles con fondo: true y es para siempre. Cambiarlo cada temporada.",
+  "fondoTemporada": "palco-de-mecenas",
+
+  "$antiguedad": "Insignias de antigüedad: meses con la membresía (cuenta cada regalo mensual; la primera al recibir el rol). Ids en config/objetos.json, rareza 'membresia' (nunca se venden; son para siempre).",
+  "antiguedad": [
+    { "meses": 1, "objeto": "insignia-antiguedad-1" },
+    { "meses": 3, "objeto": "insignia-antiguedad-3" },
+    { "meses": 6, "objeto": "insignia-antiguedad-6" },
+    { "meses": 12, "objeto": "insignia-antiguedad-12" }
+  ],
+
+  "$lanzar": "Peleas y bodas que lanzan las membresías (PLAN §2): una a la vez (como las automáticas) y no gastan las del día. bodaEsperaMin = minutos entre el aviso a 💍 Rizzler y la adivinanza (quien la lanza juega como todos).",
+  "lanzar": { "bodaEsperaMin": 4 },
+
+  "$periodoDias": "Cada cuántos días llegan los sobres de regalo y se renuevan los objetos para recuperar.",
+  "periodoDias": 30,
+
+  "$tituloPropio": "Título escrito por el Papu (Baguette y más): largo máximo y caracteres permitidos; pasa por el filtro fijo de Neru (nunca el LLM).",
+  "tituloPropio": { "max": 32 }
+}

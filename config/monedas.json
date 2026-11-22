@@ -1,11 +1,11 @@
 {
-  "$comment": "Shaula-coins (docs/PLAN.md §3.6; decisiones de GyroP del 25 al 27 oct. 2026). Moneda para adornar la tarjeta de nivel: nada de esto da XP, cuota ni mensajes extra (regla 1). Dos bolsillos: 'ganadas' (participando; sirven para todo) y 'compradas' (pago y regalo de membresía; solo para la tienda y solo para objetos de arte propio). Los objetos están en config/objetos.json. Cambiar algo aquí no requiere tocar código; se aplica al reiniciar.",
+  "$comment": "Shaulitas (antes Shaula-coins; docs/PLAN.md §3.6; decisiones de GyroP del 25 al 27 oct. y del 13 nov. 2026). Una sola moneda, que se gana jugando: desde el 13 nov. 2026 ya no se venden (las que se compraron antes se sumaron al saldo). Las membresías regalan sobres temáticos elegibles (config/membresias.json), no monedas. Los objetos están en config/objetos.json. Cambiar algo aquí no requiere tocar código; se aplica al reiniciar.",
   "activo": true,
 
   "$ganar": "Monedas ganadas por día, calculadas con lo que guarda el sistema de niveles (tabla xp_dia, hora de Chile). xpPorMoneda: 1 moneda cada tantos XP del día, hasta topeActividad. Bonos: primerMensaje (el día que escribe), mision (cada misión de la ruleta cumplida), boda (cada boda ganada), racha7 (cada 7 días seguidos escribiendo), subirNivel (por nivel) y rangoNuevo. Con un strike de Neru ese día no se gana nada (y se quita lo ganado ese día, si aún lo tiene).",
-  "ganar": { "xpPorMoneda": 20, "topeActividad": 60, "primerMensaje": 5, "mision": 10, "boda": 40, "racha7": 50, "subirNivel": 15, "rangoNuevo": 50 },
+  "ganar": { "xpPorMoneda": 20, "topeActividad": 60, "primerMensaje": 15, "mision": 10, "boda": 40, "racha7": 50, "subirNivel": 15, "rangoNuevo": 50 },
 
-  "$sobre": "Se abre solo con monedas ganadas (las compradas no abren sobres: así lo pagado nunca es azar). objetos: [cantidad, peso]. probabilidades: % de cada objeto por rareza. Garantías: el sobre N sin Épica (o mejor) trae una segura; igual con Legendaria. semanal: cada lunes, 1 sobre gratis a quien participó (escribió o habló en voz con XP) al menos 'diasMinimos' días de la semana anterior. porMisiones: 1 sobre gratis cada día que complete todas las misiones de la ruleta (decisión de GyroP, 28 oct. 2026: que los Papus activos abran uno diario, ganado participando).",
+  "$sobre": "Se abre con Shaulitas, que solo se ganan jugando (nada pagado es azar: los sobres de membresía se eligen, config/membresias.json). objetos: [cantidad, peso]. probabilidades: % de cada objeto por rareza. Garantías: el sobre N sin Épica (o mejor) trae una segura; igual con Legendaria. semanal: cada lunes, 1 sobre gratis a quien participó (escribió o habló en voz con XP) al menos 'diasMinimos' días de la semana anterior. porMisiones: 1 sobre gratis cada día que complete todas las misiones de la ruleta (decisión de GyroP, 28 oct. 2026: que los Papus activos abran uno diario, ganado participando).",
   "sobre": {
     "precio": 200,
     "objetos": [[3, 60], [4, 30], [5, 10]],
@@ -19,37 +19,26 @@
       "comun": { "nombre": "Sobre común" },
       "raro": { "nombre": "Sobre raro", "objetos": [[4, 60], [5, 40]], "minimo": "epica", "precio": 500 },
       "legendario": { "nombre": "Sobre legendario", "objetos": [[5, 100]], "minimo": "legendaria", "precio": 1200 }
-    }
+    },
+    "$tematico": "Sobre temático (decisión de GyroP, 13 nov. 2026): como el común (3 a 5 objetos, mismas probabilidades y garantías), pero solo con objetos de un tema que el Papu elige (un personaje, una temporada, Navidad, los siete pecados…), renders incluidos. Se compra a 'precio'; un sobre común regalado se vuelve temático por 'ecos' Ecos; y ganar una boda regala uno de esa Vocaloid. 'minimo' = objetos que necesita un tema para ofrecerse.",
+    "tematico": { "precio": 300, "ecos": 20, "minimo": 5 }
   },
 
-  "$precios": "Precio de tienda por rareza (en monedas). Fabricar un objeto cuesta lo mismo, pero en Ecos. Un repetido da el 10 % en Ecos (ecos). Las míticas no se venden ni se fabrican.",
+  "$precios": "Precio de tienda por rareza (en monedas). Fabricar un objeto cuesta lo mismo, pero en Ecos. Un repetido da el 20 % en Ecos (ecos; antes el 10 %, subido el 16 nov. 2026: casi nadie fabricaba). Las míticas no se venden ni se fabrican.",
   "precios": { "comun": 60, "rara": 150, "epica": 350, "legendaria": 700 },
-  "ecos": { "comun": 6, "rara": 15, "epica": 35, "legendaria": 70, "mitica": 200 },
+  "ecos": { "comun": 12, "rara": 30, "epica": 70, "legendaria": 140, "mitica": 400 },
 
-  "$paquetes": "Monedas compradas. usd = precio por PayPal; clp = precio por transferencia en Chile (más barato: GyroP no paga la comisión de PayPal). imagen = assets/tienda/paquetes/<id>.png.",
-  "paquetes": [
-    { "id": "punado", "nombre": "Puñado", "monedas": 1200, "usd": 2, "clp": 1500 },
-    { "id": "bolsa", "nombre": "Bolsa", "monedas": 3100, "usd": 5, "clp": 4000 },
-    { "id": "cofre", "nombre": "Cofre", "monedas": 6300, "usd": 10, "clp": 8000 },
-    { "id": "tesoro", "nombre": "Tesoro", "monedas": 9500, "usd": 15, "clp": 12000 }
-  ],
-
-  "$pagos": "PayPal: Teto da el link paypal.me de GyroP con el monto (PAYPAL_ME_USUARIO en .env) y un código SC-XXXX para la nota; GyroP confirma 'Llegó' en #registro-compras. Transferencia: solo Chile; los datos de la cuenta van en .env (TRANSFERENCIA_*), nunca aquí. Un pedido sin confirmar vence a los 'venceDias'.",
-  "pagos": { "venceDias": 7 },
-
-  "$membresias": "Regalo en monedas compradas por nivel de Ko-fi: al recibir el rol y luego cada 30 días mientras lo tenga (si tiene varios, el más alto). Funciona aunque GyroP dé el rol a mano.",
-  "membresias": { "🥬 Puerro": 600, "🐟 Atún": 1200, "🥖 Baguette": 2000, "📱 Celular": 3500, "💥 Triple Baka": 7000 },
   "$insigniasMembresia": "Insignia permanente de la tarjeta por cada rol de membresía (pedido de GyroP, 31 oct. 2026): Teto la entrega al recibir el rol (y cada hora revisa a todos), y se queda aunque después deje la membresía. Si tiene un lugar de insignia libre, se la pone. Nunca se vende ni sale en sobres (rareza 'membresia' en config/objetos.json). Solo adorno: no da XP ni cuota (regla 1).",
   "insigniasMembresia": { "🥬 Puerro": "insignia-membresia-puerro", "🐟 Atún": "insignia-membresia-atun", "🥖 Baguette": "insignia-membresia-baguette", "📱 Celular": "insignia-membresia-celular", "💥 Triple Baka": "insignia-membresia-triple-baka" },
 
-  "$vitrinas": "La tienda cambia los días 'dias' (0 = domingo … 6 = sábado) a medianoche de Chile. Cada vitrina trae 'arte' objetos de arte propio (cualquier moneda) y 'renders' fondos con renders (solo ganadas). Al empezar la temporada se arma el calendario para que todos los objetos salgan al menos una vez.",
-  "vitrinas": { "dias": [1, 4], "arte": 5, "renders": 4 },
+  "$vitrinas": "La tienda cambia los días 'dias' (0 = domingo … 6 = sábado) a medianoche de Chile. Cada vitrina trae 'arte' objetos de arte propio y 'renders' fondos con renders. Al empezar la temporada se arma el calendario para que todos los objetos salgan al menos una vez.",
+  "vitrinas": { "dias": [1, 4], "arte": 10, "renders": 8 },
 
-  "$temporada": "Temporada en curso (config/objetos.json). nombre = cómo se anuncia; desde/hasta = días (hora de Chile; 'hasta' no incluido: el último día es el anterior). Sus objetos salen en sobres y vitrinas; los de temporadas pasadas se pueden fabricar con Ecos.",
-  "temporada": { "id": "t1", "nombre": "Lanzamiento", "desde": "2026-10-27", "hasta": "2026-11-25" },
+  "$temporada": "Temporada en curso (config/objetos.json). nombre = cómo se anuncia; desde/hasta = días (hora de Chile; 'hasta' no incluido: el último día es el anterior). Sus objetos salen en sobres y vitrinas; los de temporadas pasadas se pueden fabricar con Ecos. incluye = temporadas pasadas que siguen en el pozo de sobres y vitrinas: un id, o { id, hasta } para que salga del pozo ese día ('hasta' no incluido). Decisión de GyroP (13 nov. 2026): la temporada 1 sigue solo hasta el 24 nov. (su fecha original) y después vuelven las temporadas limitadas por fecha; las vitrinas hasta el corte no cambian y desde el 25 nov. se arman solo con la temporada 2. Temporada 2 desde el 13 nov. 2026 hasta el Día de Reyes (6 ene. 2027, último día); vitrinas de 10 de arte y 8 con renders para que cada objeto salga al menos una vez.",
+  "temporada": { "id": "t2", "nombre": "Navidad y los 7 pecados", "desde": "2026-11-13", "hasta": "2027-01-07", "incluye": [{ "id": "t1", "hasta": "2026-11-25" }] },
 
-  "$canales": "Canal del menú de la tienda (Teto lo fija) y canal privado de GyroP donde llega cada compra para confirmarla.",
-  "canales": { "tienda": "tienda-shaula", "registro": "registro-compras" },
+  "$canales": "Canal del menú de la tienda (Teto lo fija).",
+  "canales": { "tienda": "tienda-shaula" },
 
   "$fundadores": "Papus fundadores (rol ⭐ Fundador; decisión de GyroP, 26 oct. 2026): reciben fondo 'noche-de-estreno', borde 'estrella-fundadora' con su número, insignia y título. Nunca se vende ni sale en sobres. 'nombre' es solo para leerlo.",
   "fundadores": [
@@ -58,5 +47,10 @@
     { "id": "1249192248881451153", "numero": 2, "nombre": "Yamato" },
     { "id": "972182598312935445", "numero": 3, "nombre": "Wicho el Bicho" },
     { "id": "545054807463821313", "numero": 4, "nombre": "🍍♡Piña♡🍍" }
+  ],
+
+  "$exclusivos": "Objetos de rareza 'exclusivo': regalo personal de GyroP a un solo Papu. Teto los entrega al conectar a quien le falten. Nunca se venden, no salen en sobres, no se fabrican ni se intercambian, y no aparecen en el catálogo público. 'nombre' es solo para leerlo.",
+  "exclusivos": [
+    { "id": "1207431352870502481", "objeto": "the-dictador", "nombre": "Mango9374 (el real, 14 nov. 2026)" }
   ]
 }

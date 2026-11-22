@@ -1,5 +1,5 @@
 // Punto de entrada: arma las piezas y conecta los bots (las 4 chicas y los Vocaloids de conversacion con token). `npm start`.
-import { existsSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { STATE_FOLDERS, VideoCatalog } from "./catalog/videos";
 import { BOT_IDS, CHAT_BOT_IDS, CORE_BOT_IDS, loadConfig, loadDotEnv, type BotId } from "./config";
@@ -19,6 +19,8 @@ import { StrikeStore } from "./moderation/strikes";
 import { Phrases } from "./phrases/catalog";
 import { DeckStore } from "./phrases/deck";
 import { Quota } from "./quota/quota";
+import { ImageAllowance } from "./quota/imagenes";
+import { fetchImage } from "./llm/image";
 import { LevelService } from "./levels/service";
 import { loadLevelSettings } from "./levels/rules";
 import { loadLayout } from "./setup/layout";
@@ -37,20 +39,35 @@ import { loadRouletteSettings } from "./ruleta/rules";
 import { RouletteService } from "./ruleta/service";
 import { loadCatalog, loadCoinSettings } from "./coins/rules";
 import { CoinService } from "./coins/service";
-import type { DatosBanco } from "./coins/images";
+import { loadMembresiaSettings } from "./membresias/rules";
+import { MembresiaService } from "./membresias/service";
 import { loadSorteoSettings } from "./sorteo/rules";
 import { SorteoService } from "./sorteo/service";
 import { loadPeleaSettings } from "./peleas/rules";
 import { PeleaService } from "./peleas/service";
+import { loadCarreraSettings, loadFrasesCarrera } from "./carreras/rules";
+import { CarreraService } from "./carreras/service";
+import { loadNemesisSettings } from "./nemesis/rules";
+import { NemesisService } from "./nemesis/service";
 import { WeddingService } from "./bodas/service";
 import { loadQuestions, loadTriviaSettings } from "./trivia/rules";
 import { actividadFromEnv } from "./trivia/actividad";
+import { puenteFromEnv } from "./celular/puente";
+import { CumpleService, loadCumpleSettings } from "./cumpleanos/service";
+import { AjedrezPuente, loadAjedrezSettings } from "./ajedrez/puente";
+import { d1FromEnv } from "./cloud/d1";
 import { TriviaService } from "./trivia/service";
 import { loadMercadoSettings } from "./mercado/rules";
 import { MercadoService } from "./mercado/service";
 import { loadIntercambioSettings } from "./intercambios/rules";
 import { IntercambioService } from "./intercambios/service";
 import { loadMangoSettings, MangoService } from "./services/mango";
+import { clock, inHours, loadAmbientSettings, loadPolls } from "./ambiente/rules";
+import { AmbientCounters, AmbientService } from "./ambiente/service";
+import { loadAdivinanzasSettings, loadBanco } from "./adivinanzas/rules";
+import { AdivinanzasService } from "./adivinanzas/service";
+import { bannerAdivinanza, bannerGanador, bannerNadie } from "./adivinanzas/images";
+import { avatarFile } from "./peleas/images";
 
 const QUEUE_CONCURRENCY = 4;
 const MAX_WAIT_MS = 2 * 60_000;
@@ -76,6 +93,12 @@ async function main(): Promise<void> {
   const llmSettings = loadLLMSettings();
   const { providers, skipped, dailyLimits } = buildProviders(llmSettings);
   if (skipped.length) log(`⚠️ Proveedores sin clave (omitidos): ${skipped.join(", ")}`);
+  // Ver imagenes (PLAN §5.1): cadena aparte con modelos que las leen. Gemini se llama igual que el de texto porque
+  // comparte su cupo diario; groq-vision tiene el suyo (cupo por modelo en Groq).
+  const visionSettings = llmSettings.vision?.activo ? llmSettings.vision : null;
+  const visionBuilt = visionSettings ? buildProviders({ providers: visionSettings.providers, timeoutMs: llmSettings.timeoutMs }) : null;
+  if (visionBuilt?.skipped.length) log(`⚠️ Visión sin clave (omitidos): ${visionBuilt.skipped.join(", ")}`);
+  for (const [name, n] of Object.entries(visionBuilt?.dailyLimits ?? {})) dailyLimits[name] ??= n;
 
   const moderationSettings = loadModerationSettings();
   const strikes = new StrikeStore(db, moderationSettings.limites.strikeDias);
@@ -95,7 +118,7 @@ async function main(): Promise<void> {
     unranked: (id) => owners.has(id),
     xpBlocked: (id, at) => strikes.xpBlocked(id, at),
   });
-  const quota = new Quota(db, (id, now) => levels.limitFor(id, now), config.quotaTimeZone, { has: (id) => owners.has(id) || especiales.unlimited(id) });
+  const quota = new Quota(db, (id, now) => levels.limitFor(id, now), config.quotaTimeZone, { has: (id) => owners.has(id) || especiales.unlimited(id) }, levels.settings.donadosMax);
   // Bodas con las Vocaloids (config/bodas.json, PLAN §3.2): adivinanzas fijas, revisadas por el codigo.
   const weddings = new WeddingService({ db, settings: loadWeddingSettings(), riddles: loadRiddles(), decks });
   // Ruleta de los Papus (config/ruleta.json, PLAN §3.3): tiradas por misiones del dia; premios de XP y cuota extra.
@@ -108,7 +131,7 @@ async function main(): Promise<void> {
     giveSobres: loadCoinSettings().activo ? (id, n) => coins?.giveSobres(id, "comun", n) : undefined,
     timeZone: config.quotaTimeZone,
   });
-  // Shaula-coins (config/monedas.json y config/objetos.json, PLAN §3.6): solo adornan la tarjeta (regla 1). Lo ganado
+  // Shaulitas (config/monedas.json y config/objetos.json, PLAN §3.6): solo adornan la tarjeta (regla 1). Lo ganado
   // participando se pone al dia cada vez que el Papu gana XP.
   const coinSettings = loadCoinSettings();
   const coins = coinSettings.activo
@@ -125,11 +148,23 @@ async function main(): Promise<void> {
       })
     : null;
   if (coins) levels.afterAward = (userId) => coins.sync(userId, 1);
+  // Membresías de Ko-fi (config/membresias.json, PLAN §2): XP, lanzar peleas y bodas, sobres temáticos elegibles,
+  // recuperar objetos de vitrinas pasadas y descuento (necesita la tienda).
+  const membresias = coins ? new MembresiaService({ db, settings: loadMembresiaSettings(), coins }) : null;
   // Sorteo de GyroP (config/sorteo.json, PLAN §3.5): todos los Papus en la ruleta; GyroP decide si el ganador se queda el premio.
   const sorteo = new SorteoService({ db, settings: loadSorteoSettings(), levels, quota });
-  // 1vs1 de los Vocaloids (config/peleas.json, PLAN §3.7): apuestas solo con Shaula-coins ganadas (sin tienda, no hay peleas).
+  // 1vs1 de los Vocaloids (config/peleas.json, PLAN §3.7): apuestas solo con Shaulitas (sin tienda, no hay peleas).
   const peleaSettings = loadPeleaSettings();
   const peleas = coins && peleaSettings.activo ? new PeleaService({ db, settings: peleaSettings, coins }) : null;
+  // Carreras de los Vocaloids (config/carreras.json, PLAN §3.14): apuestas mutuas solo con Shaulitas (sin tienda, no hay).
+  const carreraSettings = loadCarreraSettings();
+  const carreras =
+    coins && carreraSettings.activo
+      ? new CarreraService({ db, settings: carreraSettings, frases: loadFrasesCarrera(), coins, peleas: { horarios: peleaSettings.horarios, zona: peleaSettings.zona ?? carreraSettings.horario.zona } })
+      : null;
+  // Ruleta de Némesis (config/nemesis.json, PLAN §3.12): ruleta rusa entre dos Papus, solo con Shaulitas.
+  const nemesisSettings = loadNemesisSettings();
+  const nemesis = coins && nemesisSettings.activo ? new NemesisService({ db, settings: nemesisSettings, coins }) : null;
   // Trivia de los Papus (config/trivia.json, PLAN §3.4): preguntas fijas revisadas por el codigo; XP por acierto.
   const triviaSettings = loadTriviaSettings();
   // Superar todas las preguntas de una dificultad da su sobre de la tienda (comun, raro o legendario).
@@ -138,7 +173,7 @@ async function main(): Promise<void> {
   // Hitos de aciertos (7 nov. 2026): una sola vez, quienes ya tenian avance reciben los sobres de los hitos que pasaron.
   for (const h of trivia.seedMilestones()) log(`🎁 Trivia: hitos iniciales de ${h.userId} en ${h.level}: ${h.aciertos} aciertos → ${h.sobres} sobre(s)`);
   // Mercado negro (config/mercado.json, PLAN §3.9): una hora al dia; consumibles para la ruleta y la trivia y el PC de
-  // Adachi Rei, solo con Shaula-coins ganadas (sin tienda, no hay mercado).
+  // Adachi Rei, solo con Shaulitas (sin tienda, no hay mercado).
   const mercadoSettings = loadMercadoSettings();
   const mercado = coins && mercadoSettings.activo ? new MercadoService({ db, settings: mercadoSettings, coins, quota, roulette, trivia, weddings, timeZone: config.quotaTimeZone }) : null;
   if (mercado) {
@@ -158,7 +193,7 @@ async function main(): Promise<void> {
     roulette.useDisquete((id) => mercado.tieneEfecto(id, "disquete"));
     levels.quotaBoost = (id, at) => mercado.quotaBoost(id, at);
   }
-  // Intercambios entre Papus (config/intercambios.json, PLAN §3.10): Shaula-coins, XP, niveles, cuota, sobres, objetos
+  // Intercambios entre Papus (config/intercambios.json, PLAN §3.10): Shaulitas, XP, niveles, cuota, sobres, objetos
   // y consumibles, como las ofertas de Steam (sin tienda, no hay intercambios).
   const intercambioSettings = loadIntercambioSettings();
   const intercambios = coins && intercambioSettings.activo ? new IntercambioService({ db, settings: intercambioSettings, coins, levels, quota, mercado, timeZone: config.quotaTimeZone }) : null;
@@ -174,11 +209,16 @@ async function main(): Promise<void> {
   gpu.start();
   const router = new SmartRouter({ local: "local", localMaxInFlight: 1, gpu, remaining: (p) => usage.remainingFraction(p), prefer: llmSettings.preferencia });
   const chain = new LLMChain(providers, usage, Date.now, router, log);
+  const visionChain = visionBuilt?.providers.length ? new LLMChain(visionBuilt.providers, usage, Date.now, null, log) : null;
+  const imageAllowance = visionSettings ? new ImageAllowance(db, visionSettings.porPapuAlDia, config.quotaTimeZone, owners) : null;
+  if (visionSettings) log(visionChain ? `Visión: ${visionBuilt!.providers.map((p) => p.name).join(" → ")} (${visionSettings.porPapuAlDia} imágenes al día por Papu)` : "⚠️ Visión activa pero sin proveedores con clave: los bots no ven imágenes");
 
   // Estado para el icono de la bandeja (data/estado.json, sin claves): consumo de cada API hoy (dia de Chile).
   const writeStatus = () => {
-    const apis = llmSettings.providers
-      .filter((p) => providers.some((x) => x.name === p.name))
+    // Con la vision: groq-vision suma su fila; Gemini ya sale (comparte el cupo con el de texto).
+    const visionOnly = visionBuilt ? visionSettings!.providers.filter((p) => !llmSettings.providers.some((x) => x.name === p.name)) : [];
+    const apis = [...llmSettings.providers, ...visionOnly]
+      .filter((p) => providers.some((x) => x.name === p.name) || !!visionBuilt?.providers.some((x) => x.name === p.name))
       .map((p) => {
         const hoy = usage.today(p.name);
         const limite = p.dailyRequests ?? null;
@@ -197,6 +237,12 @@ async function main(): Promise<void> {
   const until = (t: number) =>
     new Intl.DateTimeFormat("es-CL", { timeZone: config.quotaTimeZone, weekday: "long", day: "numeric", month: "long", hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).format(new Date(t));
   const llmOpts = { maxTokens: llmSettings.maxTokens, temperature: llmSettings.temperature };
+
+  // Ambiente casual de los Vocaloids (config/ambiente.json, PLAN §3.13): reacciones, metiches, comentarios de lo que
+  // pasa, preguntas al aire, momentos del dia y minidramas. Nada gasta la cuota de los Papus.
+  const ambientSettings = loadAmbientSettings();
+  const ambientCounters = new AmbientCounters(db, config.quotaTimeZone);
+  const dramas = ambientSettings.activo && ambientSettings.dramas.activo ? ambientSettings.dramas : null;
 
   const layout = loadLayout();
   // Conversaciones con los Vocaloids: la misma cuota, cola y LLM en Discord y en el mundo de los Papus (src/mundo/).
@@ -224,6 +270,15 @@ async function main(): Promise<void> {
       },
       log,
       today,
+      vision:
+        visionChain && imageAllowance && visionSettings
+          ? {
+              chain: visionChain,
+              allowance: imageAllowance,
+              extraUnits: visionSettings.cuotaExtra,
+              load: (img, signal) => fetchImage(img, visionSettings.ladoMax, visionSettings.maxMB, fetch, signal),
+            }
+          : undefined,
     });
   // Mundo de los Papus (Actividad 3D): un @ a un Vocaloid de la plaza se responde como en Discord; la plaza muestra
   // el nivel y la cuota del dia de cada Papu.
@@ -251,10 +306,11 @@ async function main(): Promise<void> {
     quota,
     levels,
     // Colores de la tarjeta de nivel: los de las 4 chicas y la paleta de #tus-roles (solo adorno, regla 1).
+    // Desde el 12 nov. 2026 las 4 chicas tambien estan en la paleta: sin repetir nombres.
     cardColors: [
       ...CORE_BOT_IDS.map((id) => ({ name: characters[id].displayName, value: `#${characters[id].color.toString(16).padStart(6, "0")}` })),
       ...(layout.coloresPapu?.colores ?? []).map((c) => ({ name: c.rol.replace(/^\S+\s+/, ""), value: c.color })),
-    ],
+    ].filter((c, k, all) => all.findIndex((x) => x.name.toLowerCase() === c.name.toLowerCase()) === k),
     strikes,
     phrases,
     decks,
@@ -278,16 +334,29 @@ async function main(): Promise<void> {
     trivia,
     // Trivia multijugador (Actividad de Discord): Teto aplica la XP de sus aciertos desde la base D1 del worker.
     actividad: actividadFromEnv(process.env, trivia),
+    // Celular de Neru (PLAN §3.15): Neru aplica la XP de los retos del dia y deja el perfil de cada Papu en D1.
+    celular: trivia ? puenteFromEnv(process.env, { trivia }) : null,
+    // Cumpleaños (config/cumpleanos.json): los de los Papus están en D1 (los registran en #tus-roles, con el worker).
+    cumple: new CumpleService({ db, query: d1FromEnv(process.env), settings: loadCumpleSettings(), timeZone: config.quotaTimeZone }),
+    // Ajedrez del celular de Neru (config/ajedrez.json): Neru cobra y paga las apuestas y avisa en #general.
+    ajedrez: (() => {
+      const query = d1FromEnv(process.env);
+      return query && coins ? new AjedrezPuente({ db, query, coins, settings: loadAjedrezSettings() }) : null;
+    })(),
     mundo,
     sorteo,
     peleas,
+    carreras,
+    nemesis,
     coins,
     mercado,
     intercambios,
-    pagos: pagosFromEnv(process.env),
+    membresias,
+    tarjetaWeb: process.env.PAPUS_WEB?.trim() && process.env.TARJETA_CLAVE?.trim() ? { base: process.env.PAPUS_WEB.trim().replace(/\/+$/, ""), clave: process.env.TARJETA_CLAVE.trim() } : null,
     calendar: buildCalendar({ db, env: process.env, deliveryDir: config.deliveryDir, engineDir: config.engineDir }),
     log,
     makeConversation,
+    visionMaxMB: visionChain && visionSettings ? visionSettings.maxMB : null,
     makeModeration: (port, exempt) => new ModerationService(new RuleSet(moderationSettings), strikes, phrases, port, exempt),
     makeGeneralChat: (port) =>
       new GeneralChat({
@@ -304,7 +373,51 @@ async function main(): Promise<void> {
         privacy,
         today,
         log,
+        drama: dramas
+          ? { turnos: dramas.turnos, allowed: () => inHours(clock(new Date(), config.quotaTimeZone).hour, dramas.desde, dramas.hasta) && ambientCounters.get("drama") < dramas.maxDia && Math.random() < dramas.probabilidad, used: () => void ambientCounters.bump("drama") }
+          : undefined,
       }),
+    makeAmbient: (talker, port) =>
+      ambientSettings.activo
+        ? new AmbientService({
+            db,
+            settings: ambientSettings,
+            polls: loadPolls(),
+            decks,
+            talker,
+            port,
+            active: () => config.activeBots,
+            names: Object.fromEntries(BOT_IDS.map((id) => [id, characters[id].displayName])) as Record<BotId, string>,
+            timeZone: config.quotaTimeZone,
+            log,
+          })
+        : null,
+    makeAdivinanzas: (port) => {
+      const settings = loadAdivinanzasSettings();
+      if (!settings.activo || !coins) return null;
+      const banco = loadBanco();
+      const avatars = new Map<BotId, Buffer | null>();
+      const service = new AdivinanzasService({
+        db,
+        settings,
+        banco: banco.adivinanzas,
+        frases: banco.frases,
+        decks,
+        port,
+        render: { adivinanza: bannerAdivinanza, ganador: bannerGanador, nadie: bannerNadie },
+        pagar: (userId, cantidad, motivo) => void coins.adjust(userId, "monedas", cantidad, motivo),
+        active: () => config.activeBots,
+        names: Object.fromEntries(BOT_IDS.map((id) => [id, characters[id].displayName])) as Record<BotId, string>,
+        colors: Object.fromEntries(BOT_IDS.map((id) => [id, `#${characters[id].color.toString(16).padStart(6, "0")}`])) as Record<BotId, string>,
+        avatar: (bot) => {
+          if (!avatars.has(bot)) avatars.set(bot, existsSync(avatarFile(bot)) ? readFileSync(avatarFile(bot)) : null);
+          return avatars.get(bot)!;
+        },
+        log,
+      });
+      const aviso = loadLayout().avisosPapu?.avisos.find((a) => a.id === "adivinanzas")?.rol ?? null;
+      return { service, rolSabelotodo: settings.semanal.rol, rolAviso: aviso };
+    },
   });
 
   let stopping = false;
@@ -336,7 +449,9 @@ async function main(): Promise<void> {
   // Mantenimiento diario: borra registros viejos de cuota y strikes.
   setInterval(() => {
     quota.prune();
+    imageAllowance?.prune();
     strikes.prune();
+    ambientCounters.prune(dayKey(new Date(Date.now() - 7 * 86_400_000), config.quotaTimeZone));
     levels.store.prune(dayKey(new Date(Date.now() - 60 * 86_400_000), config.quotaTimeZone));
   }, 24 * 3_600_000);
 }
@@ -345,11 +460,3 @@ main().catch((e) => {
   logError("No se pudo arrancar", e);
   process.exit(1);
 });
-
-/** PayPal.me y cuenta en Chile de GyroP para vender Shaula-coins (.env; sin ellos no se ofrece ese medio). */
-function pagosFromEnv(env: NodeJS.ProcessEnv): { paypalMe: string | null; banco: DatosBanco | null } {
-  const v = (k: string) => env[k]?.trim() || null;
-  const banco = { banco: v("TRANSFERENCIA_BANCO"), tipo: v("TRANSFERENCIA_TIPO"), numero: v("TRANSFERENCIA_NUMERO"), rut: v("TRANSFERENCIA_RUT"), nombre: v("TRANSFERENCIA_NOMBRE"), correo: v("TRANSFERENCIA_CORREO") };
-  const complete = Object.values(banco).every(Boolean);
-  return { paypalMe: v("PAYPAL_ME_USUARIO")?.replace(/^https?:\/\/(www\.)?paypal\.me\//i, "").replace(/\/.*$/, "") ?? null, banco: complete ? (banco as DatosBanco) : null };
-}

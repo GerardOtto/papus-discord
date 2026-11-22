@@ -1,6 +1,6 @@
 {
   "$comment": "Bodas con las Vocaloids (decisiones de GyroP, 22 oct. 2026; docs/PLAN.md §3.2). Una chica deja una adivinanza en #general; el primer Papu que la adivina EN EL HILO se casa con ella por 24 horas: rol de adorno con su corazón y su color, XP de regalo, cuota del día reiniciada y banner de boda. Las adivinanzas son fijas (content/bodas.json) y las revisa el código, nunca el LLM (regla 4). Desde el 25 oct. 2026 juegan los 15 Vocaloids: los chicos (Gakupo, Kaito y Len) se sumaron a las chicas (decisión de GyroP). Cambiar algo aquí no requiere tocar código.",
-  "$chicas": "Quiénes pueden casarse (la clave se llama así desde la primera tanda, pero incluye a los chicos): nombre en el rol y emoji del rol (corazón del color de la chica; los chicos, su objeto). Rol: '<emoji> Espos@ de <nombre>', salvo 'rol' propio. chico = textos en masculino. nota = lo que sabe mientras está casado (manda sobre lo general). Kaito usa 'Espos@ (temporal)': su esposa de verdad es Piña, con su rol permanente '💙 Esposa de Kaito' (config/especiales.json), que las bodas nunca tocan. Un Vocaloid sin token en .env no juega.",
+  "$chicas": "Quiénes pueden casarse (la clave se llama así desde la primera tanda, pero incluye a los chicos): nombre en el rol y emoji del rol (corazón del color de la chica; los chicos, su objeto). Rol: '<emoji> Espos@ de <nombre>', salvo 'rol' propio. chico = textos en masculino. nota = lo que sabe mientras está casado (manda sobre lo general). Kaito usa 'Espos@ (temporal)': su esposa de verdad es Piña, con su rol permanente '💙 Esposa de Kaito' (config/especiales.json), que las bodas nunca tocan. Un Vocaloid sin token en .env no juega. Desde el 12 nov. 2026 (pedido de GyroP) también Mango9374, el bot que imita a un Papu real: no es un Vocaloid, publica con su propio cliente (sin LLM: no sabe que está casado, no conversa), sus frases de boda van en content/frases/mango.json, su color en 'color' y su figura en assets/bots/mango_figura.png (su peluche de Teto sin el fondo). Sin su token (DISCORD_TOKEN_MANGO9374), no juega.",
   "chicas": {
     "teto": { "nombre": "Teto", "corazon": "❤️" },
     "miku": { "nombre": "Miku", "corazon": "🩵" },
@@ -22,7 +22,8 @@
     "len": { "nombre": "Len", "corazon": "🍌", "chico": true },
     "meiko": { "nombre": "Meiko", "corazon": "❤️‍🔥" },
     "adachirei": { "nombre": "Adachi Rei", "corazon": "🧡" },
-    "ruko": { "nombre": "Ruko", "corazon": "💙" }
+    "ruko": { "nombre": "Ruko", "corazon": "💙" },
+    "mango": { "nombre": "Mango9374", "corazon": "🥭", "chico": true, "color": "#F2A33A" }
   },
   "$inaugural": "Primera adivinanza, apenas arrancan los bots con el parche (una sola vez; cuenta para el máximo del día).",
   "inaugural": "teto",

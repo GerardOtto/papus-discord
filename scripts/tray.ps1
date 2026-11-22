@@ -1,7 +1,7 @@
 ﻿# Icono de los Papus en la bandeja de Windows (junto al reloj) y menu general del proyecto.
 # - En linea: rota entre Teto, Miku, Luka y Neru con un punto verde; al pasar el mouse, desde que hora.
 # - Detenidos: Neru en gris con punto rojo. Avisa con una notificacion cuando cambia el estado.
-# - Clic derecho: bots (registro, reiniciar, detener, iniciar), pedidos, carpetas y enlaces del proyecto.
+# - Clic derecho: bots (registro, reiniciar, detener, iniciar), carpetas y enlaces del proyecto.
 # Lo lanza la tarea "Papus Bandeja" al iniciar sesion (npm run bandeja para abrirlo ahora).
 Add-Type -AssemblyName System.Windows.Forms
 Add-Type -AssemblyName System.Drawing
@@ -71,14 +71,6 @@ $itemStart = Add-Item $bots "▶ Iniciar" {
   try { Start-ScheduledTask -TaskName "Papus Discord" -ErrorAction Stop }
   catch { Start-Process -FilePath "wscript.exe" -ArgumentList "`"$root\scripts\run-bots-hidden.vbs`"" -WorkingDirectory $root }
 }
-
-# 🎁 Pedidos
-$orders = New-Object System.Windows.Forms.ToolStripMenuItem("🎁 Pedidos")
-[void]$menu.Items.Add($orders)
-[void](Add-Item $orders "📋 Ver lista de pedidos" {
-  Start-Process -FilePath "cmd.exe" -WindowStyle Hidden -WorkingDirectory $root -ArgumentList "/c npm run -s pedidos"
-  $tray.ShowBalloonTip(2500, "Papus", "Armando la lista de pedidos…", [System.Windows.Forms.ToolTipIcon]::Info)
-})
 
 # 📊 Consumo de APIs (lo escribe el programa de los bots cada minuto en data\estado.json)
 $usageMenu = New-Object System.Windows.Forms.ToolStripMenuItem("📊 Consumo de APIs (hoy)")

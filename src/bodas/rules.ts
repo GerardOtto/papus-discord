@@ -5,14 +5,23 @@ import path from "node:path";
 import { BOT_IDS, type BotId } from "../config";
 import { levelFor, xpToReach, type LevelSettings } from "../levels/rules";
 
+/**
+ * Quien se casa ademas de los 15 Vocaloids: Mango9374 (pedido de GyroP, 12 nov. 2026). No es un Vocaloid (no esta en
+ * BOT_IDS): habla con su propio cliente, sin LLM, y sus frases de boda estan en content/frases/mango.json.
+ */
+export const EXTRA_BRIDES = ["mango"] as const;
+export type BrideId = BotId | (typeof EXTRA_BRIDES)[number];
+export const isBotBride = (b: BrideId): b is BotId => (BOT_IDS as readonly string[]).includes(b);
+
 export interface WeddingSettings {
   /**
    * Quienes se casan (desde el 25 oct. 2026 tambien los chicos; la clave se quedo como "chicas"). corazon = emoji del
    * rol; chico = textos en masculino; rol = nombre del rol si no es el de siempre (Kaito: no confundirlo con el de Piña);
-   * nota = lo que sabe el Vocaloid mientras esta casado (manda sobre lo general).
+   * nota = lo que sabe el Vocaloid mientras esta casado (manda sobre lo general). color = "#RRGGBB" del rol (solo
+   * Mango9374, que no tiene ficha en el motor).
    */
-  chicas: Partial<Record<BotId, { nombre: string; corazon: string; chico?: boolean; rol?: string; nota?: string }>>;
-  inaugural: BotId | null;
+  chicas: Partial<Record<BrideId, { nombre: string; corazon: string; chico?: boolean; rol?: string; nota?: string; color?: string }>>;
+  inaugural: BrideId | null;
   canal: string;
   porDia: number;
   horario: { zona: string; desde: string; hasta: string };
@@ -35,24 +44,27 @@ const REPO_ROOT = path.resolve(import.meta.dirname, "../..");
 
 export function loadWeddingSettings(file = path.join(REPO_ROOT, "config/bodas.json")): WeddingSettings {
   const s = JSON.parse(readFileSync(file, "utf8")) as WeddingSettings;
-  for (const id of Object.keys(s.chicas)) if (!(BOT_IDS as readonly string[]).includes(id)) throw new Error(`config/bodas.json: Vocaloid desconocida "${id}"`);
+  for (const [id, c] of Object.entries(s.chicas)) {
+    if (![...BOT_IDS, ...EXTRA_BRIDES].includes(id as BrideId)) throw new Error(`config/bodas.json: Vocaloid desconocida "${id}"`);
+    if (!isBotBride(id as BrideId) && !/^#[0-9a-f]{6}$/i.test(c?.color ?? "")) throw new Error(`config/bodas.json: ${id} necesita 'color' (#RRGGBB)`);
+  }
   if (s.inaugural && !s.chicas[s.inaugural]) throw new Error(`config/bodas.json: la inaugural (${s.inaugural}) no está en 'chicas'`);
   return s;
 }
 
-export function loadRiddles(file = path.join(REPO_ROOT, "content/bodas.json")): Partial<Record<BotId, Riddle[]>> {
+export function loadRiddles(file = path.join(REPO_ROOT, "content/bodas.json")): Partial<Record<BrideId, Riddle[]>> {
   const raw = JSON.parse(readFileSync(file, "utf8")) as Record<string, unknown>;
-  return Object.fromEntries(Object.entries(raw).filter(([k]) => !k.startsWith("$"))) as Partial<Record<BotId, Riddle[]>>;
+  return Object.fromEntries(Object.entries(raw).filter(([k]) => !k.startsWith("$"))) as Partial<Record<BrideId, Riddle[]>>;
 }
 
 /** "❤️ Espos@ de Teto" (o el rol propio de la config, como el de Kaito). */
-export function weddingRole(s: WeddingSettings, bot: BotId): string {
+export function weddingRole(s: WeddingSettings, bot: BrideId): string {
   const c = s.chicas[bot]!;
   return c.rol ?? `${c.corazon} Espos@ de ${c.nombre}`;
 }
 
 /** Palabras que cambian si el Vocaloid es chico: "ella"/"él", "casada"/"casado", "soltera"/"soltero". */
-export function genderWords(s: WeddingSettings, bot: BotId): { el: string; casado: string; soltero: string } {
+export function genderWords(s: WeddingSettings, bot: BrideId): { el: string; casado: string; soltero: string } {
   return s.chicas[bot]?.chico ? { el: "él", casado: "casado", soltero: "soltero" } : { el: "ella", casado: "casada", soltero: "soltera" };
 }
 

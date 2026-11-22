@@ -20,6 +20,7 @@ enabled = true
 # arma en public/actividad/) y una sala por instancia de la Actividad (Durable Object con SQLite, plan gratuito).
 [assets]
 directory = "public"
+binding = "ASSETS"
 
 [[durable_objects.bindings]]
 name = "SALAS"

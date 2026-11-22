@@ -1,18 +1,20 @@
-// Guía/wiki del 1vs1 en #⚔️・peleas (pedido de GyroP, 8 nov. 2026): cómo funciona, qué hace cada estadística y la ficha
-// de cada luchador (estadísticas, estilo y especial), armada desde config/peleas.json para que nunca quede vieja.
-// La publica Teto: 4 mensajes (guía + Vocaloids + invitados de los videos + invitados especiales); la guía queda fijada.
-// Volver a correrlo EDITA los mismos mensajes (ids guardados en la base, como npm run guias).
+// Guía/wiki del 1vs1 (pedido de GyroP, 8 nov. 2026): cómo funciona, qué hace cada estadística y la ficha de cada
+// luchador (estadísticas, estilo y especial), armada desde config/peleas.json para que nunca quede vieja. Desde el
+// 16 nov. 2026 va en el foro #📚・guías («📖 Fichas del 1vs1», cerrada; antes en el canal, donde se perdía hacia
+// arriba). La publica Teto: guía + Vocaloids + invitados de los videos + invitados especiales.
+// Volver a correrlo EDITA los mismos mensajes (ids en la base del PC; correrlo desde el PC).
 //   npm run peleas:wiki             -> muestra qué haría (y el largo de cada mensaje)
 //   npm run peleas:wiki -- --apply  -> publica o edita
 import { existsSync } from "node:fs";
 import path from "node:path";
 import { REST, Routes } from "discord.js";
 import { BOT_IDS, loadConfig, loadDotEnv, type BotId } from "../src/config";
-import { kvGet, kvSet, openDb } from "../src/db/database";
+import { openDb } from "../src/db/database";
 import { channelKey } from "../src/discord/channels";
 import { EngineReader } from "../src/engine/reader";
 import { avatarFile } from "../src/peleas/images";
-import { loadPeleaSettings, REFLEJO, type Luchador } from "../src/peleas/rules";
+import { loadPeleaSettings, maxTurnosEquipo, REFLEJO, type Luchador } from "../src/peleas/rules";
+import { borrarWikiCanal, publicarWikiForo } from "./wiki-foro";
 
 loadDotEnv();
 const config = loadConfig();
@@ -52,6 +54,7 @@ const EMOJI: Record<string, string> = {
   godzilla: "🦖",
   shaula: "🦂",
   pina: "🍍",
+  meowl: "🦉",
 };
 const E = {
   nerd: "<:gato_nerd:1561227707247894599>",
@@ -89,7 +92,7 @@ function ficha(id: string): string {
 
 const a = S.apuestas;
 const guia = {
-  title: "⚔️ Guía de las peleas 1vs1 ✧٩(ˊᗜˋ*)و✧",
+  title: "⚔️ Guía de las peleas 1vs1 y 2vs2 ✧٩(ˊᗜˋ*)و✧",
   description: [
     `¡Dos luchadores se dan con todo y tú apuestas quién gana! ${E.tetoBaila}`,
     "",
@@ -99,7 +102,7 @@ const guia = {
     `> 🔔 ¿quieres que te avise? elige **⚔️ Ludópata** en {tus-roles}: te etiqueto al abrir las apuestas y otra vez cuando quedan 15 segundos`,
     "",
     "**🪙 Cómo apostar**",
-    `> toca el botón del luchador y escribe cuánto: de **${a.minima} a ${a.maxima}** Shaula-coins **ganadas** (las compradas no se apuestan)`,
+    `> toca el botón del luchador y escribe cuánto: de **${a.minima} a ${a.maxima}** Shaulitas`,
     "> si gana, cobras **tu apuesta × la cuota**; si pierde, la pierdes (｡•́︿•̀｡)",
     `> la **cuota** sale de simular la pelea ${fmt(a.simulaciones)} veces: el favorito paga poco (×${String(a.cuotaMinima).replace(".", ",")}) y el que casi nunca gana paga mucho (hasta ×${a.cuotaMaxima})`,
     "",
@@ -116,18 +119,26 @@ const guia = {
     `> ⏱️ como mucho **${S.pelea.maxTurnos} turnos**: si nadie cae, gana quien conserve más vida (en %)`,
     "> 🤝 **¿empate?** si los dos caen en el mismo golpe, gana el que quedó menos lejos de 0 (también en %); y si quedan exactamente igual, se tira una moneda 🪙",
     "",
+    "**👥 2 contra 2**",
+    `> a veces la pelea sale **en equipos** (más o menos ${Math.round((S.equipos?.probabilidad ?? 0) * 100)} de cada 100 automáticas) y apuestas por **un equipo**; también se lanza con \`/pelea modo:2vs2\``,
+    "> en cada turno se enfrenta **uno de cada equipo**, elegido al azar entre los que siguen en pie, con las mismas reglas de arriba",
+    "> cada uno pelea con **sus propios números**: el que cae queda fuera 💀 y su compañero sigue solo",
+    `> gana el equipo que deja al otro **sin nadie en pie**; si pasan **${maxTurnosEquipo(S)} turnos**, el que conserva más vida en total (en %)`,
+    "> 📊 en el banner, la **vida** es la suma de los dos y **ataque, defensa y agilidad** son el promedio: solo para comparar, porque en la pelea cada uno usa los suyos",
+    `> 🎲 la cuota sale de simular ese 2vs2 ${fmt(a.simulaciones)} veces: importa quién se cruza con quién y cuánto aguanta el que queda solo`,
+    "",
     "**🎭 Estilos**",
     "> 🔥 **agresivo**: ataca casi siempre · 💨 **ágil**: esquiva mucho · 🧱 **resistente**: bloquea mucho · ⚖️ **equilibrado**: un poco de todo",
     "",
     `Todos ganan más o menos la mitad de sus peleas: ¡ningún luchador está roto! ${E.pulgar} Las fichas de cada uno están aquí abajo 👇`,
-    "-# Nada de esto da XP ni cuota con los Vocaloids: las apuestas son solo con Shaula-coins ganadas.",
+    "-# Nada de esto da XP ni cuota con los Vocaloids: las apuestas son solo con Shaulitas.",
   ].join("\n"),
 };
 
 const grupos: { key: string; title: string; ids: string[]; intro: string }[] = [
   { key: "vocaloids", title: "🎤 Los Vocaloids del servidor", ids: Object.keys(S.luchadores).filter((id) => BOT_IDS.includes(id as BotId)), intro: "¡Los de siempre! (≧▽≦)" },
   { key: "invitados", title: "🎬 Invitados de los videos", ids: Object.keys(S.luchadores).filter((id) => S.luchadores[id]!.grupo === "invitado"), intro: `Los que han salido en los videos del canal ${E.sorpresa}` },
-  { key: "especiales", title: "🌟 Invitados especiales", ids: Object.keys(S.luchadores).filter((id) => S.luchadores[id]!.grupo === "especial"), intro: `Elegidos por GyroP. Sí, la Piña es una piña ${E.pera}` },
+  { key: "especiales", title: "🌟 Invitados especiales", ids: Object.keys(S.luchadores).filter((id) => S.luchadores[id]!.grupo === "especial"), intro: `Elegidos por GyroP (y Meowl, idea de Wiwi). Sí, la Piña es una piña ${E.pera}` },
 ];
 
 function fmt(n: number) {
@@ -137,8 +148,6 @@ function fmt(n: number) {
 const channels = (await rest.get(Routes.guildChannels(config.guildId))) as { id: string; name: string; type: number }[];
 const byKey = new Map(channels.filter((c) => c.type === 0).map((c) => [channelKey(c.name), c]));
 const link = (text: string) => text.replace(/\{([a-z0-9-]+)\}/g, (m, k: string) => (byKey.get(k) ? `<#${byKey.get(k)!.id}>` : m));
-const ch = byKey.get(channelKey(S.canal));
-if (!ch) throw new Error(`No existe #${S.canal}`);
 
 const messages = [
   { key: "guia", embeds: [{ title: guia.title, description: link(guia.description), color: color("teto"), footer: { text: "Teto ・ ¡que gane el mejor! 🥖" } }] },
@@ -147,27 +156,6 @@ const messages = [
     embeds: [{ title: g.title, description: [g.intro, "", ...g.ids.map(ficha)].join("\n"), color: color(g.ids[0]!) }],
   })),
 ];
-for (const m of messages) {
-  const len = m.embeds.reduce((n, e) => n + e.description.length + e.title.length, 0);
-  if (m.embeds.some((e) => e.description.length > 4096)) throw new Error(`El mensaje ${m.key} pasa de 4096 caracteres`);
-  const prev = JSON.parse(kvGet(db, `peleas-wiki:${m.key}`) ?? "null") as { channelId: string; messageId: string } | null;
-  const editable = prev?.channelId === ch.id;
-  if (!APPLY) {
-    console.log(`• #${ch.name} · ${m.key}: ${editable ? "editar" : "publicar"} (${len} caracteres)`);
-    continue;
-  }
-  const body = { content: "", embeds: m.embeds, allowed_mentions: { parse: [] } };
-  let id: string | null = null;
-  if (editable) {
-    id = await rest
-      .patch(Routes.channelMessage(ch.id, prev!.messageId), { body })
-      .then(() => prev!.messageId)
-      .catch(() => null);
-  }
-  if (!id) {
-    id = ((await rest.post(Routes.channelMessages(ch.id), { body })) as { id: string }).id;
-    if (m.key === "guia") await rest.put(Routes.channelPin(ch.id, id)).catch((e) => console.log(`(no pude fijar la guía: ${e})`));
-  }
-  kvSet(db, `peleas-wiki:${m.key}`, JSON.stringify({ channelId: ch.id, messageId: id }));
-  console.log(`✔ #${ch.name} · ${m.key}: ${editable && id === prev!.messageId ? "editado" : "publicado"}`);
-}
+// En el foro #📚・guías (pedido de GyroP, 16 nov. 2026): en el canal se perdían hacia arriba con cada banner.
+await publicarWikiForo({ rest, db, guildId: config.guildId, clave: "fichas-peleas", titulo: "📖 Fichas del 1vs1", etiquetas: ["🎮 Juegos"], mensajes: messages, apply: APPLY });
+await borrarWikiCanal(rest, db, "peleas-wiki", messages.map((m) => m.key), APPLY);

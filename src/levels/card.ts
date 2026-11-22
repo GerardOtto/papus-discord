@@ -1,9 +1,11 @@
 // Tarjeta de nivel (/nivel): imagen PNG con el avatar, la insignia del rango, la barra de XP y lo que cada Papu
-// personaliza con /tarjeta (frase, color y fondo). La insignia es mas llamativa cuanto mas alto el rango:
+// personaliza en la web (/tarjeta; antes frase, color y fondo por comando). La insignia es mas llamativa cuanto mas alto el rango:
 // gris, color, degradados, plata, oro, destellos, tornasol y arcoiris (PLAN §niveles). Los objetos de las
-// Shaula-coins (PLAN §3.6) se dibujan encima; si alguno se mueve, la tarjeta sale como GIF.
+// Shaulitas (PLAN §3.6) se dibujan encima; si alguno se mueve, la tarjeta sale como GIF.
 import { createCanvas, loadImage, type CanvasGradient, type Image, type SKRSContext2D } from "@napi-rs/canvas";
 import * as gifencModule from "gifenc";
+import { placaMembresia, type MarcoMembresia } from "../membresias/marco";
+import { prestigeMark } from "./rules";
 
 // gifenc es CommonJS: Node lo entrega entero en `default`; vitest usa su version ESM, con las funciones sueltas.
 const { applyPalette, GIFEncoder, quantize } = "quantize" in gifencModule && typeof gifencModule.quantize === "function" ? gifencModule : gifencModule.default;
@@ -23,17 +25,25 @@ export interface CardData {
   tier: number;
   rankName: string;
   position: number;
-  quota: { left: number; limit: number } | null;
+  /** Cuota de hoy, en sus dos espacios (src/quota/quota.ts); null = sin limite. */
+  quota: CardQuota | null;
   frase: string | null;
   /** "#RRGGBB" */
   accent: string;
   background: Buffer | null;
   /** Multiplicador de XP vigente (1 = sin evento). */
   multiplier: number;
+  /**
+   * "derecha": avatar a la derecha y datos a la izquierda (el texto sigue alineado a la izquierda), para que no tapen el
+   * arte del fondo. Sin valor, como siempre.
+   */
+  lado?: "izquierda" | "derecha";
+  /** Cinta de su membresía de Ko-fi en la esquina (PLAN §2); sin membresía, nada. */
+  membresia?: MarcoMembresia;
 }
 
 /**
- * Objetos equipados (Shaula-coins, src/coins/): cada uno ya resuelto a su dibujo. t = fase de la animacion (0 a 1).
+ * Objetos equipados (Shaulitas, src/coins/): cada uno ya resuelto a su dibujo. t = fase de la animacion (0 a 1).
  * `fondo` puede ser una imagen (render) o un dibujo; el resto son dibujos. Sin objeto, se ve la tarjeta de siempre.
  */
 export interface CardEquip {
@@ -45,10 +55,12 @@ export interface CardEquip {
     paint: (ctx: SKRSContext2D, t: number, x: number, w: number) => void;
     back?: (ctx: SKRSContext2D, text: string, x: number, y: number, size: number, t: number) => void;
   };
-  /** Hasta 3, junto al nombre: un emoji o una imagen. */
+  /** Hasta 3 (4 con membresía Baguette o más), junto al nombre: un emoji o una imagen. */
   insignias?: (string | Image)[];
   /** Reemplaza la frase. color "rainbow" = arcoiris que se mueve. */
   titulo?: { texto: string; color: string };
+  /** El fondo puesto pide un lado para el avatar (fondos reencuadrados): manda sobre el lado que eligió el Papu. */
+  lado?: "izquierda" | "derecha";
   /** Algo se mueve: la tarjeta sale como GIF. */
   animado?: boolean;
 }
@@ -123,6 +135,22 @@ export function sparkles(ctx: SKRSContext2D, x: number, y: number, w: number, h:
   ctx.restore();
 }
 
+/**
+ * Cuota en la tarjeta: lo que le queda de cada espacio sobre su capacidad. `daily`/`limit` = espacio diario (por nivel;
+ * lo rellenan la ruleta y el sorteo); `donated`/`donatedCap` = espacio de donados (/donar).
+ */
+export interface CardQuota {
+  daily: number;
+  limit: number;
+  donated: number;
+  donatedCap: number;
+}
+
+/** «Cuota diaria 10/20 - Donados 3/5» (pedido de GyroP, 14 nov. 2026): lo que queda sobre lo que cabe. */
+export function quotaText(q: CardQuota): string {
+  return `Cuota diaria ${q.daily}/${q.limit} - Donados ${q.donated}/${q.donatedCap}`;
+}
+
 export function fitText(ctx: SKRSContext2D, text: string, maxWidth: number): string {
   if (ctx.measureText(text).width <= maxWidth) return text;
   const chars = [...text];
@@ -137,7 +165,7 @@ function coverImage(ctx: SKRSContext2D, img: Image): void {
 
 /** Insignia "★2 Nv 57" con el estilo de su rango. Devuelve el ancho dibujado. */
 function drawBadge(ctx: SKRSContext2D, x: number, y: number, d: CardData): number {
-  const stars = d.prestige > 0 ? `★${d.prestige}  ` : "";
+  const stars = d.prestige > 0 ? `${prestigeMark(d.prestige, true)}${d.prestige}  ` : "";
   const label = `${stars}Nv ${d.level}`;
   ctx.font = `bold 30px ${FONT}`;
   const w = ctx.measureText(label).width + 36;
@@ -239,7 +267,9 @@ function drawFrame(ctx: SKRSContext2D, d: CardData, img: CardImages, e: CardEqui
     ctx.fillStyle = gradient(ctx, 0, 0, CARD_W, [d.accent, "#16131f"]);
     ctx.fillRect(0, 0, CARD_W, CARD_H);
   }
-  const veil = ctx.createLinearGradient(0, 0, CARD_W, 0);
+  const derecha = (e.lado ?? d.lado) === "derecha";
+  // El velo oscurece donde van los datos: a la izquierda (como siempre) o a la derecha (lado derecho).
+  const veil = derecha ? ctx.createLinearGradient(CARD_W, 0, 0, 0) : ctx.createLinearGradient(0, 0, CARD_W, 0);
   veil.addColorStop(0, "rgba(10,8,18,0.82)");
   veil.addColorStop(0.65, "rgba(10,8,18,0.62)");
   veil.addColorStop(1, "rgba(10,8,18,0.30)");
@@ -247,10 +277,14 @@ function drawFrame(ctx: SKRSContext2D, d: CardData, img: CardImages, e: CardEqui
   ctx.fillRect(0, 0, CARD_W, CARD_H);
   if (d.tier >= 8) sparkles(ctx, 0, 0, CARD_W, CARD_H, 40, d.tier >= 10 ? "#ffe14d" : "#ffffff");
 
-  // Avatar con aro del rango (o el aro equipado).
-  const ax = 40, ay = 60, as = 210;
+  // Avatar con aro del rango (o el aro equipado). Los aros se dibujan para el avatar a la izquierda: con lado derecho
+  // se corren con él.
+  const as = 210, ax = derecha ? CARD_W - 40 - as : 40, ay = 60;
   ctx.save();
-  if (e.aro) e.aro(ctx, t);
+  if (e.aro) {
+    ctx.translate(ax - 40, 0);
+    e.aro(ctx, t);
+  }
   else {
     const ring = tierFill(ctx, Math.max(d.tier, 1), ax, ay, as);
     if (ring.glow) {
@@ -272,23 +306,31 @@ function drawFrame(ctx: SKRSContext2D, d: CardData, img: CardImages, e: CardEqui
   if (img.avatar) ctx.drawImage(img.avatar, ax, ay, as, as);
   ctx.restore();
 
-  const x = 290;
-  const right = CARD_W - 40;
-  const insignias = (e.insignias ?? []).slice(0, 3);
+  // Bloque de datos: a la derecha del avatar (como siempre) o, con lado derecho, a su izquierda y alineado a la
+  // derecha (pegado al avatar), para que la izquierda de la tarjeta quede libre y se vea el arte.
+  const x = derecha ? 40 : 290;
+  const right = derecha ? CARD_W - 290 : CARD_W - 40;
+  /** Donde empieza un texto de ancho w: al inicio del bloque o, con lado derecho, terminando en su borde derecho. */
+  const at = (w: number) => (derecha ? right - w : x);
+  // Hasta 3 (4 con membresía Baguette o más: su lugar extra).
+  const insignias = (e.insignias ?? []).slice(0, 4);
   ctx.textBaseline = "alphabetic";
   ctx.font = `bold 46px ${FONT}`;
   const name = fitText(ctx, d.name, right - x - (insignias.length ? 18 + insignias.length * 58 : 0));
+  const nameW = ctx.measureText(name).width;
+  const nx = at(nameW);
   ctx.save();
   if (e.nombre) {
-    e.nombre.back?.(ctx, name, x, 98, 46, t);
-    e.nombre.paint(ctx, t, x, ctx.measureText(name).width);
+    e.nombre.back?.(ctx, name, nx, 98, 46, t);
+    e.nombre.paint(ctx, t, nx, nameW);
   } else ctx.fillStyle = "#ffffff";
-  ctx.fillText(name, x, 98);
+  ctx.fillText(name, nx, 98);
   ctx.restore();
 
-  // Insignias: hasta 3, a la derecha del nombre (centradas por el dibujo real del emoji).
+  // Insignias: hasta 3, del lado de afuera del bloque (a la derecha del nombre o, con lado derecho, a su izquierda),
+  // centradas por el dibujo real del emoji.
   insignias.forEach((ins, i) => {
-    const bx = right - 50 - i * 58, by = 52;
+    const bx = derecha ? x + i * 58 : right - 50 - i * 58, by = 52;
     roundRect(ctx, bx, by, 50, 50, 14);
     ctx.fillStyle = "rgba(255,255,255,0.16)";
     ctx.fill();
@@ -304,26 +346,32 @@ function drawFrame(ctx: SKRSContext2D, d: CardData, img: CardImages, e: CardEqui
     } else ctx.drawImage(ins, bx + 5, by + 5, 40, 40);
   });
 
-  const bw = drawBadge(ctx, x, 120, d);
+  // Insignia de nivel y rango: con lado derecho, la insignia va en el borde derecho y el texto a su izquierda.
+  const bw = derecha ? drawBadge(createCanvas(10, 10).getContext("2d"), 0, 120, d) : 0;
+  const badgeW = drawBadge(ctx, derecha ? right - bw : x, 120, d);
   ctx.textBaseline = "middle";
   ctx.font = `600 24px ${FONT}`;
   ctx.fillStyle = "#ffffff";
-  ctx.fillText(fitText(ctx, `${d.rankName} · #${d.position} del servidor`, right - x - bw - 18), x + bw + 18, 145);
+  const rank = fitText(ctx, `${d.rankName} · #${d.position} del servidor`, right - x - badgeW - 18);
+  ctx.fillText(rank, derecha ? right - badgeW - 18 - ctx.measureText(rank).width : x + badgeW + 18, 145);
 
   // Titulo equipado (reemplaza la frase) o la frase de /tarjeta.
   ctx.textBaseline = "alphabetic";
   if (e.titulo) {
     ctx.font = `italic bold 24px ${FONT}`;
     const text = fitText(ctx, `« ${e.titulo.texto} »`, right - x);
-    ctx.fillStyle = e.titulo.color === "rainbow" ? rainbowAt(ctx, x, ctx.measureText(text).width, t) : e.titulo.color;
-    ctx.fillText(text, x, 204);
+    const tw = ctx.measureText(text).width;
+    ctx.fillStyle = e.titulo.color === "rainbow" ? rainbowAt(ctx, at(tw), tw, t) : e.titulo.color;
+    ctx.fillText(text, at(tw), 204);
   } else if (d.frase) {
     ctx.font = `italic 24px ${FONT}`;
     ctx.fillStyle = "rgba(255,255,255,0.88)";
-    ctx.fillText(fitText(ctx, `“${d.frase}”`, right - x), x, 204);
+    const text = fitText(ctx, `“${d.frase}”`, right - x);
+    ctx.fillText(text, at(ctx.measureText(text).width), 204);
   }
 
-  // Barra de XP (la equipada se dibuja dentro de la parte llena).
+  // Barra de XP (la equipada se dibuja dentro de la parte llena). Con lado derecho se llena de derecha a izquierda,
+  // desde el avatar.
   const by = 254, bh = 28, bwid = right - x;
   roundRect(ctx, x, by, bwid, bh, bh / 2);
   ctx.fillStyle = "rgba(255,255,255,0.18)";
@@ -331,15 +379,16 @@ function drawFrame(ctx: SKRSContext2D, d: CardData, img: CardImages, e: CardEqui
   const frac = d.level >= d.max ? 1 : Math.max(0, Math.min(1, d.into / d.needed));
   if (frac > 0) {
     const fw = Math.max(bh, bwid * frac);
+    const fx = at(fw);
     if (e.barra) {
       ctx.save();
-      roundRect(ctx, x, by, fw, bh, bh / 2);
+      roundRect(ctx, fx, by, fw, bh, bh / 2);
       ctx.clip();
-      e.barra(ctx, t, x, by, fw, bh);
+      e.barra(ctx, t, fx, by, fw, bh);
       ctx.restore();
     } else {
       const bar = tierFill(ctx, Math.max(d.tier, 1), x, by, bwid);
-      roundRect(ctx, x, by, fw, bh, bh / 2);
+      roundRect(ctx, fx, by, fw, bh, bh / 2);
       ctx.fillStyle = d.tier <= 1 ? d.accent : d.tier >= 10 ? gradient(ctx, x, by, bwid, RAINBOW) : bar.fill;
       ctx.fill();
     }
@@ -348,15 +397,18 @@ function drawFrame(ctx: SKRSContext2D, d: CardData, img: CardImages, e: CardEqui
   ctx.fillStyle = "#ffffff";
   ctx.textBaseline = "alphabetic";
   const xpText = d.level >= d.max ? "¡Nivel máximo! Ya puedes prestigiar ★" : `${fmt(d.into)} / ${fmt(d.needed)} XP para el nivel ${d.level + 1}`;
-  ctx.fillText(xpText, x, by - 10);
+  ctx.fillText(xpText, at(ctx.measureText(xpText).width), by - 10);
 
-  const foot = [d.quota ? `Cuota hoy: ${d.quota.left} de ${d.quota.limit}` : "", d.multiplier > 1 ? `Evento ×${String(d.multiplier).replace(".", ",")} activo` : ""]
+  const foot = [d.quota ? quotaText(d.quota) : "", d.multiplier > 1 ? `Evento ×${String(d.multiplier).replace(".", ",")} activo` : ""]
     .filter(Boolean)
     .join("   ·   ");
   if (foot) {
-    ctx.font = `20px ${FONT}`;
+    // Sin salirse de la tarjeta: achica la letra si no cabe.
+    let size = 20;
+    ctx.font = `${size}px ${FONT}`;
+    while (size > 14 && ctx.measureText(foot).width > bwid) ctx.font = `${--size}px ${FONT}`;
     ctx.fillStyle = "rgba(255,255,255,0.8)";
-    ctx.fillText(foot, x, by + bh + 28);
+    ctx.fillText(foot, at(ctx.measureText(foot).width), by + bh + 28);
   }
   ctx.restore();
   // Borde equipado, encima de todo.
@@ -364,6 +416,11 @@ function drawFrame(ctx: SKRSContext2D, d: CardData, img: CardImages, e: CardEqui
     ctx.save();
     e.borde(ctx, t);
     ctx.restore();
+  }
+  // Placa de membresía bajo el avatar (antes una cinta en la esquina, que tapaba una insignia; GyroP, 18 nov. 2026).
+  if (d.membresia) {
+    const as = 210, ax = derecha ? CARD_W - 40 - as : 40, ay = 60;
+    placaMembresia(ctx, ax + as / 2, ay + as - 4, d.membresia, t);
   }
 }
 

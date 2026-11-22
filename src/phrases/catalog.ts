@@ -1,5 +1,5 @@
 // Catalogo de frases fijas por bot y grupo (content/frases/<bot>.json). Nunca gastan cuota (regla 4).
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { BOT_IDS, type BotId } from "../config";
 import { fill, type DeckStore } from "./deck";
@@ -12,11 +12,19 @@ const PRESENCE_GROUPS = ["saludo_conexion", "despedida", "charla_general"];
 const CHAT_GROUPS = ["cuota_agotada", "cola_llena", "sin_api", "charla_general", ...PRIVATE_GROUPS];
 /** Los Vocaloids de las bodas (config/bodas.json, src/discord/bodas.ts; los chicos desde el 25 oct. 2026): anuncio de la adivinanza, aceptacion, "nadie acerto" y divorcio. */
 export const WEDDING_BOTS: readonly BotId[] = ["teto", "miku", "luka", "neru", "gakupo", "kaito", "flower", "ia", "haku", "gumi", "rin", "len", "meiko", "adachirei", "ruko"];
-const WEDDING_GROUPS = ["boda_adivinanza", "boda_acierto", "boda_desierta", "boda_divorcio"];
+export const WEDDING_GROUPS = ["boda_adivinanza", "boda_acierto", "boda_desierta", "boda_divorcio"];
+/**
+ * Quienes, sin ser Vocaloids, tienen archivo de frases: Mango9374 (solo las de boda; se casa desde el 12 nov. 2026,
+ * content/frases/mango.json) y Némesis, la crupier de la Ruleta de Némesis (no es un bot: las publica Teto;
+ * content/frases/nemesis.json). Si falta el archivo, no tiene frases.
+ */
+export const EXTRA_PHRASE_BOTS = ["mango", "nemesis", "ofertas", "pecados"] as const;
+const NEMESIS_GROUPS = ["nemesis_reto", "nemesis_click", "nemesis_bang", "nemesis_ganador"];
+export type PhraseBot = BotId | (typeof EXTRA_PHRASE_BOTS)[number];
 
 /** Grupos obligatorios por bot (PLAN §6 + los que usa el codigo). */
 const BASE_GROUPS: Record<BotId, string[]> = {
-  teto: ["bienvenida", "bienvenida_grupal", "cumpleanos", "ya_volvi", "vitrina_nuevo", "sube_rango", "papu_de_honor", "nivel_maximo", "prestigio", "ranking", "ruleta_premio", "ruleta_mision", "ruleta_regalo", "sorteo_ganador", "pelea_anuncio", "pelea_ganador", "monedas_llegaron", "sobre_legendario", "sobre_abierto", "trivia_racha", "trivia_racha_libre", "trivia_cero", "intercambio_hecho", "cuota_agotada", "cola_llena", "sin_api", ...PRIVATE_GROUPS, ...PRESENCE_GROUPS],
+  teto: ["bienvenida", "bienvenida_grupal", "se_fue", "cumpleanos", "ya_volvi", "vitrina_nuevo", "sube_rango", "papu_de_honor", "nivel_maximo", "prestigio", "ranking", "ruleta_premio", "ruleta_mision", "ruleta_regalo", "sorteo_ganador", "pelea_anuncio", "pelea_ganador", "carrera_anuncio", "carrera_ganador", "sobre_legendario", "sobre_abierto", "trivia_racha", "trivia_racha_libre", "trivia_cero", "intercambio_hecho", "fanart_nuevo", "cuota_agotada", "cola_llena", "sin_api", ...PRIVATE_GROUPS, ...PRESENCE_GROUPS],
   miku: [
     "votacion_abierta",
     "vitrina_nueva",
@@ -26,17 +34,13 @@ const BASE_GROUPS: Record<BotId, string[]> = {
     "estreno",
     "calendario",
     "noticia",
-    "pedido_recibido",
-    "pedido_en_produccion",
-    "pedido_entregado",
-    "pedido_rechazado",
     "evento_xp",
     "cuota_agotada",
     "cola_llena",
     "sin_api",
     ...PRIVATE_GROUPS, ...PRESENCE_GROUPS,
   ],
-  luka: ["tip_recibido", "falta_fuente", "tip_usado", "cuota_agotada", "cola_llena", "sin_api", ...PRIVATE_GROUPS, ...PRESENCE_GROUPS],
+  luka: ["cuota_agotada", "cola_llena", "sin_api", ...PRIVATE_GROUPS, ...PRESENCE_GROUPS],
   neru: [
     "advertencia",
     "aviso",
@@ -70,18 +74,37 @@ const BASE_GROUPS: Record<BotId, string[]> = {
   len: CHAT_GROUPS,
   meiko: CHAT_GROUPS,
   adachirei: CHAT_GROUPS,
-  ruko: CHAT_GROUPS,
+  // Ruko anuncia los cumpleaños en #general (config/cumpleanos.json; 18 nov. 2026).
+  ruko: [...CHAT_GROUPS, "cumple_hoy", "cumple_vocaloid", "cumple_proximos"],
 };
 
 /** Campos que debe llevar cada frase de un grupo (PLAN §6: espacios para datos). */
-export const REQUIRED_GROUPS = Object.fromEntries(
-  Object.entries(BASE_GROUPS).map(([bot, groups]) => [bot, WEDDING_BOTS.includes(bot as BotId) ? [...groups, ...WEDDING_GROUPS] : groups]),
-) as Record<BotId, string[]>;
+export const REQUIRED_GROUPS = {
+  ...Object.fromEntries(Object.entries(BASE_GROUPS).map(([bot, groups]) => [bot, WEDDING_BOTS.includes(bot as BotId) ? [...groups, ...WEDDING_GROUPS] : groups])),
+  // Mango9374 solo tiene las de boda (sin LLM: no conversa).
+  mango: WEDDING_GROUPS,
+  nemesis: NEMESIS_GROUPS,
+  // Ofertas de los Vocaloids en #centro-de-comercio (config/intercambios.json -> casa): las dice el Vocaloid que ofrece.
+  ofertas: ["oferta_casa"],
+  // Desafío de los 7 pecados (config/pecados.json): lo dice el anfitrión de la semana en #ranking.
+  pecados: ["avaricia_progreso", "avaricia_cierre", "avaricia_ganancia", "avaricia_ganancia_varios"],
+} as Record<PhraseBot, string[]>;
 
 export const REQUIRED_FIELDS: Record<string, string[]> = {
-  ...Object.fromEntries(WEDDING_BOTS.flatMap((b) => [[`${b}.boda_adivinanza`, ["texto"]], [`${b}.boda_acierto`, ["papu"]], [`${b}.boda_divorcio`, ["papu"]]])),
+  "nemesis.nemesis_reto": ["de", "papu", "monedas"],
+  "ofertas.oferta_casa": ["objeto", "precio", "canal"],
+  "nemesis.nemesis_click": ["papu"],
+  "nemesis.nemesis_bang": ["papu"],
+  "nemesis.nemesis_ganador": ["papu", "monedas"],
+  ...Object.fromEntries([...WEDDING_BOTS, "mango"].flatMap((b) => [[`${b}.boda_adivinanza`, ["texto"]], [`${b}.boda_acierto`, ["papu"]], [`${b}.boda_divorcio`, ["papu"]]])),
+  "pecados.avaricia_cierre": ["papu", "monedas"],
+  "pecados.avaricia_ganancia": ["papu", "monedas"],
+  "pecados.avaricia_ganancia_varios": ["papus"],
   "teto.bienvenida": ["papu"],
   "teto.bienvenida_grupal": ["papus"],
+  "teto.se_fue": ["papu"],
+  "ruko.cumple_hoy": ["papus"],
+  "ruko.cumple_vocaloid": ["vocaloid"],
   "teto.cumpleanos": ["papu"],
   "teto.ruleta_premio": ["papu", "premio"],
   "teto.ruleta_mision": ["papu", "mision"],
@@ -89,25 +112,21 @@ export const REQUIRED_FIELDS: Record<string, string[]> = {
   "teto.sorteo_ganador": ["papu", "premio"],
   "teto.pelea_anuncio": ["texto"],
   "teto.pelea_ganador": ["ganador"],
-  "teto.monedas_llegaron": ["papu", "monedas"],
+  "teto.carrera_anuncio": ["texto"],
+  "teto.carrera_ganador": ["ganador"],
   "teto.sobre_legendario": ["papu", "objeto", "rareza"],
   "teto.sobre_abierto": ["papu", "n"],
   "miku.vitrina_nueva": ["proxima"],
   "teto.trivia_racha": ["papu", "racha", "xp"],
   "teto.trivia_racha_libre": ["papu", "racha"],
   "teto.trivia_cero": ["papu"],
+  "teto.fanart_nuevo": ["papu", "redes"],
   "teto.intercambio_hecho": ["de", "papu"],
   "miku.votacion_abierta": ["tema"],
   "miku.vitrina_votacion": ["tema"],
   "teto.vitrina_nuevo": ["canal", "nivel"],
   "miku.ganador": ["ganador"],
   "miku.estreno": ["video"],
-  "miku.pedido_recibido": ["papu", "n"],
-  "miku.pedido_en_produccion": ["papu"],
-  "miku.pedido_entregado": ["papu"],
-  "miku.pedido_rechazado": ["papu", "motivo"],
-  "luka.tip_recibido": ["papu"],
-  "luka.tip_usado": ["papu", "video"],
   "neru.advertencia": ["papu"],
   "neru.aviso": ["papu"],
   "neru.silencio_10": ["papu"],
@@ -130,28 +149,33 @@ export type PhraseGroups = Record<string, string[]>;
 
 const CONTENT_DIR = path.resolve(import.meta.dirname, "../../content/frases");
 
-export function loadPhraseFile(bot: BotId, dir = CONTENT_DIR): PhraseGroups {
+export function loadPhraseFile(bot: PhraseBot, dir = CONTENT_DIR): PhraseGroups {
   const raw = JSON.parse(readFileSync(path.join(dir, `${bot}.json`), "utf8")) as Record<string, unknown>;
   return Object.fromEntries(Object.entries(raw).filter(([k]) => !k.startsWith("$"))) as PhraseGroups;
 }
 
 export class Phrases {
-  private readonly groups: Record<BotId, PhraseGroups>;
+  private readonly groups: Partial<Record<PhraseBot, PhraseGroups>>;
 
   constructor(
     private readonly decks: DeckStore,
-    groups?: Record<BotId, PhraseGroups>,
+    groups?: Partial<Record<PhraseBot, PhraseGroups>>,
   ) {
-    this.groups = groups ?? (Object.fromEntries(BOT_IDS.map((b) => [b, loadPhraseFile(b)])) as Record<BotId, PhraseGroups>);
+    this.groups =
+      groups ??
+      Object.fromEntries([
+        ...BOT_IDS.map((b) => [b, loadPhraseFile(b)]),
+        ...EXTRA_PHRASE_BOTS.filter((b) => existsSync(path.join(CONTENT_DIR, `${b}.json`))).map((b) => [b, loadPhraseFile(b)]),
+      ]);
   }
 
-  has(bot: BotId, group: string): boolean {
-    return (this.groups[bot][group]?.length ?? 0) > 0;
+  has(bot: PhraseBot, group: string): boolean {
+    return (this.groups[bot]?.[group]?.length ?? 0) > 0;
   }
 
   /** Siguiente frase del mazo (sin repetir) con los campos reemplazados. */
-  pick(bot: BotId, group: string, vars: Record<string, string | number> = {}): string {
-    const list = this.groups[bot][group];
+  pick(bot: PhraseBot, group: string, vars: Record<string, string | number> = {}): string {
+    const list = this.groups[bot]?.[group];
     if (!list?.length) throw new Error(`No hay frases para ${bot}.${group}`);
     return fill(list[this.decks.next(`${bot}.${group}`, list.length)]!, vars);
   }

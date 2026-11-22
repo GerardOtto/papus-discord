@@ -5,6 +5,7 @@
 // Letras gruesas con contorno o sombra: nada de cursivas finas ni colores claros sobre fondo claro (pedido de GyroP).
 import { createCanvas, loadImage, type Image, type SKRSContext2D } from "@napi-rs/canvas";
 import { fitText, FONT, gradient, roundRect, sparkles, tierFill } from "../levels/card";
+import { decorarMembresia, type MarcoMembresia } from "../membresias/marco";
 
 export const BANNER_W = 1600;
 export const BANNER_H = 800;
@@ -27,6 +28,8 @@ export interface BannerData {
   date: string;
   /** Para los petalos: el mismo banner sale igual. */
   seed: number;
+  /** Estilo de su membresía de Ko-fi (marco y cinta, PLAN §2); sin membresía, nada. */
+  membresia?: MarcoMembresia;
 }
 
 const W = BANNER_W;
@@ -432,5 +435,6 @@ export async function renderWeddingBanner(d: BannerData): Promise<Buffer> {
   const img: Loaded = { bride: bride ?? null, papu: papu ?? null, crowd: others.filter((x): x is Image => !!x) };
   const style = ((d.style % BANNER_STYLES) + BANNER_STYLES) % BANNER_STYLES;
   [altar, arch, photo][style]!(ctx, d, img);
+  if (d.membresia) decorarMembresia(ctx, W, H, d.membresia);
   return canvas.toBuffer("image/png");
 }

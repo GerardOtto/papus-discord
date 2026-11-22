@@ -18,6 +18,8 @@ export const estado = {
   } as Record<Dificultad, { nombre: string; emoji: string }>,
   aviso: "",
   caras: new Set<string>(),
+  /** «Con el apoyo de…»: membresías Celular y más (api/mecenas). */
+  mecenas: [] as string[],
 };
 
 // ───────────────────────── piezas ─────────────────────────
@@ -62,6 +64,7 @@ export function sala(v: Vista): string {
   const n = v.jugadores.filter((j) => j.conectado).length;
   return `
     <img class="portada" src="portada.webp" alt="Trivia Vocaloid" />
+    ${estado.mecenas.length ? `<p class="mecenas">💜 Con el apoyo de ${estado.mecenas.map(esc).join(" · ")}</p>` : ""}
     <div class="seccion">Modo</div>
     <div class="grupo">
       ${modo("eliminatoria", "⚔️ Eliminatoria", "Quien falla queda fuera. Si fallan todos, nadie cae. Gana el último en pie.")}

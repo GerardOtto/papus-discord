@@ -47,6 +47,7 @@ main { max-width: 800px; margin: 0 auto; padding: 16px 16px 24px; position: rela
 html, body { overflow-x: hidden; }
 b { font-weight: 700; }
 .nota { color: var(--suave); font-size: 13px; margin: 6px 0; }
+.mecenas { text-align: center; color: #e7c8ff; font-size: 13px; margin: 4px 0 10px; }
 .error { background: rgba(229, 50, 63, 0.18); border: 2px solid rgba(229, 50, 63, 0.6); padding: 12px 16px; border-radius: var(--radio); }
 
 /* Titulos con contorno marino y sombra dura (como "¿Te gustó? / Hay más"). */

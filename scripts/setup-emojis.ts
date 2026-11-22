@@ -3,6 +3,9 @@
 //     assets/emojis/pago. Tambien los roles de los bots (Vocaloids y Coro): sin un rol permitido, Discord muestra el
 //     emoji de un bot como texto (":teto_drama:"). Ningun Papu tiene esos roles, asi que el beneficio no cambia;
 //   - gratis (todos los Papus): assets/emojis/gratis.
+// Aparte, los de las carreras (la cara de cada corredor, PLAN §3.14; scripts/make_emojis_carreras.py) van como
+// **emojis de la aplicación de Teto**, no del servidor (decisión de GyroP, 16 nov. 2026: el servidor no tiene espacio).
+// Solo los bots los pueden usar; Teto los busca por nombre (<id>_cara).
 // Los de assets/emojis salen de scripts/make_emoji_samples.py, y solo se sube lo que lista assets/emojis/packs.json
 // (así un archivo sobrante de una versión anterior nunca se cuela). Los GIF quedan como emojis animados.
 // Si un emoji ya existe, solo ajusta sus roles. Nunca borra.
@@ -32,7 +35,7 @@ interface Item {
   name: string;
   roles: string[];
 }
-const manifest = JSON.parse(readFileSync(path.join(ROOT, "assets/emojis/packs.json"), "utf8")) as { gratis: string[]; pago: string[] };
+const manifest = JSON.parse(readFileSync(path.join(ROOT, "assets/emojis/packs.json"), "utf8")) as { gratis: string[]; pago: string[]; carreras?: string[] };
 const item = (dir: string, file: string, r: string[]): Item => ({ file: path.join(ROOT, dir, file), name: file.replace(/\.(png|gif)$/, ""), roles: r });
 const items: Item[] = [
   ...readdirSync(path.join(ROOT, "assets/bots/emojis")).filter((f) => f.endsWith(".png")).sort().map((f) => item("assets/bots/emojis", f, paidIds)),
@@ -68,3 +71,21 @@ for (const it of items) {
   }
 }
 console.log(`Listo: ${created} subidos, ${updated} con roles ajustados.`);
+
+// Emojis de la aplicación de Teto (carreras). Si ya existe uno con ese nombre, se deja como está.
+const app = (await rest.get(Routes.currentApplication())) as { id: string };
+const appEmojis = ((await rest.get(Routes.applicationEmojis(app.id))) as { items: { name: string }[] }).items;
+let appCreated = 0;
+for (const f of manifest.carreras ?? []) {
+  const it = item("assets/emojis/carreras", f, []);
+  if (appEmojis.some((e) => e.name === it.name)) continue;
+  const image = `data:image/png;base64,${readFileSync(it.file).toString("base64")}`;
+  try {
+    await rest.post(Routes.applicationEmojis(app.id), { body: { name: it.name, image } });
+    console.log(`✔ :${it.name}: subido a la aplicación de Teto`);
+    appCreated++;
+  } catch (e) {
+    console.log(`✘ :${it.name}: ${(e as Error).message}`);
+  }
+}
+console.log(`Aplicación de Teto: ${appCreated} subidos.`);

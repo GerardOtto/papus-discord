@@ -187,6 +187,9 @@ def main():
             ANIMATED.add(name)
     # Lista exacta de lo que sube `npm run emojis` (archivos sobrantes de versiones anteriores no entran).
     manifest = {pack: sorted(f"{n}.gif" if n in ANIMATED else f"{n}.png" for n, _ in items) for pack, items in packs.items()}
+    # Otros packs que escriben otros scripts (carreras: make_emojis_carreras.py) se conservan.
+    previous = json.load(open(os.path.join(OUT, "packs.json"), encoding="utf-8")) if os.path.exists(os.path.join(OUT, "packs.json")) else {}
+    manifest.update({k: v for k, v in previous.items() if k not in manifest and not k.startswith("$")})
     with open(os.path.join(OUT, "packs.json"), "w", encoding="utf-8", newline="\n") as fh:
         json.dump({"$comment": "Generado por scripts/make_emoji_samples.py: lo que sube npm run emojis (gratis = todos; pago = Puerro y superiores).", **manifest}, fh, ensure_ascii=False, indent=2)
         fh.write("\n")

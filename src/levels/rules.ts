@@ -16,6 +16,10 @@ export interface LevelSettings {
   honor: { nivel: number; rol: string; pisoRolManual?: number };
   cuota: { desde: number; mensajes: number }[];
   cuotaPrestigio: number;
+  /** Tope del espacio de donados (/donar; /intercambio tambien puede llenarlo). Sin valor: DEFAULT_DONATED_CAP. */
+  donadosMax?: number;
+  /** Premio por prestigiar (PLAN §2): Shaulitas, sobre elegible, insignia que sube, marco y aro. */
+  premioPrestigio?: { monedas: number; sobre: { ve: number; elige: number }; insignias: string[]; objetos: string[] };
   /** Mensajes ganados que no caben en la cuota llena: XP por cada uno (fraccion de lo que pide su nivel, con minimo). */
   cuotaSobrante?: { porcentajeNivel: number; minimo: number };
   transicion: { mensajes: number; hasta: string } | null;
@@ -195,11 +199,21 @@ export function quotaWithTransition(s: LevelSettings, level: number, prestige: n
 // ───────────────────────── apodo ─────────────────────────
 
 const NICK_MAX = 32;
-/** " ✦57" o " ★2✦57" al final del apodo. */
-const TAG_RE = /\s*(?:★\d+)?✦\d+$/u;
+/** Estrella de cada prestigio (PLAN §2, premio de prestigio): ★1 → ✯2 → ✪3 → ❂4 → 🌟5 o más. */
+export const PRESTIGE_MARKS = ["★", "✯", "✪", "❂", "🌟"] as const;
+
+/** La estrella de ese prestigio ("" sin prestigio). En las imágenes, la 5.ª es ✹ (el canvas no dibuja emojis de color). */
+export function prestigeMark(prestige: number, canvas = false): string {
+  if (prestige <= 0) return "";
+  const m = PRESTIGE_MARKS[Math.min(prestige, PRESTIGE_MARKS.length) - 1]!;
+  return canvas && m === "🌟" ? "✹" : m;
+}
+
+/** " ✦57" o " ✯2✦57" al final del apodo (con cualquiera de las estrellas de prestigio). */
+const TAG_RE = /\s*(?:(?:★|✯|✪|❂|🌟|✹)\d+)?✦\d+$/u;
 
 export function nickTag(level: number, prestige: number): string {
-  return ` ${prestige > 0 ? `★${prestige}` : ""}✦${level}`;
+  return ` ${prestige > 0 ? `${prestigeMark(prestige)}${prestige}` : ""}✦${level}`;
 }
 
 /** Quita la etiqueta de nivel de un nombre (para el LLM y para recordar el apodo propio del Papu). */

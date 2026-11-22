@@ -101,20 +101,56 @@ describe("cuota ganada y /donar (GyroP, 31 oct. 2026)", () => {
     expect(new Quota(memDb(), 5, TZ, { has: () => true }).grant("x", 2, NOON)).toEqual({ added: 0, overflow: 2 });
   });
 
-  it("donar quita al que dona y llega al otro solo hasta llenar su cuota", () => {
-    const q = new Quota(memDb(), 5, TZ);
-    q.reserve("b", 4, NOON);
+  it("donar quita de la cuota diaria del que dona y llega al espacio de donados del otro, con tope (14 nov. 2026)", () => {
+    const q = new Quota(memDb(), 5, TZ, new Set(), 3);
     expect(q.donate("a", "b", 6, NOON)).toEqual({ ok: false, motivo: "no_alcanza" });
-    expect(q.donate("a", "b", 5, NOON)).toEqual({ ok: false, motivo: "llena" });
+    // Con la cuota diaria llena igual le cabe: los donados van aparte (tope 3).
+    expect(q.donate("a", "b", 4, NOON)).toEqual({ ok: false, motivo: "llena" });
     expect(q.donate("a", "b", 3, NOON)).toEqual({ ok: true, units: 3 });
-    expect(q.remaining("a", NOON)).toBe(2);
-    expect(q.remaining("b", NOON)).toBe(4);
+    expect(q.dailyLeft("a", NOON)).toBe(2);
+    expect(q.dailyLeft("b", NOON)).toBe(5);
+    expect(q.donatedLeft("b", NOON)).toBe(3);
+    expect(q.remaining("b", NOON)).toBe(8);
+    expect(q.donatedRoom("b", NOON)).toBe(0);
     expect(q.donated("a", NOON)).toBe(3);
     // Lo donado no vuelve con un reinicio (boda, /reiniciar-cuota): solo lo gastado con los Vocaloids.
     q.reserve("a", 1, NOON);
     q.reset("a", NOON);
     expect(q.remaining("a", NOON)).toBe(2);
     expect(q.used("a", NOON)).toBe(3);
+  });
+
+  it("se gastan primero los diarios; al devolver, primero los donados; el reinicio rellena los dos espacios", () => {
+    const q = new Quota(memDb(), 2, TZ, new Set(), 5);
+    q.donate("a", "b", 2, NOON);
+    const r = q.reserve("b", 3, NOON);
+    expect(r).toMatchObject({ units: 3, fromDonated: 1 });
+    expect(q.dailyLeft("b", NOON)).toBe(0);
+    expect(q.donatedLeft("b", NOON)).toBe(1);
+    q.refund(r, 1);
+    expect(q.donatedLeft("b", NOON)).toBe(2);
+    q.refund(r, 1);
+    expect(q.dailyLeft("b", NOON)).toBe(1);
+    expect(q.spent("b", NOON)).toBe(1);
+    q.reserve("b", 3, NOON);
+    q.reset("b", NOON);
+    expect(q.dailyLeft("b", NOON)).toBe(2);
+    expect(q.donatedLeft("b", NOON)).toBe(2);
+    // Lo donado a otro no se vuelve a regalar: solo se dona de la cuota diaria.
+    q.reserve("b", 2, NOON);
+    expect(q.donate("b", "c", 1, NOON)).toEqual({ ok: false, motivo: "no_alcanza" });
+  });
+
+  it("lo que llega por intercambio entra en cualquier espacio libre: primero el diario, después donados", () => {
+    const q = new Quota(memDb(), 5, TZ, new Set(), 3);
+    q.reserve("b", 2, NOON);
+    expect(q.roomFor("b", "cualquiera", NOON)).toBe(5);
+    expect(q.roomFor("b", "donados", NOON)).toBe(3);
+    expect(q.donate("a", "b", 4, NOON, "cualquiera")).toEqual({ ok: true, units: 4 });
+    expect(q.dailyLeft("b", NOON)).toBe(5);
+    expect(q.donatedLeft("b", NOON)).toBe(2);
+    expect(q.donate("c", "b", 2, NOON, "cualquiera")).toEqual({ ok: false, motivo: "llena" });
+    expect(q.donate("c", "b", 1, NOON, "cualquiera")).toEqual({ ok: true, units: 1 });
   });
 
   it("quien no tiene límite no dona, y a quien no tiene límite no se le dona", () => {

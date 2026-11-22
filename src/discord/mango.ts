@@ -3,7 +3,8 @@
 import { Client, Events, GatewayIntentBits, type Guild, type Message } from "discord.js";
 import { kvGet, kvSet, type Db } from "../db/database";
 import { logError, type LogFn } from "../log";
-import { mentionsUser, type MangoService } from "../services/mango";
+import { channelKey } from "./channels";
+import { mentionsUser, saysMango, type MangoService } from "../services/mango";
 
 const AVATAR_KEY = "mango:avatar";
 
@@ -65,6 +66,17 @@ export class MangoDiscord {
     } catch (e) {
       await this.d.report(`⚠️ Mango9374: no pude ponerle la foto de ${real.user.username} (${(e as Error).message}). Se reintenta al reconectar.`);
     }
+  }
+
+  /** Reacciona con su emoji (🥭) si un Papu dijo "mango" (sin LLM ni cuota; idea de Nyrex, 18 nov. 2026). */
+  async react(m: Message): Promise<void> {
+    const r = this.d.service.settings.reaccion;
+    if (!r || !this.userId || m.author.bot || !saysMango(m.content)) return;
+    const name = "name" in m.channel ? (m.channel.name ?? "") : "";
+    if (r.excluir.includes(channelKey(name))) return;
+    const ch = await this.client.channels.fetch(m.channelId);
+    if (!ch?.isTextBased()) return;
+    await ch.messages.react(m.id, r.emoji);
   }
 
   /** Un @ a Mango (sin limite): los numeros del dia o, a veces, una frase. Devuelve si contesto. */

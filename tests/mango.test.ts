@@ -12,7 +12,7 @@ import { Quota } from "../src/quota/quota";
 import { loadRouletteSettings } from "../src/ruleta/rules";
 import { RouletteService } from "../src/ruleta/service";
 import { DayStats, papuText, serverText } from "../src/services/estadisticas";
-import { loadMangoSettings, MangoService, mentionsUser, pardonedFromLog } from "../src/services/mango";
+import { loadMangoSettings, MangoService, mentionsUser, pardonedFromLog, saysMango } from "../src/services/mango";
 import { loadTriviaSettings, type Question } from "../src/trivia/rules";
 import { TriviaService } from "../src/trivia/service";
 import { BASE_ENV, memDb, seededRng } from "./helpers";
@@ -128,7 +128,7 @@ describe("números del día de Mango (GyroP, 31 oct. 2026)", () => {
     levels.bonus("beto", 50, NOON);
     quota.reserve("beto", quota.remaining("beto", now), now);
     quota.reserve("ana", 1, now);
-    quota.refund({ userId: "beto", day: "2026-10-31", units: 1 });
+    quota.refund({ userId: "beto", day: "2026-10-31", units: 1, fromDonated: 0 });
     expect(quota.donate("ana", "beto", 1, now).ok).toBe(true);
     while (roulette.spin("ana")); // ana subio de nivel: su tirada
     const t = stats.server(now);
@@ -140,7 +140,7 @@ describe("números del día de Mango (GyroP, 31 oct. 2026)", () => {
   });
 });
 
-describe("Shaula-coins y apuestas en los números de Mango (GyroP, 10 nov. 2026)", () => {
+describe("Shaulitas y apuestas en los números de Mango (GyroP, 10 nov. 2026)", () => {
   const TZ = "America/Santiago";
   const NOON = Date.parse("2026-11-10T12:00:00-03:00");
 
@@ -150,8 +150,7 @@ describe("Shaula-coins y apuestas en los números de Mango (GyroP, 10 nov. 2026)
     const quota = new Quota(db, (id, d) => levels.limitFor(id, d), TZ);
     const coins = new CoinService({ db, settings: loadCoinSettings(), catalog: loadCatalog(), timeZone: TZ, now: () => NOON });
     const stats = new DayStats({ db, quota, levels, timeZone: TZ, coins, owners: new Set(["gyrop"]) });
-    coins.adjust("ana", "ganadas", 500, "t");
-    coins.adjust("ana", "compradas", 1200, "t");
+    coins.adjust("ana", "monedas", 1700, "t");
     const pelea = (id: string, estado: string, terminada: number | null) =>
       db.prepare("INSERT INTO peleas (id, a, b, cuota_a, cuota_b, estado, creada_at, cierra_at, terminada_at) VALUES (?, 'teto', 'miku', 2, 2, ?, ?, ?, ?)").run(id, estado, NOON - 3_600_000, NOON, terminada);
     const apuesta = (p: string, u: string, cantidad: number, pago: number) => db.prepare("INSERT INTO apuestas (pelea, user_id, lado, cantidad, pago, at) VALUES (?, ?, 'teto', ?, ?, ?)").run(p, u, cantidad, pago, NOON - 3_600_000);
@@ -165,18 +164,59 @@ describe("Shaula-coins y apuestas en los números de Mango (GyroP, 10 nov. 2026)
     apuesta("p3", "ana", 40, 0); // en juego
     apuesta("p1", "beto", 50, 0); // perdió 50
     const p = stats.papu("ana", new Date(NOON));
-    expect(p.coins).toMatchObject({ ganadas: 500, compradas: 1200, ecos: 0 });
+    expect(p.coins).toMatchObject({ monedas: 1700, ecos: 0 });
     expect(p.bets).toEqual({ peleas: 2, ganado: 150, perdido: 80, enJuego: 40 });
     const text = papuText(p, {});
-    expect(text).toContain("🪙 Shaula-coins: **500** ganadas · **1.200** compradas");
+    expect(text).toContain("🪙 Shaulitas: **1.700**");
     expect(text).toContain("⚔️ Apuestas hoy: **2** peleas · ganado **+150** · perdido **−80** · vas **+70** · en juego: **40**");
     expect(papuText(stats.papu("carla", new Date(NOON)), {})).not.toContain("Apuestas hoy");
     const t = stats.server(new Date(NOON));
     expect(t.bets).toEqual({ peleas: 2, ganado: 150, perdido: 130, enJuego: 40, papus: 2 });
-    expect(t.coins).toMatchObject({ ganadas: 500, compradas: 1200 });
+    expect(t.coins).toMatchObject({ monedas: 1700 });
     const st = serverText(t);
     expect(st).toContain("⚔️ Apuestas hoy: **2** peleas · 2 Papus · ganado **+150** · perdido **−130** · los Papus van **+20**");
-    expect(st).toContain("en los monederos: **500** ganadas, **1.200** compradas");
+    expect(st).toContain("en los monederos: **1.700** Shaulitas");
+  });
+});
+
+describe("Ruleta de Némesis en los números de Mango (Nyrex y Yukina, 18 nov. 2026)", () => {
+  const TZ = "America/Santiago";
+  const NOON = Date.parse("2026-11-18T12:00:00-03:00");
+
+  it("a un Papu: lo ganado y perdido hoy en Némesis; el Vocaloid de un desafío de la casa no cuenta", () => {
+    const db = memDb();
+    const levels = new LevelService({ db, settings: loadLevelSettings(), timeZone: TZ });
+    const quota = new Quota(db, (id, d) => levels.limitFor(id, d), TZ);
+    const stats = new DayStats({ db, quota, levels, timeZone: TZ, owners: new Set(["gyrop"]) });
+    const duelo = (id: string, retador: string, rival: string, apuesta: number, estado: string, ganador: string | null, premio: number | null, terminada: number | null, casa = 0) =>
+      db
+        .prepare("INSERT INTO nemesis (id, retador, rival, apuesta, estado, ganador, premio, casa, creada_at, vence_at, terminada_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
+        .run(id, retador, rival, apuesta, estado, ganador, premio, casa, NOON - 3_600_000, NOON, terminada);
+    duelo("n1", "ana", "beto", 500, "terminada", "ana", 900, NOON - 60_000); // ana +400, beto −500
+    duelo("n2", "teto", "ana", 100, "terminada", "teto", 180, NOON - 30_000, 1); // casa: ana −100
+    duelo("n3", "beto", "ana", 200, "terminada", "ana", 360, NOON - 86_400_000); // ayer: no cuenta
+    duelo("n4", "ana", "carla", 50, "pendiente", null, null, null); // ana ya puso 50
+    duelo("n5", "miku", "ana", 300, "jugando", null, null, null, 1); // ana puso 300 al aceptar
+    const p = stats.papu("ana", new Date(NOON));
+    expect(p.nemesis).toEqual({ partidas: 2, ganado: 400, perdido: 100, enJuego: 350 });
+    expect(papuText(p, {})).toContain("🔫 Némesis hoy: **2** partidas · ganado **+400** · perdido **−100** · vas **+300** · en juego: **350**");
+    expect(papuText(stats.papu("dani", new Date(NOON)), {})).not.toContain("Némesis hoy");
+    const t = stats.server(new Date(NOON));
+    expect(t.nemesis).toEqual({ partidas: 2, ganado: 400, perdido: 600, enJuego: 350, papus: 2 });
+    expect(serverText(t)).toContain("🔫 Némesis hoy: **2** partidas · 2 Papus · ganado **+400** · perdido **−600** · los Papus van **−200**");
+  });
+});
+
+describe("🥭 Mango reacciona a «mango» (Nyrex, 18 nov. 2026)", () => {
+  it("solo la palabra suelta (y en plural), sin distinguir mayúsculas", () => {
+    for (const t of ["mango", "me comí un MANGO", "¿mangos?", "Mango9374 no, el mango sí"]) expect(saysMango(t), t).toBe(true);
+    for (const t of ["mangoneo", "chimango", "<@1207431352870502481>", "Mango9374", "manga"]) expect(saysMango(t), t).toBe(false);
+  });
+
+  it("la config trae el emoji y los canales donde no reacciona", () => {
+    const s = loadMangoSettings();
+    expect(s.reaccion?.emoji).toBe("🥭");
+    expect(s.reaccion?.excluir).toContain("moderacion");
   });
 });
 

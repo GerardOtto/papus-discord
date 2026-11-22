@@ -1,10 +1,10 @@
 // Numeros del dia que da Mango9374 (pedido de GyroP, 31 oct. 2026): a un Papu, lo suyo (cuota gastada, XP, mensajes,
 // con quien no se puede casar ahora y, desde el 2 nov. 2026, minutos en voz y su trivia); a GyroP, los totales del
-// servidor; desde el 10 nov. 2026, también las Shaula-coins. Todo sale de SQLite (quota_usage, xp_dia, ruleta, bodas, trivia_partidas) y de mensajes_dia, que cuenta los
+// servidor; desde el 10 nov. 2026, también las Shaulitas. Todo sale de SQLite (quota_usage, xp_dia, ruleta, bodas, trivia_partidas) y de mensajes_dia, que cuenta los
 // mensajes enviados de Papus y Vocaloids. Sin LLM (regla 4).
 import type { WeddingService } from "../bodas/service";
 import type { CoinService } from "../coins/service";
-import type { BotId } from "../config";
+import type { BrideId } from "../bodas/rules";
 import type { Db } from "../db/database";
 import type { LevelService } from "../levels/service";
 import type { Quota } from "../quota/quota";
@@ -24,17 +24,29 @@ export interface PapuDay {
   left: number;
   limit: number;
   /** Casado ahora (con quien y hasta cuando). */
-  married: { bot: BotId; until: number } | null;
+  married: { bot: BrideId; until: number } | null;
   /** Con quien no se puede casar ahora y por que. */
-  blocked: { bot: BotId; why: "casada" | "repite" }[];
+  blocked: { bot: BrideId; why: "casada" | "repite" }[];
   /** Minutos conectado en voz hoy (den XP o no; fuera del canal AFK). */
   voiceMin: number;
   /** Su trivia (sin trivia en el bot, null). */
   trivia: TriviaDay | null;
-  /** Sus Shaula-coins (pedido de GyroP, 10 nov. 2026; sin tienda, null): monedero y lo ganado hoy participando. */
-  coins: { ganadas: number; compradas: number; ecos: number; hoy: number } | null;
+  /** Sus Shaulitas (pedido de GyroP, 10 nov. 2026; sin tienda, null): monedero y lo ganado hoy participando. */
+  coins: { monedas: number; ecos: number; hoy: number } | null;
   /** Apuestas del 1vs1: lo ganado y perdido en las peleas que terminaron hoy y lo que sigue en juego. */
   bets: BetsDay;
+  /** Ruleta de Némesis (idea de Nyrex y Yukina, 18 nov. 2026): lo ganado y perdido en las partidas que terminaron hoy. */
+  nemesis: NemesisDay;
+}
+
+export interface NemesisDay {
+  /** Partidas de hoy ya terminadas (en las que jugó, o de todos). */
+  partidas: number;
+  /** Lo ganado (premio menos su apuesta) y lo perdido (su apuesta) en ellas. */
+  ganado: number;
+  perdido: number;
+  /** Apuesta ya puesta en ruletas que aún no terminan. */
+  enJuego: number;
 }
 
 export interface BetsDay {
@@ -77,10 +89,12 @@ export interface ServerDay {
   voicePapus: number;
   /** Trivia de hoy: partidas, Papus que jugaron y XP cobrada por partidas de mas (sin trivia, null). */
   trivia: { runs: number; players: number; cost: number; best: { userId: string; streak: number } | null } | null;
-  /** Shaula-coins (sin tienda, null): ganadas hoy participando por todos y las que hay en los monederos. */
-  coins: { hoy: number; ganadas: number; compradas: number; ecos: number } | null;
+  /** Shaulitas (sin tienda, null): ganadas hoy participando por todos y las que hay en los monederos. */
+  coins: { hoy: number; monedas: number; ecos: number } | null;
   /** Apuestas de hoy de todos los Papus (sin peleas, todo en 0). */
   bets: BetsDay & { papus: number };
+  /** Ruleta de Némesis de hoy, de todos los Papus (los Vocaloids no cuentan). */
+  nemesis: NemesisDay & { papus: number };
 }
 
 export interface DayStatsDeps {
@@ -145,7 +159,7 @@ export class DayStats {
     // Primero se le paga lo que ya ganó hoy participando (como al abrir la tienda).
     c.sync(userId, 2);
     const w = c.wallet(userId);
-    return { ganadas: w.ganadas, compradas: w.compradas, ecos: w.ecos, hoy: w.hoy };
+    return { monedas: w.monedas, ecos: w.ecos, hoy: w.hoy };
   }
 
   /** Apuestas de las peleas terminadas hoy (y lo que sigue en juego), de un Papu o de todos. */
@@ -168,6 +182,41 @@ export class DayStats {
     };
   }
 
+  /**
+   * Ruleta de Némesis de hoy (§3.12): en cada partida terminada, el que sobrevive gana el premio menos su apuesta y el
+   * otro pierde su apuesta. En un desafío de la casa el Vocaloid no cuenta (no pone ni cobra). En juego: lo que ya
+   * pagó (el retador al desafiar, el rival al aceptar).
+   */
+  private nemesisOf(now: Date, userId: string | null): NemesisDay & { papus: number } {
+    const day = this.day(now);
+    const rows = (
+      this.d.db
+        .prepare("SELECT retador, rival, apuesta, ganador, premio, casa, terminada_at FROM nemesis WHERE estado = 'terminada' AND terminada_at >= ?")
+        .all(now.getTime() - 2 * 86_400_000) as { retador: string; rival: string; apuesta: number; ganador: string | null; premio: number | null; casa: number; terminada_at: number }[]
+    ).filter((r) => dayKey(new Date(r.terminada_at), this.d.timeZone) === day);
+    let partidas = 0;
+    let ganado = 0;
+    let perdido = 0;
+    const papus = new Set<string>();
+    for (const r of rows) {
+      const lados = (r.casa ? [r.rival] : [r.retador, r.rival]).filter((p) => !userId || p === userId);
+      if (!lados.length) continue;
+      partidas++;
+      for (const p of lados) {
+        papus.add(p);
+        if (p === r.ganador) ganado += Math.max(0, (r.premio ?? r.apuesta) - r.apuesta);
+        else perdido += r.apuesta;
+      }
+    }
+    let enJuego = 0;
+    const vivas = this.d.db.prepare("SELECT retador, rival, apuesta, estado, casa FROM nemesis WHERE estado IN ('pendiente', 'jugando')").all() as { retador: string; rival: string; apuesta: number; estado: string; casa: number }[];
+    for (const r of vivas) {
+      const pagaron = [...(r.casa ? [] : [r.retador]), ...(r.estado === "jugando" ? [r.rival] : [])];
+      enJuego += pagaron.filter((p) => !userId || p === userId).length * r.apuesta;
+    }
+    return { partidas, ganado, perdido, enJuego, papus: papus.size };
+  }
+
   papu(userId: string, now = new Date()): PapuDay {
     const day = this.day(now);
     const sent = this.d.db.prepare("SELECT n FROM mensajes_dia WHERE user_id = ? AND day = ?").get(userId, day) as { n: number } | undefined;
@@ -180,7 +229,7 @@ export class DayStats {
     const blocked: PapuDay["blocked"] = [];
     if (w) {
       const taken = new Map(w.weddings(t).filter((x) => x.userId !== userId).map((x) => [x.bot, x]));
-      for (const bot of Object.keys(w.settings.chicas) as BotId[]) {
+      for (const bot of Object.keys(w.settings.chicas) as BrideId[]) {
         if (taken.has(bot)) blocked.push({ bot, why: "casada" });
         else if (w.repeats(userId, bot, t)) blocked.push({ bot, why: "repite" });
       }
@@ -188,23 +237,24 @@ export class DayStats {
     return {
       messages: sent?.n ?? 0,
       xp: xp?.xp ?? 0,
-      spent: q.used(userId, now) - donated,
+      spent: q.spent(userId, now),
       donated,
       left: q.remaining(userId, now),
-      limit: q.limitFor(userId, now) + q.extra(userId, now),
+      limit: q.limitFor(userId, now) + q.extra(userId, now) + q.donatedLeft(userId, now),
       married: mine ? { bot: mine.bot, until: mine.endsAt } : null,
       blocked,
       voiceMin: xp?.voz_total ?? 0,
       trivia: this.triviaOf(userId, now),
       coins: this.coinsOf(userId),
       bets: (({ papus: _, ...b }) => b)(this.betsOf(now, userId)),
+      nemesis: (({ papus: _, ...n }) => n)(this.nemesisOf(now, userId)),
     };
   }
 
   server(now = new Date()): ServerDay {
     const day = this.day(now);
     const db = this.d.db;
-    const quota = db.prepare("SELECT COALESCE(SUM(used - donadas), 0) AS spent, COALESCE(SUM(donadas), 0) AS donated FROM quota_usage WHERE day = ?").get(day) as { spent: number; donated: number };
+    const quota = db.prepare("SELECT COALESCE(SUM(used - donadas + gastadas_rec), 0) AS spent, COALESCE(SUM(donadas), 0) AS donated FROM quota_usage WHERE day = ?").get(day) as { spent: number; donated: number };
     const msgs = db.prepare("SELECT COALESCE(SUM(CASE WHEN bot = 0 THEN n END), 0) AS papus, COALESCE(SUM(CASE WHEN bot = 1 THEN n END), 0) AS bots FROM mensajes_dia WHERE day = ?").get(day) as { papus: number; bots: number };
     let fullRoulette = 0;
     if (this.d.roulette) {
@@ -234,10 +284,11 @@ export class DayStats {
       voicePapus: voice.papus,
       trivia,
       bets: this.betsOf(now, null),
+      nemesis: this.nemesisOf(now, null),
       coins: this.d.coins
         ? {
             hoy: (db.prepare("SELECT COALESCE(SUM(ganadas), 0) AS n FROM monedas_dia WHERE day = ?").get(day) as { n: number }).n,
-            ...(db.prepare("SELECT COALESCE(SUM(ganadas), 0) AS ganadas, COALESCE(SUM(compradas), 0) AS compradas, COALESCE(SUM(ecos), 0) AS ecos FROM monedero").get() as { ganadas: number; compradas: number; ecos: number }),
+            ...(db.prepare("SELECT COALESCE(SUM(ganadas), 0) AS monedas, COALESCE(SUM(ecos), 0) AS ecos FROM monedero").get() as { monedas: number; ecos: number }),
           }
         : null,
     };
@@ -247,8 +298,8 @@ export class DayStats {
 const fmt = (n: number) => new Intl.NumberFormat("es-CL").format(n);
 
 /** Lo que Mango le contesta a un Papu. `names` = nombre de cada Vocaloid. */
-export function papuText(s: PapuDay, names: Partial<Record<BotId, string>>): string {
-  const name = (b: BotId) => names[b] ?? b;
+export function papuText(s: PapuDay, names: Partial<Record<BrideId, string>>): string {
+  const name = (b: BrideId) => names[b] ?? b;
   const cuota = Number.isFinite(s.left)
     ? `💌 Cuota: gastaste **${s.spent}**${s.donated ? ` y donaste **${s.donated}**` : ""} · te ${s.left === 1 ? "queda **1**" : `quedan **${s.left}**`} de ${s.limit}`
     : `💌 Cuota: gastaste **${s.spent}** (sin límite)`;
@@ -273,9 +324,10 @@ export function papuText(s: PapuDay, names: Partial<Record<BotId, string>>): str
     `🎙️ En voz: **${minutes(s.voiceMin)}**`,
     cuota,
     ...(s.coins
-      ? [`🪙 Shaula-coins: **${fmt(s.coins.ganadas)}** ganadas${s.coins.compradas ? ` · **${fmt(s.coins.compradas)}** compradas` : ""}${s.coins.ecos ? ` · **${fmt(s.coins.ecos)}** Ecos` : ""} · hoy ganaste **${fmt(s.coins.hoy)}** participando`]
+      ? [`🪙 Shaulitas: **${fmt(s.coins.monedas)}**${s.coins.ecos ? ` · **${fmt(s.coins.ecos)}** Ecos` : ""} · hoy ganaste **${fmt(s.coins.hoy)}** participando`]
       : []),
     ...betsLines(s.bets, "tu"),
+    ...nemesisLines(s.nemesis, "tu"),
     bodas,
     ...(s.trivia ? triviaLines(s.trivia) : []),
   ].join("\n");
@@ -292,6 +344,21 @@ function betsLines(b: BetsDay & { papus?: number }, quien: "tu" | "todos"): stri
     `${quien === "tu" ? "vas" : "los Papus van"} **${neto >= 0 ? "+" : "−"}${fmt(Math.abs(neto))}**`,
   ];
   if (b.enJuego) parts.push(`en juego: **${fmt(b.enJuego)}**`);
+  return [parts.join(" · ")];
+}
+
+/** La Ruleta de Némesis de hoy (nada si no jugó). */
+function nemesisLines(n: NemesisDay & { papus?: number }, quien: "tu" | "todos"): string[] {
+  if (!n.partidas && !n.enJuego) return [];
+  const neto = n.ganado - n.perdido;
+  const cuantas = `**${n.partidas}** ${n.partidas === 1 ? "partida" : "partidas"}`;
+  const parts = [
+    quien === "tu" ? `🔫 Némesis hoy: ${cuantas}` : `🔫 Némesis hoy: ${cuantas} · ${n.papus ?? 0} ${n.papus === 1 ? "Papu" : "Papus"}`,
+    `ganado **+${fmt(n.ganado)}**`,
+    `perdido **−${fmt(n.perdido)}**`,
+    `${quien === "tu" ? "vas" : "los Papus van"} **${neto >= 0 ? "+" : "−"}${fmt(Math.abs(neto))}**`,
+  ];
+  if (n.enJuego) parts.push(`en juego: **${fmt(n.enJuego)}**`);
   return [parts.join(" · ")];
 }
 
@@ -322,8 +389,9 @@ export function serverText(s: ServerDay): string {
     `🏆 Más XP hoy: ${s.topXp ? `<@${s.topXp.userId}> (**${fmt(s.topXp.xp)}** XP)` : "nadie todavía"}`,
     `🎙️ Minutos en voz: **${fmt(s.voiceMinutes)}** (${s.voicePapus} ${s.voicePapus === 1 ? "Papu" : "Papus"})`,
     ...betsLines(s.bets, "todos"),
+    ...nemesisLines(s.nemesis, "todos"),
     ...(s.coins
-      ? [`🪙 Shaula-coins ganadas hoy participando: **${fmt(s.coins.hoy)}** · en los monederos: **${fmt(s.coins.ganadas)}** ganadas, **${fmt(s.coins.compradas)}** compradas y **${fmt(s.coins.ecos)}** Ecos`]
+      ? [`🪙 Shaulitas ganadas hoy participando: **${fmt(s.coins.hoy)}** · en los monederos: **${fmt(s.coins.monedas)}** Shaulitas y **${fmt(s.coins.ecos)}** Ecos`]
       : []),
     ...(s.trivia
       ? [`🧠 Trivia: **${fmt(s.trivia.runs)}** partidas de ${s.trivia.players} ${s.trivia.players === 1 ? "Papu" : "Papus"}${s.trivia.cost ? ` · −${fmt(s.trivia.cost)} XP cobrada por jugar de más` : ""}${s.trivia.best ? ` · mejor racha: <@${s.trivia.best.userId}> (${s.trivia.best.streak})` : ""}`]

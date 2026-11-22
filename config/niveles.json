@@ -31,6 +31,15 @@
     { "desde": 90, "mensajes": 18 }
   ],
   "cuotaPrestigio": 20,
+  "$donadosMax": "Espacio de donados (pedido de GyroP, 14 nov. 2026): lo que regalan otros Papus con /donar va aparte de la cuota diaria y le caben hasta donadosMax sin usar (la tarjeta muestra «Donados 3/5»). Con 5: un Papu nuevo (3 diarios) puede más que duplicar su día con ayuda, pero nadie junta decenas de mensajes con regalos de amigos. Lo que llega por /intercambio entra en cualquier espacio libre (primero el diario). Solo se dona de la cuota diaria.",
+  "donadosMax": 5,
+  "$premioPrestigio": "Premio por prestigiar (PLAN §2; decisión de GyroP, 13 nov. 2026; se gana jugando): Shaulitas, un sobre elegible (ve N objetos y elige M; puede traer renders y míticas), la insignia del prestigio que tiene (sube con cada uno: insignias[n-1], la última para 5 o más), los objetos que se dan una vez (marco y aro) y la pelea semanal (config/membresias.json la cuenta). La estrella del apodo cambia con cada prestigio: ★ ✯ ✪ ❂ 🌟.",
+  "premioPrestigio": {
+    "monedas": 5000,
+    "sobre": { "ve": 15, "elige": 5 },
+    "insignias": ["insignia-prestigio-1", "insignia-prestigio-2", "insignia-prestigio-3", "insignia-prestigio-4", "insignia-prestigio-5"],
+    "objetos": ["marco-de-prestigio", "aro-de-prestigio"]
+  },
   "$cuotaSobrante": "Mensajes ganados (ruleta, sorteo) con la cuota del día llena: no se pierden, se cambian por XP (decisión de GyroP, 31 oct. 2026). Cada uno vale 'porcentajeNivel' de lo que pide su nivel actual (mínimo 'minimo'). Con 0,05: un Papu activo gana ~2 mensajes al día en la ruleta, o sea ~10 % de un nivel si ya los tenía llenos (lo mismo que la casilla chica de XP).",
   "cuotaSobrante": { "porcentajeNivel": 0.05, "minimo": 15 },
   "$transicion": "Quienes ya estaban en el servidor al calcular los niveles (npm run niveles -- --apply) conservan al menos 'mensajes' hasta 'hasta' (decisión de GyroP: 2 semanas).",

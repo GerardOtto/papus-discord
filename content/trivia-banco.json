@@ -303,11 +303,11 @@
   ],
   "$servidor": "Preguntas del servidor de los Papus (config/ del bot; sin secretos).",
   "servidor": [
-    { "q": "¿Cómo se llaman las monedas de la tienda del servidor?", "a": "Shaula-coins", "o": ["Teto-coins", "Papu-pesos", "Negi-coins"], "d": "facil" },
+    { "q": "¿Cómo se llaman las monedas de la tienda del servidor?", "a": "Shaulitas", "o": ["Teto-coins", "Papu-pesos", "Negi-coins"], "d": "facil" },
     { "q": "¿Qué Vocaloid reparte las bienvenidas en el servidor?", "a": "Kasane Teto", "o": ["Akita Neru", "Hatsune Miku", "Megurine Luka"], "d": "facil" },
     { "q": "¿Qué Vocaloid modera el servidor?", "a": "Akita Neru", "o": ["Kasane Teto", "Megurine Luka", "Kaito"], "d": "facil" },
     { "q": "¿Qué comando abre la trivia?", "a": "/trivia", "o": ["/preguntas", "/quiz", "/teto"], "d": "facil" },
-    { "q": "¿Qué comando abre la tienda de Shaula-coins?", "a": "/tienda", "o": ["/comprar", "/mercado", "/sobres"], "d": "facil" },
+    { "q": "¿Qué comando abre la tienda de Shaulitas?", "a": "/tienda", "o": ["/comprar", "/mercado", "/sobres"], "d": "facil" },
     { "q": "¿Qué comando sirve para pasarle cuota a otro Papu?", "a": "/donar", "o": ["/regalar", "/dar", "/pasar"], "d": "facil" },
     { "q": "¿Qué se gana adivinando las adivinanzas de una Vocaloid?", "a": "Una boda con ella", "o": ["Una baguette", "Un rol de pago", "Un baneo"], "d": "facil" },
     { "q": "¿Qué rango tiene un Papu en el nivel 1?", "a": "Papu nuevo", "o": ["Oyente", "Fan de corazón", "Leyenda"], "d": "facil" },
@@ -322,9 +322,9 @@
     { "q": "¿Qué rango viene justo antes de 'Salón de la fama'?", "a": "Inmortal", "o": ["Mito del Vocaloid", "Leyenda", "Ícono digital"], "d": "dificil" },
     { "q": "¿Qué rango es más alto?", "a": "Mito del Vocaloid", "o": ["Gira mundial", "Disco de platino", "Remix viral"], "d": "medio" },
     { "q": "¿Qué rango es más bajo?", "a": "Voz de regadera", "o": ["Primer single", "Talento de Niconico", "Álbum"], "d": "medio" },
-    { "q": "¿Con qué se suben niveles en el servidor?", "a": "Participando (mensajes, voz y juegos)", "o": ["Pagando en Ko-fi", "Comprando Shaula-coins", "Invitando bots"], "d": "facil" },
+    { "q": "¿Con qué se suben niveles en el servidor?", "a": "Participando (mensajes, voz y juegos)", "o": ["Pagando en Ko-fi", "Comprando Shaulitas", "Invitando bots"], "d": "facil" },
     { "q": "¿Pagar en Ko-fi da XP o más cuota con los Vocaloids?", "a": "No, nada de pago da XP ni cuota", "o": ["Sí, el doble", "Sí, cuota infinita", "Solo los domingos"], "d": "facil" },
-    { "q": "¿Qué dan las Shaula-coins?", "a": "Adornos para la tarjeta", "o": ["XP", "Cuota con los Vocaloids", "Niveles"], "d": "facil" },
+    { "q": "¿Qué dan las Shaulitas?", "a": "Adornos para la tarjeta", "o": ["XP", "Cuota con los Vocaloids", "Niveles"], "d": "facil" },
     { "q": "¿Qué cuenta Mango9374 cuando lo nombras?", "a": "Tus números del día", "o": ["Un chiste", "El clima", "La hora en Japón"], "d": "facil" },
     { "q": "¿Qué frase suelta a veces Mango9374?", "a": "Sea serio ve", "o": ["¡Teto-teetoo!", "¡Roada rolla da!", "¡Baka, baka, baka!"], "d": "facil" }
   ]

@@ -34,7 +34,8 @@ export interface ModerationPort {
   deleteMessage(channelId: string, messageId: string): Promise<void>;
   timeout(userId: string, minutes: number, reason: string): Promise<void>;
   /** Neru escribe en un canal (respondiendo a `replyTo`, si se da). */
-  say(channelId: string, content: string, pingUserId: string | null, replyTo?: string): Promise<void>;
+  /** `gif`: GIF de Neru adjunto debajo del texto (assets/neru/<gif>.gif). */
+  say(channelId: string, content: string, pingUserId: string | null, replyTo?: string, gif?: NeruGif): Promise<void>;
   log(entry: ModLogEntry): Promise<void>;
   notifyOwner(content: string): Promise<void>;
 }
@@ -45,6 +46,9 @@ export interface AutoModHit {
   ruleName: string;
   content: string;
 }
+
+/** GIFs que Neru adjunta a sus avisos (assets/neru/<nombre>.gif). "advertencia": cada advertencia que no llega a machetazo. */
+export type NeruGif = "advertencia";
 
 const CAPS_COOLDOWN_MS = 10 * 60_000;
 /** Toque por pedir que ignoren o saquen a alguien: uno cada 30 min por Papu (es un aviso, no una sanción). */
@@ -257,7 +261,7 @@ export class ModerationService {
       const lines = [this.phrases.pick("neru", w.grupo ?? "aviso", { papu: `<@${w.userId}>` })];
       if (motivo) lines.push(`> ${motivo}`);
       lines.push(warningLine(r.warnings));
-      await this.port.say(w.channelId, lines.join("\n"), w.userId, w.messageId);
+      await this.port.say(w.channelId, lines.join("\n"), w.userId, w.messageId, "advertencia");
       action = `sin borrar · advertencia ${r.warnings} de ${WARNINGS_PER_MACHETAZO}`;
     }
     await this.port.log({

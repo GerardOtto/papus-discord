@@ -18,11 +18,14 @@ const H = 3_600_000;
 
 describe("configuracion de las bodas", () => {
   it("juegan los 15 Vocaloids (los chicos desde el 25 oct. 2026), todos con frases, adivinanzas y emoji", () => {
-    expect(Object.keys(S.chicas).sort()).toEqual([...WEDDING_BOTS].sort());
+    // Y Mango9374 desde el 12 nov. 2026 (no es un Vocaloid: su color va en la config).
+    expect(Object.keys(S.chicas).sort()).toEqual([...WEDDING_BOTS, "mango"].sort());
     expect(WEDDING_BOTS).toHaveLength(15);
+    expect(S.chicas.mango).toMatchObject({ nombre: "Mango9374", chico: true });
+    expect(S.chicas.mango?.color).toMatch(/^#[0-9A-F]{6}$/i);
     for (const boy of ["kaito", "gakupo", "len"]) expect(S.chicas[boy as "kaito"]?.chico, boy).toBe(true);
     expect(S.chicas).toHaveProperty("ruko");
-    for (const girl of WEDDING_BOTS) {
+    for (const girl of [...WEDDING_BOTS, "mango" as const]) {
       expect(R[girl]?.length, girl).toBeGreaterThanOrEqual(10);
       for (const r of R[girl]!) {
         expect(r.adivinanza.trim(), girl).not.toBe("");
@@ -143,6 +146,20 @@ describe("WeddingService", () => {
   };
   const answerOf = (w: WeddingService) => w.riddleOf(w.active()!).respuestas[0]!;
 
+  it("Mango9374 juega si está conectado: deja su adivinanza y se casa como los Vocaloids", () => {
+    const { w } = make();
+    expect(w.pickBride(["mango"], "mango")).toBe("mango");
+    const { index, riddle } = w.nextRiddle("mango");
+    w.opened({ bot: "mango", index, channelId: "general", messageId: "msg", threadId: "hilo" }, "manual");
+    const res = w.guess("p1", riddle.respuestas[0]!, false);
+    expect(res.kind).toBe("acierto");
+    const wed = w.marry("mango", "p1", "Papu", 100);
+    expect(w.weddingOf("p1")?.bot).toBe("mango");
+    expect(wed.bot).toBe("mango");
+    // Sin conectar, no juega.
+    expect(w.pickBride(["teto"], "mango")).toBeNull();
+  });
+
   it("la inaugural de Teto sale una vez y cuenta para el día", () => {
     const { w } = make();
     expect(w.inauguralPending()).toBe("teto");
@@ -232,6 +249,19 @@ describe("WeddingService", () => {
     expect(w.shouldRemind("a")).toBe(true);
     expect(w.shouldRemind("a")).toBe(false);
     expect(w.shouldRemind("b")).toBe(true);
+  });
+
+  it("boda lanzada por una membresía: mientras espera su hora no sale otra, y no gasta las del día", () => {
+    const { w, at } = make();
+    const slots = w.slots();
+    at(slots[0]! + 60_000);
+    w.setPendingLaunch({ bot: "miku", userId: "socio", at: slots[0]! + 5 * 60_000, nivel: "🐟 Atún" });
+    expect(w.pendingLaunch()?.userId).toBe("socio");
+    expect(w.dueSlot()).toBeNull();
+    w.setPendingLaunch(null);
+    const { index } = w.nextRiddle("miku");
+    w.opened({ bot: "miku", index, channelId: "general", messageId: "msg", threadId: "hilo" }, "lanzada");
+    expect(w.countToday()).toBe(0);
   });
 
   it("horas del día: se usan una vez y las que pasaron hace rato se pierden", () => {

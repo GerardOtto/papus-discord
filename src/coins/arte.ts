@@ -1,9 +1,11 @@
-// Objetos de arte propio de las Shaula-coins (PLAN §3.6): se dibujan con código sobre la tarjeta de nivel, sin renders
+// Objetos de arte propio de las Shaulitas (PLAN §3.6): se dibujan con código sobre la tarjeta de nivel, sin renders
 // ni imágenes ajenas (por eso se pueden comprar con monedas de pago). Cada dibujo recibe la fase de la animación t
 // (0 a 1); los estáticos la ignoran. Los diseños salen de la propuesta (docs/propuestas/shaula-coins/fuente/
 // arte-propio.ts); la geometría es la de la tarjeta (src/levels/card.ts).
 import type { SKRSContext2D } from "@napi-rs/canvas";
 import { CARD_H, CARD_W, FONT, gradient, rainbowAt, roundRect, sparkles } from "../levels/card";
+import { AROS_T2, BARRAS_T2, BORDES_T2, NOMBRES_T2 } from "./arte-t2";
+import { AROS_T2_EXTRA, BARRAS_T2_EXTRA, BORDES_T2_EXTRA, NOMBRES_T2_EXTRA } from "./arte-t2-extra";
 
 export { rainbowAt };
 
@@ -254,6 +256,26 @@ export const BORDES: Record<string, Paint> = {
     ctx.fill();
     ctx.restore();
   },
+  // Prestigio (PLAN §2): marco tornasol que corre, con estrellas que titilan en las esquinas. No se vende.
+  "marco-de-prestigio": (ctx, t) => {
+    ctx.save();
+    cardPath(ctx, 5);
+    ctx.shadowColor = "#FFD86B";
+    ctx.shadowBlur = 26;
+    ctx.lineWidth = 9;
+    ctx.strokeStyle = rainbowAt(ctx, 0, W, t, ["#FFD86B", "#FFF6D5", "#B5FFFC", "#C9A7FF", "#FFB3E6", "#FFD86B"]);
+    ctx.stroke();
+    ctx.restore();
+    [[24, 26], [W - 24, 26], [24, H - 24], [W - 24, H - 24]].forEach(([x, y], i) => {
+      const s = 11 + 3 * Math.sin((t + i / 4) * TAU);
+      star(ctx, x!, y!, s);
+      ctx.fillStyle = "#FFF3B0";
+      ctx.fill();
+      ctx.lineWidth = 2;
+      ctx.strokeStyle = "#B98510";
+      ctx.stroke();
+    });
+  },
 };
 
 /** Borde de los fundadores: dorado con estrellas en las esquinas y su número abajo a la derecha. */
@@ -457,6 +479,26 @@ export const AROS: Record<string, Paint> = {
       centerText(ctx, i === 1 ? "♫" : "♪", ACX + Math.cos(a) * (GEO.as / 2 + 26), ACY + Math.sin(a) * (GEO.as / 2 + 26));
     }
   },
+  // Prestigio (PLAN §2): aro dorado con cinco estrellas que giran. No se vende.
+  "aro-de-prestigio": (ctx, t) => {
+    ctx.save();
+    ctx.shadowColor = "#FFD86B";
+    ctx.shadowBlur = 24;
+    ctx.beginPath();
+    ctx.arc(ACX, ACY, GEO.as / 2 + 9, 0, TAU);
+    ctx.fillStyle = rainbowAt(ctx, GEO.ax - 10, GEO.as + 20, t, ["#B98510", "#FFE07A", "#FFF6D5", "#C9A7FF", "#FFE07A"]);
+    ctx.fill();
+    ctx.restore();
+    for (let i = 0; i < 5; i++) {
+      const a = (t / 2 + i / 5) * TAU;
+      star(ctx, ACX + Math.cos(a) * (GEO.as / 2 + 22), ACY + Math.sin(a) * (GEO.as / 2 + 22), 10);
+      ctx.fillStyle = "#FFF3B0";
+      ctx.fill();
+      ctx.lineWidth = 2;
+      ctx.strokeStyle = "#B98510";
+      ctx.stroke();
+    }
+  },
 };
 
 /** Fondos dibujados: pintan toda la tarjeta (debajo del velo). */
@@ -538,6 +580,53 @@ export const FONDOS: Record<string, Paint> = {
     ctx.fill();
   },
   // Fondo animado: un concierto desde el público, con focos que barren, barras de luz que se mecen y notas que suben.
+  // Fondo de membresía de la temporada 2 (PLAN §2; Baguette y más): telón de terciopelo con la nieve dorada que cae y
+  // las cinco estrellas de los niveles de Ko-fi que titilan. No se vende.
+  "palco-de-mecenas": (ctx, t) => {
+    const g = ctx.createLinearGradient(0, 0, 0, H);
+    g.addColorStop(0, "#2A0A22");
+    g.addColorStop(1, "#120414");
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, W, H);
+    // Telón: pliegues verticales a los lados.
+    for (const lado of [0, 1]) {
+      for (let k = 0; k < 7; k++) {
+        const x = lado ? W - 40 - k * 34 : k * 34;
+        const p = ctx.createLinearGradient(x, 0, x + 34, 0);
+        p.addColorStop(0, "#5A0F2E");
+        p.addColorStop(0.5, "#A0204F");
+        p.addColorStop(1, "#5A0F2E");
+        ctx.fillStyle = p;
+        ctx.fillRect(x, 0, 34, H);
+      }
+    }
+    // Guirnalda dorada arriba.
+    ctx.strokeStyle = "#E8B84A";
+    ctx.lineWidth = 6;
+    ctx.beginPath();
+    for (let x = 0; x <= W; x += 10) ctx.lineTo(x, 18 + Math.sin((x / W) * TAU * 4) * 10);
+    ctx.stroke();
+    // Las cinco estrellas de los niveles (colores de Puerro, Atún, Baguette, Celular y Triple Baka).
+    ["#39C5BB", "#E285B2", "#E91E63", "#E8D44D", "#9B6CFF"].forEach((col, i) => {
+      const brillo = 0.55 + 0.45 * Math.sin((t + i / 5) * TAU);
+      ctx.save();
+      ctx.shadowColor = col;
+      ctx.shadowBlur = 18 * brillo;
+      star(ctx, 330 + i * 90, 70 + (i % 2) * 18, 16 + 6 * brillo);
+      ctx.fillStyle = col;
+      ctx.fill();
+      ctx.restore();
+    });
+    // Nieve dorada que cae.
+    for (let i = 0; i < 40; i++) {
+      const x = (i * 97) % W;
+      const y = ((i * 53 + t * (H + 20)) % (H + 20)) - 10;
+      ctx.beginPath();
+      ctx.arc(x + Math.sin((t + i / 40) * TAU) * 8, y, 1.5 + (i % 3), 0, TAU);
+      ctx.fillStyle = `rgba(255,224,150,${0.35 + (i % 4) * 0.15})`;
+      ctx.fill();
+    }
+  },
   "mar-de-luces": (ctx, t) => {
     const g = ctx.createLinearGradient(0, 0, 0, H);
     g.addColorStop(0, "#07051A");
@@ -591,3 +680,10 @@ export const FONDOS: Record<string, Paint> = {
     }
   },
 };
+
+// Arte de la temporada 2 (propuesta, src/coins/arte-t2.ts): mismos registros, para que la tarjeta, la tienda y las
+// miniaturas los encuentren igual que a los de la temporada 1.
+Object.assign(BORDES, BORDES_T2, BORDES_T2_EXTRA);
+Object.assign(BARRAS, BARRAS_T2, BARRAS_T2_EXTRA);
+Object.assign(AROS, AROS_T2, AROS_T2_EXTRA);
+Object.assign(NOMBRES, NOMBRES_T2, NOMBRES_T2_EXTRA);

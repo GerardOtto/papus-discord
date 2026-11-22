@@ -5,7 +5,7 @@
     "reaccion": "riendo",
     "imagen": "assets/bots/teto_banner.png",
     "titulo": "🌸 ¡Papu papu! Bienvenido al servidor de los Papus 🌸",
-    "texto": "¡Hola, hola! Soy **Teto** y este es nuestro rincón del canal Vocaloid de GyroP ♡(˶ᵔ ᵕ ᵔ˶)\n\nAquí te saludo cada vez que llega un Papu nuevo, ¡así que este canal es solo para eso! ✨\n\n**¿Por dónde empiezo?** 🗺️\n> ✿ Lee {reglas} (Neru se pone gruñona si no 📱)\n> ✿ Preséntate en {general}\n> ✿ Platica con nosotras en {habla-con-los-vocaloids}\n> ✿ Mira los niveles del canal en {niveles-ko-fi}\n> ✿ Elige tu color, tu país y tus avisos en {tus-roles}\n\n¡Ponte cómodo, que aquí hay música, memes y mucho drama del bueno! (≧▽≦)",
+    "texto": "¡Hola, hola! Soy **Teto** y este es nuestro rincón del canal Vocaloid de GyroP ♡(˶ᵔ ᵕ ᵔ˶)\n\nAquí te saludo cada vez que llega un Papu nuevo, ¡así que este canal es solo para eso! ✨\n\n**¿Por dónde empiezo?** 🗺️\n> ✿ Lee {reglas} (Neru se pone gruñona si no 📱)\n> ✿ Preséntate en {general}\n> ✿ Platica con nosotras en {habla-con-los-vocaloids}\n> ✿ Lee las guías de todo lo que hay en {guias}\n> ✿ Mira las membresías del canal en {membresias}\n> ✿ Elige tu color, tu país y tus avisos en {tus-roles}\n\n¡Ponte cómodo, que aquí hay música, memes y mucho drama del bueno! (≧▽≦)",
     "pie": "Teto ・ ¡teto-teetoo! 🥖"
   },
   "reglas": {
@@ -22,11 +22,14 @@
     "texto": "¡Papu papu! Soy **Miku**, la idol número 01 ✧٩(•́⌄•́๑)\n\nAquí GyroP y yo publicamos lo importante:\n> 🎬 estrenos de videos nuevos\n> 🎉 especiales y celebraciones\n> 📢 noticias grandes del canal\n\nEste canal es solo para leer, ¡así no se pierde nada entre la plática! Si quieres comentar un anuncio, hazlo en {general} 💬\n\n¡Activa las notificaciones para enterarte primero! 🔔",
     "pie": "Miku ・ ¡Nos vemos, Papus! 🎤"
   },
-  "niveles-ko-fi": {
+  "membresias": {
+    "antes": [
+      "niveles-ko-fi"
+    ],
     "bot": "miku",
     "reaccion": "presumido",
-    "titulo": "💎 Los niveles del canal",
-    "texto": "¡¿QUÉ?! ¿Quieres apoyar a GyroP? ¡Aquí van los niveles! Cada uno incluye todo lo de los anteriores ♡\n\n**🥬 Puerro ・ 2 USD**\nVota los temas de los próximos videos ・ calendario y tema de la semana antes que nadie ・ emojis exclusivos\n\n**🐟 Atún ・ 4 USD**\nTips con crédito en el video y en el Salón de la Fama ・ propón temas ・ vota quién presenta y elige miniaturas ・ pack de stickers 🛠️\n\n**🥖 Baguette ・ 7 USD**\nCada video 24 h antes que en Instagram ・ notas de producción ・ inspiraciones de GyroP ・ fondos de pantalla 🛠️ ・ mención en los créditos de los Reels\n\n**📱 Celular ・ 12 USD**\nEl motor por dentro ・ episodios perdidos ・ preguntas con GyroP cada mes ・ vota los especiales\n\n**💥 Triple Baka ・ 25 USD**\nTODOS los videos del canal ・ un video personalizado con las Vocaloids ・ tu nombre en una tarjeta de agradecimiento\n\n🛠️ Los stickers y los fondos están en producción: llegan a más tardar el **17 de noviembre**, ¡sí o sí!\n⭐ Quien tenga cualquier nivel en la primera semana (17 al 23 de octubre) se queda para siempre con el rol **Fundador**.\n\n👉 **ko-fi.com/tetociencia/tiers**\n\n✨ Ojo: las Vocaloids somos iguales para todos. Pagar no da más mensajes con nosotras: ¡apoyas el proceso de GyroP!",
+    "titulo": "💎 Membresías de Ko-fi",
+    "texto": "¡¿QUÉ?! ¿Quieres apoyar a GyroP? Aquí van las membresías de Ko-fi, con todo lo que trae cada una ♡\n\n**🥬 Puerro ・ 2 USD**\n- **XP ×1,2**\n- votas los temas de los próximos videos\n- 1 pelea y 1 carrera al día\n- 1 sobre temático al mes: ves 5 objetos y eliges 2\n- recuperas 1 objeto de vitrinas pasadas al mes\n- 10 % de descuento en la tienda\n- ves la vitrina siguiente un día antes\n- banners básicos\n- insignia de membresía y de antigüedad\n\n**🐟 Atún ・ 4 USD**\n- **XP ×1,3**\n- votas los temas de los próximos videos\n- escribes preguntas de trivia y adivinanzas con tu nombre (/aportar)\n- 1 pelea, 1 carrera y 1 boda al día\n- 1 sobre temático al mes: ves 6 objetos y eliges 3\n- recuperas 2 objetos de vitrinas pasadas al mes\n- 15 % de descuento en la tienda\n- ves la vitrina siguiente un día antes\n- banners básicos\n- insignia de membresía y de antigüedad\n\n**🥖 Baguette ・ 7 USD**\n- **XP ×1,4**\n- cada video 24 h antes que en Instagram\n- votas los temas de los próximos videos\n- escribes preguntas de trivia y adivinanzas (/aportar)\n- 2 peleas al día (eliges a los luchadores), 2 carreras y 1 boda al día\n- 1 sobre temático al mes: ves 12 objetos y eliges 4\n- recuperas 3 objetos de vitrinas pasadas al mes\n- 15 % de descuento en la tienda\n- ves la vitrina siguiente un día antes\n- título propio y 4.º lugar de insignia en tu tarjeta\n- fondo de membresía de la temporada\n- tu tarjeta patrocina el ranking diario (por turnos)\n- banners con brillo\n- insignia de membresía y de antigüedad\n\n**📱 Celular ・ 12 USD**\n- **XP ×1,5**\n- cada video 24 h antes que en Instagram y los episodios perdidos\n- votas los temas de los próximos videos\n- escribes preguntas de trivia y adivinanzas (/aportar)\n- 2 peleas al día (eliges a los luchadores), 2 carreras y 2 bodas al día (eliges a la Vocaloid)\n- 2 sobres temáticos al mes: ves 12 objetos y eliges 5\n- recuperas 4 objetos de vitrinas pasadas al mes\n- 20 % de descuento en la tienda\n- ves la vitrina siguiente un día antes\n- título propio y 4.º lugar de insignia en tu tarjeta\n- color con hex propio (/color)\n- fondo de membresía de la temporada\n- tu tarjeta patrocina el ranking diario (por turnos)\n- ingresas al peleador que tú quieras como invitado (1 por temporada)\n- tu nombre en la trivia multijugador\n- banners con partículas\n- insignia de membresía y de antigüedad\n\n**💥 Triple Baka ・ 25 USD**\n- **XP ×1,75**\n- TODOS los videos del canal, 24 h antes que en Instagram, y los episodios perdidos\n- un video personalizado al mes\n- la bóveda\n- votas los temas de los próximos videos\n- escribes preguntas de trivia y adivinanzas (/aportar)\n- 3 peleas al día (eliges a los luchadores), 3 carreras y 2 bodas al día (eliges a la Vocaloid)\n- ingresas tú como invitado en el 1vs1\n- 2 sobres temáticos al mes (ves 15 objetos y eliges 5) y 1 sobre mítico (eliges 1 mítica que te falte)\n- recuperas 5 objetos de vitrinas pasadas al mes\n- 20 % de descuento en la tienda\n- ves la vitrina siguiente un día antes\n- título propio y 4.º lugar de insignia en tu tarjeta\n- color con hex propio (/color)\n- fondo de membresía de la temporada\n- tu tarjeta patrocina el ranking diario (por turnos)\n- ingresas al peleador que tú quieras como invitado (1 por temporada)\n- tu nombre en la trivia multijugador\n- diseñas un objeto con GyroP y propones un consumible\n- banners animados\n- insignia de membresía y de antigüedad\n\nTodo el detalle en la guía {guias} → «💎 Membresías de Ko-fi». Tus sobres y objetos, en {tienda-shaula} → **Mi membresía**.\n\n👉 **ko-fi.com/tetociencia/tiers**\n\n✨ Las Vocaloids somos iguales para todos, y nada pagado es azar: ¡apoyas el proceso de GyroP!",
     "pie": "Miku ・ gracias por apoyar al canal 💙"
   },
   "vitrina": {
@@ -39,25 +42,63 @@
   "tus-roles": {
     "bot": "miku",
     "reaccion": "saludando",
-    "antes": ["tu-color"],
+    "antes": [
+      "tu-color"
+    ],
+    "reemplaza": [
+      "tus-roles-identidad"
+    ],
     "titulo": "🎨 ¡Elige tus roles!",
-    "texto": "¡¿QUÉ?! ¿Todavía tienes el nombre sin color? ¡Eso se arregla! ٩(◕‿◕)۶\n\nTodos los Papus pueden elegir un color de la paleta de las Vocaloids con el menú de aquí abajo 👇\n> 🎨 uno a la vez (si eliges otro, cambia)\n> ✨ \"Sin color\" lo quita\n> 🔒 los colores de Miku, Luka, Teto, Neru y el morado Triple Baka son de los niveles de Ko-fi\n\nEl color que elijas es el que se ve, ¡aunque tengas un nivel! ♡\n\n**🌎 ¿Y de dónde eres?** Con el segundo menú pones la bandera y el nombre de tu país en tu perfil (uno a la vez; \"Sin país\" la quita). \n\n**🔔 ¿Te avisamos?** Con el tercer menú eliges de qué quieres que te etiquetemos:\n> ⚔️ **Ludópata**: cuando abren las apuestas de las peleas 1vs1\n> 💍 **Rizzler**: cuando sale una adivinanza para casarte con una Vocaloid\n> 🎬 **Estrenos**: cuando empieza la XP doble de un video nuevo\n> 🕶️ **Traficante**: cuando Neru abre el mercado negro (una hora al día, a una hora sorpresa)\nMarca todos los que quieras de una vez: lo que no marques se quita (si lo dejas vacío, no te avisamos de nada).\n\n¡Los menús funcionan a cualquier hora!",
-    "pie": "Miku ・ ¡que se vea tu color! 🎤",
-    "menu": ["colores", "paises", "avisos"]
+    "texto": "¡¿QUÉ?! ¿Todavía tienes el nombre sin color? ¡Eso se arregla! ٩(◕‿◕)۶\n\nAquí armas tu perfil, todo en un solo lugar: cada menú está justo debajo de lo que hace 👇 Todo es opcional, lo cambias cuando quieras y funciona a cualquier hora ♡",
+    "secciones": [
+      {
+        "texto": "### 🎨 El color de tu nombre\nEl de cualquier Vocaloid, ¡también Teto, Miku, Luka, Neru y Ruko! Son dos menús porque no caben todos en uno: elige en el que quieras.\n> uno a la vez (si eliges otro, cambia) · **Sin color** lo quita\n> el color que elijas es el que se ve, ¡aunque tengas un nivel!",
+        "menu": [
+          "colores"
+        ]
+      },
+      {
+        "texto": "### 🌎 Tu país\nPone la bandera y el nombre de tu país en tu perfil (sin color). Uno a la vez; **Sin país** la quita.",
+        "menu": [
+          "paises"
+        ]
+      },
+      {
+        "texto": "### 🔔 Tus avisos\nDe qué quieres que te etiquetemos:\n> ⚔️ **Ludópata**: cuando abren las apuestas de las peleas (1vs1 y 2vs2)\n> 💍 **Rizzler**: cuando sale una adivinanza para casarte con una Vocaloid\n> 🎬 **Estrenos**: cuando empieza la XP doble de un video nuevo\n> 🕶️ **Traficante**: cuando Neru abre el mercado negro (una hora al día, a una hora sorpresa)\nMarca todos los que quieras de una vez: lo que no marques se quita (si lo dejas vacío, no te avisamos de nada).",
+        "menu": [
+          "avisos"
+        ]
+      },
+      {
+        "texto": "### 💬 Tus pronombres y tu género\nPara que los demás sepan cómo llamarte. ¿No está el tuyo? Elige **✏️ Escribir los míos** y escríbelo tú (hasta 25 letras; si alguien ya lo escribió igual, comparten el mismo rol ✨). Uno de cada uno a la vez; **Quitar** lo borra.\n> solo se ven en tu perfil: no dan permisos ni cambian tu color\n\nTrata a cada Papu como pide que lo traten 💙",
+        "menu": [
+          "pronombres",
+          "genero"
+        ]
+      },
+      {
+        "texto": "### 🎂 Tu cumpleaños\nSolo el día y el mes (nunca el año). Ese día:\n> 🎉 Ruko te saluda en #general (y avisa unos días antes)\n> ⭐ ganas **XP ×2** todo el día\n> 🎂 te llega la insignia del **pastel de cumpleaños** para tu tarjeta\n**Se registra una sola vez**: revisa bien la fecha antes de confirmar (si te equivocas, pídeselo a un Mod).",
+        "menu": [
+          "cumple"
+        ]
+      }
+    ],
+    "pie": "Miku ・ ¡que se vea tu color! 🎤"
   },
   "novedades": {
+    "foro": true,
     "bot": "luka",
     "reaccion": "nerd",
     "titulo": "✨ Novedades del servidor",
-    "texto": "Buenas, Papus. Soy **Luka** 🐟\n\nAquí anotamos los cambios del servidor y de los bots: canales nuevos, ajustes a la cuota diaria, funciones nuevas.\n\nDos promesas:\n> ・ los cambios son **iguales para todos**, paguen o no\n> ・ siempre se avisan aquí antes, con calma y con datos\n\nEste canal es solo para leer. Si tienes dudas, pregúntame con una mención en {habla-con-los-vocaloids}. Exactly.",
+    "texto": "Buenas, Papus. Soy **Luka** 🐟\n\nAquí anotamos los cambios del servidor y de los bots: **una publicación por novedad**, la más nueva arriba.\n\n**🏷️ Etiquetas** (para filtrar)\n> ・ 🛠️ **Parche**: ajustes y arreglos\n> ・ ✨ **Novedad**: funciones nuevas\n> ・ 🎄 **Temporada**: la tienda y sus temporadas\n> ・ 💎 **Membresías**: cambios de Ko-fi\n> ・ 🎬 **Estreno** y 📰 **Noticia**: videos de GyroP y noticias Vocaloid\n\nDos promesas:\n> ・ los cambios son **iguales para todos**, paguen o no\n> ・ siempre se avisan aquí, con calma y con datos\n\n¿Dudas? Déjalas en los **comentarios** de cada publicación. Lo de antes del 13 de noviembre sigue en {novedades-antiguas}. Exactly.",
     "pie": "Luka ・ precisión ante todo"
   },
   "salon-de-la-fama": {
     "bot": "luka",
     "reaccion": "feliz",
     "titulo": "🏆 Salón de la Fama",
-    "texto": "Aquí viven los Papus cuyo tip llegó a un video ✧\n\nCuando un dato de {tips-y-curiosidades} se usa en un episodio, anoto su nombre aquí y sale en los créditos del video. Investigar con fuente tiene premio (˘ᵕ˘)\n\n¿Quieres estar aquí? Desde el nivel **🐟 Atún** puedes compartir tus tips. Datos verificables, por favor: los mitos no entran.",
-    "pie": "Luka ・ gracias por investigar 🐟"
+    "texto": "Aquí viven las ideas de los Papus que llegaron al servidor o a los videos ✧\n\nLas ideas llegan solas: en {ideas-y-opiniones}, en la charla, en cualquier canal. Cuando GyroP o un Mod le pone ⭐ a la de un Papu, Teto la trae aquí con su nombre.\n\nNo importa tu nivel ni tu membresía: una buena idea es una buena idea (˘ᵕ˘)",
+    "pie": "Luka ・ gracias por aportar 🐟"
   },
   "general": {
     "bot": "teto",
@@ -70,7 +111,7 @@
     "bot": "luka",
     "reaccion": "pensando",
     "titulo": "🎤 Charla Vocaloid",
-    "texto": "Bienvenidos al canal de los fans de verdad 🎶\n\nAquí se habla de canciones, productores, voicebanks, conciertos, historia y teorías del mundo Vocaloid.\n\n> ・ si compartes un dato, mejor con fuente (VocaDB es buena amiga)\n> ・ las letras completas no, por derechos: un fragmento corto basta\n> ・ todos los gustos valen: nadie es \"menos fan\"\n\nWell… y si descubres algo que GyroP no sabía, llévalo a {tips-y-curiosidades} 🐟",
+    "texto": "Bienvenidos al canal de los fans de verdad 🎶\n\nAquí se habla de canciones, productores, voicebanks, conciertos, historia y teorías del mundo Vocaloid.\n\n> ・ si compartes un dato, mejor con fuente (VocaDB es buena amiga)\n> ・ las letras completas no, por derechos: un fragmento corto basta\n> ・ todos los gustos valen: nadie es \"menos fan\"\n\nWell… y si descubres algo que GyroP no sabía, cuéntalo en {ideas-y-opiniones}: las mejores ideas llegan al {salon-de-la-fama} 🐟",
     "pie": "Luka ・ con fuente, please"
   },
   "recomendaciones": {
@@ -134,7 +175,7 @@
     "bot": "miku",
     "reaccion": "feliz",
     "titulo": "🤖 ¡Comandos de los bots!",
-    "texto": "¡Papu papu! Aquí puedes usar los comandos sin llenar los otros canales ♪\n\n**🎵 Música**\n> 1️⃣ entra a un canal de voz (Zona de descanso, Sala comunitaria o Sala de transmisión)\n> 2️⃣ escribe **/play** y el nombre de la canción (Jockie Music o Chip)\n> 3️⃣ **/skip** salta, **/stop** detiene. Con varias copias de Jockie, cada sala puede tener su música\n\n**💌 Nosotras**\n> 📊 **/cuota** (Teto) ・ cuántos mensajes te quedan hoy con nosotras\n> ✦ **/nivel** (Teto) ・ tu tarjeta de nivel; ahí pones tu nivel en el apodo\n> 🎨 **/tarjeta** (Teto) ・ tu frase, color y fondo de la tarjeta\n> 💡 **/tip** (Luka) ・ comparte un dato con su fuente (desde 🐟 Atún)\n> 🎁 **/pedido** y **/mi-pedido** (Miku) ・ tu video personalizado (💥 Triple Baka)\n\nPara platicar con nosotras, mejor en {habla-con-los-vocaloids} ✨",
+    "texto": "¡Papu papu! Aquí puedes usar los comandos sin llenar los otros canales ♪\n\n**🎵 Música**\n> 1️⃣ entra a un canal de voz (Zona de descanso, Sala comunitaria o Sala de transmisión)\n> 2️⃣ escribe **/play** y el nombre de la canción (Jockie Music o Chip)\n> 3️⃣ **/skip** salta, **/stop** detiene. Con varias copias de Jockie, cada sala puede tener su música\n\n**💌 Nosotras**\n> 📊 **/cuota** (Teto) ・ cuántos mensajes te quedan hoy con nosotras\n> ✦ **/nivel** (Teto) ・ tu tarjeta de nivel; ahí pones tu nivel en el apodo\n> 🎨 **/tarjeta** (Teto) ・ personaliza tu tarjeta en la web\n> 🪙 **/tienda** (Teto) ・ vitrina, sobres, tu colección y tu membresía\n> 🎰 **/ruleta** y 🧠 **/trivia** (Teto) ・ misiones y preguntas del día\n> 📚 todo explicado en {guias}\n\nPara platicar con nosotras, mejor en {habla-con-los-vocaloids} ✨",
     "pie": "Miku ・ ¡pon una canción mía! 🎤"
   },
   "reportes-y-reclamos": {
@@ -183,7 +224,7 @@
     "bot": "miku",
     "reaccion": "emocionado",
     "titulo": "🗳️ ¡Votaciones de los próximos videos!",
-    "texto": "¡Papu papu! ¡Ustedes deciden de qué trata el próximo video! ٩(◕‿◕)۶\n\nCada semana abro una encuesta con 3 videos. Funciona así:\n> 🗳️ un voto por Papu\n> ⏰ dura 3 días y te aviso antes de que cierre\n> 🏆 el ganador se anuncia aquí mismo\n> 🔁 el segundo lugar no se rinde: vuelve a competir la semana siguiente contra 2 candidatos nuevos\n\nEste canal es solo para votar (así las encuestas no se pierden). ¿Tienes un tema en mente? Desde **🐟 Atún** puedes proponerlo en {propuestas-de-temas} ✨",
+    "texto": "¡Papu papu! ¡Ustedes deciden de qué trata el próximo video! ٩(◕‿◕)۶\n\nCada semana abro una encuesta con 3 videos. Funciona así:\n> 🗳️ un voto por Papu\n> ⏰ dura 3 días y te aviso antes de que cierre\n> 🏆 el ganador se anuncia aquí mismo\n> 🔁 el segundo lugar no se rinde: vuelve a competir la semana siguiente contra 2 candidatos nuevos\n\nEste canal es solo para votar (así las encuestas no se pierden). ¿Tienes un tema en mente? Cuéntalo en {ideas-y-opiniones}: GyroP lee todo ✨",
     "pie": "Miku ・ ¡cada voto cuenta! 🎤"
   },
   "calendario": {
@@ -239,7 +280,7 @@
     "bot": "teto",
     "reaccion": "riendo",
     "titulo": "☕ ¡Charla VIP!",
-    "texto": "¡Bienvenidos al salón VIP de los Papus! (≧▽≦)\n\nAquí platican los **🥖 Baguettes** y superiores: comenten los adelantos, las notas de producción, las inspiraciones y lo que quieran.\n\n> ・ aquí sí se vale hablar de lo que viene: es su espacio\n> ・ pero lo que se cuenta aquí, ¡se queda aquí! 🤫\n> ・ las mismas {reglas} de siempre\n\nYa sírvanse un cafecito… ¡y una baguette! 🥖☕",
+    "texto": "¡Bienvenidos al salón VIP de los Papus! (≧▽≦)\n\nAquí platican los **🥖 Baguettes** y superiores: comenten los adelantos y lo que quieran.\n\n> ・ aquí sí se vale hablar de lo que viene: es su espacio\n> ・ pero lo que se cuenta aquí, ¡se queda aquí! 🤫\n> ・ las mismas {reglas} de siempre\n\nYa sírvanse un cafecito… ¡y una baguette! 🥖☕",
     "pie": "Teto ・ ¡teto-teetoo!"
   },
   "fondos": {
@@ -260,7 +301,7 @@
     "bot": "neru",
     "reaccion": "broma",
     "titulo": "📼 archivo lost media",
-    "texto": "aquí están los **episodios perdidos de la primera etapa del canal**. lo que nadie vio. 📼\n\nhistoria del canal en estado puro. algunos son raros. los quiero igual. bueno, no. bueno, un poco.\n\n📂 **[abrir el archivo en google drive](https://drive.google.com/drive/folders/1QW3808iTbWzLIr18FsKFCL2Vog6l3cJX)**\n\n・ están en una carpeta privada de google drive. para entrar, mándale a gyrop por privado (discord o ko-fi) tu gmail. nunca en un canal.\n・ solo para ver: no los subas ni los compartas.\n・ si te da nostalgia, coméntalo en {preguntas-a-gyrop}.\n\n📱",
+    "texto": "aquí están los **episodios perdidos de la primera etapa del canal**. lo que nadie vio. 📼\n\nhistoria del canal en estado puro. algunos son raros. los quiero igual. bueno, no. bueno, un poco.\n\n📂 **[abrir el archivo en google drive](https://drive.google.com/drive/folders/1QW3808iTbWzLIr18FsKFCL2Vog6l3cJX)**\n\n・ están en una carpeta privada de google drive. para entrar, mándale a gyrop por privado (discord o ko-fi) tu gmail. nunca en un canal.\n・ solo para ver: no los subas ni los compartas.\n・ si te da nostalgia, coméntalo en {charla-vip}.\n\n📱",
     "pie": "neru ・ nivel celular"
   },
   "preguntas-a-gyrop": {

@@ -9,7 +9,6 @@ import {
   type RESTPostAPIContextMenuApplicationCommandsJSONBody,
 } from "discord.js";
 import type { BotId } from "../config";
-import { OCCASIONS, PRODUCTS, type OccasionId } from "../orders/queue";
 import { WEDDING_BOTS } from "../phrases/catalog";
 
 export interface CastMember {
@@ -38,21 +37,15 @@ const VOCALOID_CHOICES = (
   ] satisfies [BotId, string][]
 ).map(([value, name]) => ({ name, value }));
 
-/** Las chicas de las bodas, para /boda. */
-const BRIDE_CHOICES = VOCALOID_CHOICES.filter((c) => WEDDING_BOTS.includes(c.value as BotId));
+/** Las chicas de las bodas, para /boda (y Mango9374, desde el 12 nov. 2026). */
+const BRIDE_CHOICES = [...VOCALOID_CHOICES.filter((c) => WEDDING_BOTS.includes(c.value as BotId)), { name: "Mango9374", value: "mango" }];
 
-const occasionChoices = (withTemaLibre: boolean) =>
-  (Object.entries(OCCASIONS) as [OccasionId, string][])
-    .filter(([id]) => withTemaLibre || id !== "tema_libre")
-    .map(([value, name]) => ({ name, value }));
-
-/** `cardColors`: colores que se pueden elegir para la tarjeta de nivel (/tarjeta), nombre -> "#RRGGBB". */
+/** `_cardColors`: ya no se usa (/tarjeta sin opciones desde el 13 nov. 2026); queda para no cambiar las llamadas. */
 export function commandsFor(
   bot: BotId,
-  cast: CastMember[] = [],
-  cardColors: { name: string; value: string }[] = [],
+  _cast: CastMember[] = [], // elenco del motor: lo usaban /pedido y /cola (quitados el 13 nov. 2026)
+  _cardColors: { name: string; value: string }[] = [],
 ): RESTPostAPIChatInputApplicationCommandsJSONBody[] {
-  const castChoices = cast.slice(0, 25).map((c) => ({ name: c.name, value: c.id }));
   switch (bot) {
     case "teto":
       return [
@@ -82,9 +75,15 @@ export function commandsFor(
           .toJSON(),
         new SlashCommandBuilder()
           .setName("boda")
-          .setDescription("Una Vocaloid deja ya su adivinanza de boda en #general (no gasta las del día; GyroP y Mods)")
-          .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
-          .addStringOption((o) => o.setName("vocaloid").setDescription("Quién la deja (si lo dejas vacío, le toca a la siguiente)").addChoices(...BRIDE_CHOICES))
+          .setDescription("Lanza una boda en #general: una Vocaloid deja su adivinanza (membresías, GyroP y Mods)")
+          .addStringOption((o) => o.setName("vocaloid").setDescription("Quién la deja (vacío = al azar; elegir es de 📱 Celular y más)").addChoices(...BRIDE_CHOICES))
+          .toJSON(),
+        new SlashCommandBuilder()
+          .setName("adivinanza")
+          .setDescription("Un Vocaloid suelta ahora una adivinanza al aire con pozo en este canal (GyroP y Mods)")
+          .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages)
+          .addStringOption((o) => o.setName("vocaloid").setDescription("Quién la suelta (vacío = al azar)").addChoices(...VOCALOID_CHOICES))
+          .addBooleanOption((o) => o.setName("dorada").setDescription("Forzar dorada (pozo ×2) o normal; vacío = al azar"))
           .toJSON(),
         new SlashCommandBuilder()
           .setName("divorcio")
@@ -113,31 +112,64 @@ export function commandsFor(
           .setDescription("Teto publica el ranking de Papus en este canal para todos (solo GyroP)")
           .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
           .toJSON(),
+        // Desde el 13 nov. 2026 (pedido de GyroP) /tarjeta solo da el enlace a la web: ya no tiene opciones.
+        new SlashCommandBuilder().setName("tarjeta").setDescription("Personaliza tu tarjeta de nivel en la web (enlace privado, solo lo ves tú)").toJSON(),
         new SlashCommandBuilder()
-          .setName("tarjeta")
-          .setDescription("Personaliza tu tarjeta de nivel: frase, color y fondo")
-          .addStringOption((o) => o.setName("frase").setDescription("Tu frase (máx. 60 letras; escribe - para quitarla)").setMaxLength(60))
-          .addStringOption((o) => o.setName("color").setDescription("Color de la barra y del fondo").addChoices(...cardColors.slice(0, 25)))
-          .addStringOption((o) =>
-            o
-              .setName("fondo")
-              .setDescription("Fondo con un Vocaloid, sin imagen o tu imagen aprobada")
-              .addChoices(...[...VOCALOID_CHOICES, { name: "Sin imagen (degradado)", value: "ninguno" }, { name: "Mi imagen (si GyroP la aprobó)", value: "propia" }].slice(0, 25)),
+          .setName("redes")
+          .setDescription("Tu Instagram y tu X para que salgan en tus fanarts (opcional; vacío = quitarlos)")
+          .addStringOption((o) => o.setName("instagram").setDescription("Tu usuario de Instagram (sin @ ni enlaces)").setMaxLength(60))
+          .addStringOption((o) => o.setName("x").setDescription("Tu usuario de X/Twitter (sin @ ni enlaces)").setMaxLength(60))
+          .toJSON(),
+        new SlashCommandBuilder()
+          .setName("aportar")
+          .setDescription("Taller de los Papus: escribe contenido para el servidor, con tu nombre (membresías)")
+          .addSubcommand((s) =>
+            s
+              .setName("pregunta")
+              .setDescription("Una pregunta de trivia con 4 opciones (🐟 Atún y más)")
+              .addStringOption((o) => o.setName("pregunta").setDescription("La pregunta").setRequired(true).setMinLength(10).setMaxLength(200))
+              .addStringOption((o) => o.setName("correcta").setDescription("La respuesta correcta").setRequired(true).setMaxLength(80))
+              .addStringOption((o) => o.setName("incorrecta1").setDescription("Una respuesta incorrecta").setRequired(true).setMaxLength(80))
+              .addStringOption((o) => o.setName("incorrecta2").setDescription("Otra incorrecta").setRequired(true).setMaxLength(80))
+              .addStringOption((o) => o.setName("incorrecta3").setDescription("Otra incorrecta").setRequired(true).setMaxLength(80))
+              .addStringOption((o) => o.setName("dificultad").setDescription("Qué tan difícil es (por defecto, media)").addChoices({ name: "Fácil", value: "facil" }, { name: "Media", value: "medio" }, { name: "Difícil", value: "dificil" })),
           )
-          .addAttachmentOption((o) => o.setName("imagen").setDescription("Sube tu propia imagen de fondo (GyroP la revisa antes)"))
-          .addStringOption((o) =>
-            o
-              .setName("ajuste")
-              .setDescription("Cómo se acomoda tu imagen (si se corta, prueba «completa»)")
-              .addChoices(
-                { name: "Recortar al centro", value: "centro" },
-                { name: "Recortar mostrando lo de arriba", value: "arriba" },
-                { name: "Recortar mostrando lo de abajo", value: "abajo" },
-                { name: "Completa (sin cortar)", value: "completa" },
-              ),
+          .addSubcommand((s) =>
+            s
+              .setName("adivinanza")
+              .setDescription("Una adivinanza de boda para un Vocaloid (🐟 Atún y más)")
+              .addStringOption((o) => o.setName("vocaloid").setDescription("Quién la dice").setRequired(true).addChoices(...BRIDE_CHOICES))
+              .addStringOption((o) => o.setName("adivinanza").setDescription("La adivinanza (sin decir la respuesta)").setRequired(true).setMinLength(15).setMaxLength(300))
+              .addStringOption((o) => o.setName("respuestas").setDescription("Las respuestas que valen, separadas por comas").setRequired(true).setMaxLength(150)),
+          )
+          .addSubcommand((s) =>
+            s
+              .setName("frase")
+              .setDescription("La frase del especial de un luchador del 1vs1 (🥖 Baguette y más)")
+              .addStringOption((o) => o.setName("luchador").setDescription("De quién").setRequired(true).setAutocomplete(true))
+              .addStringOption((o) => o.setName("texto").setDescription("Qué hace en su especial (ej.: «lanza baguettes a toda velocidad»)").setRequired(true).setMinLength(10).setMaxLength(120)),
+          )
+          .addSubcommand((s) =>
+            s
+              .setName("luchador")
+              .setDescription("Propón un luchador invitado para el 1vs1 (📱 Celular y más; 1 por temporada)")
+              .addStringOption((o) => o.setName("nombre").setDescription("Quién").setRequired(true).setMaxLength(60))
+              .addStringOption((o) => o.setName("detalle").setDescription("De dónde es y cómo pelearía").setRequired(true).setMaxLength(500)),
+          )
+          .addSubcommand((s) =>
+            s
+              .setName("consumible")
+              .setDescription("Propón un consumible para el mercado negro (💥 Triple Baka)")
+              .addStringOption((o) => o.setName("nombre").setDescription("Cómo se llama").setRequired(true).setMaxLength(60))
+              .addStringOption((o) => o.setName("detalle").setDescription("Qué hace").setRequired(true).setMaxLength(500)),
           )
           .toJSON(),
-        new SlashCommandBuilder().setName("tienda").setDescription("Tienda de Shaula-coins: monedas, sobres, tu colección y tu tarjeta (solo lo ves tú)").toJSON(),
+        new SlashCommandBuilder()
+          .setName("color")
+          .setDescription("Tu color con hex propio (membresías 📱 Celular y 💥 Triple Baka); vacío = quitarlo")
+          .addStringOption((o) => o.setName("hex").setDescription("Ej.: #FF5FA2").setMinLength(6).setMaxLength(7))
+          .toJSON(),
+        new SlashCommandBuilder().setName("tienda").setDescription("Tienda de las Shaulitas: vitrina, sobres, tu membresía, tu colección y tu tarjeta (solo lo ves tú)").toJSON(),
         new SlashCommandBuilder()
           .setName("consumibles")
           .setDescription("Tus objetos del mercado negro: cuántos usos te quedan y el PC de Adachi Rei (solo lo ves tú)")
@@ -146,45 +178,38 @@ export function commandsFor(
           .toJSON(),
         new SlashCommandBuilder()
           .setName("intercambio")
-          .setDescription("Intercambia Shaula-coins, XP, niveles, cuota, sobres, objetos y consumibles con otros Papus")
+          .setDescription("Intercambia Shaulitas, XP, niveles, cuota, sobres, objetos y consumibles con otros Papus")
           .addUserOption((o) => o.setName("papu").setDescription("Ofrecerle un intercambio a este Papu (si no, ves tus ofertas)"))
+          .toJSON(),
+        // Ruleta de Némesis (config/nemesis.json, PLAN §3.12): los límites de la apuesta los revisa el código.
+        new SlashCommandBuilder()
+          .setName("nemesis")
+          .setDescription("Ruleta de Némesis: desafía a un Papu a la ruleta rusa por Shaulitas")
+          .addUserOption((o) => o.setName("rival").setDescription("A quién desafías"))
+          .addIntegerOption((o) => o.setName("apuesta").setDescription("Shaulitas que pone cada uno").setMinValue(1).setMaxValue(100_000))
+          .addBooleanOption((o) => o.setName("cancelar").setDescription("Cancelar la ruleta en curso y devolver todo (GyroP y Mods)"))
           .toJSON(),
         new SlashCommandBuilder()
           .setName("monedas")
-          .setDescription("Shaula-coins: compras del mes, dar o quitar monedas, límites y bloqueos (solo GyroP)")
+          .setDescription("Shaulitas: dar o quitar Shaulitas o Ecos a un Papu (solo GyroP)")
           .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
-          .addSubcommand((s) => s.setName("panel").setDescription("Compras confirmadas de este mes por Papu"))
           .addSubcommand((s) =>
             s
               .setName("dar")
-              .setDescription("Dar monedas o Ecos a un Papu")
+              .setDescription("Dar Shaulitas o Ecos a un Papu")
               .addUserOption((o) => o.setName("papu").setDescription("A quién").setRequired(true))
               .addIntegerOption((o) => o.setName("cantidad").setDescription("Cuántas").setMinValue(1).setMaxValue(1_000_000).setRequired(true))
-              .addStringOption((o) => o.setName("bolsillo").setDescription("Dónde (por defecto, ganadas)").addChoices({ name: "Ganadas", value: "ganadas" }, { name: "Compradas", value: "compradas" }, { name: "Ecos", value: "ecos" }))
+              .addStringOption((o) => o.setName("bolsillo").setDescription("Qué (por defecto, Shaulitas)").addChoices({ name: "Shaulitas", value: "monedas" }, { name: "Ecos", value: "ecos" }))
               .addStringOption((o) => o.setName("motivo").setDescription("Para el registro").setMaxLength(80)),
           )
           .addSubcommand((s) =>
             s
               .setName("quitar")
-              .setDescription("Quitar monedas o Ecos a un Papu")
+              .setDescription("Quitar Shaulitas o Ecos a un Papu")
               .addUserOption((o) => o.setName("papu").setDescription("A quién").setRequired(true))
               .addIntegerOption((o) => o.setName("cantidad").setDescription("Cuántas").setMinValue(1).setMaxValue(1_000_000).setRequired(true))
-              .addStringOption((o) => o.setName("bolsillo").setDescription("De dónde (por defecto, ganadas)").addChoices({ name: "Ganadas", value: "ganadas" }, { name: "Compradas", value: "compradas" }, { name: "Ecos", value: "ecos" }))
+              .addStringOption((o) => o.setName("bolsillo").setDescription("Qué (por defecto, Shaulitas)").addChoices({ name: "Shaulitas", value: "monedas" }, { name: "Ecos", value: "ecos" }))
               .addStringOption((o) => o.setName("motivo").setDescription("Para el registro").setMaxLength(80)),
-          )
-          .addSubcommand((s) =>
-            s
-              .setName("limite")
-              .setDescription("Límite de compras al mes de un Papu (0 = sin límite)")
-              .addUserOption((o) => o.setName("papu").setDescription("A quién").setRequired(true))
-              .addNumberOption((o) => o.setName("usd").setDescription("Máximo en USD al mes (0 = sin límite)").setMinValue(0).setMaxValue(10_000).setRequired(true)),
-          )
-          .addSubcommand((s) =>
-            s
-              .setName("bloquear")
-              .setDescription("Bloquear o desbloquear las compras de un Papu")
-              .addUserOption((o) => o.setName("papu").setDescription("A quién").setRequired(true))
-              .addBooleanOption((o) => o.setName("bloquear").setDescription("Sí = no puede comprar; No = puede volver a comprar").setRequired(true)),
           )
           .toJSON(),
         new SlashCommandBuilder()
@@ -198,12 +223,50 @@ export function commandsFor(
           .toJSON(),
         new SlashCommandBuilder()
           .setName("pelea")
-          .setDescription("1vs1 de Vocaloids con apuestas de Shaula-coins en este canal (GyroP y Mods)")
-          .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
+          .setDescription("Lanza un 1vs1 o un 2vs2 con apuestas de Shaulitas en #casino (membresías, prestigio, GyroP y Mods)")
+          .addStringOption((o) => o.setName("modo").setDescription("1vs1 (por defecto) o 2vs2: se apuesta por un equipo").addChoices({ name: "1vs1", value: "1vs1" }, { name: "2vs2 (equipos)", value: "2vs2" }))
           // Autocompletar: son más de 25 luchadores (Vocaloids e invitados), el tope de opciones fijas de Discord.
-          .addStringOption((o) => o.setName("vocaloid1").setDescription("Primer luchador (vacío = al azar)").setAutocomplete(true))
-          .addStringOption((o) => o.setName("vocaloid2").setDescription("Segundo luchador (vacío = al azar)").setAutocomplete(true))
-          .addBooleanOption((o) => o.setName("cancelar").setDescription("Cancelar la pelea en curso y devolver lo apostado"))
+          .addStringOption((o) => o.setName("vocaloid1").setDescription("Primer luchador; en 2vs2, del equipo 1 (vacío = al azar; elegir es de 🥖 Baguette y más)").setAutocomplete(true))
+          .addStringOption((o) => o.setName("vocaloid2").setDescription("Segundo luchador; en 2vs2, compañero del 1 (vacío = al azar)").setAutocomplete(true))
+          .addStringOption((o) => o.setName("vocaloid3").setDescription("Solo 2vs2: primero del equipo 2 (vacío = al azar)").setAutocomplete(true))
+          .addStringOption((o) => o.setName("vocaloid4").setDescription("Solo 2vs2: segundo del equipo 2 (vacío = al azar)").setAutocomplete(true))
+          .addBooleanOption((o) => o.setName("cancelar").setDescription("Cancelar la pelea en curso y devolver lo apostado (GyroP y Mods)"))
+          .toJSON(),
+        new SlashCommandBuilder()
+          .setName("cumple")
+          .setDescription("Cumpleaños de los Papus (se registran en #tus-roles)")
+          .addSubcommand((s) =>
+            s
+              .setName("ver")
+              .setDescription("Ver tu cumpleaños o el de otro Papu")
+              .addUserOption((o) => o.setName("papu").setDescription("De quién (vacío = el tuyo)")),
+          )
+          .addSubcommand((s) => s.setName("proximos").setDescription("Los cumpleaños de los próximos 30 días (Papus y Vocaloids), según Ruko"))
+          .addSubcommand((s) =>
+            s
+              .setName("poner")
+              .setDescription("Poner o cambiar el cumpleaños de un Papu (GyroP y Mods)")
+              .addUserOption((o) => o.setName("papu").setDescription("Papu").setRequired(true))
+              .addIntegerOption((o) => o.setName("dia").setDescription("Día").setMinValue(1).setMaxValue(31).setRequired(true))
+              .addStringOption((o) =>
+                o
+                  .setName("mes")
+                  .setDescription("Mes")
+                  .setRequired(true)
+                  .addChoices(...["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"].map((m, k) => ({ name: m, value: String(k + 1) }))),
+              ),
+          )
+          .addSubcommand((s) =>
+            s
+              .setName("borrar")
+              .setDescription("Borrar el cumpleaños de un Papu para que lo registre de nuevo (GyroP y Mods)")
+              .addUserOption((o) => o.setName("papu").setDescription("Papu").setRequired(true)),
+          )
+          .toJSON(),
+        new SlashCommandBuilder()
+          .setName("carrera")
+          .setDescription("Lanza una carrera de Vocaloids con apuestas de Shaulitas (membresías, GyroP y Mods)")
+          .addBooleanOption((o) => o.setName("cancelar").setDescription("Cancelar la carrera en curso y devolver lo apostado (GyroP y Mods)"))
           .toJSON(),
         new SlashCommandBuilder()
           .setName("evento")
@@ -221,76 +284,6 @@ export function commandsFor(
       ];
     case "miku":
       return [
-        new SlashCommandBuilder()
-          .setName("pedido")
-          .setDescription("Pide tu video personalizado con los Vocaloids (Triple Baka, uno al mes)")
-          .addStringOption((o) => o.setName("ocasion").setDescription("¿Para qué es el video?").setRequired(true).addChoices(...occasionChoices(false)))
-          .addStringOption((o) => o.setName("para").setDescription("Nombre de quien recibe el video").setRequired(true).setMaxLength(80))
-          .addStringOption((o) => o.setName("vocaloid").setDescription("Vocaloid principal (el que habla más)").setRequired(true).addChoices(...castChoices))
-          .addStringOption((o) => o.setName("detalles").setDescription("Gustos, apodos o una anécdota corta").setRequired(true).setMaxLength(1000))
-          .addStringOption((o) => o.setName("vocaloid2").setDescription("Segundo Vocaloid (opcional)").addChoices(...castChoices))
-          .addStringOption((o) => o.setName("pronunciacion").setDescription("Si el nombre es difícil, cómo se pronuncia").setMaxLength(80))
-          .addStringOption((o) => o.setName("fecha_limite").setDescription("Si hay una fecha, como un cumpleaños: AAAA-MM-DD").setMaxLength(10))
-          .addBooleanOption((o) => o.setName("publicar").setDescription("¿Puede salir en el canal? (solo con tu permiso)"))
-          .toJSON(),
-        new SlashCommandBuilder().setName("mi-pedido").setDescription("Mira el estado y la posición de tu video personalizado").toJSON(),
-        new SlashCommandBuilder()
-          .setName("cola")
-          .setDescription("Cola de videos personalizados (solo GyroP)")
-          .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
-          .addSubcommand((s) => s.setName("ver").setDescription("Todos los pedidos activos, con detalles"))
-          .addSubcommand((s) =>
-            s
-              .setName("detalle")
-              .setDescription("Todo sobre un pedido")
-              .addIntegerOption((o) => o.setName("pedido").setDescription("Número del pedido").setRequired(true).setMinValue(1)),
-          )
-          .addSubcommand((s) =>
-            s
-              .setName("estado")
-              .setDescription("Cambia el estado de un pedido (avisa al Papu)")
-              .addIntegerOption((o) => o.setName("pedido").setDescription("Número del pedido").setRequired(true).setMinValue(1))
-              .addStringOption((o) =>
-                o
-                  .setName("estado")
-                  .setDescription("Nuevo estado")
-                  .setRequired(true)
-                  .addChoices(
-                    { name: "🎬 En producción (o corrección)", value: "en_produccion" },
-                    { name: "✅ Entregado", value: "entregado" },
-                    { name: "⏳ De vuelta a la cola", value: "en_cola" },
-                    { name: "🚫 Rechazado", value: "rechazado" },
-                    { name: "✖️ Cancelado", value: "cancelado" },
-                  ),
-              )
-              .addStringOption((o) => o.setName("motivo").setDescription("Motivo (se le cuenta al Papu si se rechaza)").setMaxLength(300)),
-          )
-          .addSubcommand((s) =>
-            s
-              .setName("agregar")
-              .setDescription("Registra un pedido de la tienda de Ko-fi")
-              .addStringOption((o) =>
-                o
-                  .setName("producto")
-                  .setDescription("Producto comprado")
-                  .setRequired(true)
-                  .addChoices(
-                    ...(["express", "personalizado", "especial"] as const).map((v) => ({ name: PRODUCTS[v].label, value: v })),
-                  ),
-              )
-              .addStringOption((o) => o.setName("ocasion").setDescription("Ocasión o tema libre").setRequired(true).addChoices(...occasionChoices(true)))
-              .addStringOption((o) => o.setName("para").setDescription("Nombre de quien recibe el video").setRequired(true).setMaxLength(80))
-              .addStringOption((o) => o.setName("vocaloid").setDescription("Vocaloid principal").setRequired(true).addChoices(...castChoices))
-              .addStringOption((o) => o.setName("detalles").setDescription("Lo que dejó el comprador").setRequired(true).setMaxLength(1000))
-              .addStringOption((o) => o.setName("comprador").setDescription("Nombre en Ko-fi").setMaxLength(80))
-              .addStringOption((o) => o.setName("vocaloid2").setDescription("Segundo Vocaloid").addChoices(...castChoices))
-              .addStringOption((o) => o.setName("vocaloid3").setDescription("Tercer Vocaloid (solo el de 2 min)").addChoices(...castChoices))
-              .addStringOption((o) => o.setName("pronunciacion").setDescription("Cómo se pronuncia el nombre").setMaxLength(80))
-              .addStringOption((o) => o.setName("fecha_limite").setDescription("AAAA-MM-DD").setMaxLength(10))
-              .addBooleanOption((o) => o.setName("publicar").setDescription("¿Dio permiso para publicarlo?"))
-              .addUserOption((o) => o.setName("papu").setDescription("Si el comprador está en el servidor, para avisarle")),
-          )
-          .toJSON(),
         new SlashCommandBuilder()
           .setName("votacion")
           .setDescription("Votaciones con encuesta (solo GyroP)")
@@ -369,45 +362,27 @@ export function commandsFor(
           )
           .toJSON(),
         new SlashCommandBuilder()
-          .setName("calendario")
-          .setDescription("Miku publica el calendario en #calendario (solo GyroP)")
-          .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
-          .addStringOption((o) =>
-            o.setName("texto").setDescription("Fechas y videos; separa líneas con | (ej.: Lun 20: Teto | Jue 23: Miku)").setRequired(true).setMaxLength(1500),
-          )
-          .toJSON(),
-        new SlashCommandBuilder()
           .setName("estreno")
-          .setDescription("Miku anuncia un video nuevo en #anuncios (solo GyroP)")
+          .setDescription("Miku anuncia un video nuevo en #novedades (solo GyroP)")
           .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
           .addStringOption((o) => o.setName("titulo").setDescription("Título del video").setRequired(true).setMaxLength(150))
           .addStringOption((o) => o.setName("enlace").setDescription("Enlace al video").setRequired(true).setMaxLength(300))
           .toJSON(),
         new SlashCommandBuilder()
           .setName("noticia")
-          .setDescription("Miku comparte una noticia Vocaloid en #anuncios (solo GyroP)")
+          .setDescription("Miku comparte una noticia Vocaloid en #novedades (solo GyroP)")
           .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
           .addStringOption((o) => o.setName("texto").setDescription("La noticia (puedes incluir el enlace)").setRequired(true).setMaxLength(1500))
           .toJSON(),
       ];
     case "luka":
       return [
-        new SlashCommandBuilder()
-          .setName("tip")
-          .setDescription("Comparte un tip o curiosidad para los videos (Atún y superiores), con su fuente")
-          .addStringOption((o) => o.setName("texto").setDescription("El dato, claro y corto").setRequired(true).setMaxLength(500))
-          .addStringOption((o) => o.setName("fuente").setDescription("Enlace a la fuente (VocaDB, wiki, entrevista, video…)").setRequired(true).setMaxLength(300))
-          .toJSON(),
-        new SlashCommandBuilder()
-          .setName("tip-usado")
-          .setDescription("Marca un tip como usado en un video y lo lleva al Salón de la Fama (solo GyroP)")
-          .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
-          .addIntegerOption((o) => o.setName("tip").setDescription("Número del tip").setRequired(true).setMinValue(1))
-          .addStringOption((o) => o.setName("video").setDescription("Título del video donde se usó").setRequired(true).setMaxLength(150))
-          .toJSON(),
       ];
     case "neru":
       return [
+        // Celular de Neru (PLAN §3.15): abre la Actividad desde cualquier canal de texto. Aparte del comando de punto de
+        // entrada global (npm run celular:comando), que solo sale en el lanzador de Actividades.
+        new SlashCommandBuilder().setName("celular").setDescription("Abre el celular de Neru: Vocaloidle, Silueta, tu tarjeta y más").toJSON(),
         new SlashCommandBuilder()
           .setName("machetear")
           .setDescription("Machetazo de mentira a quien quieras (con el Machete de Neru del mercado negro; no cuenta)")

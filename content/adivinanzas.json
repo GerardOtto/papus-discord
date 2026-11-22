@@ -1,0 +1,7622 @@
+{
+ "$comment": "Banco de «¡Adivina, Papu!» (PLAN §3.17; config/adivinanzas.json). c = categoría (general, vocaloid, utau, utaite, tetociencia, server), t = la adivinanza, r = respuestas aceptadas (la primera se revela; las revisa el código con las mismas reglas que las bodas), p = pista en palabras (a los 40 s; a los 80 s salen letras de la primera respuesta), bot = solo la suelta ese Vocaloid (si habla en primera persona). Los datos de Vocaloid, UTAU y del servidor salen de content/trivia-banco.json, el lore del motor y config/ (regla 6); los de TetoCiencia, de los episodios del canal. Salen al azar sin repetir hasta agotarlas. frases: grupos fijos ({papu}, {premio}, {respuesta}).",
+ "frases": {
+  "intro": [
+   "¡Atención, Papus! Prueba de cerebro sorpresa 🧠",
+   "Se me ocurrió una… a ver quién es el listo del día ✨",
+   "¡Adivinanza al aire! El que la saque se lleva el pozo 💰",
+   "Paren todo: hora de pensar un ratito 🤔",
+   "¿Muy listos? Demuéstrenlo con esta 👀",
+   "Les traigo una adivinanza calientita, recién horneada 🥖",
+   "Chiste no es… es una adivinanza. ¡Con premio! 🧩",
+   "Bueno, bueno, que el chat está muy tranquilo. ¡A pensar!",
+   "Les dejo esta por aquí y hago como que no sé nada 🙃",
+   "¿Quién se la sabe? Hay Shaulitas de por medio 🪙",
+   "Desafío relámpago para los Papus despiertos ⚡",
+   "Esta está fácil… creo. Ustedes díganme 😏",
+   "¡Hora de la adivinanza! Mientras más esperan, más vale… si nadie les gana 😈",
+   "Prueba sorpresa, sin estudiar y sin copiar 📚",
+   "Se me antojó ver cerebros trabajando. ¡Adelante!",
+   "Ojo: el pozo va subiendo. ¿Te arriesgas a esperar? ⏳",
+   "Una adivinanza salvaje apareció 🌿",
+   "Para los que dicen que saben de todo… 🤓",
+   "¿Listos? La primera respuesta buena gana 🏁",
+   "Mini examen del servidor, sin calificación (solo Shaulitas) 💸",
+   "Les reto, Papus. Esta no la sacan 😤",
+   "A ver si así despiertan un poquito ☕",
+   "Pregunta del millón (bueno, de unas cuantas Shaulitas) 💰",
+   "¡Ding ding! Ronda de adivinanza 🔔",
+   "Saquen el cerebro del modo avión ✈️",
+   "Un regalito para el más rápido… o el más paciente 🎁",
+   "Les dejo esta joyita y me voy por un helado 🍦",
+   "Atentos, que la pista llega pronto 💡",
+   "Esto es un examen sorpresa con premio. ¡Suerte!",
+   "Les tengo una. ¿Quién se la sabe? 🧩"
+  ],
+  "acierto": [
+   "¡{papu} la sacó! Era **{respuesta}**: +{premio} Shaulitas pa' la bolsa 💰",
+   "¡Bien ahí, {papu}! **{respuesta}**, correctísimo. Te llevas {premio} Shaulitas ✨",
+   "{papu} tiene el cerebro encendido hoy 🧠 **{respuesta}** era. ¡{premio} Shaulitas!",
+   "¡Correcto, {papu}! Ni yo me la sabía tan rápido (mentira) 😏 +{premio}",
+   "¡Ding ding ding! {papu} acertó con **{respuesta}** y se lleva {premio} Shaulitas 🔔",
+   "{papu} ganó la ronda. **{respuesta}**, obvio. {premio} Shaulitas para ti 🪙",
+   "¡Eso, {papu}! Los demás, a estudiar 📚 (+{premio})",
+   "{papu} se llevó el pozo: {premio} Shaulitas por decir **{respuesta}** 💸",
+   "¡Lo sabía! Bueno, {papu} lo sabía. **{respuesta}**. +{premio} 🎉",
+   "Aplausos para {papu} 👏 Era **{respuesta}**. Pozo cobrado: {premio}",
+   "¡{papu} no perdona! **{respuesta}** y {premio} Shaulitas al bolsillo 😎",
+   "Cerebrito detectado: {papu} 🤓 (**{respuesta}**, +{premio})",
+   "¡Exacto, {papu}! {premio} Shaulitas, gástalas con sabiduría 🛍️",
+   "{papu} le ganó a todo el chat con **{respuesta}**. ¡{premio}!",
+   "Ya está: {papu} se la llevó. Era **{respuesta}** 🧩 +{premio}",
+   "¡Muy bien, {papu}! Pozo de {premio} Shaulitas, todo tuyo 💰",
+   "Ok, {papu}, eso fue impresionante. **{respuesta}**, +{premio} ✨",
+   "¡Y el premio va para… {papu}! **{respuesta}** era 🏆 (+{premio})",
+   "{papu} adivinó **{respuesta}**. Los demás, ¿qué estaban haciendo? 😤 +{premio}",
+   "¡Correctísimo! {papu} se lleva {premio} Shaulitas 🪙",
+   "Respuesta correcta de {papu}: **{respuesta}**. ¡A cobrar {premio}! 💵",
+   "¡Toma ya, {papu}! **{respuesta}**. +{premio} Shaulitas 💥",
+   "{papu} se hizo rico (un poquito): +{premio} por **{respuesta}** 🤑",
+   "Me ganaste, {papu}. Era **{respuesta}** y te llevas {premio} 😌",
+   "¡Lo sacó {papu}! Qué paciencia… o qué velocidad. +{premio}",
+   "{papu}, eres un peligro. **{respuesta}**, +{premio} Shaulitas 🧠",
+   "Bien jugado, {papu}. El pozo era de {premio} y ahora es tuyo 💰",
+   "¡{papu} con la respuesta! **{respuesta}** ✅ +{premio}",
+   "No esperaba menos de {papu}: **{respuesta}**, {premio} Shaulitas 🌟",
+   "¡Adivinada por {papu}! {premio} Shaulitas directo a tu tarjeta 💳"
+  ],
+  "nadie": [
+   "¿Nadie? ¿En serio? Era {respuesta} 🙄",
+   "Treinta segundos y ni uno la sacó… era {respuesta}. Qué vergüenza, Papus 😔",
+   "Se acabó el tiempo. {respuesta}, señores. ¡{respuesta}!",
+   "Ni modo: era {respuesta}. La próxima viene con bote 💰",
+   "Me quedé esperando… era {respuesta} 😴",
+   "Los Papus dormidos y yo aquí con {respuesta} en la mano 🫠",
+   "Nadie la sacó. Era {respuesta}. Voy a pensar que fue muy difícil 🙃",
+   "¡Era {respuesta}! Ustedes pueden más, lo sé 💪",
+   "Tiempo fuera. La respuesta: {respuesta}. La pozo-cumulamos para la siguiente 💸",
+   "Uff, nadie… {respuesta} era. Estudien, Papus 📚",
+   "{respuesta}. Era {respuesta}. Me voy a llorar un ratito 😭",
+   "Bueno, ganó la adivinanza. Era {respuesta} 🧩",
+   "Ni con pista… ¡era {respuesta}! 🤦",
+   "Silencio total. La respuesta era {respuesta} 🦗",
+   "Se me quemó el pan esperando. Era {respuesta} 🥖",
+   "Pues nada: {respuesta}. A la próxima sí, ¿verdad? 👀",
+   "Ahí quedó: {respuesta}. Las Shaulitas se guardan para la siguiente 💰",
+   "Nadie, nadita. Era {respuesta} 😮‍💨",
+   "Cerebros en modo ahorro de energía… era {respuesta} 🔋",
+   "Era {respuesta}, y ustedes lo sabían. Admítanlo 😏",
+   "Se acabó el tiempo. Les voy a dar otra oportunidad más tarde: era {respuesta}",
+   "¡{respuesta}! Ay, Papus, ay 😩",
+   "Treinta segundos de suspenso para nada. Era {respuesta} 🎬",
+   "Aquí no gana nadie… era {respuesta}. Bote para la próxima 💸",
+   "Respuesta: {respuesta}. Prometo que la próxima es más fácil (o no) 😈",
+   "Les dejé pistas y todo… ¡era {respuesta}! 💡",
+   "Lo dejo de tarea: {respuesta} 📝",
+   "Y la respuesta correcta era… {respuesta}. Nadie la dijo 😶",
+   "Me rindo con ustedes. Era {respuesta} 🙈",
+   "Fin del tiempo. {respuesta}. La próxima trae premio extra, atentos 🔔"
+  ]
+ },
+ "adivinanzas": [
+  {
+   "c": "general",
+   "t": "Tengo agujas y no coso, tengo números y no soy teléfono. ¿Qué soy?",
+   "r": [
+    "reloj",
+    "relojes"
+   ],
+   "p": "Me miras para no llegar tarde"
+  },
+  {
+   "c": "general",
+   "t": "Mientras más le quitas, más grande se hace. ¿Qué es?",
+   "r": [
+    "agujero",
+    "hoyo",
+    "pozo"
+   ],
+   "p": "Se cava con pala"
+  },
+  {
+   "c": "general",
+   "t": "Tiene ojos y no ve, tiene agua y no la bebe, tiene carne y no la come. ¿Qué es?",
+   "r": [
+    "coco",
+    "cocos"
+   ],
+   "p": "Fruta tropical con pelos"
+  },
+  {
+   "c": "general",
+   "t": "Blanco por dentro, verde por fuera; si quieres que te lo diga, espera. ¿Qué es?",
+   "r": [
+    "pera",
+    "peras"
+   ],
+   "p": "La dice el mismo final de la adivinanza"
+  },
+  {
+   "c": "general",
+   "t": "Oro parece, plata no es; el que no lo adivine bien tonto es. ¿Qué es?",
+   "r": [
+    "platano",
+    "plátano",
+    "platanos",
+    "plátanos",
+    "banana"
+   ],
+   "p": "Lo ama Len"
+  },
+  {
+   "c": "general",
+   "t": "Vuelo sin alas, lloro sin ojos. ¿Qué soy?",
+   "r": [
+    "nube",
+    "nubes"
+   ],
+   "p": "Está en el cielo y trae lluvia"
+  },
+  {
+   "c": "general",
+   "t": "Tengo hojas y no soy árbol, tengo lomo y no soy caballo. ¿Qué soy?",
+   "r": [
+    "libro",
+    "libros"
+   ],
+   "p": "Se lee"
+  },
+  {
+   "c": "general",
+   "t": "Cuanto más seco, más moja. ¿Qué es?",
+   "r": [
+    "toalla",
+    "toallas"
+   ],
+   "p": "La usas al salir de la ducha"
+  },
+  {
+   "c": "general",
+   "t": "Sube llena y baja vacía; si no se apura, la sopa se enfría. ¿Qué es?",
+   "r": [
+    "cuchara",
+    "cucharas"
+   ],
+   "p": "Cubierto para la sopa"
+  },
+  {
+   "c": "general",
+   "t": "¿Qué planeta es conocido como el planeta rojo?",
+   "r": [
+    "marte"
+   ],
+   "p": "Le dicen así por su óxido de hierro"
+  },
+  {
+   "c": "general",
+   "t": "¿Cuál es el océano más grande del mundo?",
+   "r": [
+    "pacifico",
+    "pacífico",
+    "oceano pacifico",
+    "océano pacífico"
+   ],
+   "p": "Está entre Asia y América"
+  },
+  {
+   "c": "general",
+   "t": "¿Cuántos lados tiene un hexágono?",
+   "r": [
+    "6",
+    "seis"
+   ],
+   "p": "Como las celdas de una colmena"
+  },
+  {
+   "c": "general",
+   "t": "¿Cuál es el planeta más grande del sistema solar?",
+   "r": [
+    "jupiter",
+    "júpiter"
+   ],
+   "p": "Tiene una gran mancha roja"
+  },
+  {
+   "c": "general",
+   "t": "¿Qué gas respiramos para vivir?",
+   "r": [
+    "oxigeno",
+    "oxígeno"
+   ],
+   "p": "Su símbolo es O"
+  },
+  {
+   "c": "general",
+   "t": "¿Cuál es la capital de Japón?",
+   "r": [
+    "tokio",
+    "tokyo"
+   ],
+   "p": "Ahí está Akihabara"
+  },
+  {
+   "c": "general",
+   "t": "¿En qué país están las pirámides de Giza?",
+   "r": [
+    "egipto"
+   ],
+   "p": "Por ahí pasa el río Nilo"
+  },
+  {
+   "c": "general",
+   "t": "¿Cuántas patas tiene una araña?",
+   "r": [
+    "8",
+    "ocho"
+   ],
+   "p": "Dos más que un insecto"
+  },
+  {
+   "c": "general",
+   "t": "¿Cuál es el animal terrestre más rápido?",
+   "r": [
+    "guepardo",
+    "chita",
+    "guepardos"
+   ],
+   "p": "Felino con manchas negras"
+  },
+  {
+   "c": "general",
+   "t": "¿Qué instrumento tiene teclas blancas y negras?",
+   "r": [
+    "piano",
+    "pianos",
+    "teclado"
+   ],
+   "p": "Tiene 88 teclas"
+  },
+  {
+   "c": "general",
+   "t": "¿Cuál es el metal líquido a temperatura ambiente?",
+   "r": [
+    "mercurio"
+   ],
+   "p": "También es un planeta"
+  },
+  {
+   "c": "general",
+   "t": "Si me nombras, desaparezco. ¿Qué soy?",
+   "r": [
+    "silencio"
+   ],
+   "p": "Lo contrario del ruido"
+  },
+  {
+   "c": "general",
+   "t": "Tiene dientes y no come, tiene cabeza y no es hombre. ¿Qué es?",
+   "r": [
+    "ajo",
+    "ajos"
+   ],
+   "p": "Espanta vampiros"
+  },
+  {
+   "c": "general",
+   "t": "Todos pasan por mí y yo nunca paso por nadie. ¿Qué soy?",
+   "r": [
+    "calle",
+    "camino",
+    "puente"
+   ],
+   "p": "Tiene banquetas"
+  },
+  {
+   "c": "general",
+   "t": "¿Cuántos minutos tiene una hora?",
+   "r": [
+    "60",
+    "sesenta"
+   ],
+   "p": "Lo mismo que segundos tiene un minuto"
+  },
+  {
+   "c": "general",
+   "t": "¿Qué idioma se habla en Brasil?",
+   "r": [
+    "portugues",
+    "portugués"
+   ],
+   "p": "El mismo que en Portugal"
+  },
+  {
+   "c": "general",
+   "t": "¿Cuál es el hueso más largo del cuerpo humano?",
+   "r": [
+    "femur",
+    "fémur"
+   ],
+   "p": "Está en el muslo"
+  },
+  {
+   "c": "general",
+   "t": "¿Qué color se forma al mezclar azul y amarillo?",
+   "r": [
+    "verde"
+   ],
+   "p": "El color del pelo de Gumi"
+  },
+  {
+   "c": "general",
+   "t": "¿Cuál es el río más caudaloso del mundo?",
+   "r": [
+    "amazonas",
+    "rio amazonas",
+    "río amazonas"
+   ],
+   "p": "Cruza la selva de Brasil"
+  },
+  {
+   "c": "general",
+   "t": "Soy chiquito como un ratón y cuido la casa como un león. ¿Qué soy?",
+   "r": [
+    "candado",
+    "llave",
+    "cerradura"
+   ],
+   "p": "Se abre con llave"
+  },
+  {
+   "c": "general",
+   "t": "Una caja llena de soldados, todos con cabeza roja. ¿Qué es?",
+   "r": [
+    "cerillos",
+    "cerilla",
+    "cerillas",
+    "fosforos",
+    "fósforos"
+   ],
+   "p": "Se frotan para hacer fuego"
+  },
+  {
+   "c": "general",
+   "t": "¿Qué animal es el símbolo de China y come bambú?",
+   "r": [
+    "panda",
+    "oso panda"
+   ],
+   "p": "Blanco y negro"
+  },
+  {
+   "c": "general",
+   "t": "¿Cuántos colores tiene el arcoíris?",
+   "r": [
+    "7",
+    "siete"
+   ],
+   "p": "Rojo, naranja, amarillo…"
+  },
+  {
+   "c": "general",
+   "t": "¿En qué continente está México?",
+   "r": [
+    "america",
+    "américa",
+    "norteamerica",
+    "norteamérica",
+    "america del norte"
+   ],
+   "p": "Mismo que Canadá"
+  },
+  {
+   "c": "general",
+   "t": "¿Cuál es el satélite natural de la Tierra?",
+   "r": [
+    "luna"
+   ],
+   "p": "Lo que más le gusta a IA"
+  },
+  {
+   "c": "general",
+   "t": "¿Qué se rompe con solo decir su nombre?",
+   "r": [
+    "silencio"
+   ],
+   "p": "Shhh…"
+  },
+  {
+   "c": "general",
+   "t": "Tengo ciudades pero no casas, ríos pero no agua, bosques pero no árboles. ¿Qué soy?",
+   "r": [
+    "mapa",
+    "mapas"
+   ],
+   "p": "Lo usan los exploradores"
+  },
+  {
+   "c": "general",
+   "t": "¿Qué fruta es la base de la guacamole?",
+   "r": [
+    "aguacate",
+    "palta"
+   ],
+   "p": "Verde y con hueso grande"
+  },
+  {
+   "c": "general",
+   "t": "¿Cuántos jugadores tiene un equipo de fútbol en la cancha?",
+   "r": [
+    "11",
+    "once"
+   ],
+   "p": "Contando al portero"
+  },
+  {
+   "c": "general",
+   "t": "¿Qué ave es símbolo de la paz?",
+   "r": [
+    "paloma",
+    "palomas"
+   ],
+   "p": "Blanca y con una rama de olivo"
+  },
+  {
+   "c": "general",
+   "t": "¿Cuál es el país más grande del mundo?",
+   "r": [
+    "rusia"
+   ],
+   "p": "Su capital es Moscú"
+  },
+  {
+   "c": "vocaloid",
+   "t": "Turquesa de coletas, número 01 en el brazo y un puerro en la mano. ¿Quién soy?",
+   "r": [
+    "miku",
+    "hatsune miku"
+   ],
+   "p": "La más famosa de todas"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué verdura lleva Miku?",
+   "r": [
+    "puerro",
+    "puerros",
+    "negi",
+    "cebollin",
+    "cebollín"
+   ],
+   "p": "Viene del meme de Ievan Polkka"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué pescado es el objeto de Luka?",
+   "r": [
+    "atun",
+    "atún",
+    "maguro"
+   ],
+   "p": "Con el puerro forma Negitoro"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué fruta llevan los fans dibujada con Rin?",
+   "r": [
+    "naranja",
+    "naranjas",
+    "mandarina"
+   ],
+   "p": "Cítrica y del color de su nombre en inglés: orange"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué postre come Kaito todo el tiempo?",
+   "r": [
+    "helado",
+    "helados",
+    "nieve"
+   ],
+   "p": "Frío y en cono"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué lleva Kaito aunque haga calor?",
+   "r": [
+    "bufanda",
+    "bufandas"
+   ],
+   "p": "Azul y en el cuello"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué empresa hizo el programa Vocaloid?",
+   "r": [
+    "yamaha"
+   ],
+   "p": "También hace motos y pianos"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué empresa creó a Miku, Rin, Len, Luka, Kaito y Meiko?",
+   "r": [
+    "crypton",
+    "crypton future media"
+   ],
+   "p": "Es de Sapporo"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué número de la serie Character Vocal es Megurine Luka?",
+   "r": [
+    "cv03",
+    "03",
+    "3",
+    "tres"
+   ],
+   "p": "Miku es el 01"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué verdura lleva Gumi?",
+   "r": [
+    "zanahoria",
+    "zanahorias"
+   ],
+   "p": "Naranja y la comen los conejos"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué verdura morada lleva Kamui Gakupo?",
+   "r": [
+    "berenjena",
+    "berenjenas"
+   ],
+   "p": "Morada como su pelo"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué arma lleva Gakupo, el samurái?",
+   "r": [
+    "katana",
+    "espada"
+   ],
+   "p": "Espada japonesa"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué empresa hizo a Gumi y a Gakupo?",
+   "r": [
+    "internet co",
+    "internet"
+   ],
+   "p": "Su nombre tiene que ver con la red"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué Vocaloid se llama igual que la inteligencia artificial, aunque no tiene nada que ver?",
+   "r": [
+    "ia"
+   ],
+   "p": "Cantó el Kagerou Project"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué Vocaloid canta «Goodbye Sengen» de Chinozo?",
+   "r": [
+    "flower",
+    "v flower"
+   ],
+   "p": "Su nombre va con minúscula"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué dueto clásico de minato cantan Miku y Luka?",
+   "r": [
+    "magnet"
+   ],
+   "p": "Un imán"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Cómo le dicen los fans a la pareja de Miku y Luka?",
+   "r": [
+    "negitoro"
+   ],
+   "p": "Puerro + atún"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué canción de ryo (supercell) dice que Miku es «la princesa número uno del mundo»?",
+   "r": [
+    "world is mine"
+   ],
+   "p": "El mundo es mío"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué canción de Kurousa-P habla de mil cerezos?",
+   "r": [
+    "senbonzakura"
+   ],
+   "p": "Sakura = cerezo"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué productor hizo «Rolling Girl»?",
+   "r": [
+    "wowaka"
+   ],
+   "p": "También hizo World's End Dancehall"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué productor hizo «Matryoshka» y «Panda Hero»?",
+   "r": [
+    "hachi",
+    "kenshi yonezu"
+   ],
+   "p": "Hoy es famoso con su propia voz"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué productor tiene un 27 en su nombre?",
+   "r": [
+    "deco27",
+    "deco 27",
+    "deco"
+   ],
+   "p": "Hizo Ghost Rule y Rabbit Hole"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Cómo se llamaba Kaito en clave en el prototipo de Vocaloid?",
+   "r": [
+    "taro"
+   ],
+   "p": "Un nombre japonés muy común"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿De qué meme sale el puerro de Miku?",
+   "r": [
+    "ievan polkka",
+    "leekspin"
+   ],
+   "p": "Una canción finlandesa"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué apodo le dicen los fans a Kaito?",
+   "r": [
+    "bakaito"
+   ],
+   "p": "Baka + Kaito"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué gemelos de Crypton nunca aclararon si son hermanos o reflejo?",
+   "r": [
+    "rin y len",
+    "kagamine",
+    "kagamines",
+    "los kagamine"
+   ],
+   "p": "Kagami = espejo"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué Vocaloid castaña de rojo fue de las primeras de Crypton?",
+   "r": [
+    "meiko"
+   ],
+   "p": "Su voz es de Meiko Haigō"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué canción de Jin cantó IA en el Kagerou Project y habla de recuerdos de la niñez?",
+   "r": [
+    "children record"
+   ],
+   "p": "Record = registro"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué canción hizo bailar a Gakupo como samurái?",
+   "r": [
+    "dancing samurai"
+   ],
+   "p": "Samurái bailarín"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué lleva Gumi en la cabeza?",
+   "r": [
+    "goggles",
+    "gafas",
+    "lentes",
+    "gafas protectoras"
+   ],
+   "p": "Unas gafas de piloto"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué canción de cosMo@Bousou-P cuenta la desaparición de Miku?",
+   "r": [
+    "the disappearance of hatsune miku",
+    "shoushitsu",
+    "disappearance"
+   ],
+   "p": "Va rapidísimo"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué canción de Luka es la fiestera, de samfree?",
+   "r": [
+    "luka luka night fever",
+    "night fever"
+   ],
+   "p": "Fiebre de noche"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué canción de 2023 de DECO*27 se hizo megaviral en TikTok con Miku?",
+   "r": [
+    "rabbit hole"
+   ],
+   "p": "La madriguera del conejo"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Quién canta «Lagtrain»?",
+   "r": [
+    "kaai yuki",
+    "yuki"
+   ],
+   "p": "Una voz de niña"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué edad tiene Miku según su perfil?",
+   "r": [
+    "16",
+    "dieciseis",
+    "dieciséis"
+   ],
+   "p": "Va en prepa"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿De qué color es el pelo de Luka?",
+   "r": [
+    "rosa",
+    "rosado"
+   ],
+   "p": "Como el atún crudo"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Cómo se llama la canción del sirviente del mal que canta Len?",
+   "r": [
+    "aku no meshitsukai",
+    "servant of evil",
+    "el sirviente del mal"
+   ],
+   "p": "Meshitsukai = sirviente"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Quién es la voz de Miku?",
+   "r": [
+    "saki fujita",
+    "fujita"
+   ],
+   "p": "Una actriz de voz japonesa"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué productor hizo «Tell Your World» para el comercial de Google Chrome?",
+   "r": [
+    "livetune",
+    "kz"
+   ],
+   "p": "Dos letras"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué Vocaloid de Crypton canta en japonés e inglés?",
+   "r": [
+    "luka",
+    "megurine luka"
+   ],
+   "p": "La del atún"
+  },
+  {
+   "c": "utau",
+   "t": "Nací como broma del Día de los Inocentes y hoy canto con taladros en el pelo. ¿Quién soy?",
+   "r": [
+    "teto",
+    "kasane teto"
+   ],
+   "p": "Ama la baguette"
+  },
+  {
+   "c": "utau",
+   "t": "¿Qué tipo de criatura es Kasane Teto según su perfil?",
+   "r": [
+    "quimera",
+    "una quimera"
+   ],
+   "p": "Bicho mitológico de varias partes"
+  },
+  {
+   "c": "utau",
+   "t": "¿Cuántos años tiene Teto, eternamente?",
+   "r": [
+    "31",
+    "treinta y uno"
+   ],
+   "p": "La mayor del grupo"
+  },
+  {
+   "c": "utau",
+   "t": "¿Qué pan come Teto todo el tiempo?",
+   "r": [
+    "baguette",
+    "pan frances",
+    "pan francés"
+   ],
+   "p": "Largo y francés"
+  },
+  {
+   "c": "utau",
+   "t": "¿En qué foro japonés nació la broma de Teto?",
+   "r": [
+    "2channel",
+    "2ch",
+    "2 channel"
+   ],
+   "p": "Un foro de anuncios gigante"
+  },
+  {
+   "c": "utau",
+   "t": "¿Qué día del año nació la broma de Teto?",
+   "r": [
+    "1 de abril",
+    "primero de abril",
+    "dia de los inocentes",
+    "día de los inocentes",
+    "april fools"
+   ],
+   "p": "Día de bromas en Japón y EE. UU."
+  },
+  {
+   "c": "utau",
+   "t": "¿Cómo se llama la voz que trae UTAU por defecto?",
+   "r": [
+    "defoko",
+    "utane uta"
+   ],
+   "p": "Uta = canción"
+  },
+  {
+   "c": "utau",
+   "t": "¿Qué tipo de programa es UTAU?",
+   "r": [
+    "gratuito",
+    "gratis",
+    "programa gratis",
+    "freeware"
+   ],
+   "p": "No cuesta nada"
+  },
+  {
+   "c": "utau",
+   "t": "¿Qué UTAU es una androide del tamaño de una persona que asusta a Teto?",
+   "r": [
+    "adachi rei",
+    "rei",
+    "adachi"
+   ],
+   "p": "La creó missile39"
+  },
+  {
+   "c": "utau",
+   "t": "¿Quién creó a Adachi Rei?",
+   "r": [
+    "missile39",
+    "missile"
+   ],
+   "p": "Un número al final del nombre"
+  },
+  {
+   "c": "utau",
+   "t": "¿Cómo se llama la versión chico de Teto hecha por fans?",
+   "r": [
+    "ted",
+    "kasane ted"
+   ],
+   "p": "Nombre de oso de peluche"
+  },
+  {
+   "c": "utau",
+   "t": "¿Qué UTAU tiene un ojo rojo y otro azul y «se acerca»?",
+   "r": [
+    "ruko",
+    "yokune ruko"
+   ],
+   "p": "Meme del servidor"
+  },
+  {
+   "c": "utau",
+   "t": "¿Qué canción de Satsuki hizo viral a Teto con Miku, fingiendo estar hipnotizada?",
+   "r": [
+    "mesmerizer"
+   ],
+   "p": "Hipnotizador en inglés"
+  },
+  {
+   "c": "utau",
+   "t": "¿Qué juego clásico parodia «Tetoris»?",
+   "r": [
+    "tetris"
+   ],
+   "p": "Piezas que caen"
+  },
+  {
+   "c": "utau",
+   "t": "¿Qué fruta convirtió la comunidad en meme con la cara de Teto?",
+   "r": [
+    "pera",
+    "tetopera"
+   ],
+   "p": "TetoPera"
+  },
+  {
+   "c": "utau",
+   "t": "¿Qué robot UTAU canta la canción del Nyan Cat?",
+   "r": [
+    "momone momo",
+    "momo"
+   ],
+   "p": "Su nombre se repite"
+  },
+  {
+   "c": "utau",
+   "t": "¿En qué programa nuevo tuvo voz Teto años después, que usa redes neuronales?",
+   "r": [
+    "synthesizer v",
+    "synth v",
+    "synthv"
+   ],
+   "p": "Sintetizador cinco"
+  },
+  {
+   "c": "utau",
+   "t": "¿Qué productora hizo «Machine Love» y «BIRDBRAIN» con Teto?",
+   "r": [
+    "jamie paige"
+   ],
+   "p": "Una productora de habla inglesa"
+  },
+  {
+   "c": "utau",
+   "t": "¿Qué canción de Hiiragi Magnetite se parece a un juego de bloques?",
+   "r": [
+    "tetoris"
+   ],
+   "p": "Teto + Tetris"
+  },
+  {
+   "c": "utau",
+   "t": "¿Qué palabra repiten Miku, Teto y Neru en la canción de LamazeP?",
+   "r": [
+    "baka"
+   ],
+   "p": "Tonto en japonés"
+  },
+  {
+   "c": "utau",
+   "t": "¿Cómo se llama la canción de LamazeP con Miku, Teto y Neru?",
+   "r": [
+    "triple baka"
+   ],
+   "p": "Tres tontas"
+  },
+  {
+   "c": "utau",
+   "t": "¿Cómo es la voz de Adachi Rei?",
+   "r": [
+    "robotica",
+    "robótica",
+    "entrecortada"
+   ],
+   "p": "Como una máquina"
+  },
+  {
+   "c": "utau",
+   "t": "¿Qué canción de Yoshida Yasei canta Teto y se llama como «sobrescribir»?",
+   "r": [
+    "override"
+   ],
+   "p": "En inglés: anular"
+  },
+  {
+   "c": "utau",
+   "t": "¿De qué color es el pelo de Teto?",
+   "r": [
+    "rojo"
+   ],
+   "p": "Como el chile"
+  },
+  {
+   "c": "utau",
+   "t": "¿Las voces UTAU vienen de empresas o de fans?",
+   "r": [
+    "fans",
+    "de fans",
+    "los fans"
+   ],
+   "p": "Las hace la comunidad"
+  },
+  {
+   "c": "utau",
+   "t": "¿De quién es derivada Akita Neru?",
+   "r": [
+    "miku",
+    "hatsune miku"
+   ],
+   "p": "La del puerro"
+  },
+  {
+   "c": "utau",
+   "t": "¿Qué lleva Akita Neru siempre en la mano?",
+   "r": [
+    "celular",
+    "telefono",
+    "teléfono",
+    "movil",
+    "móvil"
+   ],
+   "p": "Escribe sin parar"
+  },
+  {
+   "c": "utau",
+   "t": "¿Qué quiere decir en japonés el nombre de Akita Neru?",
+   "r": [
+    "me aburri me voy a dormir",
+    "me aburrí, me voy a dormir",
+    "aburrida y a dormir"
+   ],
+   "p": "Akita = aburrí, neru = dormir"
+  },
+  {
+   "c": "utau",
+   "t": "¿De qué color son los ojos de Yowane Haku?",
+   "r": [
+    "rojos",
+    "rojo"
+   ],
+   "p": "Como el semáforo en alto"
+  },
+  {
+   "c": "utau",
+   "t": "¿Qué personalidad tiene Neru?",
+   "r": [
+    "tsundere"
+   ],
+   "p": "Fría por fuera, tierna por dentro"
+  },
+  {
+   "c": "utau",
+   "t": "¿Cómo se llama la versión chico de Neru?",
+   "r": [
+    "nero",
+    "akita nero"
+   ],
+   "p": "Como el emperador romano"
+  },
+  {
+   "c": "utau",
+   "t": "¿Cómo se llama la versión chico de Meiko?",
+   "r": [
+    "meito",
+    "sakine meito"
+   ],
+   "p": "Sakine…"
+  },
+  {
+   "c": "utau",
+   "t": "¿Cómo se llama la versión chico de Luka?",
+   "r": [
+    "luki",
+    "megurine luki"
+   ],
+   "p": "Cambia una sola letra"
+  },
+  {
+   "c": "utau",
+   "t": "¿Cómo se llama la versión chico de Miku?",
+   "r": [
+    "mikuo",
+    "hatsune mikuo"
+   ],
+   "p": "Termina en o"
+  },
+  {
+   "c": "utau",
+   "t": "¿Qué representa Yowane Haku?",
+   "r": [
+    "quien no logra hacer cantar bien a miku",
+    "los que no saben usar vocaloid",
+    "canta mal"
+   ],
+   "p": "La Miku que «canta mal»"
+  },
+  {
+   "c": "utaite",
+   "t": "¿Cómo se llama a los que cantan covers de canciones Vocaloid en internet?",
+   "r": [
+    "utaite",
+    "utaites"
+   ],
+   "p": "Uta = canción"
+  },
+  {
+   "c": "utaite",
+   "t": "¿Cómo se llama a quien produce canciones Vocaloid?",
+   "r": [
+    "vocaloid p",
+    "productor",
+    "p",
+    "vocaloidp"
+   ],
+   "p": "Se le agrega una P al nombre"
+  },
+  {
+   "c": "utaite",
+   "t": "¿Qué cantante, «la gritona», cantó con Miku y se hizo famosa con «Usseewa»?",
+   "r": [
+    "ado"
+   ],
+   "p": "Tres letras"
+  },
+  {
+   "c": "utaite",
+   "t": "¿En qué página de videos japonesa nacieron los utaites?",
+   "r": [
+    "niconico",
+    "nico nico",
+    "nicovideo"
+   ],
+   "p": "Comentarios que vuelan por la pantalla"
+  },
+  {
+   "c": "utaite",
+   "t": "¿Qué productor hizo el Kagerou Project?",
+   "r": [
+    "jin",
+    "shizen no teki p"
+   ],
+   "p": "Tres letras"
+  },
+  {
+   "c": "utaite",
+   "t": "¿Qué productor hizo la saga de la hija del mal?",
+   "r": [
+    "mothy",
+    "akuno p",
+    "akuno-p"
+   ],
+   "p": "Akuno-P"
+  },
+  {
+   "c": "utaite",
+   "t": "¿Qué productor hizo «Odds & Ends» y «Melt»?",
+   "r": [
+    "ryo",
+    "supercell"
+   ],
+   "p": "Su grupo: supercell"
+  },
+  {
+   "c": "utaite",
+   "t": "¿Qué productor de «Bad∞End∞Night» tiene «P» y una gota en el nombre?",
+   "r": [
+    "hitoshizuku p",
+    "hitoshizuku"
+   ],
+   "p": "Shizuku = gota"
+  },
+  {
+   "c": "utaite",
+   "t": "¿Qué productor hizo «Ghost Rule», «Vampire» y «Hibana»?",
+   "r": [
+    "deco27",
+    "deco 27",
+    "deco"
+   ],
+   "p": "Tiene un asterisco"
+  },
+  {
+   "c": "utaite",
+   "t": "¿Qué productor hizo «Kyu-kurarin» con KAFU?",
+   "r": [
+    "iyowa"
+   ],
+   "p": "Cinco letras"
+  },
+  {
+   "c": "utaite",
+   "t": "¿Qué productor hizo «God-ish»?",
+   "r": [
+    "pinocchio p",
+    "pinocchiop",
+    "pinocchio"
+   ],
+   "p": "Como el muñeco de madera"
+  },
+  {
+   "c": "utaite",
+   "t": "¿Qué productor hizo «KING» y «QUEEN» con Gumi?",
+   "r": [
+    "kanaria"
+   ],
+   "p": "Como el pájaro amarillo"
+  },
+  {
+   "c": "utaite",
+   "t": "¿Qué productor hizo «Lost One's Weeping» y no es Akita Neru?",
+   "r": [
+    "neru"
+   ],
+   "p": "Se llama igual que la del celular"
+  },
+  {
+   "c": "utaite",
+   "t": "¿Qué productor hizo «Torinoko City» y «Karakuri Pierrot»?",
+   "r": [
+    "40mp",
+    "40m p"
+   ],
+   "p": "Un número y una m"
+  },
+  {
+   "c": "utaite",
+   "t": "¿Qué productor hizo «Aishite Aishite Aishite»?",
+   "r": [
+    "kikuo"
+   ],
+   "p": "Kiku…"
+  },
+  {
+   "c": "utaite",
+   "t": "¿Qué productor hizo «Rokuchounen to Ichiya Monogatari» con IA?",
+   "r": [
+    "kemu"
+   ],
+   "p": "Cuatro letras"
+  },
+  {
+   "c": "utaite",
+   "t": "¿Qué productor hizo «Roki» y «Sarishinohara»?",
+   "r": [
+    "mikito p",
+    "mikitop",
+    "mikito"
+   ],
+   "p": "Mikito…"
+  },
+  {
+   "c": "utaite",
+   "t": "¿Qué productor hizo «Dancing Samurai» para Gakupo?",
+   "r": [
+    "mathru",
+    "kanipan p",
+    "kanipan"
+   ],
+   "p": "Cangrejo + pan"
+  },
+  {
+   "c": "utaite",
+   "t": "¿Qué productor hizo «Goodbye Sengen»?",
+   "r": [
+    "chinozo"
+   ],
+   "p": "Chino…"
+  },
+  {
+   "c": "utaite",
+   "t": "¿Qué productor hizo «ECHO» con Gumi?",
+   "r": [
+    "crusher p",
+    "crusher"
+   ],
+   "p": "Aplastador"
+  },
+  {
+   "c": "utaite",
+   "t": "¿Qué productor hizo «Gimme×Gimme» junto con Giga?",
+   "r": [
+    "hachioji p",
+    "hachioji"
+   ],
+   "p": "Hachi + oji"
+  },
+  {
+   "c": "utaite",
+   "t": "¿Qué productor hizo «Alien Alien»?",
+   "r": [
+    "nayutalien",
+    "nayutalien"
+   ],
+   "p": "Termina en alien"
+  },
+  {
+   "c": "utaite",
+   "t": "¿Qué productor hizo «Kokoro» para Rin?",
+   "r": [
+    "toraboruta p",
+    "toraboruta"
+   ],
+   "p": "Al revés suena a «voltaje»"
+  },
+  {
+   "c": "utaite",
+   "t": "¿Qué productor hizo «Triple Baka»?",
+   "r": [
+    "lamazep",
+    "lamaze p"
+   ],
+   "p": "Lamaze…"
+  },
+  {
+   "c": "utaite",
+   "t": "¿Qué productor hizo «Mesmerizer»?",
+   "r": [
+    "satsuki",
+    "satsuki ga tenkomori"
+   ],
+   "p": "Mes de mayo en japonés antiguo"
+  },
+  {
+   "c": "utaite",
+   "t": "¿Qué productor hizo «Magnet»?",
+   "r": [
+    "minato",
+    "ryuusei p"
+   ],
+   "p": "Puerto en japonés"
+  },
+  {
+   "c": "utaite",
+   "t": "¿Qué productor hizo «Just Be Friends» con Luka?",
+   "r": [
+    "dixie flatline",
+    "dixie"
+   ],
+   "p": "Dixie…"
+  },
+  {
+   "c": "utaite",
+   "t": "¿Qué productor hizo «Hello, Planet.»?",
+   "r": [
+    "sasakure uk",
+    "sasakure"
+   ],
+   "p": "Termina en .UK"
+  },
+  {
+   "c": "utaite",
+   "t": "¿Qué productor de «Lagtrain» se llama como un día nublado?",
+   "r": [
+    "inabakumori"
+   ],
+   "p": "Kumori = nublado"
+  },
+  {
+   "c": "utaite",
+   "t": "¿Qué productor hizo «Cendrillon» para Miku y Kaito?",
+   "r": [
+    "signal p",
+    "signalp",
+    "signal"
+   ],
+   "p": "Señal"
+  },
+  {
+   "c": "utaite",
+   "t": "¿Qué productor hizo «Ievan Polkka» con Miku?",
+   "r": [
+    "otomania"
+   ],
+   "p": "Manía por el sonido"
+  },
+  {
+   "c": "utaite",
+   "t": "¿Qué productor hizo «PoPiPo», la canción del jugo de verduras?",
+   "r": [
+    "lamazep",
+    "lamaze p"
+   ],
+   "p": "El mismo de Triple Baka"
+  },
+  {
+   "c": "utaite",
+   "t": "¿Qué productor hizo «Miku Miku ni Shite Ageru»?",
+   "r": [
+    "ika",
+    "ika mo"
+   ],
+   "p": "Calamar en japonés"
+  },
+  {
+   "c": "utaite",
+   "t": "¿Qué productor hizo «Romeo and Cinderella»?",
+   "r": [
+    "doriko"
+   ],
+   "p": "Dori…"
+  },
+  {
+   "c": "utaite",
+   "t": "¿Qué productor hizo «Paradichlorobenzene» para Len?",
+   "r": [
+    "owata p",
+    "owatap",
+    "owata"
+   ],
+   "p": "Owata…"
+  },
+  {
+   "c": "tetociencia",
+   "t": "En TetoCiencia, ¿quién es la «mamá» de Miku, la actriz que le dio su voz?",
+   "r": [
+    "saki fujita",
+    "fujita"
+   ],
+   "p": "Episodio: ¿Quién es Saki Fujita?"
+  },
+  {
+   "c": "tetociencia",
+   "t": "En TetoCiencia vimos la Miku de metal. ¿Cómo se llama?",
+   "r": [
+    "hagane miku",
+    "hagane"
+   ],
+   "p": "Hagane = acero"
+  },
+  {
+   "c": "tetociencia",
+   "t": "En TetoCiencia, ¿qué Vocaloid es la de «Matryoshka» y «ECHO»?",
+   "r": [
+    "gumi",
+    "megpoid"
+   ],
+   "p": "La de la zanahoria"
+  },
+  {
+   "c": "tetociencia",
+   "t": "En TetoCiencia, ¿qué androide UTAU asusta a Teto?",
+   "r": [
+    "adachi rei",
+    "rei"
+   ],
+   "p": "Habla entrecortado"
+  },
+  {
+   "c": "tetociencia",
+   "t": "En TetoCiencia, ¿qué canción Vocaloid «nunca muere» y tiene a Teto, Miku y Neru?",
+   "r": [
+    "triple baka"
+   ],
+   "p": "Baka baka baka"
+  },
+  {
+   "c": "tetociencia",
+   "t": "En TetoCiencia, ¿cuál fue la primera canción de Miku? (01_…)",
+   "r": [
+    "ballade",
+    "01 ballade",
+    "01_ballade"
+   ],
+   "p": "Una balada"
+  },
+  {
+   "c": "tetociencia",
+   "t": "En TetoCiencia, ¿qué productor «cambió Vocaloid» con Rolling Girl?",
+   "r": [
+    "wowaka"
+   ],
+   "p": "Episodio de productores"
+  },
+  {
+   "c": "tetociencia",
+   "t": "En TetoCiencia, ¿en qué juego de Epic Games llegó por fin Teto?",
+   "r": [
+    "fortnite"
+   ],
+   "p": "Battle royale con bailes"
+  },
+  {
+   "c": "tetociencia",
+   "t": "En TetoCiencia, ¿qué creepypasta está detrás del video de una canción de Teto y Miku?",
+   "r": [
+    "mesmerizer"
+   ],
+   "p": "Hipnosis"
+  },
+  {
+   "c": "tetociencia",
+   "t": "En TetoCiencia, ¿quién es la voz por defecto de UTAU?",
+   "r": [
+    "defoko",
+    "utane uta"
+   ],
+   "p": "Episodio: ¿Quién es Defoko?"
+  },
+  {
+   "c": "tetociencia",
+   "t": "En TetoCiencia, ¿qué Vocaloid de la saga del mal muere en todas las canciones?",
+   "r": [
+    "len",
+    "kagamine len"
+   ],
+   "p": "El del plátano"
+  },
+  {
+   "c": "tetociencia",
+   "t": "En TetoCiencia, ¿qué Vocaloid coreana «fue a prisión»?",
+   "r": [
+    "seeu"
+   ],
+   "p": "See + U"
+  },
+  {
+   "c": "tetociencia",
+   "t": "En TetoCiencia, ¿qué pan mexicano dicen que nació de un corazón humano?",
+   "r": [
+    "pan de muerto"
+   ],
+   "p": "Se come en noviembre"
+  },
+  {
+   "c": "tetociencia",
+   "t": "En TetoCiencia contamos de un hombre en Japón que se casó con una Vocaloid. ¿Con cuál?",
+   "r": [
+    "miku",
+    "hatsune miku"
+   ],
+   "p": "La del puerro"
+  },
+  {
+   "c": "tetociencia",
+   "t": "En TetoCiencia, ¿qué Vocaloid canta «mal» según su concepto? (La de pelo gris)",
+   "r": [
+    "haku",
+    "yowane haku"
+   ],
+   "p": "Yowane…"
+  },
+  {
+   "c": "tetociencia",
+   "t": "En TetoCiencia, ¿Vocaloid es IA? ¡No! IA es una…",
+   "r": [
+    "vocaloid"
+   ],
+   "p": "La respuesta está en la pregunta"
+  },
+  {
+   "c": "tetociencia",
+   "t": "En TetoCiencia, ¿quién es la Vocaloid de «Goodbye Sengen»?",
+   "r": [
+    "flower",
+    "v flower"
+   ],
+   "p": "Minúscula"
+  },
+  {
+   "c": "tetociencia",
+   "t": "En TetoCiencia, ¿qué mito decía que Neru era una trol que odiaba a…?",
+   "r": [
+    "miku",
+    "hatsune miku"
+   ],
+   "p": "Del puerro"
+  },
+  {
+   "c": "tetociencia",
+   "t": "En TetoCiencia, ¿cómo se llaman las otras gemelas de Vocaloid? (Anon y…)",
+   "r": [
+    "kanon"
+   ],
+   "p": "Rima con Anon"
+  },
+  {
+   "c": "tetociencia",
+   "t": "En TetoCiencia, ¿qué princesa de la saga del mal es de Lucifenia?",
+   "r": [
+    "rin",
+    "riliane",
+    "kagamine rin"
+   ],
+   "p": "La hija del mal"
+  },
+  {
+   "c": "tetociencia",
+   "t": "En TetoCiencia, ¿qué reloj tiene corazón en la saga Evillious?",
+   "r": [
+    "heartbeat clocktower",
+    "clocktower"
+   ],
+   "p": "Torre del reloj"
+  },
+  {
+   "c": "tetociencia",
+   "t": "En TetoCiencia, ¿quién es la «Vocaloid» que se llama como la inteligencia artificial?",
+   "r": [
+    "ia"
+   ],
+   "p": "Dos letras"
+  },
+  {
+   "c": "tetociencia",
+   "t": "En TetoCiencia, ¿qué Vocaloid es el samurái que desapareció?",
+   "r": [
+    "gakupo",
+    "kamui gakupo",
+    "gackpo"
+   ],
+   "p": "Berenjena"
+  },
+  {
+   "c": "tetociencia",
+   "t": "En TetoCiencia, ¿qué trend japonés bailó Luka?",
+   "r": [
+    "luka luka night fever",
+    "night fever"
+   ],
+   "p": "Fiebre"
+  },
+  {
+   "c": "tetociencia",
+   "t": "En TetoCiencia, ¿qué IA de China «destruyó» a ChatGPT y Claude según el episodio?",
+   "r": [
+    "deepseek"
+   ],
+   "p": "Búsqueda profunda"
+  },
+  {
+   "c": "tetociencia",
+   "t": "En TetoCiencia, ¿qué inteligencia artificial de Google le ganó a Lee Sedol al Go?",
+   "r": [
+    "alphago"
+   ],
+   "p": "Alpha…"
+  },
+  {
+   "c": "tetociencia",
+   "t": "En TetoCiencia, ¿qué empresa de ciberseguridad tumbó computadoras de todo el mundo en 2024?",
+   "r": [
+    "crowdstrike"
+   ],
+   "p": "Golpe de la multitud"
+  },
+  {
+   "c": "tetociencia",
+   "t": "En TetoCiencia, ¿cómo se llama la búsqueda que parte la lista a la mitad cada vez?",
+   "r": [
+    "busqueda binaria",
+    "búsqueda binaria",
+    "binaria",
+    "binary search"
+   ],
+   "p": "Binaria"
+  },
+  {
+   "c": "tetociencia",
+   "t": "En TetoCiencia, ¿qué programa mete aplicaciones en «contenedores»?",
+   "r": [
+    "docker"
+   ],
+   "p": "Su logo es una ballena"
+  },
+  {
+   "c": "tetociencia",
+   "t": "En TetoCiencia, ¿cómo se llamó la falla de Java que dejó vulnerable a medio internet?",
+   "r": [
+    "log4shell",
+    "log4j"
+   ],
+   "p": "Log4…"
+  },
+  {
+   "c": "tetociencia",
+   "t": "En TetoCiencia, ¿cuántos Papus celebramos con el especial de Discord y Ko-fi?",
+   "r": [
+    "2000",
+    "2 000",
+    "dos mil"
+   ],
+   "p": "Un 2 y tres ceros"
+  },
+  {
+   "c": "tetociencia",
+   "t": "En TetoCiencia, ¿qué canción de supercell habla de los que se sienten chatarra?",
+   "r": [
+    "odds and ends",
+    "odds ends",
+    "odds & ends"
+   ],
+   "p": "Restos y sobras"
+  },
+  {
+   "c": "tetociencia",
+   "t": "En TetoCiencia, ¿qué productor hizo el canal? Pista: se pronuncia «yairo-pi».",
+   "r": [
+    "gyrop",
+    "gyro p"
+   ],
+   "p": "El jefe de los Papus"
+  },
+  {
+   "c": "tetociencia",
+   "t": "En TetoCiencia, ¿cómo se le dice a los seguidores del canal?",
+   "r": [
+    "papus",
+    "papu"
+   ],
+   "p": "Tú eres uno"
+  },
+  {
+   "c": "tetociencia",
+   "t": "En TetoCiencia, ¿quién canta el Nyan Cat?",
+   "r": [
+    "momone momo",
+    "momo"
+   ],
+   "p": "La robot de UTAU"
+  },
+  {
+   "c": "server",
+   "t": "¿Cómo se llaman las monedas del servidor?",
+   "r": [
+    "shaulitas",
+    "shaulita"
+   ],
+   "p": "Las estás ganando ahora"
+  },
+  {
+   "c": "server",
+   "t": "¿Qué Vocaloid modera el servidor?",
+   "r": [
+    "neru",
+    "akita neru"
+   ],
+   "p": "La del celular"
+  },
+  {
+   "c": "server",
+   "t": "¿Qué Vocaloid da las bienvenidas en el servidor?",
+   "r": [
+    "teto",
+    "kasane teto"
+   ],
+   "p": "La de la baguette"
+  },
+  {
+   "c": "server",
+   "t": "¿Con qué comando se juega la trivia?",
+   "r": [
+    "trivia",
+    "/trivia"
+   ],
+   "p": "Barra y el nombre del juego"
+  },
+  {
+   "c": "server",
+   "t": "¿Con qué comando se abre la tienda de Shaulitas?",
+   "r": [
+    "tienda",
+    "/tienda"
+   ],
+   "p": "Donde compras"
+  },
+  {
+   "c": "server",
+   "t": "¿Con qué comando le regalas cuota a otro Papu?",
+   "r": [
+    "donar",
+    "/donar"
+   ],
+   "p": "Regalar"
+  },
+  {
+   "c": "server",
+   "t": "¿Qué se gana adivinando la adivinanza de una Vocaloid en el hilo?",
+   "r": [
+    "boda",
+    "una boda",
+    "casarse"
+   ],
+   "p": "💍"
+  },
+  {
+   "c": "server",
+   "t": "¿En qué nivel se llega a Papu de honor?",
+   "r": [
+    "40",
+    "cuarenta"
+   ],
+   "p": "Más de 39"
+  },
+  {
+   "c": "server",
+   "t": "¿Cuál es el nivel máximo antes del prestigio?",
+   "r": [
+    "99",
+    "noventa y nueve"
+   ],
+   "p": "Dos nueves"
+  },
+  {
+   "c": "server",
+   "t": "¿Cómo se llama el rango del nivel 99?",
+   "r": [
+    "salon de la fama",
+    "salón de la fama"
+   ],
+   "p": "Fama"
+  },
+  {
+   "c": "server",
+   "t": "¿Cómo se llama el rango del nivel 70?",
+   "r": [
+    "holograma"
+   ],
+   "p": "Así canta Miku en los conciertos"
+  },
+  {
+   "c": "server",
+   "t": "¿Qué Papu de broma da los números del día cuando lo nombras?",
+   "r": [
+    "mango9374",
+    "mango"
+   ],
+   "p": "🥭"
+  },
+  {
+   "c": "server",
+   "t": "¿Qué frase suelta a veces Mango9374?",
+   "r": [
+    "sea serio ve",
+    "sea serio"
+   ],
+   "p": "Ve…"
+  },
+  {
+   "c": "server",
+   "t": "¿Con qué objeto permanente del mercado negro corto conversaciones?",
+   "r": [
+    "machete",
+    "machete de neru"
+   ],
+   "p": "Lo que antes eran strikes",
+   "bot": "neru"
+  },
+  {
+   "c": "server",
+   "t": "¿Cuánto dura el mercado negro abierto al día?",
+   "r": [
+    "1 hora",
+    "una hora",
+    "1h",
+    "60 minutos"
+   ],
+   "p": "Sesenta minutos"
+  },
+  {
+   "c": "server",
+   "t": "¿Qué ruleta rusa entre dos Papus se juega con Shaulitas?",
+   "r": [
+    "nemesis",
+    "némesis",
+    "ruleta de nemesis",
+    "ruleta de némesis"
+   ],
+   "p": "Cobra el 20 %"
+  },
+  {
+   "c": "server",
+   "t": "¿Qué consumible de Adachi Rei reinicia la cuota del día?",
+   "r": [
+    "pc",
+    "pc de adachi rei",
+    "computadora"
+   ],
+   "p": "Una computadora"
+  },
+  {
+   "c": "server",
+   "t": "¿Qué consumible de IA triplica la XP de la cuota?",
+   "r": [
+    "luna",
+    "luna de ia"
+   ],
+   "p": "Brilla de noche"
+  },
+  {
+   "c": "server",
+   "t": "¿Con qué comando haces una oferta de cambio a otro Papu?",
+   "r": [
+    "intercambio",
+    "/intercambio"
+   ],
+   "p": "Como en Steam"
+  },
+  {
+   "c": "server",
+   "t": "¿En qué canal se publican las ofertas de intercambio?",
+   "r": [
+    "centro de comercio",
+    "centro-de-comercio"
+   ],
+   "p": "Centro…"
+  },
+  {
+   "c": "server",
+   "t": "¿Qué app del servidor tiene Vocaloidle, Silueta y Ajedrez?",
+   "r": [
+    "celular",
+    "celular de neru"
+   ],
+   "p": "📱"
+  },
+  {
+   "c": "server",
+   "t": "¿Cuál es la membresía de Ko-fi de 2 USD?",
+   "r": [
+    "puerro"
+   ],
+   "p": "🥬"
+  },
+  {
+   "c": "server",
+   "t": "¿Cuál es la membresía de Ko-fi de 4 USD?",
+   "r": [
+    "atun",
+    "atún"
+   ],
+   "p": "🐟"
+  },
+  {
+   "c": "server",
+   "t": "¿Cuál es la membresía de Ko-fi de 7 USD?",
+   "r": [
+    "baguette"
+   ],
+   "p": "🥖"
+  },
+  {
+   "c": "server",
+   "t": "¿Cuál es la membresía de Ko-fi de 25 USD?",
+   "r": [
+    "triple baka"
+   ],
+   "p": "💥"
+  },
+  {
+   "c": "server",
+   "t": "¿Qué rol de #tus-roles te avisa de las peleas 1vs1?",
+   "r": [
+    "ludopata",
+    "ludópata"
+   ],
+   "p": "⚔️"
+  },
+  {
+   "c": "server",
+   "t": "¿Qué rol de #tus-roles te avisa de las bodas?",
+   "r": [
+    "rizzler"
+   ],
+   "p": "💍"
+  },
+  {
+   "c": "server",
+   "t": "¿Qué rol de #tus-roles te avisa de las carreras?",
+   "r": [
+    "burrero"
+   ],
+   "p": "🏇"
+  },
+  {
+   "c": "server",
+   "t": "¿Qué rol de #tus-roles te avisa del mercado negro?",
+   "r": [
+    "traficante"
+   ],
+   "p": "🕶️"
+  },
+  {
+   "c": "server",
+   "t": "¿Qué rango viene justo después de «Voz de regadera»?",
+   "r": [
+    "estrella del karaoke"
+   ],
+   "p": "🎤"
+  },
+  {
+   "c": "server",
+   "t": "¿Qué rango viene justo antes de «Salón de la fama»?",
+   "r": [
+    "inmortal"
+   ],
+   "p": "Que no muere"
+  },
+  {
+   "c": "server",
+   "t": "¿Con qué se suben niveles en el servidor?",
+   "r": [
+    "participando",
+    "participacion",
+    "participación"
+   ],
+   "p": "Mensajes, voz y juegos"
+  },
+  {
+   "c": "server",
+   "t": "¿A qué hora publica Teto el ranking del día?",
+   "r": [
+    "12",
+    "12 00",
+    "12:00",
+    "mediodia",
+    "mediodía",
+    "las 12"
+   ],
+   "p": "Hora de comer"
+  },
+  {
+   "c": "server",
+   "t": "¿Qué Vocaloid celebra los cumpleaños a las 12 con pastel?",
+   "r": [
+    "ruko",
+    "yokune ruko"
+   ],
+   "p": "Se acerca…"
+  },
+  {
+   "c": "server",
+   "t": "¿En qué canal se juegan las peleas y carreras?",
+   "r": [
+    "casino"
+   ],
+   "p": "🎰"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué canción Vocaloid es esta? 🫠🧊➡️💧",
+   "r": [
+    "Melt"
+   ],
+   "p": "La hizo ryo (supercell)"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué canción Vocaloid se llama «Derretirse» si traduces su título?",
+   "r": [
+    "Melt"
+   ],
+   "p": "La canta Miku"
+  },
+  {
+   "c": "utaite",
+   "t": "¿Qué productor hizo «Melt»?",
+   "r": [
+    "ryo (supercell)",
+    "ryo",
+    "supercell",
+    "ryosupercell"
+   ],
+   "p": "La canta Miku"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué voz canta «Melt» de ryo (supercell)?",
+   "r": [
+    "Miku",
+    "hatsune miku"
+   ],
+   "p": "Empieza con M"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué canción Vocaloid es esta? 🌍👑💅",
+   "r": [
+    "World is Mine",
+    "WorldisMine"
+   ],
+   "p": "La hizo ryo (supercell)"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué canción Vocaloid se llama «El mundo es mío» si traduces su título?",
+   "r": [
+    "World is Mine",
+    "WorldisMine"
+   ],
+   "p": "La canta Miku"
+  },
+  {
+   "c": "utaite",
+   "t": "¿Qué productor hizo «World is Mine»?",
+   "r": [
+    "ryo (supercell)",
+    "ryo",
+    "supercell",
+    "ryosupercell"
+   ],
+   "p": "La canta Miku"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué voz canta «World is Mine» de ryo (supercell)?",
+   "r": [
+    "Miku",
+    "hatsune miku"
+   ],
+   "p": "Empieza con M"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué canción Vocaloid es esta? ⚫⭐🪨🔫",
+   "r": [
+    "Black★Rock Shooter",
+    "BlackRockShooter"
+   ],
+   "p": "La hizo ryo (supercell)"
+  },
+  {
+   "c": "utaite",
+   "t": "¿Qué productor hizo «Black★Rock Shooter»?",
+   "r": [
+    "ryo (supercell)",
+    "ryo",
+    "supercell",
+    "ryosupercell"
+   ],
+   "p": "La canta Miku"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué voz canta «Black★Rock Shooter» de ryo (supercell)?",
+   "r": [
+    "Miku",
+    "hatsune miku"
+   ],
+   "p": "Empieza con M"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué canción Vocaloid es esta? ❤️🟰⚔️",
+   "r": [
+    "Koi wa Sensou",
+    "KoiwaSensou"
+   ],
+   "p": "La hizo ryo (supercell)"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué canción Vocaloid se llama «El amor es la guerra» si traduces su título?",
+   "r": [
+    "Koi wa Sensou",
+    "KoiwaSensou"
+   ],
+   "p": "La canta Miku"
+  },
+  {
+   "c": "utaite",
+   "t": "¿Qué productor hizo «Koi wa Sensou»?",
+   "r": [
+    "ryo (supercell)",
+    "ryo",
+    "supercell",
+    "ryosupercell"
+   ],
+   "p": "La canta Miku"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué voz canta «Koi wa Sensou» de ryo (supercell)?",
+   "r": [
+    "Miku",
+    "hatsune miku"
+   ],
+   "p": "Empieza con M"
+  },
+  {
+   "c": "utaite",
+   "t": "¿Qué productor hizo «Odds & Ends»?",
+   "r": [
+    "ryo (supercell)",
+    "ryo",
+    "supercell",
+    "ryosupercell"
+   ],
+   "p": "La canta Miku"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué voz canta «Odds & Ends» de ryo (supercell)?",
+   "r": [
+    "Miku",
+    "hatsune miku"
+   ],
+   "p": "Empieza con M"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué canción Vocaloid es esta? 👀👉👶",
+   "r": [
+    "Kocchi Muite Baby",
+    "KocchiMuiteBaby"
+   ],
+   "p": "La hizo ryo (supercell)"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué canción Vocaloid se llama «Mírame, baby» si traduces su título?",
+   "r": [
+    "Kocchi Muite Baby",
+    "KocchiMuiteBaby"
+   ],
+   "p": "La canta Miku"
+  },
+  {
+   "c": "utaite",
+   "t": "¿Qué productor hizo «Kocchi Muite Baby»?",
+   "r": [
+    "ryo (supercell)",
+    "ryo",
+    "supercell",
+    "ryosupercell"
+   ],
+   "p": "La canta Miku"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué voz canta «Kocchi Muite Baby» de ryo (supercell)?",
+   "r": [
+    "Miku",
+    "hatsune miku"
+   ],
+   "p": "Empieza con M"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué canción Vocaloid es esta? 1️⃣0️⃣0️⃣0️⃣🌸",
+   "r": [
+    "Senbonzakura"
+   ],
+   "p": "La hizo Kurousa-P"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué canción Vocaloid se llama «Mil cerezos» si traduces su título?",
+   "r": [
+    "Senbonzakura"
+   ],
+   "p": "La canta Miku"
+  },
+  {
+   "c": "utaite",
+   "t": "¿Qué productor hizo «Senbonzakura»?",
+   "r": [
+    "Kurousa-P",
+    "Kurousa",
+    "KurousaP"
+   ],
+   "p": "La canta Miku"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué voz canta «Senbonzakura» de Kurousa-P?",
+   "r": [
+    "Miku",
+    "hatsune miku"
+   ],
+   "p": "Empieza con M"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué canción Vocaloid es esta? 🍷☠️💙",
+   "r": [
+    "Cantarella"
+   ],
+   "p": "La hizo Kurousa-P"
+  },
+  {
+   "c": "utaite",
+   "t": "¿Qué productor hizo «Cantarella»?",
+   "r": [
+    "Kurousa-P",
+    "Kurousa",
+    "KurousaP"
+   ],
+   "p": "La canta Kaito"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué voz canta «Cantarella» de Kurousa-P?",
+   "r": [
+    "Kaito"
+   ],
+   "p": "Empieza con K"
+  },
+  {
+   "c": "utaite",
+   "t": "¿Qué productor hizo «Gekokujou»?",
+   "r": [
+    "Kurousa-P",
+    "Kurousa",
+    "KurousaP"
+   ],
+   "p": "La cantan Rin y Len"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué canción Vocaloid es esta? 🌀👧",
+   "r": [
+    "Rolling Girl",
+    "RollingGirl"
+   ],
+   "p": "La hizo wowaka"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué canción Vocaloid se llama «Chica que rueda» si traduces su título?",
+   "r": [
+    "Rolling Girl",
+    "RollingGirl"
+   ],
+   "p": "La canta Miku"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué voz canta «Rolling Girl» de wowaka?",
+   "r": [
+    "Miku",
+    "hatsune miku"
+   ],
+   "p": "Empieza con M"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué canción Vocaloid es esta? 🎭💑",
+   "r": [
+    "Ura-Omote Lovers",
+    "UraOmoteLovers"
+   ],
+   "p": "La hizo wowaka"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué canción Vocaloid se llama «Amantes de dos caras» si traduces su título?",
+   "r": [
+    "Ura-Omote Lovers",
+    "UraOmoteLovers"
+   ],
+   "p": "La canta Miku"
+  },
+  {
+   "c": "utaite",
+   "t": "¿Qué productor hizo «Ura-Omote Lovers»?",
+   "r": [
+    "wowaka"
+   ],
+   "p": "La canta Miku"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué voz canta «Ura-Omote Lovers» de wowaka?",
+   "r": [
+    "Miku",
+    "hatsune miku"
+   ],
+   "p": "Empieza con M"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué canción Vocaloid es esta? 🌍🔚💃🕺",
+   "r": [
+    "World's End Dancehall",
+    "WorldsEndDancehall"
+   ],
+   "p": "La hizo wowaka"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué canción Vocaloid se llama «Salón de baile del fin del mundo» si traduces su título?",
+   "r": [
+    "World's End Dancehall",
+    "WorldsEndDancehall"
+   ],
+   "p": "La cantan Miku y Luka"
+  },
+  {
+   "c": "utaite",
+   "t": "¿Qué productor hizo «World's End Dancehall»?",
+   "r": [
+    "wowaka"
+   ],
+   "p": "La cantan Miku y Luka"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué canción Vocaloid es esta? ❓👩🪿",
+   "r": [
+    "Unknown Mother-Goose",
+    "UnknownMotherGoose"
+   ],
+   "p": "La hizo wowaka"
+  },
+  {
+   "c": "utaite",
+   "t": "¿Qué productor hizo «Unknown Mother-Goose»?",
+   "r": [
+    "wowaka"
+   ],
+   "p": "La canta Miku"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué voz canta «Unknown Mother-Goose» de wowaka?",
+   "r": [
+    "Miku",
+    "hatsune miku"
+   ],
+   "p": "Empieza con M"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué canción Vocaloid es esta? 🌹👠🕛",
+   "r": [
+    "Romeo and Cinderella",
+    "RomeoandCinderella"
+   ],
+   "p": "La hizo doriko"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué canción Vocaloid se llama «Romeo y Cenicienta» si traduces su título?",
+   "r": [
+    "Romeo and Cinderella",
+    "RomeoandCinderella"
+   ],
+   "p": "La canta Miku"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué voz canta «Romeo and Cinderella» de doriko?",
+   "r": [
+    "Miku",
+    "hatsune miku"
+   ],
+   "p": "Empieza con M"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué canción Vocaloid es esta? 🪆",
+   "r": [
+    "Matryoshka"
+   ],
+   "p": "La hizo Hachi"
+  },
+  {
+   "c": "utaite",
+   "t": "¿Qué productor hizo «Matryoshka»?",
+   "r": [
+    "Hachi"
+   ],
+   "p": "La cantan Miku y Gumi"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué canción Vocaloid es esta? 🐼🦸",
+   "r": [
+    "Panda Hero",
+    "PandaHero"
+   ],
+   "p": "La hizo Hachi"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué canción Vocaloid se llama «Héroe panda» si traduces su título?",
+   "r": [
+    "Panda Hero",
+    "PandaHero"
+   ],
+   "p": "La canta Gumi"
+  },
+  {
+   "c": "utaite",
+   "t": "¿Qué productor hizo «Panda Hero»?",
+   "r": [
+    "Hachi"
+   ],
+   "p": "La canta Gumi"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué voz canta «Panda Hero» de Hachi?",
+   "r": [
+    "Gumi"
+   ],
+   "p": "Empieza con G"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué canción Vocaloid es esta? 🏜️🪐",
+   "r": [
+    "Suna no Wakusei",
+    "SunanoWakusei"
+   ],
+   "p": "La hizo Hachi"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué canción Vocaloid se llama «Planeta de arena» si traduces su título?",
+   "r": [
+    "Suna no Wakusei",
+    "SunanoWakusei"
+   ],
+   "p": "La canta Miku"
+  },
+  {
+   "c": "utaite",
+   "t": "¿Qué productor hizo «Suna no Wakusei»?",
+   "r": [
+    "Hachi"
+   ],
+   "p": "La canta Miku"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué voz canta «Suna no Wakusei» de Hachi?",
+   "r": [
+    "Miku",
+    "hatsune miku"
+   ],
+   "p": "Empieza con M"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué canción Vocaloid es esta? 🍩🕳️",
+   "r": [
+    "Donut Hole",
+    "DonutHole"
+   ],
+   "p": "La hizo Hachi"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué canción Vocaloid se llama «El agujero de la dona» si traduces su título?",
+   "r": [
+    "Donut Hole",
+    "DonutHole"
+   ],
+   "p": "La canta Gumi"
+  },
+  {
+   "c": "utaite",
+   "t": "¿Qué productor hizo «Donut Hole»?",
+   "r": [
+    "Hachi"
+   ],
+   "p": "La canta Gumi"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué voz canta «Donut Hole» de Hachi?",
+   "r": [
+    "Gumi"
+   ],
+   "p": "Empieza con G"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué canción Vocaloid es esta? 👻📏",
+   "r": [
+    "Ghost Rule",
+    "GhostRule"
+   ],
+   "p": "La hizo DECO*27"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué canción Vocaloid se llama «Regla fantasma» si traduces su título?",
+   "r": [
+    "Ghost Rule",
+    "GhostRule"
+   ],
+   "p": "La canta Miku"
+  },
+  {
+   "c": "utaite",
+   "t": "¿Qué productor hizo «Ghost Rule»?",
+   "r": [
+    "DECO*27",
+    "DECO27"
+   ],
+   "p": "La canta Miku"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué voz canta «Ghost Rule» de DECO*27?",
+   "r": [
+    "Miku",
+    "hatsune miku"
+   ],
+   "p": "Empieza con M"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué canción Vocaloid es esta? ✨🔥",
+   "r": [
+    "Hibana"
+   ],
+   "p": "La hizo DECO*27"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué canción Vocaloid se llama «Chispa» si traduces su título?",
+   "r": [
+    "Hibana"
+   ],
+   "p": "La canta Miku"
+  },
+  {
+   "c": "utaite",
+   "t": "¿Qué productor hizo «Hibana»?",
+   "r": [
+    "DECO*27",
+    "DECO27"
+   ],
+   "p": "La canta Miku"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué voz canta «Hibana» de DECO*27?",
+   "r": [
+    "Miku",
+    "hatsune miku"
+   ],
+   "p": "Empieza con M"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué canción Vocaloid es esta? 🧛🩸",
+   "r": [
+    "Vampire"
+   ],
+   "p": "La hizo DECO*27"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué canción Vocaloid se llama «Vampiro» si traduces su título?",
+   "r": [
+    "Vampire"
+   ],
+   "p": "La canta Miku"
+  },
+  {
+   "c": "utaite",
+   "t": "¿Qué productor hizo «Vampire»?",
+   "r": [
+    "DECO*27",
+    "DECO27"
+   ],
+   "p": "La canta Miku"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué voz canta «Vampire» de DECO*27?",
+   "r": [
+    "Miku",
+    "hatsune miku"
+   ],
+   "p": "Empieza con M"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué canción Vocaloid es esta? 🐇🕳️",
+   "r": [
+    "Rabbit Hole",
+    "RabbitHole"
+   ],
+   "p": "La hizo DECO*27"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué canción Vocaloid se llama «Madriguera de conejo» si traduces su título?",
+   "r": [
+    "Rabbit Hole",
+    "RabbitHole"
+   ],
+   "p": "La canta Miku"
+  },
+  {
+   "c": "utaite",
+   "t": "¿Qué productor hizo «Rabbit Hole»?",
+   "r": [
+    "DECO*27",
+    "DECO27"
+   ],
+   "p": "La canta Miku"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué voz canta «Rabbit Hole» de DECO*27?",
+   "r": [
+    "Miku",
+    "hatsune miku"
+   ],
+   "p": "Empieza con M"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué canción Vocaloid es esta? ❤️💬",
+   "r": [
+    "Ai Kotoba",
+    "AiKotoba"
+   ],
+   "p": "La hizo DECO*27"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué canción Vocaloid se llama «Palabras de amor» si traduces su título?",
+   "r": [
+    "Ai Kotoba",
+    "AiKotoba"
+   ],
+   "p": "La canta Miku"
+  },
+  {
+   "c": "utaite",
+   "t": "¿Qué productor hizo «Ai Kotoba»?",
+   "r": [
+    "DECO*27",
+    "DECO27"
+   ],
+   "p": "La canta Miku"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué voz canta «Ai Kotoba» de DECO*27?",
+   "r": [
+    "Miku",
+    "hatsune miku"
+   ],
+   "p": "Empieza con M"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué canción Vocaloid es esta? 🧩🌀",
+   "r": [
+    "Mosaic Roll",
+    "MosaicRoll"
+   ],
+   "p": "La hizo DECO*27"
+  },
+  {
+   "c": "utaite",
+   "t": "¿Qué productor hizo «Mosaic Roll»?",
+   "r": [
+    "DECO*27",
+    "DECO27"
+   ],
+   "p": "La canta Gumi"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué voz canta «Mosaic Roll» de DECO*27?",
+   "r": [
+    "Gumi"
+   ],
+   "p": "Empieza con G"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué canción Vocaloid es esta? 📡❤️",
+   "r": [
+    "Streaming Heart",
+    "StreamingHeart"
+   ],
+   "p": "La hizo DECO*27"
+  },
+  {
+   "c": "utaite",
+   "t": "¿Qué productor hizo «Streaming Heart»?",
+   "r": [
+    "DECO*27",
+    "DECO27"
+   ],
+   "p": "La canta Miku"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué voz canta «Streaming Heart» de DECO*27?",
+   "r": [
+    "Miku",
+    "hatsune miku"
+   ],
+   "p": "Empieza con M"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué canción Vocaloid es esta? 2️⃣🚶",
+   "r": [
+    "Two Breaths Walking",
+    "TwoBreathsWalking",
+    "Nisoku Hokou",
+    "NisokuHokou"
+   ],
+   "p": "La hizo DECO*27"
+  },
+  {
+   "c": "utaite",
+   "t": "¿Qué productor hizo «Two Breaths Walking»?",
+   "r": [
+    "DECO*27",
+    "DECO27"
+   ],
+   "p": "La canta Miku"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué voz canta «Two Breaths Walking» de DECO*27?",
+   "r": [
+    "Miku",
+    "hatsune miku"
+   ],
+   "p": "Empieza con M"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué canción Vocaloid se llama «Disección de una doncella» si traduces su título?",
+   "r": [
+    "Otome Kaibou",
+    "OtomeKaibou"
+   ],
+   "p": "La canta Miku"
+  },
+  {
+   "c": "utaite",
+   "t": "¿Qué productor hizo «Otome Kaibou»?",
+   "r": [
+    "DECO*27",
+    "DECO27"
+   ],
+   "p": "La canta Miku"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué voz canta «Otome Kaibou» de DECO*27?",
+   "r": [
+    "Miku",
+    "hatsune miku"
+   ],
+   "p": "Empieza con M"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué canción Vocaloid es esta? 👀🖥️",
+   "r": [
+    "Monitoring"
+   ],
+   "p": "La hizo DECO*27"
+  },
+  {
+   "c": "utaite",
+   "t": "¿Qué productor hizo «Monitoring»?",
+   "r": [
+    "DECO*27",
+    "DECO27"
+   ],
+   "p": "La canta Miku"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué voz canta «Monitoring» de DECO*27?",
+   "r": [
+    "Miku",
+    "hatsune miku"
+   ],
+   "p": "Empieza con M"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué canción Vocaloid es esta? 🗣️🌍",
+   "r": [
+    "Tell Your World",
+    "TellYourWorld"
+   ],
+   "p": "La hizo livetune (kz)"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué canción Vocaloid se llama «Cuéntale a tu mundo» si traduces su título?",
+   "r": [
+    "Tell Your World",
+    "TellYourWorld"
+   ],
+   "p": "La canta Miku"
+  },
+  {
+   "c": "utaite",
+   "t": "¿Qué productor hizo «Tell Your World»?",
+   "r": [
+    "livetune (kz)",
+    "livetune",
+    "kz",
+    "livetunekz"
+   ],
+   "p": "La canta Miku"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué voz canta «Tell Your World» de livetune (kz)?",
+   "r": [
+    "Miku",
+    "hatsune miku"
+   ],
+   "p": "Empieza con M"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué canción Vocaloid es esta? 📦",
+   "r": [
+    "Packaged"
+   ],
+   "p": "La hizo livetune (kz)"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué canción Vocaloid se llama «Empaquetada» si traduces su título?",
+   "r": [
+    "Packaged"
+   ],
+   "p": "La canta Miku"
+  },
+  {
+   "c": "utaite",
+   "t": "¿Qué productor hizo «Packaged»?",
+   "r": [
+    "livetune (kz)",
+    "livetune",
+    "kz",
+    "livetunekz"
+   ],
+   "p": "La canta Miku"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué voz canta «Packaged» de livetune (kz)?",
+   "r": [
+    "Miku",
+    "hatsune miku"
+   ],
+   "p": "Empieza con M"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué canción Vocaloid es esta? 🎀🖌️",
+   "r": [
+    "Decorator"
+   ],
+   "p": "La hizo livetune (kz)"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué canción Vocaloid se llama «Decoradora» si traduces su título?",
+   "r": [
+    "Decorator"
+   ],
+   "p": "La canta Miku"
+  },
+  {
+   "c": "utaite",
+   "t": "¿Qué productor hizo «Decorator»?",
+   "r": [
+    "livetune (kz)",
+    "livetune",
+    "kz",
+    "livetunekz"
+   ],
+   "p": "La canta Miku"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué voz canta «Decorator» de livetune (kz)?",
+   "r": [
+    "Miku",
+    "hatsune miku"
+   ],
+   "p": "Empieza con M"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué canción Vocaloid es esta? ☀️🌫️📅",
+   "r": [
+    "Kagerou Days",
+    "KagerouDays"
+   ],
+   "p": "La hizo Jin"
+  },
+  {
+   "c": "utaite",
+   "t": "¿Qué productor hizo «Kagerou Days»?",
+   "r": [
+    "Jin"
+   ],
+   "p": "La canta Miku"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué voz canta «Kagerou Days» de Jin?",
+   "r": [
+    "Miku",
+    "hatsune miku"
+   ],
+   "p": "Empieza con M"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué canción Vocaloid se llama «Enemigo artificial» si traduces su título?",
+   "r": [
+    "Jinzou Enemy",
+    "JinzouEnemy"
+   ],
+   "p": "La canta Miku"
+  },
+  {
+   "c": "utaite",
+   "t": "¿Qué productor hizo «Jinzou Enemy»?",
+   "r": [
+    "Jin"
+   ],
+   "p": "La canta Miku"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué voz canta «Jinzou Enemy» de Jin?",
+   "r": [
+    "Miku",
+    "hatsune miku"
+   ],
+   "p": "Empieza con M"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué canción Vocaloid es esta? 👧👦📼",
+   "r": [
+    "Children Record",
+    "ChildrenRecord"
+   ],
+   "p": "La hizo Jin"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué canción Vocaloid se llama «Registro de niños» si traduces su título?",
+   "r": [
+    "Children Record",
+    "ChildrenRecord"
+   ],
+   "p": "La canta IA"
+  },
+  {
+   "c": "utaite",
+   "t": "¿Qué productor hizo «Children Record»?",
+   "r": [
+    "Jin"
+   ],
+   "p": "La canta IA"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué voz canta «Children Record» de Jin?",
+   "r": [
+    "IA"
+   ],
+   "p": "Empieza con I"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué canción Vocaloid es esta? 🧪🌌",
+   "r": [
+    "Outer Science",
+    "OuterScience"
+   ],
+   "p": "La hizo Jin"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué canción Vocaloid se llama «Ciencia exterior» si traduces su título?",
+   "r": [
+    "Outer Science",
+    "OuterScience"
+   ],
+   "p": "La canta IA"
+  },
+  {
+   "c": "utaite",
+   "t": "¿Qué productor hizo «Outer Science»?",
+   "r": [
+    "Jin"
+   ],
+   "p": "La canta IA"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué voz canta «Outer Science» de Jin?",
+   "r": [
+    "IA"
+   ],
+   "p": "Empieza con I"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué canción Vocaloid es esta? 🎧🎭",
+   "r": [
+    "Headphone Actor",
+    "HeadphoneActor"
+   ],
+   "p": "La hizo Jin"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué canción Vocaloid se llama «Actriz de audífonos» si traduces su título?",
+   "r": [
+    "Headphone Actor",
+    "HeadphoneActor"
+   ],
+   "p": "La canta IA"
+  },
+  {
+   "c": "utaite",
+   "t": "¿Qué productor hizo «Headphone Actor»?",
+   "r": [
+    "Jin"
+   ],
+   "p": "La canta IA"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué voz canta «Headphone Actor» de Jin?",
+   "r": [
+    "IA"
+   ],
+   "p": "Empieza con I"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué canción Vocaloid es esta? ⌛🧠",
+   "r": [
+    "Lost Time Memory",
+    "LostTimeMemory"
+   ],
+   "p": "La hizo Jin"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué canción Vocaloid se llama «Recuerdo del tiempo perdido» si traduces su título?",
+   "r": [
+    "Lost Time Memory",
+    "LostTimeMemory"
+   ],
+   "p": "La canta IA"
+  },
+  {
+   "c": "utaite",
+   "t": "¿Qué productor hizo «Lost Time Memory»?",
+   "r": [
+    "Jin"
+   ],
+   "p": "La canta IA"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué voz canta «Lost Time Memory» de Jin?",
+   "r": [
+    "IA"
+   ],
+   "p": "Empieza con I"
+  },
+  {
+   "c": "utaite",
+   "t": "¿Qué productor hizo «Yobanashi Deceive»?",
+   "r": [
+    "Jin"
+   ],
+   "p": "La canta IA"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué voz canta «Yobanashi Deceive» de Jin?",
+   "r": [
+    "IA"
+   ],
+   "p": "Empieza con I"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué canción Vocaloid es esta? 🙈🔢",
+   "r": [
+    "Mekakushi Code",
+    "MekakushiCode"
+   ],
+   "p": "La hizo Jin"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué canción Vocaloid se llama «Código de ojos vendados» si traduces su título?",
+   "r": [
+    "Mekakushi Code",
+    "MekakushiCode"
+   ],
+   "p": "La canta IA"
+  },
+  {
+   "c": "utaite",
+   "t": "¿Qué productor hizo «Mekakushi Code»?",
+   "r": [
+    "Jin"
+   ],
+   "p": "La canta IA"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué voz canta «Mekakushi Code» de Jin?",
+   "r": [
+    "IA"
+   ],
+   "p": "Empieza con I"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué canción Vocaloid se llama «La teoría de la felicidad de Ayano» si traduces su título?",
+   "r": [
+    "Ayano no Koufuku Riron",
+    "AyanonoKoufukuRiron"
+   ],
+   "p": "La canta IA"
+  },
+  {
+   "c": "utaite",
+   "t": "¿Qué productor hizo «Ayano no Koufuku Riron»?",
+   "r": [
+    "Jin"
+   ],
+   "p": "La canta IA"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué voz canta «Ayano no Koufuku Riron» de Jin?",
+   "r": [
+    "IA"
+   ],
+   "p": "Empieza con I"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué canción Vocaloid se llama «La historia de seis billones de años y una noche» si traduces su título?",
+   "r": [
+    "Rokuchounen to Ichiya Monogatari",
+    "RokuchounentoIchiyaMonogatari",
+    "Rokuchounen"
+   ],
+   "p": "La canta IA"
+  },
+  {
+   "c": "utaite",
+   "t": "¿Qué productor hizo «Rokuchounen to Ichiya Monogatari»?",
+   "r": [
+    "kemu"
+   ],
+   "p": "La canta IA"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué voz canta «Rokuchounen to Ichiya Monogatari» de kemu?",
+   "r": [
+    "IA"
+   ],
+   "p": "Empieza con I"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué canción Vocaloid es esta? 🎲🃏",
+   "r": [
+    "Ikasama Life Game",
+    "IkasamaLifeGame"
+   ],
+   "p": "La hizo kemu"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué canción Vocaloid se llama «Juego de la vida tramposo» si traduces su título?",
+   "r": [
+    "Ikasama Life Game",
+    "IkasamaLifeGame"
+   ],
+   "p": "La canta Gumi"
+  },
+  {
+   "c": "utaite",
+   "t": "¿Qué productor hizo «Ikasama Life Game»?",
+   "r": [
+    "kemu"
+   ],
+   "p": "La canta Gumi"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué voz canta «Ikasama Life Game» de kemu?",
+   "r": [
+    "Gumi"
+   ],
+   "p": "Empieza con G"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué canción Vocaloid es esta? ✉️👥",
+   "r": [
+    "Haikei Doppelganger",
+    "HaikeiDoppelganger"
+   ],
+   "p": "La hizo kemu"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué canción Vocaloid se llama «Querido doble» si traduces su título?",
+   "r": [
+    "Haikei Doppelganger",
+    "HaikeiDoppelganger"
+   ],
+   "p": "La canta Gumi"
+  },
+  {
+   "c": "utaite",
+   "t": "¿Qué productor hizo «Haikei Doppelganger»?",
+   "r": [
+    "kemu"
+   ],
+   "p": "La canta Gumi"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué voz canta «Haikei Doppelganger» de kemu?",
+   "r": [
+    "Gumi"
+   ],
+   "p": "Empieza con G"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué canción Vocaloid es esta? 🧲💞",
+   "r": [
+    "Magnet"
+   ],
+   "p": "La hizo minato"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué canción Vocaloid se llama «Imán» si traduces su título?",
+   "r": [
+    "Magnet"
+   ],
+   "p": "La cantan Miku y Luka"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué canción Vocaloid es esta? 💔🤝",
+   "r": [
+    "Just Be Friends",
+    "JustBeFriends"
+   ],
+   "p": "La hizo Dixie Flatline"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué canción Vocaloid se llama «Solo seamos amigos» si traduces su título?",
+   "r": [
+    "Just Be Friends",
+    "JustBeFriends"
+   ],
+   "p": "La canta Luka"
+  },
+  {
+   "c": "utaite",
+   "t": "¿Qué productor hizo «Just Be Friends»?",
+   "r": [
+    "Dixie Flatline",
+    "DixieFlatline"
+   ],
+   "p": "La canta Luka"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué voz canta «Just Be Friends» de Dixie Flatline?",
+   "r": [
+    "Luka"
+   ],
+   "p": "Empieza con L"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué canción Vocaloid es esta? 🌙🪩🕺",
+   "r": [
+    "Luka Luka★Night Fever",
+    "LukaLukaNightFever",
+    "Luka Luka Night Fever",
+    "LukaLukaNightFever"
+   ],
+   "p": "La hizo samfree"
+  },
+  {
+   "c": "utaite",
+   "t": "¿Qué productor hizo «Luka Luka★Night Fever»?",
+   "r": [
+    "samfree"
+   ],
+   "p": "La canta Luka"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué voz canta «Luka Luka★Night Fever» de samfree?",
+   "r": [
+    "Luka"
+   ],
+   "p": "Empieza con L"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué canción Vocaloid es esta? 🌀🌀🎤",
+   "r": [
+    "Double Lariat",
+    "DoubleLariat"
+   ],
+   "p": "La hizo Agoaniki-P"
+  },
+  {
+   "c": "utaite",
+   "t": "¿Qué productor hizo «Double Lariat»?",
+   "r": [
+    "Agoaniki-P",
+    "Agoaniki",
+    "AgoanikiP"
+   ],
+   "p": "La canta Luka"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué voz canta «Double Lariat» de Agoaniki-P?",
+   "r": [
+    "Luka"
+   ],
+   "p": "Empieza con L"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué canción Vocaloid es esta? ☁️🎶",
+   "r": [
+    "Tengaku"
+   ],
+   "p": "La hizo Yuuyu-P"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué canción Vocaloid se llama «Música celestial» si traduces su título?",
+   "r": [
+    "Tengaku"
+   ],
+   "p": "La canta Luka"
+  },
+  {
+   "c": "utaite",
+   "t": "¿Qué productor hizo «Tengaku»?",
+   "r": [
+    "Yuuyu-P",
+    "Yuuyu",
+    "YuuyuP"
+   ],
+   "p": "La canta Luka"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué voz canta «Tengaku» de Yuuyu-P?",
+   "r": [
+    "Luka"
+   ],
+   "p": "Empieza con L"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué canción Vocaloid es esta? 🌊👧🫧",
+   "r": [
+    "Shinkai Shoujo",
+    "ShinkaiShoujo"
+   ],
+   "p": "La hizo Yuuyu-P"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué canción Vocaloid se llama «Chica del mar profundo» si traduces su título?",
+   "r": [
+    "Shinkai Shoujo",
+    "ShinkaiShoujo"
+   ],
+   "p": "La canta Miku"
+  },
+  {
+   "c": "utaite",
+   "t": "¿Qué productor hizo «Shinkai Shoujo»?",
+   "r": [
+    "Yuuyu-P",
+    "Yuuyu",
+    "YuuyuP"
+   ],
+   "p": "La canta Miku"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué voz canta «Shinkai Shoujo» de Yuuyu-P?",
+   "r": [
+    "Miku",
+    "hatsune miku"
+   ],
+   "p": "Empieza con M"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué canción Vocaloid es esta? 💙➡️💨",
+   "r": [
+    "The Disappearance of Hatsune Miku",
+    "TheDisappearanceofHatsuneMiku",
+    "Hatsune Miku no Shoushitsu",
+    "HatsuneMikunoShoushitsu"
+   ],
+   "p": "La hizo cosMo@Bousou-P"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué canción Vocaloid se llama «La desaparición de Hatsune Miku» si traduces su título?",
+   "r": [
+    "The Disappearance of Hatsune Miku",
+    "TheDisappearanceofHatsuneMiku",
+    "Hatsune Miku no Shoushitsu",
+    "HatsuneMikunoShoushitsu"
+   ],
+   "p": "La canta Miku"
+  },
+  {
+   "c": "utaite",
+   "t": "¿Qué productor hizo «The Disappearance of Hatsune Miku»?",
+   "r": [
+    "cosMo@Bousou-P",
+    "cosMo@Bousou",
+    "cosMoBousouP",
+    "cosMoBousou"
+   ],
+   "p": "La canta Miku"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué voz canta «The Disappearance of Hatsune Miku» de cosMo@Bousou-P?",
+   "r": [
+    "Miku",
+    "hatsune miku"
+   ],
+   "p": "Empieza con M"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué canción Vocaloid es esta? 💙😱🔊",
+   "r": [
+    "Hatsune Miku no Gekishou",
+    "HatsuneMikunoGekishou"
+   ],
+   "p": "La hizo cosMo@Bousou-P"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué canción Vocaloid se llama «El grito intenso de Hatsune Miku» si traduces su título?",
+   "r": [
+    "Hatsune Miku no Gekishou",
+    "HatsuneMikunoGekishou"
+   ],
+   "p": "La canta Miku"
+  },
+  {
+   "c": "utaite",
+   "t": "¿Qué productor hizo «Hatsune Miku no Gekishou»?",
+   "r": [
+    "cosMo@Bousou-P",
+    "cosMo@Bousou",
+    "cosMoBousouP",
+    "cosMoBousou"
+   ],
+   "p": "La canta Miku"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué voz canta «Hatsune Miku no Gekishou» de cosMo@Bousou-P?",
+   "r": [
+    "Miku",
+    "hatsune miku"
+   ],
+   "p": "Empieza con M"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué canción Vocaloid es esta? 👸😈🍮",
+   "r": [
+    "Aku no Musume",
+    "AkunoMusume",
+    "Daughter of Evil",
+    "DaughterofEvil"
+   ],
+   "p": "La hizo mothy (Akuno-P)"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué canción Vocaloid se llama «La hija del mal» si traduces su título?",
+   "r": [
+    "Aku no Musume",
+    "AkunoMusume",
+    "Daughter of Evil",
+    "DaughterofEvil"
+   ],
+   "p": "La canta Rin"
+  },
+  {
+   "c": "utaite",
+   "t": "¿Qué productor hizo «Aku no Musume»?",
+   "r": [
+    "mothy (Akuno-P)",
+    "mothy",
+    "Akuno-P",
+    "Akuno",
+    "mothyAkunoP",
+    "AkunoP"
+   ],
+   "p": "La canta Rin"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué voz canta «Aku no Musume» de mothy (Akuno-P)?",
+   "r": [
+    "Rin"
+   ],
+   "p": "Empieza con R"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué canción Vocaloid es esta? 🤵😈",
+   "r": [
+    "Aku no Meshitsukai",
+    "AkunoMeshitsukai",
+    "Servant of Evil",
+    "ServantofEvil"
+   ],
+   "p": "La hizo mothy (Akuno-P)"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué canción Vocaloid se llama «El sirviente del mal» si traduces su título?",
+   "r": [
+    "Aku no Meshitsukai",
+    "AkunoMeshitsukai",
+    "Servant of Evil",
+    "ServantofEvil"
+   ],
+   "p": "La canta Len"
+  },
+  {
+   "c": "utaite",
+   "t": "¿Qué productor hizo «Aku no Meshitsukai»?",
+   "r": [
+    "mothy (Akuno-P)",
+    "mothy",
+    "Akuno-P",
+    "Akuno",
+    "mothyAkunoP",
+    "AkunoP"
+   ],
+   "p": "La canta Len"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué voz canta «Aku no Meshitsukai» de mothy (Akuno-P)?",
+   "r": [
+    "Len"
+   ],
+   "p": "Empieza con L"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué canción Vocaloid es esta? ✉️🍾🌊",
+   "r": [
+    "Regret Message",
+    "RegretMessage"
+   ],
+   "p": "La hizo mothy (Akuno-P)"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué canción Vocaloid se llama «Mensaje de arrepentimiento» si traduces su título?",
+   "r": [
+    "Regret Message",
+    "RegretMessage"
+   ],
+   "p": "La canta Rin"
+  },
+  {
+   "c": "utaite",
+   "t": "¿Qué productor hizo «Regret Message»?",
+   "r": [
+    "mothy (Akuno-P)",
+    "mothy",
+    "Akuno-P",
+    "Akuno",
+    "mothyAkunoP",
+    "AkunoP"
+   ],
+   "p": "La canta Rin"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué voz canta «Regret Message» de mothy (Akuno-P)?",
+   "r": [
+    "Rin"
+   ],
+   "p": "Empieza con R"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué canción Vocaloid es esta? 🐍💜",
+   "r": [
+    "Venomania"
+   ],
+   "p": "La hizo mothy (Akuno-P)"
+  },
+  {
+   "c": "utaite",
+   "t": "¿Qué productor hizo «Venomania»?",
+   "r": [
+    "mothy (Akuno-P)",
+    "mothy",
+    "Akuno-P",
+    "Akuno",
+    "mothyAkunoP",
+    "AkunoP"
+   ],
+   "p": "La canta Gakupo"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué voz canta «Venomania» de mothy (Akuno-P)?",
+   "r": [
+    "Gakupo"
+   ],
+   "p": "Empieza con G"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué canción Vocaloid es esta? 🤖❤️",
+   "r": [
+    "Kokoro"
+   ],
+   "p": "La hizo Toraboruta-P"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué canción Vocaloid se llama «Corazón» si traduces su título?",
+   "r": [
+    "Kokoro"
+   ],
+   "p": "La canta Rin"
+  },
+  {
+   "c": "utaite",
+   "t": "¿Qué productor hizo «Kokoro»?",
+   "r": [
+    "Toraboruta-P",
+    "Toraboruta",
+    "ToraborutaP"
+   ],
+   "p": "La canta Rin"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué voz canta «Kokoro» de Toraboruta-P?",
+   "r": [
+    "Rin"
+   ],
+   "p": "Empieza con R"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué canción Vocaloid es esta? 🌶️",
+   "r": [
+    "Spice!",
+    "Spice"
+   ],
+   "p": "La hizo Toraboruta-P"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué canción Vocaloid se llama «¡Especia!» si traduces su título?",
+   "r": [
+    "Spice!",
+    "Spice"
+   ],
+   "p": "La canta Len"
+  },
+  {
+   "c": "utaite",
+   "t": "¿Qué productor hizo «Spice!»?",
+   "r": [
+    "Toraboruta-P",
+    "Toraboruta",
+    "ToraborutaP"
+   ],
+   "p": "La canta Len"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué voz canta «Spice!» de Toraboruta-P?",
+   "r": [
+    "Len"
+   ],
+   "p": "Empieza con L"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué canción Vocaloid es esta? ❤️✨",
+   "r": [
+    "Kokoro Kiseki",
+    "KokoroKiseki"
+   ],
+   "p": "La hizo Junky"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué canción Vocaloid se llama «Milagro del corazón» si traduces su título?",
+   "r": [
+    "Kokoro Kiseki",
+    "KokoroKiseki"
+   ],
+   "p": "La cantan Rin y Len"
+  },
+  {
+   "c": "utaite",
+   "t": "¿Qué productor hizo «Kokoro Kiseki»?",
+   "r": [
+    "Junky"
+   ],
+   "p": "La cantan Rin y Len"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué canción Vocaloid es esta? 😔💛",
+   "r": [
+    "Melancholic"
+   ],
+   "p": "La hizo Junky"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué canción Vocaloid se llama «Melancólica» si traduces su título?",
+   "r": [
+    "Melancholic"
+   ],
+   "p": "La canta Rin"
+  },
+  {
+   "c": "utaite",
+   "t": "¿Qué productor hizo «Melancholic»?",
+   "r": [
+    "Junky"
+   ],
+   "p": "La canta Rin"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué voz canta «Melancholic» de Junky?",
+   "r": [
+    "Rin"
+   ],
+   "p": "Empieza con R"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué canción Vocaloid es esta? 🎸🤘",
+   "r": [
+    "Roki"
+   ],
+   "p": "La hizo Mikito-P"
+  },
+  {
+   "c": "utaite",
+   "t": "¿Qué productor hizo «Roki»?",
+   "r": [
+    "Mikito-P",
+    "Mikito",
+    "MikitoP"
+   ],
+   "p": "La canta Rin"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué voz canta «Roki» de Mikito-P?",
+   "r": [
+    "Rin"
+   ],
+   "p": "Empieza con R"
+  },
+  {
+   "c": "utaite",
+   "t": "¿Qué productor hizo «Sarishinohara»?",
+   "r": [
+    "Mikito-P",
+    "Mikito",
+    "MikitoP"
+   ],
+   "p": "La canta Miku"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué voz canta «Sarishinohara» de Mikito-P?",
+   "r": [
+    "Miku",
+    "hatsune miku"
+   ],
+   "p": "Empieza con M"
+  },
+  {
+   "c": "utaite",
+   "t": "¿Qué productor hizo «Shoujo Rei»?",
+   "r": [
+    "Mikito-P",
+    "Mikito",
+    "MikitoP"
+   ],
+   "p": "La canta Miku"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué voz canta «Shoujo Rei» de Mikito-P?",
+   "r": [
+    "Miku",
+    "hatsune miku"
+   ],
+   "p": "Empieza con M"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué canción Vocaloid es esta? 😭📚",
+   "r": [
+    "Lost One's Weeping",
+    "LostOnesWeeping"
+   ],
+   "p": "La hizo Neru"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué canción Vocaloid se llama «El llanto del perdido» si traduces su título?",
+   "r": [
+    "Lost One's Weeping",
+    "LostOnesWeeping"
+   ],
+   "p": "La canta Rin"
+  },
+  {
+   "c": "utaite",
+   "t": "¿Qué productor hizo «Lost One's Weeping»?",
+   "r": [
+    "Neru"
+   ],
+   "p": "La canta Rin"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué voz canta «Lost One's Weeping» de Neru?",
+   "r": [
+    "Rin"
+   ],
+   "p": "Empieza con R"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué canción Vocaloid es esta? 🗼🧸",
+   "r": [
+    "Tokyo Teddy Bear",
+    "TokyoTeddyBear"
+   ],
+   "p": "La hizo Neru"
+  },
+  {
+   "c": "utaite",
+   "t": "¿Qué productor hizo «Tokyo Teddy Bear»?",
+   "r": [
+    "Neru"
+   ],
+   "p": "La canta Rin"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué voz canta «Tokyo Teddy Bear» de Neru?",
+   "r": [
+    "Rin"
+   ],
+   "p": "Empieza con R"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué canción Vocaloid es esta? 🫴🫴",
+   "r": [
+    "Gimme×Gimme",
+    "GimmeGimme"
+   ],
+   "p": "La hizo Hachioji-P y Giga"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué canción Vocaloid se llama «Dame, dame» si traduces su título?",
+   "r": [
+    "Gimme×Gimme",
+    "GimmeGimme"
+   ],
+   "p": "La cantan Miku y Rin"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué canción Vocaloid es esta? 🍬😈",
+   "r": [
+    "Sweet Devil",
+    "SweetDevil"
+   ],
+   "p": "La hizo Hachioji-P"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué canción Vocaloid se llama «Diablita dulce» si traduces su título?",
+   "r": [
+    "Sweet Devil",
+    "SweetDevil"
+   ],
+   "p": "La canta Miku"
+  },
+  {
+   "c": "utaite",
+   "t": "¿Qué productor hizo «Sweet Devil»?",
+   "r": [
+    "Hachioji-P",
+    "Hachioji",
+    "HachiojiP"
+   ],
+   "p": "La canta Miku"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué voz canta «Sweet Devil» de Hachioji-P?",
+   "r": [
+    "Miku",
+    "hatsune miku"
+   ],
+   "p": "Empieza con M"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué canción Vocaloid es esta? 📅🎉👧",
+   "r": [
+    "Weekender Girl",
+    "WeekenderGirl"
+   ],
+   "p": "La hizo Hachioji-P"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué canción Vocaloid se llama «Chica de fin de semana» si traduces su título?",
+   "r": [
+    "Weekender Girl",
+    "WeekenderGirl"
+   ],
+   "p": "La canta Miku"
+  },
+  {
+   "c": "utaite",
+   "t": "¿Qué productor hizo «Weekender Girl»?",
+   "r": [
+    "Hachioji-P",
+    "Hachioji",
+    "HachiojiP"
+   ],
+   "p": "La canta Miku"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué voz canta «Weekender Girl» de Hachioji-P?",
+   "r": [
+    "Miku",
+    "hatsune miku"
+   ],
+   "p": "Empieza con M"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué canción Vocaloid es esta? 🔊💥",
+   "r": [
+    "Hibikase"
+   ],
+   "p": "La hizo Giga"
+  },
+  {
+   "c": "utaite",
+   "t": "¿Qué productor hizo «Hibikase»?",
+   "r": [
+    "Giga"
+   ],
+   "p": "La canta Miku"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué voz canta «Hibikase» de Giga?",
+   "r": [
+    "Miku",
+    "hatsune miku"
+   ],
+   "p": "Empieza con M"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué canción Vocaloid es esta? 👽👽",
+   "r": [
+    "Alien Alien",
+    "AlienAlien"
+   ],
+   "p": "La hizo NayutalieN"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué voz canta «Alien Alien» de NayutalieN?",
+   "r": [
+    "Miku",
+    "hatsune miku"
+   ],
+   "p": "Empieza con M"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué canción Vocaloid es esta? 🕊️🌅",
+   "r": [
+    "Freely Tomorrow",
+    "FreelyTomorrow"
+   ],
+   "p": "La hizo Mitchie M"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué canción Vocaloid se llama «Mañana, libremente» si traduces su título?",
+   "r": [
+    "Freely Tomorrow",
+    "FreelyTomorrow"
+   ],
+   "p": "La canta Miku"
+  },
+  {
+   "c": "utaite",
+   "t": "¿Qué productor hizo «Freely Tomorrow»?",
+   "r": [
+    "Mitchie M",
+    "MitchieM"
+   ],
+   "p": "La canta Miku"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué voz canta «Freely Tomorrow» de Mitchie M?",
+   "r": [
+    "Miku",
+    "hatsune miku"
+   ],
+   "p": "Empieza con M"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué canción Vocaloid es esta? ⬆️⬆️🔁",
+   "r": [
+    "Ageage Again",
+    "AgeageAgain"
+   ],
+   "p": "La hizo Mitchie M"
+  },
+  {
+   "c": "utaite",
+   "t": "¿Qué productor hizo «Ageage Again»?",
+   "r": [
+    "Mitchie M",
+    "MitchieM"
+   ],
+   "p": "La canta Miku"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué voz canta «Ageage Again» de Mitchie M?",
+   "r": [
+    "Miku",
+    "hatsune miku"
+   ],
+   "p": "Empieza con M"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué canción Vocaloid es esta? 🤴👑",
+   "r": [
+    "KING"
+   ],
+   "p": "La hizo Kanaria"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué canción Vocaloid se llama «Rey» si traduces su título?",
+   "r": [
+    "KING"
+   ],
+   "p": "La canta Gumi"
+  },
+  {
+   "c": "utaite",
+   "t": "¿Qué productor hizo «KING»?",
+   "r": [
+    "Kanaria"
+   ],
+   "p": "La canta Gumi"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué voz canta «KING» de Kanaria?",
+   "r": [
+    "Gumi"
+   ],
+   "p": "Empieza con G"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué canción Vocaloid es esta? 👸👑",
+   "r": [
+    "QUEEN"
+   ],
+   "p": "La hizo Kanaria"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué canción Vocaloid se llama «Reina» si traduces su título?",
+   "r": [
+    "QUEEN"
+   ],
+   "p": "La canta Gumi"
+  },
+  {
+   "c": "utaite",
+   "t": "¿Qué productor hizo «QUEEN»?",
+   "r": [
+    "Kanaria"
+   ],
+   "p": "La canta Gumi"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué voz canta «QUEEN» de Kanaria?",
+   "r": [
+    "Gumi"
+   ],
+   "p": "Empieza con G"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué canción Vocaloid es esta? 😒👶",
+   "r": [
+    "Envy Baby",
+    "EnvyBaby"
+   ],
+   "p": "La hizo Kanaria"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué canción Vocaloid se llama «Bebé envidioso» si traduces su título?",
+   "r": [
+    "Envy Baby",
+    "EnvyBaby"
+   ],
+   "p": "La canta Gumi"
+  },
+  {
+   "c": "utaite",
+   "t": "¿Qué productor hizo «Envy Baby»?",
+   "r": [
+    "Kanaria"
+   ],
+   "p": "La canta Gumi"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué voz canta «Envy Baby» de Kanaria?",
+   "r": [
+    "Gumi"
+   ],
+   "p": "Empieza con G"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué canción Vocaloid es esta? 😵‍💫🌀👁️",
+   "r": [
+    "Mesmerizer"
+   ],
+   "p": "La hizo Satsuki"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué canción Vocaloid se llama «Hipnotizadora» si traduces su título?",
+   "r": [
+    "Mesmerizer"
+   ],
+   "p": "La cantan Miku y Teto"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué canción Vocaloid es esta? 🎮🧟📢",
+   "r": [
+    "Nettoge Haijin Sprechchor",
+    "NettogeHaijinSprechchor"
+   ],
+   "p": "La hizo Satsuki ga Tenkomori"
+  },
+  {
+   "c": "utaite",
+   "t": "¿Qué productor hizo «Nettoge Haijin Sprechchor»?",
+   "r": [
+    "Satsuki ga Tenkomori",
+    "SatsukigaTenkomori"
+   ],
+   "p": "La canta Miku"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué voz canta «Nettoge Haijin Sprechchor» de Satsuki ga Tenkomori?",
+   "r": [
+    "Miku",
+    "hatsune miku"
+   ],
+   "p": "Empieza con M"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué canción Vocaloid es esta? 🟥🧱⬇️",
+   "r": [
+    "Tetoris"
+   ],
+   "p": "La hizo Hiiragi Magnetite"
+  },
+  {
+   "c": "utaite",
+   "t": "¿Qué productor hizo «Tetoris»?",
+   "r": [
+    "Hiiragi Magnetite",
+    "HiiragiMagnetite"
+   ],
+   "p": "La canta Teto"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué voz canta «Tetoris» de Hiiragi Magnetite?",
+   "r": [
+    "Teto"
+   ],
+   "p": "Empieza con T"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué canción Vocaloid es esta? 🐟🤏",
+   "r": [
+    "Zako"
+   ],
+   "p": "La hizo Hiiragi Magnetite"
+  },
+  {
+   "c": "utaite",
+   "t": "¿Qué productor hizo «Zako»?",
+   "r": [
+    "Hiiragi Magnetite",
+    "HiiragiMagnetite"
+   ],
+   "p": "Un clásico de Vocaloid"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué canción Vocaloid es esta? 3️⃣🤪",
+   "r": [
+    "Triple Baka",
+    "TripleBaka"
+   ],
+   "p": "La hizo LamazeP"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué canción Vocaloid se llama «Triple tonta» si traduces su título?",
+   "r": [
+    "Triple Baka",
+    "TripleBaka"
+   ],
+   "p": "La cantan Miku y Teto y Neru"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué canción Vocaloid es esta? 🥬🥤",
+   "r": [
+    "PoPiPo"
+   ],
+   "p": "La hizo LamazeP"
+  },
+  {
+   "c": "utaite",
+   "t": "¿Qué productor hizo «PoPiPo»?",
+   "r": [
+    "LamazeP"
+   ],
+   "p": "La canta Miku"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué voz canta «PoPiPo» de LamazeP?",
+   "r": [
+    "Miku",
+    "hatsune miku"
+   ],
+   "p": "Empieza con M"
+  },
+  {
+   "c": "utaite",
+   "t": "¿Qué productor hizo «Kyu-kurarin»?",
+   "r": [
+    "Iyowa"
+   ],
+   "p": "La canta KAFU"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué voz canta «Kyu-kurarin» de Iyowa?",
+   "r": [
+    "KAFU"
+   ],
+   "p": "Empieza con K"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué canción Vocaloid es esta? 🎭🤥",
+   "r": [
+    "Phony"
+   ],
+   "p": "La hizo Tsumiki"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué canción Vocaloid se llama «Falsa» si traduces su título?",
+   "r": [
+    "Phony"
+   ],
+   "p": "La canta KAFU"
+  },
+  {
+   "c": "utaite",
+   "t": "¿Qué productor hizo «Phony»?",
+   "r": [
+    "Tsumiki"
+   ],
+   "p": "La canta KAFU"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué voz canta «Phony» de Tsumiki?",
+   "r": [
+    "KAFU"
+   ],
+   "p": "Empieza con K"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué canción Vocaloid es esta? 💙💙🎁",
+   "r": [
+    "Miku Miku ni Shite Ageru",
+    "MikuMikuniShiteAgeru",
+    "Mikumiku ni Shite Ageru",
+    "MikumikuniShiteAgeru"
+   ],
+   "p": "La hizo ika"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué canción Vocaloid se llama «Te voy a mikumikuizar» si traduces su título?",
+   "r": [
+    "Miku Miku ni Shite Ageru",
+    "MikuMikuniShiteAgeru",
+    "Mikumiku ni Shite Ageru",
+    "MikumikuniShiteAgeru"
+   ],
+   "p": "La canta Miku"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué voz canta «Miku Miku ni Shite Ageru» de ika?",
+   "r": [
+    "Miku",
+    "hatsune miku"
+   ],
+   "p": "Empieza con M"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué canción Vocaloid es esta? 💃⚔️🍆",
+   "r": [
+    "Dancing Samurai",
+    "DancingSamurai"
+   ],
+   "p": "La hizo mathru (Kanipan-P)"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué canción Vocaloid se llama «Samurái bailarín» si traduces su título?",
+   "r": [
+    "Dancing Samurai",
+    "DancingSamurai"
+   ],
+   "p": "La canta Gakupo"
+  },
+  {
+   "c": "utaite",
+   "t": "¿Qué productor hizo «Dancing Samurai»?",
+   "r": [
+    "mathru (Kanipan-P)",
+    "mathru",
+    "Kanipan-P",
+    "Kanipan",
+    "mathruKanipanP",
+    "KanipanP"
+   ],
+   "p": "La canta Gakupo"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué voz canta «Dancing Samurai» de mathru (Kanipan-P)?",
+   "r": [
+    "Gakupo"
+   ],
+   "p": "Empieza con G"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué canción Vocaloid es esta? 👋📜",
+   "r": [
+    "Goodbye Sengen",
+    "GoodbyeSengen"
+   ],
+   "p": "La hizo Chinozo"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué canción Vocaloid se llama «Declaración de despedida» si traduces su título?",
+   "r": [
+    "Goodbye Sengen",
+    "GoodbyeSengen"
+   ],
+   "p": "La canta flower"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué voz canta «Goodbye Sengen» de Chinozo?",
+   "r": [
+    "flower"
+   ],
+   "p": "Empieza con f"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué canción Vocaloid es esta? 🙏🎂",
+   "r": [
+    "Blessing"
+   ],
+   "p": "La hizo halyosy"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué canción Vocaloid se llama «Bendición» si traduces su título?",
+   "r": [
+    "Blessing"
+   ],
+   "p": "La hizo halyosy"
+  },
+  {
+   "c": "utaite",
+   "t": "¿Qué productor hizo «Blessing»?",
+   "r": [
+    "halyosy"
+   ],
+   "p": "Un clásico de Vocaloid"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué canción Vocaloid es esta? 🔥🌸🎆",
+   "r": [
+    "Fire◎Flower",
+    "FireFlower",
+    "Fire Flower",
+    "FireFlower"
+   ],
+   "p": "La hizo halyosy"
+  },
+  {
+   "c": "utaite",
+   "t": "¿Qué productor hizo «Fire◎Flower»?",
+   "r": [
+    "halyosy"
+   ],
+   "p": "La canta Len"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué voz canta «Fire◎Flower» de halyosy?",
+   "r": [
+    "Len"
+   ],
+   "p": "Empieza con L"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué canción Vocaloid es esta? 🗣️🔁🔁",
+   "r": [
+    "ECHO"
+   ],
+   "p": "La hizo Crusher-P"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué canción Vocaloid se llama «Eco» si traduces su título?",
+   "r": [
+    "ECHO"
+   ],
+   "p": "La canta Gumi"
+  },
+  {
+   "c": "utaite",
+   "t": "¿Qué productor hizo «ECHO»?",
+   "r": [
+    "Crusher-P",
+    "Crusher",
+    "CrusherP"
+   ],
+   "p": "La canta Gumi"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué voz canta «ECHO» de Crusher-P?",
+   "r": [
+    "Gumi"
+   ],
+   "p": "Empieza con G"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué canción Vocaloid es esta? ⭐💔",
+   "r": [
+    "Hoshi no Kakera",
+    "HoshinoKakera"
+   ],
+   "p": "La hizo Eiji Hirasawa"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué canción Vocaloid se llama «Fragmentos de estrella» si traduces su título?",
+   "r": [
+    "Hoshi no Kakera",
+    "HoshinoKakera"
+   ],
+   "p": "La canta Miku"
+  },
+  {
+   "c": "utaite",
+   "t": "¿Qué productor hizo «Hoshi no Kakera»?",
+   "r": [
+    "Eiji Hirasawa",
+    "EijiHirasawa"
+   ],
+   "p": "La canta Miku"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué voz canta «Hoshi no Kakera» de Eiji Hirasawa?",
+   "r": [
+    "Miku",
+    "hatsune miku"
+   ],
+   "p": "Empieza con M"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué canción Vocaloid es esta? 🙏🤏",
+   "r": [
+    "God-ish",
+    "Godish",
+    "Kami-ppoina",
+    "Kamippoina",
+    "Kamippoina"
+   ],
+   "p": "La hizo Pinocchio-P"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué voz canta «God-ish» de Pinocchio-P?",
+   "r": [
+    "Miku",
+    "hatsune miku"
+   ],
+   "p": "Empieza con M"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué canción Vocaloid es esta? 🌍🚩",
+   "r": [
+    "Arifureta Sekai Seifuku",
+    "ArifuretaSekaiSeifuku"
+   ],
+   "p": "La hizo Pinocchio-P"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué canción Vocaloid se llama «Una conquista del mundo cualquiera» si traduces su título?",
+   "r": [
+    "Arifureta Sekai Seifuku",
+    "ArifuretaSekaiSeifuku"
+   ],
+   "p": "La canta Miku"
+  },
+  {
+   "c": "utaite",
+   "t": "¿Qué productor hizo «Arifureta Sekai Seifuku»?",
+   "r": [
+    "Pinocchio-P",
+    "Pinocchio",
+    "PinocchioP"
+   ],
+   "p": "La canta Miku"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué voz canta «Arifureta Sekai Seifuku» de Pinocchio-P?",
+   "r": [
+    "Miku",
+    "hatsune miku"
+   ],
+   "p": "Empieza con M"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué canción Vocaloid es esta? 🫁🚫",
+   "r": [
+    "Non-breath oblige",
+    "Nonbreathoblige"
+   ],
+   "p": "La hizo Pinocchio-P"
+  },
+  {
+   "c": "utaite",
+   "t": "¿Qué productor hizo «Non-breath oblige»?",
+   "r": [
+    "Pinocchio-P",
+    "Pinocchio",
+    "PinocchioP"
+   ],
+   "p": "La canta Miku"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué voz canta «Non-breath oblige» de Pinocchio-P?",
+   "r": [
+    "Miku",
+    "hatsune miku"
+   ],
+   "p": "Empieza con M"
+  },
+  {
+   "c": "utaite",
+   "t": "¿Qué productor hizo «Teo»?",
+   "r": [
+    "Omoi"
+   ],
+   "p": "La canta Miku"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué voz canta «Teo» de Omoi?",
+   "r": [
+    "Miku",
+    "hatsune miku"
+   ],
+   "p": "Empieza con M"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué canción Vocaloid es esta? 🎃🍬",
+   "r": [
+    "Trick and Treat",
+    "TrickandTreat"
+   ],
+   "p": "La hizo OSTER project"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué canción Vocaloid se llama «Truco y trato» si traduces su título?",
+   "r": [
+    "Trick and Treat",
+    "TrickandTreat"
+   ],
+   "p": "La cantan Rin y Len"
+  },
+  {
+   "c": "utaite",
+   "t": "¿Qué productor hizo «Trick and Treat»?",
+   "r": [
+    "OSTER project",
+    "OSTERproject"
+   ],
+   "p": "La cantan Rin y Len"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué canción Vocaloid es esta? 🎮📡",
+   "r": [
+    "Remote Control",
+    "RemoteControl"
+   ],
+   "p": "La hizo Jesus-P"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué canción Vocaloid se llama «Control remoto» si traduces su título?",
+   "r": [
+    "Remote Control",
+    "RemoteControl"
+   ],
+   "p": "La cantan Rin y Len"
+  },
+  {
+   "c": "utaite",
+   "t": "¿Qué productor hizo «Remote Control»?",
+   "r": [
+    "Jesus-P",
+    "Jesus",
+    "JesusP"
+   ],
+   "p": "La cantan Rin y Len"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué canción Vocaloid es esta? ☢️🔥",
+   "r": [
+    "Meltdown (Roshin Yuukai)",
+    "Meltdown",
+    "Roshin Yuukai",
+    "MeltdownRoshinYuukai",
+    "RoshinYuukai",
+    "Meltdown",
+    "Roshin Yuukai",
+    "RoshinYuukai"
+   ],
+   "p": "La hizo iroha"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué canción Vocaloid se llama «Fusión del núcleo» si traduces su título?",
+   "r": [
+    "Meltdown (Roshin Yuukai)",
+    "Meltdown",
+    "Roshin Yuukai",
+    "MeltdownRoshinYuukai",
+    "RoshinYuukai",
+    "Meltdown",
+    "Roshin Yuukai",
+    "RoshinYuukai"
+   ],
+   "p": "La canta Rin"
+  },
+  {
+   "c": "utaite",
+   "t": "¿Qué productor hizo «Meltdown (Roshin Yuukai)»?",
+   "r": [
+    "iroha"
+   ],
+   "p": "La canta Rin"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué voz canta «Meltdown (Roshin Yuukai)» de iroha?",
+   "r": [
+    "Rin"
+   ],
+   "p": "Empieza con R"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué canción Vocaloid es esta? 🍫😬",
+   "r": [
+    "Bitter Choco Decoration",
+    "BitterChocoDecoration"
+   ],
+   "p": "La hizo syudou"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué canción Vocaloid se llama «Decoración de chocolate amargo» si traduces su título?",
+   "r": [
+    "Bitter Choco Decoration",
+    "BitterChocoDecoration"
+   ],
+   "p": "La canta Miku"
+  },
+  {
+   "c": "utaite",
+   "t": "¿Qué productor hizo «Bitter Choco Decoration»?",
+   "r": [
+    "syudou"
+   ],
+   "p": "La canta Miku"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué voz canta «Bitter Choco Decoration» de syudou?",
+   "r": [
+    "Miku",
+    "hatsune miku"
+   ],
+   "p": "Empieza con M"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué canción Vocaloid se llama «Odiado por la vida» si traduces su título?",
+   "r": [
+    "Inochi ni Kirawarete Iru",
+    "InochiniKirawareteIru"
+   ],
+   "p": "La canta Miku"
+  },
+  {
+   "c": "utaite",
+   "t": "¿Qué productor hizo «Inochi ni Kirawarete Iru»?",
+   "r": [
+    "Kanzaki Iori",
+    "KanzakiIori"
+   ],
+   "p": "La canta Miku"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué voz canta «Inochi ni Kirawarete Iru» de Kanzaki Iori?",
+   "r": [
+    "Miku",
+    "hatsune miku"
+   ],
+   "p": "Empieza con M"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué canción Vocaloid es esta? 🌙♾️🏚️",
+   "r": [
+    "Bad∞End∞Night",
+    "BadEndNight",
+    "Bad End Night",
+    "BadEndNight"
+   ],
+   "p": "La hizo Hitoshizuku-P"
+  },
+  {
+   "c": "utaite",
+   "t": "¿Qué productor hizo «Bad∞End∞Night»?",
+   "r": [
+    "Hitoshizuku-P",
+    "Hitoshizuku",
+    "HitoshizukuP"
+   ],
+   "p": "Un clásico de Vocaloid"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué canción Vocaloid es esta? 🤪♾️🌙",
+   "r": [
+    "Crazy∞nighT",
+    "CrazynighT",
+    "Crazy Night",
+    "CrazyNight"
+   ],
+   "p": "La hizo Hitoshizuku-P"
+  },
+  {
+   "c": "utaite",
+   "t": "¿Qué productor hizo «Crazy∞nighT»?",
+   "r": [
+    "Hitoshizuku-P",
+    "Hitoshizuku",
+    "HitoshizukuP"
+   ],
+   "p": "Un clásico de Vocaloid"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué canción Vocaloid es esta? 🥬🔄🎶",
+   "r": [
+    "Ievan Polkka",
+    "IevanPolkka"
+   ],
+   "p": "La hizo Otomania"
+  },
+  {
+   "c": "utaite",
+   "t": "¿Qué productor hizo «Ievan Polkka»?",
+   "r": [
+    "Otomania"
+   ],
+   "p": "La canta Miku"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué voz canta «Ievan Polkka» de Otomania?",
+   "r": [
+    "Miku",
+    "hatsune miku"
+   ],
+   "p": "Empieza con M"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué canción Vocaloid es esta? 👋🪐",
+   "r": [
+    "Hello, Planet.",
+    "HelloPlanet",
+    "Hello Planet",
+    "HelloPlanet"
+   ],
+   "p": "La hizo sasakure.UK"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué canción Vocaloid se llama «Hola, planeta» si traduces su título?",
+   "r": [
+    "Hello, Planet.",
+    "HelloPlanet",
+    "Hello Planet",
+    "HelloPlanet"
+   ],
+   "p": "La canta Miku"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué voz canta «Hello, Planet.» de sasakure.UK?",
+   "r": [
+    "Miku",
+    "hatsune miku"
+   ],
+   "p": "Empieza con M"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué canción Vocaloid es esta? 3️⃣9️⃣🙇",
+   "r": [
+    "39",
+    "Thank You",
+    "ThankYou"
+   ],
+   "p": "La hizo sasakure.UK y DECO*27"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué canción Vocaloid se llama «Gracias (san-kyu)» si traduces su título?",
+   "r": [
+    "39",
+    "Thank You",
+    "ThankYou"
+   ],
+   "p": "La canta Miku"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué voz canta «39» de sasakure.UK y DECO*27?",
+   "r": [
+    "Miku",
+    "hatsune miku"
+   ],
+   "p": "Empieza con M"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué canción Vocaloid es esta? ⚡👼",
+   "r": [
+    "Electric Angel",
+    "ElectricAngel"
+   ],
+   "p": "La hizo Yasuo-P"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué canción Vocaloid se llama «Ángel eléctrico» si traduces su título?",
+   "r": [
+    "Electric Angel",
+    "ElectricAngel"
+   ],
+   "p": "La canta Miku"
+  },
+  {
+   "c": "utaite",
+   "t": "¿Qué productor hizo «Electric Angel»?",
+   "r": [
+    "Yasuo-P",
+    "Yasuo",
+    "YasuoP"
+   ],
+   "p": "La canta Miku"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué voz canta «Electric Angel» de Yasuo-P?",
+   "r": [
+    "Miku",
+    "hatsune miku"
+   ],
+   "p": "Empieza con M"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué canción Vocaloid se llama «Espíritu de la contradicción» si traduces su título?",
+   "r": [
+    "Amanojaku"
+   ],
+   "p": "La canta Gumi"
+  },
+  {
+   "c": "utaite",
+   "t": "¿Qué productor hizo «Amanojaku»?",
+   "r": [
+    "164"
+   ],
+   "p": "La canta Gumi"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué voz canta «Amanojaku» de 164?",
+   "r": [
+    "Gumi"
+   ],
+   "p": "Empieza con G"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué canción Vocaloid es esta? 🌟🕯️",
+   "r": [
+    "Glow"
+   ],
+   "p": "La hizo keeno"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué canción Vocaloid se llama «Brillo» si traduces su título?",
+   "r": [
+    "Glow"
+   ],
+   "p": "La canta Miku"
+  },
+  {
+   "c": "utaite",
+   "t": "¿Qué productor hizo «Glow»?",
+   "r": [
+    "keeno"
+   ],
+   "p": "La canta Miku"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué voz canta «Glow» de keeno?",
+   "r": [
+    "Miku",
+    "hatsune miku"
+   ],
+   "p": "Empieza con M"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué canción Vocaloid se llama «De Y a Y» si traduces su título?",
+   "r": [
+    "From Y to Y",
+    "FromYtoY"
+   ],
+   "p": "La canta Miku"
+  },
+  {
+   "c": "utaite",
+   "t": "¿Qué productor hizo «From Y to Y»?",
+   "r": [
+    "JimmyThumb-P",
+    "JimmyThumb",
+    "JimmyThumbP"
+   ],
+   "p": "La canta Miku"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué voz canta «From Y to Y» de JimmyThumb-P?",
+   "r": [
+    "Miku",
+    "hatsune miku"
+   ],
+   "p": "Empieza con M"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué canción Vocaloid es esta? 🧮❤️",
+   "r": [
+    "Calc.",
+    "Calc",
+    "Calc"
+   ],
+   "p": "La hizo JimmyThumb-P"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué canción Vocaloid se llama «Cálculo» si traduces su título?",
+   "r": [
+    "Calc.",
+    "Calc",
+    "Calc"
+   ],
+   "p": "La canta Miku"
+  },
+  {
+   "c": "utaite",
+   "t": "¿Qué productor hizo «Calc.»?",
+   "r": [
+    "JimmyThumb-P",
+    "JimmyThumb",
+    "JimmyThumbP"
+   ],
+   "p": "La canta Miku"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué voz canta «Calc.» de JimmyThumb-P?",
+   "r": [
+    "Miku",
+    "hatsune miku"
+   ],
+   "p": "Empieza con M"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué canción Vocaloid es esta? 🎈👦",
+   "r": [
+    "Charles"
+   ],
+   "p": "La hizo balloon"
+  },
+  {
+   "c": "utaite",
+   "t": "¿Qué productor hizo «Charles»?",
+   "r": [
+    "balloon"
+   ],
+   "p": "La canta flower"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué voz canta «Charles» de balloon?",
+   "r": [
+    "flower"
+   ],
+   "p": "Empieza con f"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué canción Vocaloid es esta? 💕💃",
+   "r": [
+    "Darling Dance",
+    "DarlingDance"
+   ],
+   "p": "La hizo Kairiki Bear"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué canción Vocaloid se llama «Baile de cariño» si traduces su título?",
+   "r": [
+    "Darling Dance",
+    "DarlingDance"
+   ],
+   "p": "La canta Miku"
+  },
+  {
+   "c": "utaite",
+   "t": "¿Qué productor hizo «Darling Dance»?",
+   "r": [
+    "Kairiki Bear",
+    "KairikiBear"
+   ],
+   "p": "La canta Miku"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué voz canta «Darling Dance» de Kairiki Bear?",
+   "r": [
+    "Miku",
+    "hatsune miku"
+   ],
+   "p": "Empieza con M"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué canción Vocaloid es esta? 👋❓",
+   "r": [
+    "Haro/Hawayu",
+    "HaroHawayu",
+    "Hello How Are You",
+    "HelloHowAreYou",
+    "Haro Hawayu",
+    "HaroHawayu"
+   ],
+   "p": "La hizo Nanou"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué canción Vocaloid se llama «Hola, ¿cómo estás?» si traduces su título?",
+   "r": [
+    "Haro/Hawayu",
+    "HaroHawayu",
+    "Hello How Are You",
+    "HelloHowAreYou",
+    "Haro Hawayu",
+    "HaroHawayu"
+   ],
+   "p": "La canta Miku"
+  },
+  {
+   "c": "utaite",
+   "t": "¿Qué productor hizo «Haro/Hawayu»?",
+   "r": [
+    "Nanou"
+   ],
+   "p": "La canta Miku"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué voz canta «Haro/Hawayu» de Nanou?",
+   "r": [
+    "Miku",
+    "hatsune miku"
+   ],
+   "p": "Empieza con M"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué canción Vocaloid se llama «Envidia solitaria» si traduces su título?",
+   "r": [
+    "Hitorinbo Envy",
+    "HitorinboEnvy"
+   ],
+   "p": "La canta Miku"
+  },
+  {
+   "c": "utaite",
+   "t": "¿Qué productor hizo «Hitorinbo Envy»?",
+   "r": [
+    "koyori (Denporu-P)",
+    "koyori",
+    "Denporu-P",
+    "Denporu",
+    "koyoriDenporuP",
+    "DenporuP"
+   ],
+   "p": "La canta Miku"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué voz canta «Hitorinbo Envy» de koyori (Denporu-P)?",
+   "r": [
+    "Miku",
+    "hatsune miku"
+   ],
+   "p": "Empieza con M"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué canción Vocaloid es esta? ❤️❤️❤️🥺",
+   "r": [
+    "Aishite Aishite Aishite",
+    "AishiteAishiteAishite"
+   ],
+   "p": "La hizo Kikuo"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué canción Vocaloid se llama «Ámame, ámame, ámame» si traduces su título?",
+   "r": [
+    "Aishite Aishite Aishite",
+    "AishiteAishiteAishite"
+   ],
+   "p": "La canta Miku"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué voz canta «Aishite Aishite Aishite» de Kikuo?",
+   "r": [
+    "Miku",
+    "hatsune miku"
+   ],
+   "p": "Empieza con M"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué canción Vocaloid se llama «Eres un niño que no puede» si traduces su título?",
+   "r": [
+    "Kimi wa Dekinai Ko",
+    "KimiwaDekinaiKo"
+   ],
+   "p": "La canta Miku"
+  },
+  {
+   "c": "utaite",
+   "t": "¿Qué productor hizo «Kimi wa Dekinai Ko»?",
+   "r": [
+    "Kikuo"
+   ],
+   "p": "La canta Miku"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué voz canta «Kimi wa Dekinai Ko» de Kikuo?",
+   "r": [
+    "Miku",
+    "hatsune miku"
+   ],
+   "p": "Empieza con M"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué canción Vocaloid es esta? 🏙️🚶",
+   "r": [
+    "Torinoko City",
+    "TorinokoCity"
+   ],
+   "p": "La hizo 40mP"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué canción Vocaloid se llama «Ciudad de los que se quedan atrás» si traduces su título?",
+   "r": [
+    "Torinoko City",
+    "TorinokoCity"
+   ],
+   "p": "La canta Miku"
+  },
+  {
+   "c": "utaite",
+   "t": "¿Qué productor hizo «Torinoko City»?",
+   "r": [
+    "40mP"
+   ],
+   "p": "La canta Miku"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué voz canta «Torinoko City» de 40mP?",
+   "r": [
+    "Miku",
+    "hatsune miku"
+   ],
+   "p": "Empieza con M"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué canción Vocaloid es esta? ⚙️🤡",
+   "r": [
+    "Karakuri Pierrot",
+    "KarakuriPierrot"
+   ],
+   "p": "La hizo 40mP"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué canción Vocaloid se llama «Payaso mecánico» si traduces su título?",
+   "r": [
+    "Karakuri Pierrot",
+    "KarakuriPierrot"
+   ],
+   "p": "La canta Miku"
+  },
+  {
+   "c": "utaite",
+   "t": "¿Qué productor hizo «Karakuri Pierrot»?",
+   "r": [
+    "40mP"
+   ],
+   "p": "La canta Miku"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué voz canta «Karakuri Pierrot» de 40mP?",
+   "r": [
+    "Miku",
+    "hatsune miku"
+   ],
+   "p": "Empieza con M"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué canción Vocaloid es esta? ❤️⚖️",
+   "r": [
+    "Koi Saiban",
+    "KoiSaiban",
+    "Love Trial",
+    "LoveTrial"
+   ],
+   "p": "La hizo 40mP"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué canción Vocaloid se llama «Juicio de amor» si traduces su título?",
+   "r": [
+    "Koi Saiban",
+    "KoiSaiban",
+    "Love Trial",
+    "LoveTrial"
+   ],
+   "p": "La canta Miku"
+  },
+  {
+   "c": "utaite",
+   "t": "¿Qué productor hizo «Koi Saiban»?",
+   "r": [
+    "40mP"
+   ],
+   "p": "La canta Miku"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué voz canta «Koi Saiban» de 40mP?",
+   "r": [
+    "Miku",
+    "hatsune miku"
+   ],
+   "p": "Empieza con M"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué canción Vocaloid es esta? 👗🕛💙",
+   "r": [
+    "Cendrillon"
+   ],
+   "p": "La hizo Signal-P"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué canción Vocaloid se llama «Cenicienta (en francés)» si traduces su título?",
+   "r": [
+    "Cendrillon"
+   ],
+   "p": "La cantan Miku y Kaito"
+  },
+  {
+   "c": "utaite",
+   "t": "¿Qué productor hizo «Cendrillon»?",
+   "r": [
+    "Signal-P",
+    "Signal",
+    "SignalP"
+   ],
+   "p": "La cantan Miku y Kaito"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué canción Vocaloid es esta? 🧠💥👧",
+   "r": [
+    "Nouzui Ensei Girl",
+    "NouzuiEnseiGirl",
+    "Brain Fluid Explosion Girl",
+    "BrainFluidExplosionGirl"
+   ],
+   "p": "La hizo Rerulili"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué canción Vocaloid se llama «Chica de la explosión cerebral» si traduces su título?",
+   "r": [
+    "Nouzui Ensei Girl",
+    "NouzuiEnseiGirl",
+    "Brain Fluid Explosion Girl",
+    "BrainFluidExplosionGirl"
+   ],
+   "p": "La cantan Miku y Gumi"
+  },
+  {
+   "c": "utaite",
+   "t": "¿Qué productor hizo «Nouzui Ensei Girl»?",
+   "r": [
+    "Rerulili"
+   ],
+   "p": "La cantan Miku y Gumi"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué canción Vocaloid es esta? 🫨💃",
+   "r": [
+    "Shake It!",
+    "ShakeIt"
+   ],
+   "p": "La hizo emon"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué canción Vocaloid se llama «¡Sacúdelo!» si traduces su título?",
+   "r": [
+    "Shake It!",
+    "ShakeIt"
+   ],
+   "p": "La cantan Miku y Rin y Len"
+  },
+  {
+   "c": "utaite",
+   "t": "¿Qué productor hizo «Shake It!»?",
+   "r": [
+    "emon"
+   ],
+   "p": "La cantan Miku y Rin y Len"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué canción Vocaloid es esta? 1️⃣9️⃣2️⃣5️⃣🎷",
+   "r": [
+    "1925"
+   ],
+   "p": "La hizo T-POCKET"
+  },
+  {
+   "c": "utaite",
+   "t": "¿Qué productor hizo «1925»?",
+   "r": [
+    "T-POCKET",
+    "TPOCKET"
+   ],
+   "p": "La canta Miku"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué voz canta «1925» de T-POCKET?",
+   "r": [
+    "Miku",
+    "hatsune miku"
+   ],
+   "p": "Empieza con M"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué canción Vocaloid es esta? 2️⃣D💭🤒",
+   "r": [
+    "Nijigen Dream Fever",
+    "NijigenDreamFever"
+   ],
+   "p": "La hizo PolyphonicBranch"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué canción Vocaloid se llama «Fiebre de sueño bidimensional» si traduces su título?",
+   "r": [
+    "Nijigen Dream Fever",
+    "NijigenDreamFever"
+   ],
+   "p": "La canta Miku"
+  },
+  {
+   "c": "utaite",
+   "t": "¿Qué productor hizo «Nijigen Dream Fever»?",
+   "r": [
+    "PolyphonicBranch"
+   ],
+   "p": "La canta Miku"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué voz canta «Nijigen Dream Fever» de PolyphonicBranch?",
+   "r": [
+    "Miku",
+    "hatsune miku"
+   ],
+   "p": "Empieza con M"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué canción Vocaloid es esta? 🚃🐌",
+   "r": [
+    "Lagtrain"
+   ],
+   "p": "La hizo inabakumori"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué canción Vocaloid se llama «Tren con lag» si traduces su título?",
+   "r": [
+    "Lagtrain"
+   ],
+   "p": "La canta Kaai Yuki"
+  },
+  {
+   "c": "utaite",
+   "t": "¿Qué productor hizo «Lagtrain»?",
+   "r": [
+    "inabakumori"
+   ],
+   "p": "La canta Kaai Yuki"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué voz canta «Lagtrain» de inabakumori?",
+   "r": [
+    "Kaai Yuki",
+    "KaaiYuki"
+   ],
+   "p": "Empieza con K"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué canción Vocaloid es esta? ⏭️🔴",
+   "r": [
+    "Override"
+   ],
+   "p": "La hizo Yoshida Yasei"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué canción Vocaloid se llama «Anular» si traduces su título?",
+   "r": [
+    "Override"
+   ],
+   "p": "La canta Teto"
+  },
+  {
+   "c": "utaite",
+   "t": "¿Qué productor hizo «Override»?",
+   "r": [
+    "Yoshida Yasei",
+    "YoshidaYasei"
+   ],
+   "p": "La canta Teto"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué voz canta «Override» de Yoshida Yasei?",
+   "r": [
+    "Teto"
+   ],
+   "p": "Empieza con T"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué canción Vocaloid es esta? 🤖💘",
+   "r": [
+    "Machine Love",
+    "MachineLove"
+   ],
+   "p": "La hizo Jamie Paige"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué canción Vocaloid se llama «Amor de máquina» si traduces su título?",
+   "r": [
+    "Machine Love",
+    "MachineLove"
+   ],
+   "p": "La canta Teto"
+  },
+  {
+   "c": "utaite",
+   "t": "¿Qué productor hizo «Machine Love»?",
+   "r": [
+    "Jamie Paige",
+    "JamiePaige"
+   ],
+   "p": "La canta Teto"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué voz canta «Machine Love» de Jamie Paige?",
+   "r": [
+    "Teto"
+   ],
+   "p": "Empieza con T"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué canción Vocaloid es esta? 🐦🧠",
+   "r": [
+    "BIRDBRAIN"
+   ],
+   "p": "La hizo Jamie Paige"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué canción Vocaloid se llama «Cerebro de pájaro» si traduces su título?",
+   "r": [
+    "BIRDBRAIN"
+   ],
+   "p": "La canta Teto"
+  },
+  {
+   "c": "utaite",
+   "t": "¿Qué productor hizo «BIRDBRAIN»?",
+   "r": [
+    "Jamie Paige",
+    "JamiePaige"
+   ],
+   "p": "La canta Teto"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué voz canta «BIRDBRAIN» de Jamie Paige?",
+   "r": [
+    "Teto"
+   ],
+   "p": "Empieza con T"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué canción Vocaloid se llama «Función traviesa» si traduces su título?",
+   "r": [
+    "Ochame Kinou",
+    "OchameKinou",
+    "Mischievous Function",
+    "MischievousFunction"
+   ],
+   "p": "La canta Teto"
+  },
+  {
+   "c": "utaite",
+   "t": "¿Qué productor hizo «Ochame Kinou»?",
+   "r": [
+    "Gojimaji-P",
+    "Gojimaji",
+    "GojimajiP"
+   ],
+   "p": "La canta Teto"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué voz canta «Ochame Kinou» de Gojimaji-P?",
+   "r": [
+    "Teto"
+   ],
+   "p": "Empieza con T"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué canción Vocaloid es esta? 🏮😢",
+   "r": [
+    "Yoshiwara Lament",
+    "YoshiwaraLament"
+   ],
+   "p": "La hizo Asa"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué canción Vocaloid se llama «Lamento de Yoshiwara» si traduces su título?",
+   "r": [
+    "Yoshiwara Lament",
+    "YoshiwaraLament"
+   ],
+   "p": "La canta Teto"
+  },
+  {
+   "c": "utaite",
+   "t": "¿Qué productor hizo «Yoshiwara Lament»?",
+   "r": [
+    "Asa"
+   ],
+   "p": "La canta Teto"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué voz canta «Yoshiwara Lament» de Asa?",
+   "r": [
+    "Teto"
+   ],
+   "p": "Empieza con T"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué canción Vocaloid es esta? 🤥💃",
+   "r": [
+    "Liar Dancer",
+    "LiarDancer"
+   ],
+   "p": "La hizo Masarada"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué canción Vocaloid se llama «Bailarina mentirosa» si traduces su título?",
+   "r": [
+    "Liar Dancer",
+    "LiarDancer"
+   ],
+   "p": "La canta Miku"
+  },
+  {
+   "c": "utaite",
+   "t": "¿Qué productor hizo «Liar Dancer»?",
+   "r": [
+    "Masarada"
+   ],
+   "p": "La canta Miku"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué voz canta «Liar Dancer» de Masarada?",
+   "r": [
+    "Miku",
+    "hatsune miku"
+   ],
+   "p": "Empieza con M"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué canción Vocaloid es esta? ⏱️🧳",
+   "r": [
+    "Setsuna Trip",
+    "SetsunaTrip"
+   ],
+   "p": "La hizo Last Note."
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué canción Vocaloid se llama «Viaje de un instante» si traduces su título?",
+   "r": [
+    "Setsuna Trip",
+    "SetsunaTrip"
+   ],
+   "p": "La canta Gumi"
+  },
+  {
+   "c": "utaite",
+   "t": "¿Qué productor hizo «Setsuna Trip»?",
+   "r": [
+    "Last Note.",
+    "LastNote"
+   ],
+   "p": "La canta Gumi"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué voz canta «Setsuna Trip» de Last Note.?",
+   "r": [
+    "Gumi"
+   ],
+   "p": "Empieza con G"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué canción Vocaloid es esta? 🧪🧴",
+   "r": [
+    "Paradichlorobenzene"
+   ],
+   "p": "La hizo Owata-P"
+  },
+  {
+   "c": "utaite",
+   "t": "¿Qué productor hizo «Paradichlorobenzene»?",
+   "r": [
+    "Owata-P",
+    "Owata",
+    "OwataP"
+   ],
+   "p": "La canta Len"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué voz canta «Paradichlorobenzene» de Owata-P?",
+   "r": [
+    "Len"
+   ],
+   "p": "Empieza con L"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué canción Vocaloid es esta? 1️⃣0️⃣0️⃣0️⃣🎤💙",
+   "r": [
+    "Sennen no Dokusouka",
+    "SennennoDokusouka"
+   ],
+   "p": "La hizo yanagi"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué canción Vocaloid se llama «El solista de mil años» si traduces su título?",
+   "r": [
+    "Sennen no Dokusouka",
+    "SennennoDokusouka"
+   ],
+   "p": "La canta Kaito"
+  },
+  {
+   "c": "utaite",
+   "t": "¿Qué productor hizo «Sennen no Dokusouka»?",
+   "r": [
+    "yanagi"
+   ],
+   "p": "La canta Kaito"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué voz canta «Sennen no Dokusouka» de yanagi?",
+   "r": [
+    "Kaito"
+   ],
+   "p": "Empieza con K"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué canción Vocaloid es esta? 🌌🔦",
+   "r": [
+    "Asu no Yozora Shoukaihan",
+    "AsunoYozoraShoukaihan"
+   ],
+   "p": "La hizo Orangestar"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué canción Vocaloid se llama «La patrulla del cielo nocturno de mañana» si traduces su título?",
+   "r": [
+    "Asu no Yozora Shoukaihan",
+    "AsunoYozoraShoukaihan"
+   ],
+   "p": "La canta IA"
+  },
+  {
+   "c": "utaite",
+   "t": "¿Qué productor hizo «Asu no Yozora Shoukaihan»?",
+   "r": [
+    "Orangestar"
+   ],
+   "p": "La canta IA"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué voz canta «Asu no Yozora Shoukaihan» de Orangestar?",
+   "r": [
+    "IA"
+   ],
+   "p": "Empieza con I"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué canción Vocaloid es esta? 🌸🌧️",
+   "r": [
+    "Sakura no Ame",
+    "SakuranoAme"
+   ],
+   "p": "La hizo absorb"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué canción Vocaloid se llama «Lluvia de cerezos» si traduces su título?",
+   "r": [
+    "Sakura no Ame",
+    "SakuranoAme"
+   ],
+   "p": "La canta Miku"
+  },
+  {
+   "c": "utaite",
+   "t": "¿Qué productor hizo «Sakura no Ame»?",
+   "r": [
+    "absorb"
+   ],
+   "p": "La canta Miku"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué voz canta «Sakura no Ame» de absorb?",
+   "r": [
+    "Miku",
+    "hatsune miku"
+   ],
+   "p": "Empieza con M"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué canción Vocaloid es esta? 🤖📛",
+   "r": [
+    "Adachi Rei",
+    "AdachiRei"
+   ],
+   "p": "La hizo Sato Chinamini"
+  },
+  {
+   "c": "utaite",
+   "t": "¿Qué productor hizo «Adachi Rei»?",
+   "r": [
+    "Sato Chinamini",
+    "SatoChinamini"
+   ],
+   "p": "La cantan Adachi Rei y Teto"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué canción Vocaloid es esta? 🐱🌈🍞",
+   "r": [
+    "Nyanyanyanyanyanyanya!",
+    "Nyanyanyanyanyanyanya",
+    "Nyan Cat",
+    "NyanCat"
+   ],
+   "p": "La hizo daniwell"
+  },
+  {
+   "c": "utaite",
+   "t": "¿Qué productor hizo «Nyanyanyanyanyanyanya!»?",
+   "r": [
+    "daniwell"
+   ],
+   "p": "La canta Miku"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué voz canta «Nyanyanyanyanyanyanya!» de daniwell?",
+   "r": [
+    "Miku",
+    "hatsune miku"
+   ],
+   "p": "Empieza con M"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué canción Vocaloid es esta? 💀⚔️🤘",
+   "r": [
+    "Mukuro Attack!!",
+    "MukuroAttack"
+   ],
+   "p": "La hizo Utsu-P"
+  },
+  {
+   "c": "utaite",
+   "t": "¿Qué productor hizo «Mukuro Attack!!»?",
+   "r": [
+    "Utsu-P",
+    "Utsu",
+    "UtsuP"
+   ],
+   "p": "Un clásico de Vocaloid"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué personaje Vocaloid tiene la voz de Saki Fujita?",
+   "r": [
+    "Hatsune Miku",
+    "HatsuneMiku",
+    "Miku"
+   ],
+   "p": "Su pelo es turquesa"
+  },
+  {
+   "c": "vocaloid",
+   "t": "Soy de Crypton Future Media y mi objeto es un puerro (negi). ¿Quién soy?",
+   "r": [
+    "Hatsune Miku",
+    "HatsuneMiku",
+    "Miku"
+   ],
+   "p": "Mi pelo es turquesa"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué personaje Vocaloid tiene la voz de Yuu Asakawa?",
+   "r": [
+    "Megurine Luka",
+    "MegurineLuka",
+    "Luka"
+   ],
+   "p": "Su pelo es rosa"
+  },
+  {
+   "c": "vocaloid",
+   "t": "Soy de Crypton Future Media y mi objeto es atún. ¿Quién soy?",
+   "r": [
+    "Megurine Luka",
+    "MegurineLuka",
+    "Luka"
+   ],
+   "p": "Mi pelo es rosa"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué personaje Vocaloid tiene la voz de Asami Shimoda?",
+   "r": [
+    "Kagamine Rin",
+    "KagamineRin",
+    "Rin"
+   ],
+   "p": "Su pelo es rubio"
+  },
+  {
+   "c": "vocaloid",
+   "t": "Soy de Crypton Future Media y mi objeto es naranjas. ¿Quién soy?",
+   "r": [
+    "Kagamine Rin",
+    "KagamineRin",
+    "Rin"
+   ],
+   "p": "Mi pelo es rubio"
+  },
+  {
+   "c": "vocaloid",
+   "t": "Soy de Crypton Future Media y mi objeto es plátanos. ¿Quién soy?",
+   "r": [
+    "Kagamine Len",
+    "KagamineLen",
+    "Len"
+   ],
+   "p": "Mi pelo es rubio"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué personaje Vocaloid tiene la voz de Naoto Fuga?",
+   "r": [
+    "Kaito"
+   ],
+   "p": "Su pelo es azul"
+  },
+  {
+   "c": "vocaloid",
+   "t": "Soy de Crypton Future Media y mi objeto es helado. ¿Quién soy?",
+   "r": [
+    "Kaito"
+   ],
+   "p": "Mi pelo es azul"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué personaje Vocaloid tiene la voz de Meiko Haigō?",
+   "r": [
+    "Meiko"
+   ],
+   "p": "Su pelo es castaño"
+  },
+  {
+   "c": "vocaloid",
+   "t": "Soy de Crypton Future Media y mi objeto es sake. ¿Quién soy?",
+   "r": [
+    "Meiko"
+   ],
+   "p": "Mi pelo es castaño"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué personaje Vocaloid tiene la voz de Megumi Nakajima?",
+   "r": [
+    "Gumi"
+   ],
+   "p": "Su pelo es verde"
+  },
+  {
+   "c": "vocaloid",
+   "t": "Soy de Internet Co. y mi objeto es una zanahoria. ¿Quién soy?",
+   "r": [
+    "Gumi"
+   ],
+   "p": "Mi pelo es verde"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué personaje Vocaloid tiene la voz de Gackt?",
+   "r": [
+    "Kamui Gakupo",
+    "KamuiGakupo",
+    "Gakupo"
+   ],
+   "p": "Su pelo es morado"
+  },
+  {
+   "c": "vocaloid",
+   "t": "Soy de Internet Co. y mi objeto es una berenjena. ¿Quién soy?",
+   "r": [
+    "Kamui Gakupo",
+    "KamuiGakupo",
+    "Gakupo"
+   ],
+   "p": "Mi pelo es morado"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué personaje Vocaloid tiene la voz de Lia?",
+   "r": [
+    "IA"
+   ],
+   "p": "Su pelo es rosa muy claro"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué significa 'CV' en 'CV01' (Miku)?",
+   "r": [
+    "Character Vocal",
+    "CharacterVocal"
+   ],
+   "p": "Empieza con «C» y tiene 2 palabras"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué número de la serie Character Vocal son Rin y Len?",
+   "r": [
+    "CV02"
+   ],
+   "p": "Empieza con «C» y tiene 1 palabra"
+  },
+  {
+   "c": "vocaloid",
+   "t": "En los conciertos, ¿qué es Miku en el escenario?",
+   "r": [
+    "Una animación proyectada",
+    "Unaanimaciónproyectada"
+   ],
+   "p": "Empieza con «U» y tiene 3 palabras"
+  },
+  {
+   "c": "vocaloid",
+   "t": "En Niconico, ¿cuántas vistas pide el Salón de la Leyenda?",
+   "r": [
+    "1 millón",
+    "1millón"
+   ],
+   "p": "Empieza con «1» y tiene 2 palabras"
+  },
+  {
+   "c": "vocaloid",
+   "t": "En Niconico, ¿cuántas vistas pide el Salón de los Mitos?",
+   "r": [
+    "10 millones",
+    "10millones"
+   ],
+   "p": "Empieza con «1» y tiene 2 palabras"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Cómo se llamaba Kaito en clave, en el prototipo de Vocaloid?",
+   "r": [
+    "TARO"
+   ],
+   "p": "Empieza con «T» y tiene 1 palabra"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué usa Synthesizer V para cantar?",
+   "r": [
+    "Redes neuronales",
+    "Redesneuronales"
+   ],
+   "p": "Empieza con «R» y tiene 2 palabras"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué pareja llaman los fans 'Negitoro'?",
+   "r": [
+    "Miku y Luka",
+    "MikuyLuka"
+   ],
+   "p": "Empieza con «M» y tiene 3 palabras"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué canción de minato es el dueto clásico de Miku y Luka?",
+   "r": [
+    "Magnet"
+   ],
+   "p": "Empieza con «M» y tiene 1 palabra"
+  },
+  {
+   "c": "vocaloid",
+   "t": "En Mesmerizer, ¿qué finge Teto?",
+   "r": [
+    "Que está hipnotizada",
+    "Queestáhipnotizada"
+   ],
+   "p": "Empieza con «Q» y tiene 3 palabras"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué canción de DECO*27 se hizo megaviral en TikTok con Miku en 2023?",
+   "r": [
+    "Rabbit Hole",
+    "RabbitHole"
+   ],
+   "p": "Empieza con «R» y tiene 2 palabras"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Cuál es la canción fiestera de Luka?",
+   "r": [
+    "Luka Luka★Night Fever",
+    "LukaLukaNightFever"
+   ],
+   "p": "Empieza con «L» y tiene 3 palabras"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué grita Rin cuando saca su apisonadora (meme de JoJo)?",
+   "r": [
+    "¡Roada rolla da!",
+    "Roadarollada"
+   ],
+   "p": "Empieza con «¡» y tiene 3 palabras"
+  },
+  {
+   "c": "vocaloid",
+   "t": "En Triple Baka, ¿qué palabra repiten Miku, Teto y Neru?",
+   "r": [
+    "Baka"
+   ],
+   "p": "Empieza con «B» y tiene 1 palabra"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Con qué frutas dibuja la comunidad a Gumi (meme de fans)?",
+   "r": [
+    "Pera y kiwi",
+    "Peraykiwi"
+   ],
+   "p": "Empieza con «P» y tiene 3 palabras"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué es Kasane Teto según su perfil?",
+   "r": [
+    "Una quimera",
+    "Unaquimera"
+   ],
+   "p": "Empieza con «U» y tiene 2 palabras"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Cómo son las coletas de Teto?",
+   "r": [
+    "Como taladros",
+    "Comotaladros"
+   ],
+   "p": "Empieza con «C» y tiene 2 palabras"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué come Teto todo el tiempo?",
+   "r": [
+    "Pan francés (baguette)",
+    "Pan francés",
+    "baguette",
+    "Panfrancésbaguette",
+    "Panfrancés",
+    "Pan francés"
+   ],
+   "p": "Empieza con «P» y tiene 2 palabras"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Quién molesta a Teto por comer mucho?",
+   "r": [
+    "Miku y Neru",
+    "MikuyNeru"
+   ],
+   "p": "Empieza con «M» y tiene 3 palabras"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿De dónde salió la broma que creó a Teto?",
+   "r": [
+    "De 2channel",
+    "De2channel"
+   ],
+   "p": "Empieza con «D» y tiene 2 palabras"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué número lleva Miku en el brazo?",
+   "r": [
+    "01"
+   ],
+   "p": "Empieza con «0» y tiene 1 palabra"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué idiomas canta Luka?",
+   "r": [
+    "Japonés e inglés",
+    "Japonéseinglés"
+   ],
+   "p": "Empieza con «J» y tiene 3 palabras"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Cuál es el papel de Luka en el grupo?",
+   "r": [
+    "La adulta sensata",
+    "Laadultasensata"
+   ],
+   "p": "Empieza con «L» y tiene 3 palabras"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué bebida le dibujan los fans a Meiko?",
+   "r": [
+    "Sake"
+   ],
+   "p": "Empieza con «S» y tiene 1 palabra"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué imagen tiene Kamui Gakupo?",
+   "r": [
+    "De samurái",
+    "Desamurái"
+   ],
+   "p": "Empieza con «D» y tiene 2 palabras"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué arma lleva Gakupo?",
+   "r": [
+    "Una katana",
+    "Unakatana"
+   ],
+   "p": "Empieza con «U» y tiene 2 palabras"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Con qué proyecto de Jin se hizo conocida IA?",
+   "r": [
+    "Kagerou Project",
+    "KagerouProject"
+   ],
+   "p": "Empieza con «K» y tiene 2 palabras"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué personalidad tiene Akita Neru?",
+   "r": [
+    "Tsundere"
+   ],
+   "p": "Empieza con «T» y tiene 1 palabra"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Cuál es el meme del servidor con Yokune Ruko?",
+   "r": [
+    "Ruko se acerca",
+    "Rukoseacerca"
+   ],
+   "p": "Empieza con «R» y tiene 3 palabras"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Cuál de estos personajes es una androide?",
+   "r": [
+    "Adachi Rei",
+    "AdachiRei"
+   ],
+   "p": "Empieza con «A» y tiene 2 palabras"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Cuál de estos personajes es una quimera?",
+   "r": [
+    "Kasane Teto",
+    "KasaneTeto"
+   ],
+   "p": "Empieza con «K» y tiene 2 palabras"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué saga de canciones hizo mothy?",
+   "r": [
+    "Evillious Chronicles (la saga del mal)",
+    "Evillious Chronicles",
+    "la saga del mal",
+    "EvilliousChronicleslasagadelmal",
+    "EvilliousChronicles",
+    "lasagadelmal",
+    "Evillious Chronicles"
+   ],
+   "p": "Empieza con «E» y tiene 2 palabras"
+  },
+  {
+   "c": "vocaloid",
+   "t": "En la saga del mal, ¿qué es Len para la princesa Rin?",
+   "r": [
+    "Su sirviente",
+    "Susirviente"
+   ],
+   "p": "Empieza con «S» y tiene 2 palabras"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Cómo se llama la canción de la princesa en la saga del mal?",
+   "r": [
+    "Aku no Musume",
+    "AkunoMusume"
+   ],
+   "p": "Empieza con «A» y tiene 3 palabras"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Quién hizo el Kagerou Project?",
+   "r": [
+    "Jin"
+   ],
+   "p": "Empieza con «J» y tiene 1 palabra"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué productor hizo «Rolling Girl» y «World's End Dancehall»?",
+   "r": [
+    "wowaka"
+   ],
+   "p": "Empieza con «W» y tiene 1 palabra"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué productor tiene '27' en su nombre?",
+   "r": [
+    "DECO*27",
+    "DECO27"
+   ],
+   "p": "Empieza con «D» y tiene 1 palabra"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué canción hizo viral a Miku y Teto juntas?",
+   "r": [
+    "Mesmerizer"
+   ],
+   "p": "Empieza con «M» y tiene 1 palabra"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué canción canta Gakupo bailando como samurái?",
+   "r": [
+    "Dancing Samurai",
+    "DancingSamurai"
+   ],
+   "p": "Empieza con «D» y tiene 2 palabras"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué canción de Chinozo canta flower?",
+   "r": [
+    "Goodbye Sengen",
+    "GoodbyeSengen"
+   ],
+   "p": "Empieza con «G» y tiene 2 palabras"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Qué voz es la que trae UTAU por defecto?",
+   "r": [
+    "Defoko (Utane Uta)",
+    "Defoko",
+    "Utane Uta",
+    "DefokoUtaneUta",
+    "UtaneUta",
+    "Defoko"
+   ],
+   "p": "Empieza con «D» y tiene 1 palabra"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Cómo se llama la versión chico de Teto (creada por fans)?",
+   "r": [
+    "Kasane Ted",
+    "KasaneTed"
+   ],
+   "p": "Empieza con «K» y tiene 2 palabras"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Cómo se llama la versión chico de Miku (fanloid)?",
+   "r": [
+    "Hatsune Mikuo",
+    "HatsuneMikuo"
+   ],
+   "p": "Empieza con «H» y tiene 2 palabras"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Cómo se llama la versión chico de Neru (fanloid)?",
+   "r": [
+    "Akita Nero",
+    "AkitaNero"
+   ],
+   "p": "Empieza con «A» y tiene 2 palabras"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Cómo se llama la versión chico de Luka (fanloid)?",
+   "r": [
+    "Megurine Luki",
+    "MegurineLuki"
+   ],
+   "p": "Empieza con «M» y tiene 2 palabras"
+  },
+  {
+   "c": "vocaloid",
+   "t": "¿Cómo se llama la versión chico de Meiko (fanloid)?",
+   "r": [
+    "Sakine Meito",
+    "SakineMeito"
+   ],
+   "p": "Empieza con «S» y tiene 2 palabras"
+  },
+  {
+   "c": "general",
+   "t": "Redondo como un queso, nadie puede darle un beso. ¿Qué es?",
+   "r": [
+    "luna"
+   ],
+   "p": "Sale de noche"
+  },
+  {
+   "c": "general",
+   "t": "Tengo cuello y no cabeza, tengo brazos y no manos. ¿Qué soy?",
+   "r": [
+    "camisa",
+    "playera",
+    "camiseta"
+   ],
+   "p": "Te la pones arriba"
+  },
+  {
+   "c": "general",
+   "t": "Si me tienes, quieres compartirme; si me compartes, ya no me tienes. ¿Qué soy?",
+   "r": [
+    "secreto",
+    "un secreto"
+   ],
+   "p": "Shh, no se lo digas a nadie"
+  },
+  {
+   "c": "general",
+   "t": "Tengo teclas pero no abro puertas, y en mí escribes. ¿Qué soy?",
+   "r": [
+    "teclado"
+   ],
+   "p": "Va con la compu"
+  },
+  {
+   "c": "general",
+   "t": "Sin salir de mi casa recorro todo el jardín. ¿Qué soy?",
+   "r": [
+    "caracol",
+    "caracoles"
+   ],
+   "p": "Lento y con concha"
+  },
+  {
+   "c": "general",
+   "t": "Dos hermanos muy unidos que van siempre al mismo paso. ¿Qué son?",
+   "r": [
+    "pies",
+    "zapatos",
+    "piernas"
+   ],
+   "p": "Caminan contigo"
+  },
+  {
+   "c": "general",
+   "t": "Lleno de agujeros y aun así guardo agua. ¿Qué soy?",
+   "r": [
+    "esponja",
+    "esponjas"
+   ],
+   "p": "Amarilla en la cocina"
+  },
+  {
+   "c": "general",
+   "t": "Paso por el fuego y no me quemo, paso por el agua y no me mojo. ¿Qué soy?",
+   "r": [
+    "sombra"
+   ],
+   "p": "Te sigue cuando hay sol"
+  },
+  {
+   "c": "general",
+   "t": "Te doy luz y no soy sol; me apagas y no soy vela. ¿Qué soy?",
+   "r": [
+    "foco",
+    "bombilla",
+    "lampara",
+    "lámpara"
+   ],
+   "p": "Va en el techo"
+  },
+  {
+   "c": "general",
+   "t": "Cuanto más le das, más hambre tiene; si le das agua, se muere. ¿Qué es?",
+   "r": [
+    "fuego",
+    "lumbre"
+   ],
+   "p": "Se apaga con extintor"
+  },
+  {
+   "c": "general",
+   "t": "¿Qué sube y nunca baja?",
+   "r": [
+    "edad"
+   ],
+   "p": "Cambia cada cumpleaños"
+  },
+  {
+   "c": "general",
+   "t": "¿Qué tiene cuatro patas en la mañana, dos al mediodía y tres en la tarde?",
+   "r": [
+    "hombre",
+    "humano",
+    "ser humano",
+    "persona"
+   ],
+   "p": "El acertijo de la esfinge"
+  },
+  {
+   "c": "general",
+   "t": "Soy un número que, si me das la vuelta, valgo menos. ¿Qué número soy?",
+   "r": [
+    "9",
+    "nueve"
+   ],
+   "p": "Al revés es un 6"
+  },
+  {
+   "c": "general",
+   "t": "¿Cuál es el único mamífero que puede volar?",
+   "r": [
+    "murcielago",
+    "murciélago"
+   ],
+   "p": "Batman lo usa de logo"
+  },
+  {
+   "c": "general",
+   "t": "¿Cuántos corazones tiene un pulpo?",
+   "r": [
+    "3",
+    "tres"
+   ],
+   "p": "Más de dos"
+  },
+  {
+   "c": "general",
+   "t": "¿De qué color es la sangre de un pulpo?",
+   "r": [
+    "azul"
+   ],
+   "p": "Como el pelo de Kaito"
+  },
+  {
+   "c": "general",
+   "t": "¿Qué país tiene forma de bota?",
+   "r": [
+    "italia"
+   ],
+   "p": "Pizza y pasta"
+  },
+  {
+   "c": "general",
+   "t": "¿Cuál es el planeta más cercano al Sol?",
+   "r": [
+    "mercurio"
+   ],
+   "p": "Mensajero de los dioses"
+  },
+  {
+   "c": "general",
+   "t": "¿Qué órgano bombea la sangre?",
+   "r": [
+    "corazon",
+    "corazón"
+   ],
+   "p": "Late"
+  },
+  {
+   "c": "general",
+   "t": "¿Qué animal pone huevos y tiene pico de pato, pero es mamífero?",
+   "r": [
+    "ornitorrinco"
+   ],
+   "p": "Australiano y raro"
+  },
+  {
+   "c": "general",
+   "t": "¿Cuál es la capital de Francia, tierra de la baguette?",
+   "r": [
+    "paris",
+    "parís"
+   ],
+   "p": "Torre Eiffel"
+  },
+  {
+   "c": "general",
+   "t": "¿Cuál es la moneda de Japón?",
+   "r": [
+    "yen",
+    "yenes"
+   ],
+   "p": "Su símbolo es ¥"
+  },
+  {
+   "c": "general",
+   "t": "¿Cómo se dice «gracias» en japonés?",
+   "r": [
+    "arigato",
+    "arigatou",
+    "arigatō"
+   ],
+   "p": "Ari…"
+  },
+  {
+   "c": "general",
+   "t": "¿Cómo se dice «canción» en japonés?",
+   "r": [
+    "uta"
+   ],
+   "p": "Está escondida en UTAU y en utaite"
+  },
+  {
+   "c": "general",
+   "t": "¿Qué volcán mexicano le dicen «don Goyo» o «el Popo»?",
+   "r": [
+    "popocatepetl",
+    "popocatépetl",
+    "popo"
+   ],
+   "p": "Popoca…"
+  },
+  {
+   "c": "general",
+   "t": "¿Qué civilización construyó Chichén Itzá?",
+   "r": [
+    "maya",
+    "mayas"
+   ],
+   "p": "Península de Yucatán"
+  },
+  {
+   "c": "general",
+   "t": "¿Cuál es el desierto más seco del mundo, en Chile?",
+   "r": [
+    "atacama"
+   ],
+   "p": "Norte de Chile"
+  },
+  {
+   "c": "general",
+   "t": "¿Qué comida mexicana se envuelve en hoja de maíz y se cuece al vapor?",
+   "r": [
+    "tamal",
+    "tamales"
+   ],
+   "p": "Se come con atole"
+  },
+  {
+   "c": "general",
+   "t": "¿Qué bebida caliente de maíz acompaña a los tamales?",
+   "r": [
+    "atole",
+    "champurrado"
+   ],
+   "p": "Champurrado es uno"
+  },
+  {
+   "c": "general",
+   "t": "¿Quién pintó la Mona Lisa?",
+   "r": [
+    "leonardo da vinci",
+    "da vinci",
+    "leonardo"
+   ],
+   "p": "Inventor italiano"
+  },
+  {
+   "c": "general",
+   "t": "¿Qué científico propuso la teoría de la relatividad?",
+   "r": [
+    "einstein",
+    "albert einstein"
+   ],
+   "p": "E = mc²"
+  },
+  {
+   "c": "general",
+   "t": "¿Quién escribió Don Quijote de la Mancha?",
+   "r": [
+    "cervantes",
+    "miguel de cervantes"
+   ],
+   "p": "Miguel de…"
+  },
+  {
+   "c": "general",
+   "t": "¿Qué personaje de Nintendo es un fontanero italiano que salta sobre hongos?",
+   "r": [
+    "mario",
+    "super mario",
+    "mario bros"
+   ],
+   "p": "Su hermano es Luigi"
+  },
+  {
+   "c": "general",
+   "t": "¿Qué Pokémon amarillo es la mascota de la saga?",
+   "r": [
+    "pikachu"
+   ],
+   "p": "Pika pika"
+  },
+  {
+   "c": "general",
+   "t": "¿Qué juego te deja construir todo con cubos y tiene creepers?",
+   "r": [
+    "minecraft"
+   ],
+   "p": "Mina + craft"
+  },
+  {
+   "c": "general",
+   "t": "¿Cuántos bits tiene un byte?",
+   "r": [
+    "8",
+    "ocho"
+   ],
+   "p": "Una potencia de 2"
+  },
+  {
+   "c": "general",
+   "t": "¿Qué significan las siglas «IA» en tecnología?",
+   "r": [
+    "inteligencia artificial"
+   ],
+   "p": "¡No la Vocaloid!"
+  },
+  {
+   "c": "general",
+   "t": "¿Qué lenguaje de programación tiene de logo una taza de café?",
+   "r": [
+    "java"
+   ],
+   "p": "Una isla de Indonesia"
+  },
+  {
+   "c": "general",
+   "t": "¿Qué empresa hace el iPhone?",
+   "r": [
+    "apple"
+   ],
+   "p": "Manzana"
+  },
+  {
+   "c": "general",
+   "t": "¿Qué planeta tiene los anillos más famosos?",
+   "r": [
+    "saturno"
+   ],
+   "p": "Sexto planeta"
+  },
+  {
+   "c": "general",
+   "t": "¿Cuál es el animal más grande del mundo?",
+   "r": [
+    "ballena azul",
+    "ballena"
+   ],
+   "p": "Vive en el mar"
+  },
+  {
+   "c": "general",
+   "t": "¿Qué fruta tiene las semillas por fuera?",
+   "r": [
+    "fresa",
+    "fresas",
+    "frutilla"
+   ],
+   "p": "Roja y con hojitas"
+  },
+  {
+   "c": "general",
+   "t": "Blanco por dentro, verde por fuera, con barbas amarillas. ¿Qué es?",
+   "r": [
+    "elote",
+    "maiz",
+    "maíz",
+    "choclo",
+    "mazorca"
+   ],
+   "p": "Se come con chile y limón"
+  },
+  {
+   "c": "general",
+   "t": "Me cortan y me pican y te hago llorar sin pena. ¿Qué soy?",
+   "r": [
+    "cebolla",
+    "cebollas"
+   ],
+   "p": "Va en la salsa"
+  },
+  {
+   "c": "general",
+   "t": "Treinta caballitos blancos en una colina roja. ¿Qué son?",
+   "r": [
+    "dientes",
+    "muelas"
+   ],
+   "p": "Los cepillas"
+  },
+  {
+   "c": "general",
+   "t": "Va por el cielo, cae en el suelo; si no te cubres, te moja el pelo. ¿Qué es?",
+   "r": [
+    "lluvia"
+   ],
+   "p": "Se usa paraguas"
+  },
+  {
+   "c": "general",
+   "t": "No es cama ni es león, y se esconde en cualquier rincón cambiando de color. ¿Qué es?",
+   "r": [
+    "camaleon",
+    "camaleón"
+   ],
+   "p": "Cama + león"
+  },
+  {
+   "c": "general",
+   "t": "Agua pasa por mi casa, cate de mi corazón. ¿Qué es?",
+   "r": [
+    "aguacate",
+    "palta"
+   ],
+   "p": "Agua + cate"
+  },
+  {
+   "c": "general",
+   "t": "Del cielo cayó un pañuelo pintado de mil colores. ¿Qué es?",
+   "r": [
+    "arcoiris",
+    "arcoíris",
+    "arco iris"
+   ],
+   "p": "Sale después de la lluvia"
+  },
+  {
+   "c": "general",
+   "t": "Una vieja con un diente que llama a toda la gente. ¿Qué es?",
+   "r": [
+    "campana",
+    "campanas"
+   ],
+   "p": "Ding dong"
+  },
+  {
+   "c": "general",
+   "t": "Recibo cartas y no sé leer. ¿Qué soy?",
+   "r": [
+    "buzon",
+    "buzón"
+   ],
+   "p": "Del correo"
+  },
+  {
+   "c": "general",
+   "t": "Dos ventanitas que todo lo ven y nada cuentan. ¿Qué son?",
+   "r": [
+    "ojos"
+   ],
+   "p": "Parpadean"
+  },
+  {
+   "c": "general",
+   "t": "Tiene corona y no es rey, tiene escamas y no es pez. ¿Qué es?",
+   "r": [
+    "piña",
+    "pina",
+    "ananá",
+    "anana"
+   ],
+   "p": "Como nuestra Papu de honor 🍍"
+  },
+  {
+   "c": "general",
+   "t": "Tiene patas y no camina, tiene respaldo y no es amigo. ¿Qué es?",
+   "r": [
+    "silla",
+    "sillas"
+   ],
+   "p": "Te sientas en ella"
+  },
+  {
+   "c": "general",
+   "t": "Cuanto más grande, menos se ve. ¿Qué es?",
+   "r": [
+    "oscuridad"
+   ],
+   "p": "Lo contrario de la luz"
+  },
+  {
+   "c": "general",
+   "t": "¿Cuántas cuerdas tiene una guitarra normal?",
+   "r": [
+    "6",
+    "seis"
+   ],
+   "p": "La de flower suena fuerte"
+  },
+  {
+   "c": "general",
+   "t": "¿Qué instrumento se toca soplando y tiene agujeros, como la de la escuela?",
+   "r": [
+    "flauta"
+   ],
+   "p": "La dulce"
+  },
+  {
+   "c": "general",
+   "t": "¿Qué animal dice «cuac»?",
+   "r": [
+    "pato",
+    "patos"
+   ],
+   "p": "Nada en el lago"
+  },
+  {
+   "c": "general",
+   "t": "¿Qué animal hace telarañas?",
+   "r": [
+    "araña",
+    "arana",
+    "arañas"
+   ],
+   "p": "Ocho patas"
+  },
+  {
+   "c": "general",
+   "t": "¿Qué insecto hace miel?",
+   "r": [
+    "abeja",
+    "abejas"
+   ],
+   "p": "Zumba"
+  },
+  {
+   "c": "general",
+   "t": "¿Qué estación del año viene después del verano?",
+   "r": [
+    "otoño",
+    "otono"
+   ],
+   "p": "Se caen las hojas"
+  },
+  {
+   "c": "general",
+   "t": "¿Cuántos días tiene un año bisiesto?",
+   "r": [
+    "366",
+    "trescientos sesenta y seis"
+   ],
+   "p": "Uno más de lo normal"
+  },
+  {
+   "c": "general",
+   "t": "¿Qué mes tiene 28 días (29 en bisiesto)?",
+   "r": [
+    "febrero"
+   ],
+   "p": "El segundo"
+  },
+  {
+   "c": "general",
+   "t": "¿Qué país es el que más habla español en el mundo?",
+   "r": [
+    "mexico",
+    "méxico"
+   ],
+   "p": "Tierra de los tacos"
+  },
+  {
+   "c": "general",
+   "t": "¿Cuál es la montaña más alta del mundo?",
+   "r": [
+    "everest",
+    "monte everest"
+   ],
+   "p": "Está en el Himalaya"
+  },
+  {
+   "c": "general",
+   "t": "¿Cuál es la capital de Corea del Sur?",
+   "r": [
+    "seul"
+   ],
+   "p": "Como suena «soul»"
+  },
+  {
+   "c": "general",
+   "t": "¿Qué país tiene más habitantes del mundo (desde 2023)?",
+   "r": [
+    "india"
+   ],
+   "p": "Su capital es Nueva Delhi"
+  },
+  {
+   "c": "general",
+   "t": "¿En qué ciudad está el Coliseo?",
+   "r": [
+    "roma"
+   ],
+   "p": "La ciudad eterna"
+  },
+  {
+   "c": "general",
+   "t": "¿Qué animal es Pikachu?",
+   "r": [
+    "raton",
+    "ratón",
+    "rata"
+   ],
+   "p": "Pokémon roedor"
+  },
+  {
+   "c": "general",
+   "t": "¿Cuántos lados tiene un triángulo?",
+   "r": [
+    "3",
+    "tres"
+   ],
+   "p": "Tri…"
+  },
+  {
+   "c": "general",
+   "t": "¿Cuánto es 7 × 8?",
+   "r": [
+    "56",
+    "cincuenta y seis"
+   ],
+   "p": "5, 6, 7, 8"
+  },
+  {
+   "c": "general",
+   "t": "¿Cuál es el número primo par?",
+   "r": [
+    "2",
+    "dos"
+   ],
+   "p": "El único"
+  },
+  {
+   "c": "general",
+   "t": "¿Cuánto es la raíz cuadrada de 144?",
+   "r": [
+    "12",
+    "doce"
+   ],
+   "p": "Una docena"
+  },
+  {
+   "c": "general",
+   "t": "Si un tren eléctrico va al norte, ¿hacia dónde va el humo?",
+   "r": [
+    "ninguno",
+    "a ningun lado",
+    "no tiene humo",
+    "no hay humo"
+   ],
+   "p": "Es eléctrico"
+  },
+  {
+   "c": "general",
+   "t": "¿Qué pesa más, un kilo de plumas o un kilo de fierro?",
+   "r": [
+    "igual",
+    "lo mismo",
+    "pesan igual",
+    "ninguno"
+   ],
+   "p": "Los dos son un kilo"
+  },
+  {
+   "c": "general",
+   "t": "El papá de Mari tiene 5 hijas: Lala, Lele, Lili, Lolo y…",
+   "r": [
+    "mari"
+   ],
+   "p": "Lee el principio otra vez"
+  },
+  {
+   "c": "general",
+   "t": "¿Cuántos meses tienen 28 días?",
+   "r": [
+    "12",
+    "doce",
+    "todos"
+   ],
+   "p": "Ninguno se queda sin ellos"
+  },
+  {
+   "c": "general",
+   "t": "Si me tiras al aire soy blanco y caigo amarillo. ¿Qué soy?",
+   "r": [
+    "huevo",
+    "huevos"
+   ],
+   "p": "Lo pone la gallina"
+  },
+  {
+   "c": "general",
+   "t": "¿Qué tiene manos pero no puede aplaudir?",
+   "r": [
+    "reloj",
+    "relojes"
+   ],
+   "p": "Marca la hora"
+  },
+  {
+   "c": "general",
+   "t": "¿Qué se moja mientras seca?",
+   "r": [
+    "toalla",
+    "toallas"
+   ],
+   "p": "Después de bañarte"
+  },
+  {
+   "c": "general",
+   "t": "¿Qué tiene un cuello pero no tiene cabeza?",
+   "r": [
+    "botella",
+    "botellas",
+    "camisa"
+   ],
+   "p": "Le pones tapa"
+  },
+  {
+   "c": "general",
+   "t": "¿Qué se rompe sin tocarlo?",
+   "r": [
+    "promesa",
+    "silencio",
+    "corazon",
+    "corazón"
+   ],
+   "p": "Se hace con palabras"
+  },
+  {
+   "c": "general",
+   "t": "Tengo ciudades sin gente y mares sin agua. ¿Qué soy?",
+   "r": [
+    "mapa",
+    "atlas"
+   ],
+   "p": "Lo usa el que viaja"
+  },
+  {
+   "c": "general",
+   "t": "Me hacen trizas al llegar y aplausos al terminar. Me pones velitas. ¿Qué soy?",
+   "r": [
+    "pastel",
+    "torta",
+    "tarta"
+   ],
+   "p": "De cumpleaños"
+  },
+  {
+   "c": "general",
+   "t": "Todos la tienen, nadie la puede ver y si la pierdes no hablas igual. ¿Qué es?",
+   "r": [
+    "voz",
+    "la voz"
+   ],
+   "p": "Lo que los Vocaloids tienen sintetizada"
+  },
+  {
+   "c": "general",
+   "t": "¿Qué deporte se juega con raqueta y una pelota amarilla sobre una red?",
+   "r": [
+    "tenis"
+   ],
+   "p": "Wimbledon"
+  },
+  {
+   "c": "general",
+   "t": "¿Qué deporte tiene «home run»?",
+   "r": [
+    "beisbol",
+    "béisbol",
+    "baseball"
+   ],
+   "p": "Bate y guante"
+  },
+  {
+   "c": "general",
+   "t": "¿Cada cuántos años es el Mundial de fútbol?",
+   "r": [
+    "4",
+    "cuatro"
+   ],
+   "p": "Como los Juegos Olímpicos"
+  },
+  {
+   "c": "general",
+   "t": "¿Cuál es el hueso más pequeño del cuerpo, en el oído?",
+   "r": [
+    "estribo"
+   ],
+   "p": "Como el del caballo"
+  },
+  {
+   "c": "general",
+   "t": "¿Qué gas sueltan las plantas al hacer la fotosíntesis?",
+   "r": [
+    "oxigeno",
+    "oxígeno"
+   ],
+   "p": "El que respiras"
+  },
+  {
+   "c": "general",
+   "t": "¿Qué científico vio caer una manzana y explicó la gravedad?",
+   "r": [
+    "newton",
+    "isaac newton"
+   ],
+   "p": "Isaac…"
+  },
+  {
+   "c": "general",
+   "t": "¿Qué país regaló la Estatua de la Libertad a Estados Unidos?",
+   "r": [
+    "francia"
+   ],
+   "p": "País de la baguette"
+  },
+  {
+   "c": "general",
+   "t": "¿Qué animal es el rey de la selva en los cuentos?",
+   "r": [
+    "leon",
+    "león"
+   ],
+   "p": "Tiene melena"
+  },
+  {
+   "c": "general",
+   "t": "¿Qué bicho brilla de noche en el campo?",
+   "r": [
+    "luciernaga",
+    "luciérnaga",
+    "luciernagas"
+   ],
+   "p": "Luz + …"
+  }
+ ]
+}

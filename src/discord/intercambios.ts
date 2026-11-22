@@ -4,6 +4,7 @@
 // cerrarse, Teto edita el anuncio. El canal tiene modo lento largo: es para avisos y reacciones, no para charlar.
 // Las reglas y el estado viven en src/intercambios/.
 import {
+  AttachmentBuilder,
   ActionRowBuilder,
   ButtonBuilder,
   ButtonStyle,
@@ -26,8 +27,11 @@ import {
 } from "discord.js";
 import type { BotId } from "../config";
 import type { CoinService } from "../coins/service";
+import { ofertaImage } from "../coins/images";
 import { RAREZA_NOMBRE, TIPO_NOMBRE, type TipoSobre } from "../coins/rules";
-import { buscar, CANTIDADES, describir, objetoCambiable, TOPES, vacio, type Cantidad, type Paquete } from "../intercambios/rules";
+import { buscar, CANTIDADES, describir, objetoCambiable, precioCasa, tocaOfertaCasa, TOPES, vacio, type Cantidad, type Paquete } from "../intercambios/rules";
+import { priceOf, sobrePool, temporadasActivas, type Objeto } from "../coins/rules";
+import { dayKey } from "../time";
 import type { AceptarFail, Falta, IntercambioService, Oferta } from "../intercambios/service";
 import type { LevelService } from "../levels/service";
 import { logError, type LogFn } from "../log";
@@ -51,8 +55,7 @@ interface Screen {
 
 /** Lo que se puede agregar a cada lado (el menú "➕ Agregar…"). */
 const TIPOS: { value: string; label: string; emoji: string; desc: string }[] = [
-  { value: "ganadas", label: "Shaula-coins ganadas", emoji: "🪙", desc: "Las que ganas participando" },
-  { value: "compradas", label: "Shaula-coins compradas", emoji: "💳", desc: "Siguen siendo compradas para quien las recibe" },
+  { value: "monedas", label: "Shaulitas", emoji: "🪙", desc: "Las que ganas jugando" },
   { value: "xp", label: "XP", emoji: "✨", desc: "Experiencia (no cuenta como actividad del día)" },
   { value: "niveles", label: "Niveles", emoji: "🆙", desc: "Se cambian como la XP de esos niveles de quien entrega" },
   { value: "cuota", label: "Mensajes de la cuota de hoy", emoji: "💬", desc: "Como /donar; la oferta vence a medianoche" },
@@ -62,7 +65,7 @@ const TIPOS: { value: string; label: string; emoji: string; desc: string }[] = [
   { value: "objeto", label: "Objetos de la colección", emoji: "🖼️", desc: "Fondos, bordes, insignias, títulos…" },
   { value: "consumible", label: "Consumibles del mercado negro", emoji: "🎒", desc: "Usos de Atún, Baguette, PC…" },
 ];
-const NOMBRE_CANTIDAD: Record<Cantidad, string> = { ganadas: "Shaula-coins ganadas", compradas: "Shaula-coins compradas", xp: "XP", niveles: "niveles", cuota: "mensajes de la cuota de hoy" };
+const NOMBRE_CANTIDAD: Record<Cantidad, string> = { monedas: "Shaulitas", xp: "XP", niveles: "niveles", cuota: "mensajes de la cuota de hoy" };
 const SOBRE: Record<TipoSobre, string> = { comun: "sobres comunes", raro: "sobres raros", legendario: "sobres legendarios" };
 
 /** La oferta que un Papu está armando (en memoria: si los bots se reinician, se arma de nuevo). */
@@ -86,7 +89,12 @@ export interface IntercambiosDiscordDeps {
   guild: () => Guild;
   sendable: (bot: BotId, channelId: string) => Promise<SendableChannels>;
   report: (text: string) => Promise<void>;
+  /** Zona de la cuota: horas y días de las ofertas de los Vocaloids. */
+  timeZone?: string;
+  /** Nombre de cada Vocaloid (para los registros). */
+  botName?: (bot: BotId) => string;
   log: LogFn;
+  rnd?: () => number;
 }
 
 export class IntercambiosDiscord {
@@ -163,6 +171,52 @@ export class IntercambiosDiscord {
   async tick(): Promise<void> {
     if (!this.s.settings.activo) return;
     for (const o of this.s.vencer()) await this.cerrarAnuncio(o, "⌛ **Venció** sin que nadie la aceptara.").catch((e) => logError("oferta vencida", e));
+    await this.ofertaCasa().catch((e) => logError("oferta de un Vocaloid", e));
+  }
+
+  // ───────────────────────── ofertas de los Vocaloids (idea de Piña; GyroP, 18 nov. 2026) ─────────────────────────
+
+  /** Objetos que puede ofrecer un Vocaloid: suyos, de la temporada en curso, que se venden en la tienda. */
+  candidatosCasa(bot: BotId, day: string): Objeto[] {
+    const ofrecidos = new Set(this.s.abiertasCasa().flatMap((o) => o.da.objetos));
+    return sobrePool(this.d.coins.catalog, temporadasActivas(this.d.coins.settings, day), day).filter(
+      (o) => o.personajes?.includes(bot) && o.rareza !== "mitica" && priceOf(this.d.coins.settings, o) !== null && objetoCambiable(o) && !ofrecidos.has(o.id),
+    );
+  }
+
+  /** Cada minuto: a veces un Vocaloid conectado ofrece un objeto suyo (config/intercambios.json -> casa). */
+  private async ofertaCasa(now = Date.now()): Promise<void> {
+    const c = this.s.settings.casa;
+    if (!c?.activo || !this.s.settings.activo) return;
+    const tz = this.d.timeZone ?? "America/Santiago";
+    const [hora, minuto] = new Intl.DateTimeFormat("en-GB", { hour: "2-digit", minute: "2-digit", hourCycle: "h23", timeZone: tz }).format(new Date(now)).split(":").map(Number) as [number, number];
+    const recientes = this.s.casaDesde(now - DAY_MS);
+    const day = dayKey(new Date(now), tz);
+    const hoy = recientes.filter((o) => dayKey(new Date(o.creadoAt), tz) === day).length;
+    const desdeUltimaMin = recientes.length ? (now - recientes[0]!.creadoAt) / 60_000 : Infinity;
+    const rnd = this.d.rnd ?? Math.random;
+    if (!tocaOfertaCasa(c, { hora, minuto, hoy, abiertas: this.s.abiertasCasa().length, desdeUltimaMin }, rnd)) return;
+    const ch = this.canal();
+    const general = findTextChannel(this.d.guild(), CHANNELS.general);
+    if (!ch || !general) return;
+    // Un Vocaloid conectado al azar que tenga algo que ofrecer.
+    const bots = (Object.entries(this.d.clients) as [BotId, Client][])
+      .filter(([, cl]) => cl?.user)
+      .map(([bot, cl]) => ({ bot, userId: cl.user!.id, objetos: this.candidatosCasa(bot, day) }))
+      .filter((b) => b.objetos.length);
+    if (!bots.length) return;
+    const b = bots[Math.floor(rnd() * bots.length)]!;
+    const objeto = b.objetos[Math.floor(rnd() * b.objetos.length)]!;
+    const precio = precioCasa(priceOf(this.d.coins.settings, objeto)!, c.factorPrecio);
+    const o = this.s.crearCasa(b.bot, b.userId, [objeto.id], precio);
+    const send = await this.d.sendable("teto", ch.id);
+    const msg = await send.send({ ...this.anuncio(o), files: await this.imagenOferta(o), allowedMentions: { parse: [] } });
+    this.s.setMensaje(o.id, ch.id, msg.id);
+    // El Vocaloid avisa en #general con una frase fija (sin LLM ni cuota).
+    const texto = this.d.phrases.pick("ofertas", "oferta_casa", { objeto: objeto.nombre, precio: fmt(precio), canal: msg.url });
+    const gen = await this.d.sendable(b.bot, general.id);
+    await gen.send({ content: `🤝 ${texto}`, allowedMentions: { parse: [] } });
+    this.d.log(`🤝 Oferta #${o.id} de ${this.d.botName?.(b.bot) ?? b.bot}: ${objeto.nombre} por ${precio}`);
   }
 
   // ───────────────────────── quién puede ─────────────────────────
@@ -201,7 +255,7 @@ export class IntercambiosDiscord {
       content: [
         header,
         "## 🤝 Intercambios",
-        "Armas lo que **entregas** y lo que **pides**: Shaula-coins, XP, niveles, cuota de hoy, sobres, objetos de tu colección y consumibles. Teto la anuncia en el centro de comercio; cuando los dos están de acuerdo, se cambia todo de una vez.",
+        "Armas lo que **entregas** y lo que **pides**: Shaulitas, XP, niveles, cuota de hoy, sobres, objetos de tu colección y consumibles. Teto la anuncia en el centro de comercio; cuando los dos están de acuerdo, se cambia todo de una vez.",
         mias.length ? `**Tus ofertas abiertas** (${mias.length}/${this.s.settings.maxAbiertas}):\n${mias.map((o) => linea(o, o.para ? `para <@${o.para}>` : "🌐 abierta")).join("\n")}` : "",
         para.length ? `**Ofertas para ti:**\n${para.map((o) => linea(o, `de <@${o.de}>`)).join("\n")}` : "",
       ]
@@ -254,8 +308,7 @@ export class IntercambiosDiscord {
   /** Lo que tiene un Papu de una cantidad (para mostrarlo en el formulario). */
   private tiene(userId: string, kind: string): number | null {
     const w = this.d.coins.wallet(userId);
-    if (kind === "ganadas") return w.ganadas;
-    if (kind === "compradas") return w.compradas;
+    if (kind === "monedas") return w.monedas;
     if (kind === "xp") return this.d.levels.store.get(userId).xp;
     if (kind === "niveles") return this.d.levels.level(userId).level - 1;
     // La cuota cambia durante el día: se revisa al publicar y al aceptar.
@@ -429,6 +482,7 @@ export class IntercambiosDiscord {
       case "con": {
         const o = this.s.get(id);
         if (!o || o.estado !== "abierta") return void (await i.reply({ content: "Esa oferta ya está cerrada.", ...priv })), true;
+        if (o.casa) return void (await i.reply({ content: "Las ofertas de los Vocaloids no se contraofertan: es tómalo o déjalo. 😌", ...priv })), true;
         if (o.de === userId) return void (await i.reply({ content: "Es tu oferta: si quieres cambiarla, retírala y publica otra.", ...priv })), true;
         if (o.para && o.para !== userId) return void (await i.reply({ content: "Esa oferta es para otro Papu.", ...priv })), true;
         const no = await this.noPuede(userId);
@@ -479,7 +533,7 @@ export class IntercambiosDiscord {
     }
     const o = r.oferta;
     const send = await this.d.sendable("teto", ch.id);
-    const msg = await send.send({ ...this.anuncio(o), allowedMentions: { users: o.para ? [o.para] : [] } });
+    const msg = await send.send({ ...this.anuncio(o), files: await this.imagenOferta(o), allowedMentions: { users: o.para ? [o.para] : [] } });
     this.s.setMensaje(o.id, ch.id, msg.id);
     if (r.cerrada) await this.cerrarAnuncio(r.cerrada, `🔁 <@${userId}> contestó con una [contraoferta](${msg.url}).`).catch((e) => logError("contraoferta", e));
     this.borradores.delete(userId);
@@ -589,9 +643,138 @@ export class IntercambiosDiscord {
     return true;
   }
 
+  // ───────────────────────── celular de Neru (app Comercio, PLAN §3.15) ─────────────────────────
+
+  private nombreDePapu(id: string | null): string | null {
+    if (!id) return null;
+    const mb = this.d.guild().members.cache.get(id);
+    return mb ? mb.displayName.replace(/\s*[★✦].*$/, "") : "un Papu";
+  }
+
+  private ofertaVista(o: Oferta, yo: string): unknown {
+    const lineas = (p: Paquete, quien: string | null) => describir(p, this.nombres, this.xpNiveles(p, quien)).map((l) => l.replace(/\*\*/g, ""));
+    return {
+      id: o.id,
+      de: { id: o.de, nombre: this.nombreDePapu(o.de) },
+      para: o.para ? { id: o.para, nombre: this.nombreDePapu(o.para) } : null,
+      padre: o.padre,
+      da: lineas(o.da, o.de),
+      pide: lineas(o.pide, o.para ?? yo),
+      daPaquete: o.da,
+      pidePaquete: o.pide,
+      vence: o.venceAt,
+      mia: o.de === yo,
+    };
+  }
+
+  /** Lo que tiene un Papu para intercambiar (tu lado o el del otro): cantidades, sobres, objetos que se cambian y consumibles. */
+  celularInventario(userId: string): unknown {
+    const w = this.d.coins.wallet(userId);
+    const owned = this.d.coins.owned(userId);
+    return {
+      monedas: w.monedas,
+      xp: this.d.levels.store.get(userId).xp,
+      niveles: Math.max(0, this.d.levels.level(userId).level - 1),
+      sobres: { comun: this.d.coins.sobresGratis(userId, "comun"), raro: this.d.coins.sobresGratis(userId, "raro"), legendario: this.d.coins.sobresGratis(userId, "legendario") },
+      objetos: this.d.coins.catalog.filter((o) => objetoCambiable(o) && owned.has(o.id)).map((o) => ({ id: o.id, nombre: o.nombre, tipo: TIPO_NOMBRE[o.tipo], rareza: RAREZA_NOMBRE[o.rareza] })),
+      consumibles: (this.d.mercado?.settings.objetos ?? [])
+        .filter((o) => CONSUMIBLES.includes(o.efecto))
+        .map((o) => ({ id: o.id, nombre: o.nombre, emoji: o.emoji, usos: this.d.mercado!.usos(userId, o.id) }))
+        .filter((c) => c.usos > 0),
+    };
+  }
+
+  /** Ofertas tuyas, para ti y abiertas de otros, y tu inventario. */
+  async celularEstado(userId: string): Promise<unknown> {
+    const s = this.s.settings;
+    return {
+      activo: s.activo,
+      puede: await this.noPuede(userId),
+      maxAbiertas: s.maxAbiertas,
+      mias: this.s.abiertasDe(userId).map((o) => this.ofertaVista(o, userId)),
+      paraMi: this.s.abiertasPara(userId).map((o) => this.ofertaVista(o, userId)),
+      abiertas: this.s.abiertasGlobales(userId).map((o) => this.ofertaVista(o, userId)),
+      inventario: this.celularInventario(userId),
+    };
+  }
+
+  /** Publicar una oferta (o contraoferta) armada en el celular: mismas reglas y el mismo anuncio en el centro de comercio. */
+  async celularPublicar(userId: string, b: { para: string | null; da: unknown; pide: unknown; padre: number | null }, noSePuede: (msg: string) => Error): Promise<string> {
+    if (!this.s.settings.activo) throw noSePuede("Los intercambios están apagados por ahora.");
+    let para = b.para;
+    if (b.padre) {
+      const padre = this.s.get(b.padre);
+      if (!padre || padre.estado !== "abierta") throw noSePuede("La oferta a la que contestabas ya se cerró.");
+      if (padre.para && padre.para !== userId) throw noSePuede("Esa oferta es para otro Papu.");
+      para = padre.de;
+    }
+    const no = (await this.noPuede(userId)) ?? (para ? await this.noPuede(para, "otro") : null);
+    if (no) throw noSePuede(no.replace(/\*\*/g, ""));
+    const ch = this.canal();
+    if (!ch) throw noSePuede(`Falta el canal #${this.s.settings.canal}; GyroP ya lo sabe.`);
+    const r = this.s.crear(userId, para, b.da as Paquete, b.pide as Paquete, b.padre);
+    if (!r.ok) {
+      throw noSePuede(
+        r.motivo === "vacia"
+          ? "Tienes que entregar algo y pedir algo."
+          : r.motivo === "a_ti"
+            ? "No puedes ofrecerte algo a ti mismo."
+            : r.motivo === "demasiadas"
+              ? `Ya tienes ${this.s.settings.maxAbiertas} ofertas abiertas: retira una antes.`
+              : r.motivo === "padre"
+                ? "La oferta a la que contestabas ya se cerró."
+                : `Te falta: ${r.motivo.falta.map((f) => this.falta(f)).join("; ")}.`,
+      );
+    }
+    const o = r.oferta;
+    const send = await this.d.sendable("teto", ch.id);
+    const msg = await send.send({ ...this.anuncio(o), files: await this.imagenOferta(o), allowedMentions: { users: o.para ? [o.para] : [] } });
+    this.s.setMensaje(o.id, ch.id, msg.id);
+    if (r.cerrada) await this.cerrarAnuncio(r.cerrada, `🔁 <@${userId}> contestó con una [contraoferta](${msg.url}) desde el 📱 celular de Neru.`).catch((e) => logError("contraoferta", e));
+    this.d.log(`🤝 Oferta #${o.id} de ${userId}${o.para ? ` para ${o.para}` : " (abierta)"} (celular)`);
+    return `¡Publicada! Teto la anunció en #${this.s.settings.canal} (oferta #${o.id}).`;
+  }
+
+  /** Aceptar, rechazar o retirar una oferta desde el celular. */
+  async celularResponder(userId: string, id: number, accion: string, noSePuede: (msg: string) => Error): Promise<string> {
+    if (accion === "aceptar") {
+      const no = await this.noPuede(userId);
+      if (no) throw noSePuede(no.replace(/\*\*/g, ""));
+      const antes = this.s.get(id);
+      const fijo = { da: antes ? this.xpNiveles(antes.da, antes.de) : null, pide: antes ? this.xpNiveles(antes.pide, userId) : null };
+      const r = this.s.aceptar(id, userId);
+      if (!r.ok) throw noSePuede(this.motivoAceptar(r.motivo).replace(/\*\*|❌ /g, "").replace(/\n- /g, " "));
+      const o = r.oferta;
+      for (const c of r.cambios) await this.d.levelsDiscord.handle(c, {}, { quiet: true, sinBono: true }).catch((e) => logError("nivel por intercambio", e));
+      const frase = this.d.phrases.pick("teto", "intercambio_hecho", { de: `<@${o.de}>`, papu: `<@${userId}>` });
+      await this.cerrarAnuncio(o, `✅ ${frase}`, fijo).catch((e) => logError("anuncio del intercambio", e));
+      this.d.log(`🤝 Intercambio #${o.id}: ${o.de} ↔ ${userId} (celular)`);
+      await this.d.report(`🤝 Intercambio #${o.id} hecho desde el celular: <@${o.de}> entregó ${describir(o.da, this.nombres, fijo.da).join(", ")} · <@${userId}> entregó ${describir(o.pide, this.nombres, fijo.pide).join(", ")}.`);
+      return `¡Trato hecho! Ya tienes lo de la oferta #${o.id}.`;
+    }
+    if (accion === "rechazar") {
+      const o = this.s.rechazar(id, userId);
+      if (!o) throw noSePuede("Solo el Papu al que iba dirigida puede rechazarla (y tiene que estar abierta).");
+      await this.cerrarAnuncio(o, `✖️ <@${userId}> la **rechazó**.`).catch((e) => logError("rechazo", e));
+      return "La rechazaste.";
+    }
+    if (accion === "retirar") {
+      const o = this.s.retirar(id, userId, this.d.owners.has(userId));
+      if (!o) throw noSePuede("Solo quien hizo la oferta puede retirarla (y tiene que estar abierta).");
+      await this.cerrarAnuncio(o, "🗑️ La **retiró** quien la hizo.").catch((e) => logError("retiro", e));
+      return "La retiraste.";
+    }
+    throw noSePuede("No sé hacer eso.");
+  }
+
   // ───────────────────────── anuncios ─────────────────────────
 
   private anuncio(o: Oferta): { content: string; components: Row[] } {
+    if (o.casa)
+      return {
+        content: this.texto(o, `-# Vence <t:${unix(o.venceAt)}:R>. Oferta de un Vocaloid: sin contraofertas; se la lleva el primer Papu que la acepte.`),
+        components: [this.row(this.btn(`acc:${o.id}`, "Aceptar", "✅", ButtonStyle.Success), this.btn(`ret:${o.id}`, "Retirar (GyroP)", "🗑️"))],
+      };
     const botones = [this.btn(`acc:${o.id}`, "Aceptar", "✅", ButtonStyle.Success), this.btn(`con:${o.id}`, "Contraoferta", "🔁", ButtonStyle.Primary)];
     if (o.para) botones.push(this.btn(`rec:${o.id}`, "Rechazar", "✖️", ButtonStyle.Danger));
     botones.push(this.btn(`ret:${o.id}`, "Retirar", "🗑️"));
@@ -602,11 +785,21 @@ export class IntercambiosDiscord {
   private texto(o: Oferta, pie: string, fijo?: { da: number | null; pide: number | null }): string {
     return [
       `## 🤝 Oferta #${o.id}${o.padre ? ` · 🔁 contraoferta a la #${o.padre}` : ""}`,
-      o.para ? `De <@${o.de}> para <@${o.para}>` : `De <@${o.de}> · 🌐 **abierta**: cualquier Papu puede aceptarla`,
+      o.para ? `De <@${o.de}> para <@${o.para}>` : o.casa ? `De <@${o.de}> · 🎤 **oferta de un Vocaloid**: precio fijo` : `De <@${o.de}> · 🌐 **abierta**: cualquier Papu puede aceptarla`,
       `**📤 Entrega:**\n${this.lista(o.da, o.de, fijo?.da)}`,
       `**📥 Pide:**\n${this.lista(o.pide, o.para ?? (o.estado === "hecha" ? o.con : null), fijo?.pide)}`,
       pie,
     ].join("\n");
+  }
+
+  /**
+   * Las cartas de los objetos de la tarjeta que se entregan o se piden (pedido de GyroP, 20 nov. 2026), en un JPG con
+   * el anuncio. Sin objetos, nada. Si falla el dibujo, el anuncio sale igual (solo con los nombres).
+   */
+  private async imagenOferta(o: Oferta): Promise<AttachmentBuilder[]> {
+    const objs = (ids: string[]) => ids.map((id) => this.d.coins.byId.get(id)).filter((x): x is Objeto => !!x);
+    const img = await ofertaImage({ titulo: `Oferta #${o.id}`, entrega: objs(o.da.objetos), pide: objs(o.pide.objetos) }).catch((e) => (logError("imagen de la oferta", e), null));
+    return img ? [new AttachmentBuilder(img, { name: `oferta-${o.id}.jpg` })] : [];
   }
 
   /** Edita el anuncio de una oferta cerrada: sin botones y con cómo terminó. */
@@ -623,8 +816,7 @@ export class IntercambiosDiscord {
   private falta(f: Falta): string {
     const obj = (id: string) => this.d.coins.byId.get(id)?.nombre ?? id;
     switch (f.que) {
-      case "ganadas":
-      case "compradas":
+      case "monedas":
       case "xp":
         return `${NOMBRE_CANTIDAD[f.que]}: tiene ${fmt(f.tiene)}, pide ${fmt(f.pide)}`;
       case "cuota":
@@ -636,13 +828,13 @@ export class IntercambiosDiscord {
       case "objeto":
         return `no tiene ${obj(f.id)}`;
       case "objeto_no_se_cambia":
-        return `${obj(f.id)} no se puede intercambiar (fundadores y membresías)`;
+        return `${obj(f.id)} no se puede intercambiar (fundadores, membresías y exclusivos)`;
       case "consumible":
         return `${this.d.mercado?.byId.get(f.id)?.nombre ?? f.id}: tiene ${f.tiene} usos, pide ${f.pide}`;
       case "ya_tiene_objeto":
         return `ya tiene ${obj(f.id)}`;
       case "cuota_llena":
-        return `la cuota de hoy está llena: le caben ${f.cabe} mensajes, son ${f.pide}`;
+        return `no le cabe tanta cuota hoy: le caben ${f.cabe} mensajes entre su cuota diaria y sus donados, son ${f.pide}`;
       case "sin_limite":
         return "tiene cuota sin límite (regalo de GyroP): no la cambia";
       case "xp_maxima":

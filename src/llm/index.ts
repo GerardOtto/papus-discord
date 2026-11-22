@@ -4,18 +4,35 @@ import path from "node:path";
 import { OpenAICompatibleProvider } from "./openai-compatible";
 import type { LLMProvider } from "./provider";
 
+export interface ProviderSettings {
+  name: string;
+  baseUrl: string;
+  model: string;
+  /** Variable del .env con la clave; sin ella (LLM local, ej. Ollama) no se exige clave. */
+  keyEnv?: string;
+  dailyRequests?: number;
+  /** Tiempo maximo de este proveedor (si no, el general). El local usa uno corto para ceder rapido si la tarjeta esta ocupada. */
+  timeoutMs?: number;
+  extra?: Record<string, unknown>;
+}
+
+/** Ver imagenes (PLAN §5.1): cadena aparte con modelos que leen imagenes y los topes por Papu. */
+export interface VisionSettings {
+  activo: boolean;
+  /** Imagenes que puede mostrar cada Papu al dia (GyroP sin limite). */
+  porPapuAlDia: number;
+  /** Mensajes de cuota que cuesta la imagen (una vez por mensaje, aunque haya varios @). */
+  cuotaExtra: number;
+  /** Lado maximo en pixeles al achicarla. */
+  ladoMax: number;
+  /** Las imagenes mas pesadas no se miran. */
+  maxMB: number;
+  providers: ProviderSettings[];
+}
+
 export interface LLMSettings {
-  providers: {
-    name: string;
-    baseUrl: string;
-    model: string;
-    /** Variable del .env con la clave; sin ella (LLM local, ej. Ollama) no se exige clave. */
-    keyEnv?: string;
-    dailyRequests?: number;
-    /** Tiempo maximo de este proveedor (si no, el general). El local usa uno corto para ceder rapido si la tarjeta esta ocupada. */
-    timeoutMs?: number;
-    extra?: Record<string, unknown>;
-  }[];
+  providers: ProviderSettings[];
+  vision?: VisionSettings;
   timeoutMs: number;
   /** "apis" = las APIs se turnan y el local es respaldo; "local" (por defecto) = el local primero (src/llm/router.ts). */
   preferencia?: "local" | "apis";
@@ -30,7 +47,7 @@ export function loadLLMSettings(file = path.join(REPO_ROOT, "config/llm.json")):
 }
 
 export function buildProviders(
-  settings: LLMSettings,
+  settings: Pick<LLMSettings, "providers" | "timeoutMs">,
   env: NodeJS.ProcessEnv = process.env,
   fetchFn?: typeof fetch,
 ): { providers: LLMProvider[]; skipped: string[]; dailyLimits: Record<string, number> } {

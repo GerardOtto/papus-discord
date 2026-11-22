@@ -2,6 +2,7 @@
 // vigentes. Todo el estado vive en SQLite (kv y tabla bodas), asi un reinicio no olvida la adivinanza ni al esposo.
 // Sin Discord: src/discord/bodas.ts publica, da el rol y dibuja el banner.
 import type { BotId } from "../config";
+import type { BrideId } from "./rules";
 import { kvDelete, kvGet, kvSet, type Db } from "../db/database";
 import type { DeckStore } from "../phrases/deck";
 import { dayKey } from "../time";
@@ -9,6 +10,7 @@ import { genderWords, isCorrect, planSlots, type Riddle, type WeddingSettings } 
 
 const ACTIVE_KEY = "bodas:activa";
 const INAUGURAL_KEY = "bodas:inaugural";
+const LAUNCH_KEY = "bodas:lanzada";
 /** Chicas que se acaban de divorciar y deben dejar otra adivinanza (en orden). */
 const AFTER_DIVORCE_KEY = "bodas:tras_divorcio";
 /** Despues de un divorcio, la chica sabe por un rato que ya no esta casada (el historial del canal aun habla de su ex). */
@@ -18,7 +20,7 @@ const LATE_MS = 15 * 60_000;
 
 /** Adivinanza abierta. */
 export interface ActiveRiddle {
-  bot: BotId;
+  bot: BrideId;
   /** Indice en content/bodas.json. */
   index: number;
   channelId: string;
@@ -33,12 +35,25 @@ export interface ActiveRiddle {
   reminded: string[];
 }
 
-/** normal = una hora del dia; inaugural = la del parche; divorcio = la revancha de la chica; manual = /boda de GyroP. */
-export type RiddleKind = "normal" | "inaugural" | "divorcio" | "manual";
+/**
+ * normal = una hora del dia; inaugural = la del parche; divorcio = la revancha de la chica; manual = /boda de GyroP;
+ * lanzada = /boda de un Papu con membresia (PLAN §2; sale unos minutos despues del aviso a los Rizzler).
+ */
+export type RiddleKind = "normal" | "inaugural" | "divorcio" | "manual" | "lanzada";
+
+/** Boda lanzada por un Papu, esperando su hora (el aviso ya salio). */
+export interface PendingLaunch {
+  bot: BrideId;
+  userId: string;
+  /** Cuando sale la adivinanza. */
+  at: number;
+  /** "🥖 Baguette" (para el aviso y el registro). */
+  nivel: string;
+}
 
 export interface Wedding {
   id: number;
-  bot: BotId;
+  bot: BrideId;
   userId: string;
   /** Nombre del Papu al casarse (para lo que sabe la chica). */
   name: string;
@@ -55,7 +70,7 @@ export type GuessResult =
   /** Ya uso todos sus intentos (o este era el ultimo, si `last`). */
   | { kind: "sin_intentos"; last: boolean }
   /** Esta casado: no juega hasta que termine. */
-  | { kind: "casado"; with: BotId }
+  | { kind: "casado"; with: BrideId }
   /** Se caso con esta misma hace menos de `diasSinRepetir` dias. */
   | { kind: "repite" }
   /** No cuenta (no hay adivinanza, es GyroP o un mensaje vacio). */
@@ -72,12 +87,12 @@ interface Row {
   divorcio: number | null;
 }
 
-const toWedding = (r: Row): Wedding => ({ id: r.id, bot: r.bot as BotId, userId: r.user_id, name: r.nombre, startedAt: r.inicio, endsAt: r.fin, xp: r.xp, divorcedAt: r.divorcio ?? null });
+const toWedding = (r: Row): Wedding => ({ id: r.id, bot: r.bot as BrideId, userId: r.user_id, name: r.nombre, startedAt: r.inicio, endsAt: r.fin, xp: r.xp, divorcedAt: r.divorcio ?? null });
 
 export interface WeddingServiceDeps {
   db: Db;
   settings: WeddingSettings;
-  riddles: Partial<Record<BotId, Riddle[]>>;
+  riddles: Partial<Record<BrideId, Riddle[]>>;
   decks: DeckStore;
   now?: () => number;
   rnd?: () => number;
@@ -98,6 +113,16 @@ export class WeddingService {
 
   // ───────────────────────── cuando toca ─────────────────────────
 
+  /** Boda lanzada que espera su hora (o null). */
+  pendingLaunch(): PendingLaunch | null {
+    return JSON.parse(kvGet(this.d.db, LAUNCH_KEY) ?? "null") as PendingLaunch | null;
+  }
+
+  setPendingLaunch(p: PendingLaunch | null): void {
+    if (p) kvSet(this.d.db, LAUNCH_KEY, JSON.stringify(p));
+    else kvDelete(this.d.db, LAUNCH_KEY);
+  }
+
   active(): ActiveRiddle | null {
     return JSON.parse(kvGet(this.d.db, ACTIVE_KEY) ?? "null") as ActiveRiddle | null;
   }
@@ -117,7 +142,7 @@ export class WeddingService {
   }
 
   /** La primera adivinanza (la de Teto con el parche), si todavia no salio. */
-  inauguralPending(): BotId | null {
+  inauguralPending(): BrideId | null {
     return this.d.settings.inaugural && !kvGet(this.d.db, INAUGURAL_KEY) ? this.d.settings.inaugural : null;
   }
 
@@ -137,7 +162,7 @@ export class WeddingService {
    * pierden. Sin cupo del dia (`porDia`) o con una adivinanza abierta, nada.
    */
   dueSlot(t = this.now()): number | null {
-    if (this.active() || this.countToday(t) >= this.d.settings.porDia) return null;
+    if (this.active() || this.pendingLaunch() || this.countToday(t) >= this.d.settings.porDia) return null;
     const used = new Set(JSON.parse(kvGet(this.d.db, `bodas:usadas:${this.day(t)}`) ?? "[]") as number[]);
     return this.slots(t).find((s) => !used.has(s) && s <= t && t - s <= LATE_MS) ?? null;
   }
@@ -153,11 +178,11 @@ export class WeddingService {
    * Chica para la proxima adivinanza: rotando entre las conectadas que no estan casadas. Null si ninguna puede.
    * `force` = la inaugural.
    */
-  pickBride(online: readonly BotId[], force: BotId | null = null, t = this.now()): BotId | null {
+  pickBride(online: readonly BrideId[], force: BrideId | null = null, t = this.now()): BrideId | null {
     const married = new Set(this.weddings(t).map((w) => w.bot));
-    const ok = (b: BotId) => online.includes(b) && !married.has(b) && (this.d.riddles[b]?.length ?? 0) > 0;
+    const ok = (b: BrideId) => online.includes(b) && !married.has(b) && (this.d.riddles[b]?.length ?? 0) > 0;
     if (force) return ok(force) ? force : null;
-    const girls = Object.keys(this.d.settings.chicas) as BotId[];
+    const girls = Object.keys(this.d.settings.chicas) as BrideId[];
     // Dos vueltas: el mazo puede cortar una vuelta a la mitad y la que sirve quedar al final de la siguiente.
     for (let i = 0; i < girls.length * 2; i++) {
       const b = girls[this.d.decks.next("bodas.chica", girls.length)]!;
@@ -166,8 +191,13 @@ export class WeddingService {
     return null;
   }
 
+  /** Suma una adivinanza escrita por un Papu y aprobada (taller, PLAN §2). */
+  addRiddle(bot: BrideId, r: Riddle): void {
+    (this.d.riddles[bot] ??= []).push(r);
+  }
+
   /** Siguiente adivinanza de la chica (mazo sin repetir). */
-  nextRiddle(bot: BotId): { index: number; riddle: Riddle } {
+  nextRiddle(bot: BrideId): { index: number; riddle: Riddle } {
     const list = this.d.riddles[bot] ?? [];
     const index = this.d.decks.next(`bodas.adivinanza.${bot}`, list.length);
     return { index, riddle: list[index]! };
@@ -177,7 +207,7 @@ export class WeddingService {
    * La adivinanza ya esta publicada: empieza a contar. La de despues de un divorcio y la que dispara GyroP con /boda no
    * gastan una de las del dia (decisiones de GyroP).
    */
-  opened(r: { bot: BotId; index: number; channelId: string; messageId: string; threadId: string | null }, kind: RiddleKind = "normal"): ActiveRiddle {
+  opened(r: { bot: BrideId; index: number; channelId: string; messageId: string; threadId: string | null }, kind: RiddleKind = "normal"): ActiveRiddle {
     const t = this.now();
     const active: ActiveRiddle = { ...r, startedAt: t, endsAt: t + this.d.settings.duracionMinutos * 60_000, attempts: {}, reminded: [] };
     this.save(active);
@@ -241,7 +271,7 @@ export class WeddingService {
   // ───────────────────────── bodas ─────────────────────────
 
   /** Registra la boda (dura `horas`). */
-  marry(bot: BotId, userId: string, name: string, xp: number, t = this.now()): Wedding {
+  marry(bot: BrideId, userId: string, name: string, xp: number, t = this.now()): Wedding {
     const endsAt = t + this.d.settings.horas * 3_600_000;
     const res = this.d.db.prepare("INSERT INTO bodas (bot, user_id, nombre, inicio, fin, xp) VALUES (?, ?, ?, ?, ?, ?)").run(bot, userId, name, t, endsAt, xp);
     return { id: Number(res.lastInsertRowid), bot, userId, name, startedAt: t, endsAt, xp, divorcedAt: null };
@@ -262,23 +292,23 @@ export class WeddingService {
     return { ...w, endsAt: t, divorcedAt: t };
   }
 
-  private afterDivorceQueue(): BotId[] {
-    return JSON.parse(kvGet(this.d.db, AFTER_DIVORCE_KEY) ?? "[]") as BotId[];
+  private afterDivorceQueue(): BrideId[] {
+    return JSON.parse(kvGet(this.d.db, AFTER_DIVORCE_KEY) ?? "[]") as BrideId[];
   }
 
-  private setAfterDivorce(list: BotId[]): void {
+  private setAfterDivorce(list: BrideId[]): void {
     kvSet(this.d.db, AFTER_DIVORCE_KEY, JSON.stringify(list));
   }
 
   /** Chica recien divorciada que debe dejar otra adivinanza ahora (si no hay otra abierta y esta conectada). */
-  afterDivorce(online: readonly BotId[], t = this.now()): BotId | null {
+  afterDivorce(online: readonly BrideId[], t = this.now()): BrideId | null {
     if (this.active()) return null;
     const married = new Set(this.weddings(t).map((w) => w.bot));
     return this.afterDivorceQueue().find((b) => online.includes(b) && !married.has(b) && (this.d.riddles[b]?.length ?? 0) > 0) ?? null;
   }
 
   /** Ultima boda de la chica, si termino en divorcio hace poco y no se volvio a casar. */
-  private recentDivorce(bot: BotId, t: number): Wedding | null {
+  private recentDivorce(bot: BrideId, t: number): Wedding | null {
     const row = this.d.db.prepare("SELECT * FROM bodas WHERE bot = ? ORDER BY inicio DESC LIMIT 1").get(bot) as Row | undefined;
     const w = row ? toWedding(row) : null;
     return w && w.divorcedAt !== null && w.endsAt <= t && t - w.divorcedAt < DIVORCE_NOTE_MS ? w : null;
@@ -294,7 +324,7 @@ export class WeddingService {
   }
 
   /** Se caso con esa chica hace menos de `diasSinRepetir` dias. */
-  repeats(userId: string, bot: BotId, t = this.now()): boolean {
+  repeats(userId: string, bot: BrideId, t = this.now()): boolean {
     const since = t - this.d.settings.diasSinRepetir * 86_400_000;
     return !!this.d.db.prepare("SELECT 1 FROM bodas WHERE user_id = ? AND bot = ? AND inicio > ?").get(userId, bot, since);
   }

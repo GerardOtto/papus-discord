@@ -17,23 +17,47 @@ export function colorKey(rol: string): string {
     .replace(/[^a-z0-9]/g, "");
 }
 
-/** Menu desplegable de Discord (maximo 25 opciones, contando "sin color"). */
+/** Colores por menu: el de Discord tiene 25 opciones y una es "Sin color". */
+export const COLORS_PER_MENU = 24;
+
+/** El menu de colores `custom_id` (el primero es COLOR_MENU_ID; los siguientes, "papu_color:2", "papu_color:3"…). */
+export function isColorMenu(customId: string | undefined): boolean {
+  return !!customId && (customId === COLOR_MENU_ID || customId.startsWith(`${COLOR_MENU_ID}:`));
+}
+
+/**
+ * Menus desplegables de colores (una fila cada uno). Con mas de 24 colores la paleta se parte en menus parejos, en
+ * orden (desde el 12 nov. 2026 son 26, con los colores de las 4 chicas, Ruko y los invitados del 1vs1). Cada menu
+ * lleva "Sin color".
+ */
+export function colorMenus(palette: PaletteColor[]): Record<string, unknown>[] {
+  const n = Math.max(1, Math.ceil(palette.length / COLORS_PER_MENU));
+  if (n > 2) throw new Error("La paleta de colores admite hasta 48 colores (dos menús de Discord)");
+  const size = Math.ceil(palette.length / n);
+  return Array.from({ length: n }, (_, k) => {
+    const part = palette.slice(k * size, (k + 1) * size);
+    const range = n > 1 ? ` (${part[0]!.rol.replace(/^🎨\s*/, "")} … ${part.at(-1)!.rol.replace(/^🎨\s*/, "")})` : "";
+    return {
+      type: 1,
+      components: [
+        {
+          type: 3,
+          custom_id: k === 0 ? COLOR_MENU_ID : `${COLOR_MENU_ID}:${k + 1}`,
+          placeholder: `🎨 Elige el color de tu nombre${range}`.slice(0, 150),
+          options: [
+            ...part.map((c) => ({ label: c.rol.replace(/^🎨\s*/, ""), value: colorKey(c.rol), description: c.color.toUpperCase() })),
+            { label: "Sin color", value: NO_COLOR, description: "Vuelve al color de siempre" },
+          ],
+        },
+      ],
+    };
+  });
+}
+
+/** Un solo menu de colores (paletas de hasta 24). */
 export function colorMenu(palette: PaletteColor[]): Record<string, unknown> {
-  if (palette.length > 24) throw new Error("La paleta de colores admite hasta 24 colores (el menú de Discord tiene 25 opciones)");
-  return {
-    type: 1,
-    components: [
-      {
-        type: 3,
-        custom_id: COLOR_MENU_ID,
-        placeholder: "🎨 Elige el color de tu nombre",
-        options: [
-          ...palette.map((c) => ({ label: c.rol.replace(/^🎨\s*/, ""), value: colorKey(c.rol), description: c.color.toUpperCase() })),
-          { label: "Sin color", value: NO_COLOR, description: "Vuelve al color de siempre" },
-        ],
-      },
-    ],
-  };
+  if (palette.length > COLORS_PER_MENU) throw new Error("La paleta de colores admite hasta 24 colores en un menú (usa colorMenus)");
+  return colorMenus(palette)[0]!;
 }
 
 // Menu de paises, en el mismo mensaje de #tus-roles: el rol solo pone la bandera y el nombre del pais (sin color).

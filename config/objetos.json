@@ -1,9 +1,13 @@
 {
-  "$comment": "Objetos de las Shaula-coins (docs/PLAN.md §3.6). tipo = fondo, borde, barra, nombre, aro, insignia o titulo. origen: 'arte' = dibujado con código (src/coins/arte.ts; se compra con cualquier moneda) o 'render' = imagen de Diva-a-Render en assets/coleccion/<imagen> (solo con monedas ganadas: los renders son de uso personal no comercial). rareza 'mitica' sale solo en sobres; 'fundador' solo se regala a los fundadores y 'membresia' a quienes tienen ese rol de Ko-fi (config/monedas.json); 'contrabando' solo se compra en el mercado negro (config/mercado.json, temporada 'mercado': nunca en vitrinas ni sobres, no se fabrica). 'limitado' = días del año (MM-DD, hora de Chile) en que puede salir en vitrinas y sobres. Para agregar objetos de una temporada nueva: sumarlos aquí con su 'temporada'.",
+  "$comment": "Objetos de las Shaulitas (docs/PLAN.md §3.6). tipo = fondo, borde, barra, nombre, aro, insignia o titulo. origen: 'arte' = dibujado con código (src/coins/arte.ts; se compra con cualquier moneda) o 'render' = imagen de Diva-a-Render en assets/coleccion/<imagen> (solo con Shaulitas: los renders son de uso personal no comercial). rareza 'mitica' sale solo en sobres; 'fundador' solo se regala a los fundadores y 'membresia' a quienes tienen ese rol de Ko-fi (config/monedas.json); 'contrabando' solo se compra en el mercado negro (config/mercado.json, temporada 'mercado': nunca en vitrinas ni sobres, no se fabrica). 'limitado' = días del año (MM-DD, hora de Chile) en que puede salir en vitrinas y sobres. Para agregar objetos de una temporada nueva: sumarlos aquí con su 'temporada'. 'agregado' (AAAA-MM-DD) = objeto sumado a mitad de temporada: no cambia el calendario de vitrinas ya armado; desde ese día ocupa los lugares que repetían otro objeto (si no caben todos, los que faltan salen en sobres y se fabrican). Las insignias «Fan de…» (corazones de colores, pedido de GyroP, 12 nov. 2026) entran así desde la vitrina del 16 nov.",
   "temporadas": [
     {
       "id": "t1",
       "nombre": "Lanzamiento"
+    },
+    {
+      "id": "t2",
+      "nombre": "Navidad y los 7 pecados"
     }
   ],
   "objetos": [
@@ -14,7 +18,10 @@
       "rareza": "comun",
       "origen": "arte",
       "descripcion": "Cinta café con carretes abajo.",
-      "temporada": "t1"
+      "temporada": "t1",
+      "temas": [
+        "musica"
+      ]
     },
     {
       "id": "pentagrama",
@@ -23,7 +30,10 @@
       "rareza": "comun",
       "origen": "arte",
       "descripcion": "Cinco líneas arriba y abajo, con clave de sol.",
-      "temporada": "t1"
+      "temporada": "t1",
+      "temas": [
+        "musica"
+      ]
     },
     {
       "id": "hoja-de-cuaderno",
@@ -50,7 +60,10 @@
       "rareza": "rara",
       "origen": "arte",
       "descripcion": "Un cable ondulado que da la vuelta, con su conector.",
-      "temporada": "t1"
+      "temporada": "t1",
+      "temas": [
+        "musica"
+      ]
     },
     {
       "id": "taladros-de-teto",
@@ -60,7 +73,10 @@
       "origen": "arte",
       "animado": true,
       "descripcion": "Rosa, con espirales que giran en las esquinas.",
-      "temporada": "t1"
+      "temporada": "t1",
+      "personajes": [
+        "teto"
+      ]
     },
     {
       "id": "atun-plateado",
@@ -70,7 +86,10 @@
       "origen": "arte",
       "animado": true,
       "descripcion": "Plateado con escamas y un brillo que lo recorre.",
-      "temporada": "t1"
+      "temporada": "t1",
+      "personajes": [
+        "luka"
+      ]
     },
     {
       "id": "luces-del-mirai",
@@ -80,7 +99,10 @@
       "origen": "arte",
       "animado": true,
       "descripcion": "Dorado, con luces de escenario que corren.",
-      "temporada": "t1"
+      "temporada": "t1",
+      "temas": [
+        "musica"
+      ]
     },
     {
       "id": "lisa-de-color",
@@ -108,7 +130,10 @@
       "origen": "arte",
       "animado": true,
       "descripcion": "Rayas que avanzan.",
-      "temporada": "t1"
+      "temporada": "t1",
+      "personajes": [
+        "teto"
+      ]
     },
     {
       "id": "ecualizador",
@@ -118,7 +143,10 @@
       "origen": "arte",
       "animado": true,
       "descripcion": "Bloques que suben y bajan al ritmo.",
-      "temporada": "t1"
+      "temporada": "t1",
+      "temas": [
+        "musica"
+      ]
     },
     {
       "id": "onda-de-voz",
@@ -128,7 +156,10 @@
       "origen": "arte",
       "animado": true,
       "descripcion": "Dos ondas de sonido que se mueven.",
-      "temporada": "t1"
+      "temporada": "t1",
+      "temas": [
+        "musica"
+      ]
     },
     {
       "id": "oro-liquido",
@@ -203,7 +234,10 @@
       "rareza": "rara",
       "origen": "arte",
       "descripcion": "Trenzado en dos verdes.",
-      "temporada": "t1"
+      "temporada": "t1",
+      "personajes": [
+        "miku"
+      ]
     },
     {
       "id": "corazones-de-luka",
@@ -213,7 +247,10 @@
       "origen": "arte",
       "animado": true,
       "descripcion": "Rosa, con corazones que giran.",
-      "temporada": "t1"
+      "temporada": "t1",
+      "personajes": [
+        "luka"
+      ]
     },
     {
       "id": "notas-en-orbita",
@@ -223,7 +260,10 @@
       "origen": "arte",
       "animado": true,
       "descripcion": "Dorado, con notas que orbitan.",
-      "temporada": "t1"
+      "temporada": "t1",
+      "temas": [
+        "musica"
+      ]
     },
     {
       "id": "insignia-puerro",
@@ -233,7 +273,10 @@
       "origen": "arte",
       "valor": "🥬",
       "descripcion": "Va junto a tu nombre (hasta 3).",
-      "temporada": "t1"
+      "temporada": "t1",
+      "personajes": [
+        "miku"
+      ]
     },
     {
       "id": "insignia-baguette",
@@ -243,7 +286,10 @@
       "origen": "arte",
       "valor": "🥖",
       "descripcion": "Va junto a tu nombre (hasta 3).",
-      "temporada": "t1"
+      "temporada": "t1",
+      "personajes": [
+        "teto"
+      ]
     },
     {
       "id": "insignia-atun",
@@ -253,7 +299,10 @@
       "origen": "arte",
       "valor": "🐟",
       "descripcion": "Va junto a tu nombre (hasta 3).",
-      "temporada": "t1"
+      "temporada": "t1",
+      "personajes": [
+        "luka"
+      ]
     },
     {
       "id": "insignia-microfono",
@@ -263,7 +312,10 @@
       "origen": "arte",
       "valor": "🎤",
       "descripcion": "Va junto a tu nombre (hasta 3).",
-      "temporada": "t1"
+      "temporada": "t1",
+      "temas": [
+        "musica"
+      ]
     },
     {
       "id": "insignia-naranja-de-rin",
@@ -273,7 +325,10 @@
       "origen": "arte",
       "valor": "🍊",
       "descripcion": "Va junto a tu nombre (hasta 3).",
-      "temporada": "t1"
+      "temporada": "t1",
+      "personajes": [
+        "rin"
+      ]
     },
     {
       "id": "insignia-platano-de-len",
@@ -283,7 +338,10 @@
       "origen": "arte",
       "valor": "🍌",
       "descripcion": "Va junto a tu nombre (hasta 3).",
-      "temporada": "t1"
+      "temporada": "t1",
+      "personajes": [
+        "len"
+      ]
     },
     {
       "id": "insignia-celular-de-neru",
@@ -293,7 +351,10 @@
       "origen": "arte",
       "valor": "📱",
       "descripcion": "Va junto a tu nombre (hasta 3).",
-      "temporada": "t1"
+      "temporada": "t1",
+      "personajes": [
+        "neru"
+      ]
     },
     {
       "id": "insignia-helado-de-kaito",
@@ -303,7 +364,10 @@
       "origen": "arte",
       "valor": "🍨",
       "descripcion": "Va junto a tu nombre (hasta 3).",
-      "temporada": "t1"
+      "temporada": "t1",
+      "personajes": [
+        "kaito"
+      ]
     },
     {
       "id": "insignia-corona",
@@ -316,6 +380,396 @@
       "temporada": "t1"
     },
     {
+      "id": "insignia-fan-teto",
+      "nombre": "Fan de Teto",
+      "tipo": "insignia",
+      "rareza": "comun",
+      "origen": "arte",
+      "valor": "❤️",
+      "imagen": "insignias/fan-teto.png",
+      "descripcion": "Corazón ❤️ de quienes son fans de Teto. Va junto a tu nombre (hasta 3).",
+      "temporada": "t1",
+      "agregado": "2026-11-16",
+      "personajes": [
+        "teto"
+      ]
+    },
+    {
+      "id": "insignia-fan-adachirei",
+      "nombre": "Fan de Adachi Rei",
+      "tipo": "insignia",
+      "rareza": "comun",
+      "origen": "arte",
+      "valor": "🧡",
+      "imagen": "insignias/fan-adachirei.png",
+      "descripcion": "Corazón 🧡 de quienes son fans de Adachi Rei. Va junto a tu nombre (hasta 3).",
+      "temporada": "t1",
+      "agregado": "2026-11-16",
+      "personajes": [
+        "adachirei"
+      ]
+    },
+    {
+      "id": "insignia-fan-neru",
+      "nombre": "Fan de Neru",
+      "tipo": "insignia",
+      "rareza": "comun",
+      "origen": "arte",
+      "valor": "💛",
+      "imagen": "insignias/fan-neru.png",
+      "descripcion": "Corazón 💛 de quienes son fans de Neru. Va junto a tu nombre (hasta 3).",
+      "temporada": "t1",
+      "agregado": "2026-11-16",
+      "personajes": [
+        "neru"
+      ]
+    },
+    {
+      "id": "insignia-fan-gumi",
+      "nombre": "Fan de Gumi",
+      "tipo": "insignia",
+      "rareza": "comun",
+      "origen": "arte",
+      "valor": "💚",
+      "imagen": "insignias/fan-gumi.png",
+      "descripcion": "Corazón 💚 de quienes son fans de Gumi. Va junto a tu nombre (hasta 3).",
+      "temporada": "t1",
+      "agregado": "2026-11-16",
+      "personajes": [
+        "gumi"
+      ]
+    },
+    {
+      "id": "insignia-fan-kaito",
+      "nombre": "Fan de Kaito",
+      "tipo": "insignia",
+      "rareza": "comun",
+      "origen": "arte",
+      "valor": "💙",
+      "imagen": "insignias/fan-kaito.png",
+      "descripcion": "Corazón 💙 de quienes son fans de Kaito. Va junto a tu nombre (hasta 3).",
+      "temporada": "t1",
+      "agregado": "2026-11-16",
+      "personajes": [
+        "kaito"
+      ]
+    },
+    {
+      "id": "insignia-fan-flower",
+      "nombre": "Fan de flower",
+      "tipo": "insignia",
+      "rareza": "comun",
+      "origen": "arte",
+      "valor": "💜",
+      "imagen": "insignias/fan-flower.png",
+      "descripcion": "Corazón 💜 de quienes son fans de flower. Va junto a tu nombre (hasta 3).",
+      "temporada": "t1",
+      "agregado": "2026-11-16",
+      "personajes": [
+        "flower"
+      ]
+    },
+    {
+      "id": "insignia-fan-luka",
+      "nombre": "Fan de Luka",
+      "tipo": "insignia",
+      "rareza": "comun",
+      "origen": "arte",
+      "valor": "🩷",
+      "imagen": "insignias/fan-luka.png",
+      "descripcion": "Corazón 🩷 de quienes son fans de Luka. Va junto a tu nombre (hasta 3).",
+      "temporada": "t1",
+      "agregado": "2026-11-16",
+      "personajes": [
+        "luka"
+      ]
+    },
+    {
+      "id": "insignia-fan-miku",
+      "nombre": "Fan de Miku",
+      "tipo": "insignia",
+      "rareza": "comun",
+      "origen": "arte",
+      "valor": "🩵",
+      "imagen": "insignias/fan-miku.png",
+      "descripcion": "Corazón 🩵 de quienes son fans de Miku. Va junto a tu nombre (hasta 3).",
+      "temporada": "t1",
+      "agregado": "2026-11-16",
+      "personajes": [
+        "miku"
+      ]
+    },
+    {
+      "id": "insignia-fan-gakupo",
+      "nombre": "Fan de Gakupo",
+      "tipo": "insignia",
+      "rareza": "comun",
+      "origen": "arte",
+      "valor": "💜",
+      "imagen": "insignias/fan-gakupo.png",
+      "colores": [
+        "#A77BFF"
+      ],
+      "descripcion": "Corazón 💜 de quienes son fans de Gakupo. Va junto a tu nombre (hasta 3).",
+      "temporada": "t2",
+      "agregado": "2026-11-19",
+      "personajes": [
+        "gakupo"
+      ]
+    },
+    {
+      "id": "insignia-fan-ia",
+      "nombre": "Fan de IA",
+      "tipo": "insignia",
+      "rareza": "comun",
+      "origen": "arte",
+      "valor": "🩷",
+      "imagen": "insignias/fan-ia.png",
+      "colores": [
+        "#F4A7C0"
+      ],
+      "descripcion": "Corazón 🩷 de quienes son fans de IA. Va junto a tu nombre (hasta 3).",
+      "temporada": "t2",
+      "agregado": "2026-11-19",
+      "personajes": [
+        "ia"
+      ]
+    },
+    {
+      "id": "insignia-fan-haku",
+      "nombre": "Fan de Haku",
+      "tipo": "insignia",
+      "rareza": "comun",
+      "origen": "arte",
+      "valor": "🤍",
+      "imagen": "insignias/fan-haku.png",
+      "colores": [
+        "#B7A9E6"
+      ],
+      "descripcion": "Corazón 🤍 de quienes son fans de Haku. Va junto a tu nombre (hasta 3).",
+      "temporada": "t2",
+      "agregado": "2026-11-19",
+      "personajes": [
+        "haku"
+      ]
+    },
+    {
+      "id": "insignia-fan-rin",
+      "nombre": "Fan de Rin",
+      "tipo": "insignia",
+      "rareza": "comun",
+      "origen": "arte",
+      "valor": "💛",
+      "imagen": "insignias/fan-rin.png",
+      "colores": [
+        "#F7C531"
+      ],
+      "descripcion": "Corazón 💛 de quienes son fans de Rin. Va junto a tu nombre (hasta 3).",
+      "temporada": "t2",
+      "agregado": "2026-11-19",
+      "personajes": [
+        "rin"
+      ]
+    },
+    {
+      "id": "insignia-fan-len",
+      "nombre": "Fan de Len",
+      "tipo": "insignia",
+      "rareza": "comun",
+      "origen": "arte",
+      "valor": "💛",
+      "imagen": "insignias/fan-len.png",
+      "colores": [
+        "#E8A317"
+      ],
+      "descripcion": "Corazón 💛 de quienes son fans de Len. Va junto a tu nombre (hasta 3).",
+      "temporada": "t2",
+      "agregado": "2026-11-19",
+      "personajes": [
+        "len"
+      ]
+    },
+    {
+      "id": "insignia-fan-meiko",
+      "nombre": "Fan de Meiko",
+      "tipo": "insignia",
+      "rareza": "comun",
+      "origen": "arte",
+      "valor": "❤️",
+      "imagen": "insignias/fan-meiko.png",
+      "colores": [
+        "#E0383E"
+      ],
+      "descripcion": "Corazón ❤️ de quienes son fans de Meiko. Va junto a tu nombre (hasta 3).",
+      "temporada": "t2",
+      "agregado": "2026-11-19",
+      "personajes": [
+        "meiko"
+      ]
+    },
+    {
+      "id": "insignia-fan-ruko",
+      "nombre": "Fan de Ruko",
+      "tipo": "insignia",
+      "rareza": "comun",
+      "origen": "arte",
+      "valor": "💙",
+      "imagen": "insignias/fan-ruko.png",
+      "colores": [
+        "#4A6AA8"
+      ],
+      "descripcion": "Corazón 💙 de quienes son fans de Ruko. Va junto a tu nombre (hasta 3).",
+      "temporada": "t2",
+      "agregado": "2026-11-19",
+      "personajes": [
+        "ruko"
+      ]
+    },
+    {
+      "id": "insignia-fan-ted",
+      "nombre": "Fan de Ted",
+      "tipo": "insignia",
+      "rareza": "comun",
+      "origen": "arte",
+      "valor": "💜",
+      "imagen": "insignias/fan-ted.png",
+      "colores": [
+        "#C77DB5"
+      ],
+      "descripcion": "Corazón 💜 de quienes son fans de Ted. Va junto a tu nombre (hasta 3).",
+      "temporada": "t2",
+      "agregado": "2026-11-19",
+      "personajes": [
+        "ted"
+      ]
+    },
+    {
+      "id": "insignia-fan-nero",
+      "nombre": "Fan de Nero",
+      "tipo": "insignia",
+      "rareza": "comun",
+      "origen": "arte",
+      "valor": "🧡",
+      "imagen": "insignias/fan-nero.png",
+      "colores": [
+        "#E0A21C"
+      ],
+      "descripcion": "Corazón 🧡 de quienes son fans de Nero. Va junto a tu nombre (hasta 3).",
+      "temporada": "t2",
+      "agregado": "2026-11-19",
+      "personajes": [
+        "nero"
+      ]
+    },
+    {
+      "id": "insignia-fan-lily",
+      "nombre": "Fan de Lily",
+      "tipo": "insignia",
+      "rareza": "comun",
+      "origen": "arte",
+      "valor": "💛",
+      "imagen": "insignias/fan-lily.png",
+      "colores": [
+        "#F2C200"
+      ],
+      "descripcion": "Corazón 💛 de quienes son fans de Lily. Va junto a tu nombre (hasta 3).",
+      "temporada": "t2",
+      "agregado": "2026-11-19",
+      "personajes": [
+        "lily"
+      ]
+    },
+    {
+      "id": "insignia-fan-defoko",
+      "nombre": "Fan de Defoko",
+      "tipo": "insignia",
+      "rareza": "comun",
+      "origen": "arte",
+      "valor": "💜",
+      "imagen": "insignias/fan-defoko.png",
+      "colores": [
+        "#A98BEA"
+      ],
+      "descripcion": "Corazón 💜 de quienes son fans de Defoko. Va junto a tu nombre (hasta 3).",
+      "temporada": "t2",
+      "agregado": "2026-11-19",
+      "personajes": [
+        "defoko"
+      ]
+    },
+    {
+      "id": "insignia-fan-kafu",
+      "nombre": "Fan de KAFU",
+      "tipo": "insignia",
+      "rareza": "comun",
+      "origen": "arte",
+      "valor": "💙",
+      "imagen": "insignias/fan-kafu.png",
+      "colores": [
+        "#5C7CFA"
+      ],
+      "descripcion": "Corazón 💙 de quienes son fans de KAFU. Va junto a tu nombre (hasta 3).",
+      "temporada": "t2",
+      "agregado": "2026-11-19",
+      "personajes": [
+        "kafu"
+      ]
+    },
+    {
+      "id": "insignia-fan-momo",
+      "nombre": "Fan de Momone Momo",
+      "tipo": "insignia",
+      "rareza": "comun",
+      "origen": "arte",
+      "valor": "🩷",
+      "imagen": "insignias/fan-momo.png",
+      "colores": [
+        "#F07AA6"
+      ],
+      "descripcion": "Corazón 🩷 de quienes son fans de Momone Momo. Va junto a tu nombre (hasta 3).",
+      "temporada": "t2",
+      "agregado": "2026-11-19",
+      "personajes": [
+        "momo"
+      ]
+    },
+    {
+      "id": "insignia-fan-kanon",
+      "nombre": "Fan de Kanon",
+      "tipo": "insignia",
+      "rareza": "comun",
+      "origen": "arte",
+      "valor": "💜",
+      "imagen": "insignias/fan-kanon.png",
+      "colores": [
+        "#B18CFF"
+      ],
+      "descripcion": "Corazón 💜 de quienes son fans de Kanon. Va junto a tu nombre (hasta 3).",
+      "temporada": "t2",
+      "agregado": "2026-11-19",
+      "personajes": [
+        "kanon"
+      ]
+    },
+    {
+      "id": "insignia-fan-anon",
+      "nombre": "Fan de Anon",
+      "tipo": "insignia",
+      "rareza": "comun",
+      "origen": "arte",
+      "valor": "🧡",
+      "imagen": "insignias/fan-anon.png",
+      "colores": [
+        "#FFB34D"
+      ],
+      "descripcion": "Corazón 🧡 de quienes son fans de Anon. Va junto a tu nombre (hasta 3).",
+      "temporada": "t2",
+      "agregado": "2026-11-19",
+      "personajes": [
+        "anon"
+      ]
+    },
+    {
       "id": "titulo-recien-llegado",
       "nombre": "Recién llegado al karaoke",
       "tipo": "titulo",
@@ -323,7 +777,10 @@
       "origen": "arte",
       "valor": "Recién llegado al karaoke",
       "descripcion": "Frase bajo tu nombre.",
-      "temporada": "t1"
+      "temporada": "t1",
+      "temas": [
+        "musica"
+      ]
     },
     {
       "id": "titulo-coleccionista",
@@ -333,7 +790,10 @@
       "origen": "arte",
       "valor": "Coleccionista de puerros",
       "descripcion": "Frase bajo tu nombre.",
-      "temporada": "t1"
+      "temporada": "t1",
+      "personajes": [
+        "miku"
+      ]
     },
     {
       "id": "titulo-taladro-oficial",
@@ -343,7 +803,10 @@
       "origen": "arte",
       "valor": "Taladro oficial de Teto",
       "descripcion": "Frase bajo tu nombre.",
-      "temporada": "t1"
+      "temporada": "t1",
+      "personajes": [
+        "teto"
+      ]
     },
     {
       "id": "titulo-voz-del-mirai",
@@ -353,7 +816,10 @@
       "origen": "arte",
       "valor": "Voz del Mirai",
       "descripcion": "Frase bajo tu nombre.",
-      "temporada": "t1"
+      "temporada": "t1",
+      "temas": [
+        "musica"
+      ]
     },
     {
       "id": "papel-pautado",
@@ -362,7 +828,10 @@
       "rareza": "comun",
       "origen": "arte",
       "descripcion": "Papel crema con pentagramas y notas.",
-      "temporada": "t1"
+      "temporada": "t1",
+      "temas": [
+        "musica"
+      ]
     },
     {
       "id": "cielo-de-tokio",
@@ -380,7 +849,10 @@
       "rareza": "comun",
       "origen": "arte",
       "descripcion": "Espuma acústica, lámpara y micrófono.",
-      "temporada": "t1"
+      "temporada": "t1",
+      "temas": [
+        "musica"
+      ]
     },
     {
       "id": "mar-de-luces",
@@ -390,7 +862,10 @@
       "origen": "arte",
       "animado": true,
       "descripcion": "Fondo animado: focos que barren el escenario y un público con barras de luz que se mecen.",
-      "temporada": "t1"
+      "temporada": "t1",
+      "temas": [
+        "musica"
+      ]
     },
     {
       "id": "baneo-de-shaula",
@@ -430,7 +905,11 @@
       "origen": "render",
       "imagen": "fondos/gemelos-del-mal.png",
       "descripcion": "Daughter of Evil + Servant of Evil (mothy, 2008): la saga que más contaste en el canal, con los dos gemelos juntos.",
-      "temporada": "t1"
+      "temporada": "t1",
+      "personajes": [
+        "rin",
+        "len"
+      ]
     },
     {
       "id": "la-hija-del-mal",
@@ -440,7 +919,10 @@
       "origen": "render",
       "imagen": "fondos/la-hija-del-mal.png",
       "descripcion": "Rin como Riliane: Daughter of Evil (2008), clásico de la historia de Vocaloid y cap. 1 de tu serie.",
-      "temporada": "t1"
+      "temporada": "t1",
+      "personajes": [
+        "rin"
+      ]
     },
     {
       "id": "el-sirviente-del-mal",
@@ -450,7 +932,10 @@
       "origen": "render",
       "imagen": "fondos/el-sirviente-del-mal.png",
       "descripcion": "Len como Allen: Servant of Evil (2008), la otra mitad de la historia y cap. 3 de tu serie.",
-      "temporada": "t1"
+      "temporada": "t1",
+      "personajes": [
+        "len"
+      ]
     },
     {
       "id": "triple-baka",
@@ -460,7 +945,12 @@
       "origen": "render",
       "imagen": "fondos/triple-baka.png",
       "descripcion": "Miku, Teto y Neru: el trío meme de Vocaloid y el nombre de tu nivel más alto de Ko-fi.",
-      "temporada": "t1"
+      "temporada": "t1",
+      "personajes": [
+        "miku",
+        "teto",
+        "neru"
+      ]
     },
     {
       "id": "principe-azul",
@@ -470,7 +960,10 @@
       "origen": "render",
       "imagen": "fondos/principe-azul.png",
       "descripcion": "Kaito como Kyle, el príncipe del país azul (saga del mal, módulo Requiem).",
-      "temporada": "t1"
+      "temporada": "t1",
+      "personajes": [
+        "kaito"
+      ]
     },
     {
       "id": "chica-del-pais-verde",
@@ -480,7 +973,10 @@
       "origen": "render",
       "imagen": "fondos/chica-del-pais-verde.png",
       "descripcion": "Miku como Michaela (saga del mal, módulo Noble).",
-      "temporada": "t1"
+      "temporada": "t1",
+      "personajes": [
+        "miku"
+      ]
     },
     {
       "id": "espadachina-roja",
@@ -490,7 +986,10 @@
       "origen": "render",
       "imagen": "fondos/espadachina-roja.png",
       "descripcion": "Meiko como Germaine (saga del mal, módulo Blazing).",
-      "temporada": "t1"
+      "temporada": "t1",
+      "personajes": [
+        "meiko"
+      ]
     },
     {
       "id": "el-intercambio",
@@ -500,7 +999,11 @@
       "origen": "render",
       "imagen": "fondos/el-intercambio.png",
       "descripcion": "Rin vestida de sirviente y Len de princesa: el giro final de Servant of Evil (cap. 5 y 6 de tu serie).",
-      "temporada": "t1"
+      "temporada": "t1",
+      "personajes": [
+        "rin",
+        "len"
+      ]
     },
     {
       "id": "familia-crypton",
@@ -510,7 +1013,15 @@
       "origen": "render",
       "imagen": "fondos/familia-crypton.png",
       "descripcion": "Los seis de Crypton juntos en el escenario.",
-      "temporada": "t1"
+      "temporada": "t1",
+      "personajes": [
+        "miku",
+        "rin",
+        "len",
+        "luka",
+        "kaito",
+        "meiko"
+      ]
     },
     {
       "id": "halloween-elluka",
@@ -525,7 +1036,10 @@
         "hasta": "11-02",
         "texto": "Solo la semana de Halloween (del 27 oct. al 2 nov.) de cada año."
       },
-      "temporada": "t1"
+      "temporada": "t1",
+      "personajes": [
+        "luka"
+      ]
     },
     {
       "id": "teto-saludo",
@@ -535,7 +1049,10 @@
       "origen": "render",
       "imagen": "fondos/teto-saludo.png",
       "descripcion": "Pose especial con el traje original.",
-      "temporada": "t1"
+      "temporada": "t1",
+      "personajes": [
+        "teto"
+      ]
     },
     {
       "id": "miku-doble-v",
@@ -545,7 +1062,10 @@
       "origen": "render",
       "imagen": "fondos/miku-doble-v.png",
       "descripcion": "Pose especial con el traje original.",
-      "temporada": "t1"
+      "temporada": "t1",
+      "personajes": [
+        "miku"
+      ]
     },
     {
       "id": "luka-guino",
@@ -555,7 +1075,10 @@
       "origen": "render",
       "imagen": "fondos/luka-guino.png",
       "descripcion": "Pose especial con el traje original.",
-      "temporada": "t1"
+      "temporada": "t1",
+      "personajes": [
+        "luka"
+      ]
     },
     {
       "id": "neru-pulgar",
@@ -565,7 +1088,10 @@
       "origen": "render",
       "imagen": "fondos/neru-pulgar.png",
       "descripcion": "Pose especial con el traje original.",
-      "temporada": "t1"
+      "temporada": "t1",
+      "personajes": [
+        "neru"
+      ]
     },
     {
       "id": "rin-gato",
@@ -575,7 +1101,10 @@
       "origen": "render",
       "imagen": "fondos/rin-gato.png",
       "descripcion": "Pose especial con el traje original.",
-      "temporada": "t1"
+      "temporada": "t1",
+      "personajes": [
+        "rin"
+      ]
     },
     {
       "id": "len-animo",
@@ -585,7 +1114,10 @@
       "origen": "render",
       "imagen": "fondos/len-animo.png",
       "descripcion": "Pose especial con el traje original.",
-      "temporada": "t1"
+      "temporada": "t1",
+      "personajes": [
+        "len"
+      ]
     },
     {
       "id": "kaito-shh",
@@ -595,7 +1127,10 @@
       "origen": "render",
       "imagen": "fondos/kaito-shh.png",
       "descripcion": "Pose especial con el traje original.",
-      "temporada": "t1"
+      "temporada": "t1",
+      "personajes": [
+        "kaito"
+      ]
     },
     {
       "id": "meiko-senala",
@@ -605,7 +1140,10 @@
       "origen": "render",
       "imagen": "fondos/meiko-senala.png",
       "descripcion": "Pose especial con el traje original.",
-      "temporada": "t1"
+      "temporada": "t1",
+      "personajes": [
+        "meiko"
+      ]
     },
     {
       "id": "haku-mejillas",
@@ -615,7 +1153,10 @@
       "origen": "render",
       "imagen": "fondos/haku-mejillas.png",
       "descripcion": "Pose especial con el traje original.",
-      "temporada": "t1"
+      "temporada": "t1",
+      "personajes": [
+        "haku"
+      ]
     },
     {
       "id": "teto-original",
@@ -625,7 +1166,10 @@
       "origen": "render",
       "imagen": "fondos/teto-original.png",
       "descripcion": "Traje original: el diseño con el que debutó.",
-      "temporada": "t1"
+      "temporada": "t1",
+      "personajes": [
+        "teto"
+      ]
     },
     {
       "id": "miku-original",
@@ -635,7 +1179,10 @@
       "origen": "render",
       "imagen": "fondos/miku-original.png",
       "descripcion": "Traje original: el diseño con el que debutó.",
-      "temporada": "t1"
+      "temporada": "t1",
+      "personajes": [
+        "miku"
+      ]
     },
     {
       "id": "luka-original",
@@ -645,7 +1192,10 @@
       "origen": "render",
       "imagen": "fondos/luka-original.png",
       "descripcion": "Traje original: el diseño con el que debutó.",
-      "temporada": "t1"
+      "temporada": "t1",
+      "personajes": [
+        "luka"
+      ]
     },
     {
       "id": "neru-original",
@@ -655,7 +1205,10 @@
       "origen": "render",
       "imagen": "fondos/neru-original.png",
       "descripcion": "Traje original: el diseño con el que debutó.",
-      "temporada": "t1"
+      "temporada": "t1",
+      "personajes": [
+        "neru"
+      ]
     },
     {
       "id": "rin-original",
@@ -665,7 +1218,10 @@
       "origen": "render",
       "imagen": "fondos/rin-original.png",
       "descripcion": "Traje original: el diseño con el que debutó.",
-      "temporada": "t1"
+      "temporada": "t1",
+      "personajes": [
+        "rin"
+      ]
     },
     {
       "id": "len-original",
@@ -675,7 +1231,10 @@
       "origen": "render",
       "imagen": "fondos/len-original.png",
       "descripcion": "Traje original: el diseño con el que debutó.",
-      "temporada": "t1"
+      "temporada": "t1",
+      "personajes": [
+        "len"
+      ]
     },
     {
       "id": "kaito-original",
@@ -685,7 +1244,10 @@
       "origen": "render",
       "imagen": "fondos/kaito-original.png",
       "descripcion": "Traje original: el diseño con el que debutó.",
-      "temporada": "t1"
+      "temporada": "t1",
+      "personajes": [
+        "kaito"
+      ]
     },
     {
       "id": "meiko-original",
@@ -695,7 +1257,10 @@
       "origen": "render",
       "imagen": "fondos/meiko-original.png",
       "descripcion": "Traje original: el diseño con el que debutó.",
-      "temporada": "t1"
+      "temporada": "t1",
+      "personajes": [
+        "meiko"
+      ]
     },
     {
       "id": "haku-original",
@@ -705,7 +1270,10 @@
       "origen": "render",
       "imagen": "fondos/haku-original.png",
       "descripcion": "Traje original: el diseño con el que debutó.",
-      "temporada": "t1"
+      "temporada": "t1",
+      "personajes": [
+        "haku"
+      ]
     },
     {
       "id": "noche-de-estreno",
@@ -803,13 +1371,3245 @@
       "temporada": "t1"
     },
     {
+      "id": "navidad-teto",
+      "nombre": "Teto en Navidad",
+      "tipo": "fondo",
+      "rareza": "rara",
+      "origen": "render",
+      "animado": true,
+      "imagen": "fondos/t2/navidad-teto.png",
+      "efecto": "luces-navidad",
+      "colores": [
+        "#1f0a11",
+        "#5e1d34"
+      ],
+      "descripcion": "Teto con su traje de Santa y las luces del árbol.",
+      "temporada": "t2",
+      "personajes": [
+        "teto"
+      ],
+      "temas": [
+        "navidad"
+      ]
+    },
+    {
+      "id": "navidad-miku",
+      "nombre": "Miku en Navidad",
+      "tipo": "fondo",
+      "rareza": "rara",
+      "origen": "render",
+      "animado": true,
+      "imagen": "fondos/t2/navidad-miku.png",
+      "efecto": "nieve",
+      "colores": [
+        "#081c1a",
+        "#18534f"
+      ],
+      "descripcion": "Miku con su traje de Santa bajo la nieve.",
+      "temporada": "t2",
+      "personajes": [
+        "miku"
+      ],
+      "temas": [
+        "navidad"
+      ]
+    },
+    {
+      "id": "navidad-luka",
+      "nombre": "Luka en Navidad",
+      "tipo": "fondo",
+      "rareza": "rara",
+      "origen": "render",
+      "animado": true,
+      "imagen": "fondos/t2/navidad-luka.png",
+      "efecto": "nieve",
+      "colores": [
+        "#22171b",
+        "#664451"
+      ],
+      "descripcion": "Luka con su traje de Santa bajo la nieve.",
+      "temporada": "t2",
+      "personajes": [
+        "luka"
+      ],
+      "temas": [
+        "navidad"
+      ]
+    },
+    {
+      "id": "navidad-neru",
+      "nombre": "Neru en Navidad",
+      "tipo": "fondo",
+      "rareza": "rara",
+      "origen": "render",
+      "animado": true,
+      "imagen": "fondos/t2/navidad-neru.png",
+      "efecto": "luces-navidad",
+      "colores": [
+        "#201c0a",
+        "#61531e"
+      ],
+      "descripcion": "Neru con su traje de Santa y las luces del árbol.",
+      "temporada": "t2",
+      "personajes": [
+        "neru"
+      ],
+      "temas": [
+        "navidad"
+      ]
+    },
+    {
+      "id": "navidad-gakupo",
+      "nombre": "Gakupo en Navidad",
+      "tipo": "fondo",
+      "rareza": "rara",
+      "origen": "render",
+      "animado": true,
+      "imagen": "fondos/t2/navidad-gakupo.png",
+      "efecto": "nieve",
+      "colores": [
+        "#140d1e",
+        "#3c265b"
+      ],
+      "descripcion": "Gakupo con su traje de Santa bajo la nieve.",
+      "temporada": "t2",
+      "personajes": [
+        "gakupo"
+      ],
+      "temas": [
+        "navidad"
+      ]
+    },
+    {
+      "id": "navidad-kaito",
+      "nombre": "Kaito en Navidad",
+      "tipo": "fondo",
+      "rareza": "rara",
+      "origen": "render",
+      "animado": true,
+      "imagen": "fondos/t2/navidad-kaito.png",
+      "efecto": "nieve",
+      "colores": [
+        "#09101e",
+        "#1a2f5b"
+      ],
+      "descripcion": "Kaito con su traje de Santa bajo la nieve.",
+      "temporada": "t2",
+      "personajes": [
+        "kaito"
+      ],
+      "temas": [
+        "navidad"
+      ]
+    },
+    {
+      "id": "navidad-flower",
+      "nombre": "flower en Navidad",
+      "tipo": "fondo",
+      "rareza": "rara",
+      "origen": "render",
+      "animado": true,
+      "imagen": "fondos/t2/navidad-flower.png",
+      "efecto": "luces-navidad",
+      "colores": [
+        "#160f1f",
+        "#412d5e"
+      ],
+      "descripcion": "flower con su traje de Santa y las luces del árbol.",
+      "temporada": "t2",
+      "personajes": [
+        "flower"
+      ],
+      "temas": [
+        "navidad"
+      ]
+    },
+    {
+      "id": "navidad-ia",
+      "nombre": "IA en Navidad",
+      "tipo": "fondo",
+      "rareza": "rara",
+      "origen": "render",
+      "animado": true,
+      "imagen": "fondos/t2/navidad-ia.png",
+      "efecto": "nieve",
+      "colores": [
+        "#22171b",
+        "#664651"
+      ],
+      "descripcion": "IA con su traje de Santa bajo la nieve.",
+      "temporada": "t2",
+      "personajes": [
+        "ia"
+      ],
+      "temas": [
+        "navidad"
+      ]
+    },
+    {
+      "id": "navidad-haku",
+      "nombre": "Haku en Navidad",
+      "tipo": "fondo",
+      "rareza": "rara",
+      "origen": "render",
+      "animado": true,
+      "imagen": "fondos/t2/navidad-haku.png",
+      "efecto": "nieve",
+      "colores": [
+        "#1a1a1d",
+        "#4d4d57"
+      ],
+      "descripcion": "Haku con su traje de Santa bajo la nieve.",
+      "temporada": "t2",
+      "personajes": [
+        "haku"
+      ],
+      "temas": [
+        "navidad"
+      ]
+    },
+    {
+      "id": "navidad-gumi",
+      "nombre": "Gumi en Navidad",
+      "tipo": "fondo",
+      "rareza": "rara",
+      "origen": "render",
+      "animado": true,
+      "imagen": "fondos/t2/navidad-gumi.png",
+      "efecto": "luces-navidad",
+      "colores": [
+        "#121c0b",
+        "#355520"
+      ],
+      "descripcion": "Gumi con su traje de Santa y las luces del árbol.",
+      "temporada": "t2",
+      "personajes": [
+        "gumi"
+      ],
+      "temas": [
+        "navidad"
+      ]
+    },
+    {
+      "id": "navidad-rin",
+      "nombre": "Rin en Navidad",
+      "tipo": "fondo",
+      "rareza": "rara",
+      "origen": "render",
+      "animado": true,
+      "imagen": "fondos/t2/navidad-rin.png",
+      "efecto": "luces-navidad",
+      "colores": [
+        "#221c09",
+        "#67531c"
+      ],
+      "descripcion": "Rin con su traje de Santa y las luces del árbol.",
+      "temporada": "t2",
+      "personajes": [
+        "rin"
+      ],
+      "temas": [
+        "navidad"
+      ]
+    },
+    {
+      "id": "navidad-len",
+      "nombre": "Len en Navidad",
+      "tipo": "fondo",
+      "rareza": "rara",
+      "origen": "render",
+      "animado": true,
+      "imagen": "fondos/t2/navidad-len.png",
+      "efecto": "nieve",
+      "colores": [
+        "#221d0d",
+        "#665827"
+      ],
+      "descripcion": "Len con su traje de Santa bajo la nieve.",
+      "temporada": "t2",
+      "personajes": [
+        "len"
+      ],
+      "temas": [
+        "navidad"
+      ]
+    },
+    {
+      "id": "navidad-meiko",
+      "nombre": "Meiko en Navidad",
+      "tipo": "fondo",
+      "rareza": "rara",
+      "origen": "render",
+      "animado": true,
+      "imagen": "fondos/t2/navidad-meiko.png",
+      "efecto": "luces-navidad",
+      "colores": [
+        "#1e0a09",
+        "#5b1e1a"
+      ],
+      "descripcion": "Meiko con su traje de Santa y las luces del árbol.",
+      "temporada": "t2",
+      "personajes": [
+        "meiko"
+      ],
+      "temas": [
+        "navidad"
+      ]
+    },
+    {
+      "id": "navidad-adachirei",
+      "nombre": "Adachi Rei en Navidad",
+      "tipo": "fondo",
+      "rareza": "rara",
+      "origen": "render",
+      "animado": true,
+      "imagen": "fondos/t2/navidad-adachirei.png",
+      "efecto": "nieve",
+      "colores": [
+        "#241107",
+        "#6b3314"
+      ],
+      "descripcion": "Adachi Rei con su traje de Santa bajo la nieve.",
+      "temporada": "t2",
+      "personajes": [
+        "adachirei"
+      ],
+      "temas": [
+        "navidad"
+      ]
+    },
+    {
+      "id": "navidad-ruko",
+      "nombre": "Ruko en Navidad",
+      "tipo": "fondo",
+      "rareza": "rara",
+      "origen": "render",
+      "animado": true,
+      "imagen": "fondos/t2/navidad-ruko.png",
+      "efecto": "luces-navidad",
+      "colores": [
+        "#0d1424",
+        "#263b6b"
+      ],
+      "descripcion": "Ruko con su traje de Santa y las luces del árbol.",
+      "temporada": "t2",
+      "personajes": [
+        "ruko"
+      ],
+      "temas": [
+        "navidad"
+      ]
+    },
+    {
+      "id": "navidad-kagamine",
+      "nombre": "Navidad Kagamine",
+      "tipo": "fondo",
+      "rareza": "epica",
+      "origen": "render",
+      "animado": true,
+      "imagen": "fondos/t2/navidad-kagamine.png",
+      "efecto": "luces-navidad",
+      "colores": [
+        "#3A0A12",
+        "#0E3B22"
+      ],
+      "descripcion": "Rin y Len de Santa (y de reno) bajo las luces del árbol.",
+      "temporada": "t2",
+      "personajes": [
+        "rin",
+        "len"
+      ],
+      "temas": [
+        "navidad"
+      ]
+    },
+    {
+      "id": "navidad-cabana",
+      "nombre": "Navidad en la cabaña",
+      "tipo": "fondo",
+      "rareza": "epica",
+      "origen": "render",
+      "animado": true,
+      "imagen": "fondos/t2/navidad-cabana.png",
+      "efecto": "nieve",
+      "foto": "fondos/t2/fotos/navidad-cabana.jpg",
+      "descripcion": "Miku y Luka de Santa frente a una cabaña nevada (foto real). Foto: Cabaña en un bosque nevado: Wikimedia Commons, CC0.",
+      "temporada": "t2",
+      "personajes": [
+        "miku",
+        "luka"
+      ],
+      "temas": [
+        "navidad"
+      ]
+    },
+    {
+      "id": "navidad-utau",
+      "nombre": "Navidad UTAU",
+      "tipo": "fondo",
+      "rareza": "epica",
+      "origen": "render",
+      "animado": true,
+      "imagen": "fondos/t2/navidad-utau.png",
+      "efecto": "nieve",
+      "colores": [
+        "#1A0A22",
+        "#4A1E4A"
+      ],
+      "descripcion": "Teto, Ruko y Adachi Rei: los UTAU celebran juntos.",
+      "temporada": "t2",
+      "personajes": [
+        "teto",
+        "ruko",
+        "adachirei"
+      ],
+      "temas": [
+        "navidad"
+      ]
+    },
+    {
+      "id": "navidad-coro",
+      "nombre": "Villancico del Coro",
+      "tipo": "fondo",
+      "rareza": "epica",
+      "origen": "render",
+      "animado": true,
+      "imagen": "fondos/t2/navidad-coro.png",
+      "efecto": "luces-navidad",
+      "colores": [
+        "#12203A",
+        "#2A1440"
+      ],
+      "descripcion": "Gumi, Gakupo, IA y flower cantando villancicos.",
+      "temporada": "t2",
+      "personajes": [
+        "gumi",
+        "gakupo",
+        "ia",
+        "flower"
+      ],
+      "temas": [
+        "navidad"
+      ]
+    },
+    {
+      "id": "navidad-crypton",
+      "nombre": "Navidad Crypton",
+      "tipo": "fondo",
+      "rareza": "legendaria",
+      "origen": "render",
+      "animado": true,
+      "imagen": "fondos/t2/navidad-crypton.png",
+      "efecto": "nieve",
+      "colores": [
+        "#0B1A3A",
+        "#2A4A7A"
+      ],
+      "descripcion": "Los seis de Crypton con el módulo Santa de Project DIVA.",
+      "temporada": "t2",
+      "personajes": [
+        "miku",
+        "rin",
+        "len",
+        "luka",
+        "kaito",
+        "meiko"
+      ],
+      "temas": [
+        "navidad"
+      ]
+    },
+    {
+      "id": "navidad-triple-baka",
+      "nombre": "Triple Baka navideño",
+      "tipo": "fondo",
+      "rareza": "legendaria",
+      "origen": "render",
+      "animado": true,
+      "imagen": "fondos/t2/navidad-triple-baka.png",
+      "efecto": "luces-navidad",
+      "colores": [
+        "#3A0A12",
+        "#0E3B22"
+      ],
+      "descripcion": "Teto, Miku y Neru: el trío baka con gorro de Santa.",
+      "temporada": "t2",
+      "personajes": [
+        "miku",
+        "teto",
+        "neru"
+      ],
+      "temas": [
+        "navidad"
+      ]
+    },
+    {
+      "id": "nochebuena",
+      "nombre": "Nochebuena de los Papus",
+      "tipo": "fondo",
+      "rareza": "mitica",
+      "origen": "render",
+      "animado": true,
+      "imagen": "fondos/t2/nochebuena.png",
+      "efecto": "nieve",
+      "foto": "fondos/t2/fotos/nochebuena.jpg",
+      "descripcion": "Teto, Miku, Luka y Neru en la primera Nochebuena del servidor (bosque real bajo las estrellas). Foto: Bosque de noche bajo las estrellas: Wikimedia Commons, CC BY-SA 3.0.",
+      "temporada": "t2",
+      "personajes": [
+        "teto",
+        "miku",
+        "luka",
+        "neru"
+      ],
+      "temas": [
+        "navidad"
+      ]
+    },
+    {
+      "id": "pecado-lujuria",
+      "nombre": "Venomania",
+      "tipo": "fondo",
+      "rareza": "legendaria",
+      "origen": "render",
+      "animado": true,
+      "imagen": "fondos/t2/pecado-lujuria.png",
+      "efecto": "corazones",
+      "colores": [
+        "#2A0620",
+        "#6A1450",
+        "#FF5FA2"
+      ],
+      "descripcion": "Lujuria: el duque Venomania y Gumina.",
+      "temporada": "t2",
+      "temas": [
+        "siete-pecados"
+      ],
+      "personajes": [
+        "gakupo"
+      ]
+    },
+    {
+      "id": "venomania-duque",
+      "nombre": "El duque",
+      "tipo": "fondo",
+      "rareza": "epica",
+      "origen": "render",
+      "animado": true,
+      "imagen": "fondos/t2/venomania-duque.png",
+      "efecto": "fuego",
+      "colores": [
+        "#6B3FB8",
+        "#A77BFF",
+        "#DCCBFF"
+      ],
+      "foto": "fondos/t2/fotos/venomania-duque.jpg",
+      "descripcion": "Lujuria: Sateriasis Venomania en el salón de su mansión (foto real). Foto: Salón de una mansión: Wikimedia Commons, CC0.",
+      "temporada": "t2",
+      "temas": [
+        "siete-pecados"
+      ],
+      "personajes": [
+        "gakupo"
+      ]
+    },
+    {
+      "id": "venomania-damas",
+      "nombre": "Las damas de la mansión",
+      "tipo": "fondo",
+      "rareza": "epica",
+      "origen": "render",
+      "animado": true,
+      "imagen": "fondos/t2/venomania-damas.png",
+      "efecto": "corazones",
+      "colores": [
+        "#2A0620",
+        "#6A1450",
+        "#FF8AC0"
+      ],
+      "descripcion": "Lujuria: Lukana, Mikulia y las demás, bajo el hechizo.",
+      "temporada": "t2",
+      "temas": [
+        "siete-pecados"
+      ],
+      "personajes": [
+        "gakupo"
+      ]
+    },
+    {
+      "id": "venomania-karchess",
+      "nombre": "El final del hechizo",
+      "tipo": "fondo",
+      "rareza": "rara",
+      "origen": "render",
+      "animado": true,
+      "imagen": "fondos/t2/venomania-karchess.png",
+      "efecto": "truenos",
+      "colores": [
+        "#0A0C1C",
+        "#2B2F4A",
+        "#BFD4FF"
+      ],
+      "descripcion": "Lujuria: Karchess llega a la mansión.",
+      "temporada": "t2",
+      "temas": [
+        "siete-pecados"
+      ],
+      "personajes": [
+        "gakupo"
+      ]
+    },
+    {
+      "id": "pecado-gula",
+      "nombre": "Conchita",
+      "tipo": "fondo",
+      "rareza": "legendaria",
+      "origen": "render",
+      "animado": true,
+      "imagen": "fondos/t2/pecado-gula.png",
+      "efecto": "fuego",
+      "colores": [
+        "#A3181E",
+        "#E0383E",
+        "#FFC9C9"
+      ],
+      "foto": "fondos/t2/fotos/pecado-gula.jpg",
+      "descripcion": "Gula: Banica Conchita y su banquete infinito (comedor real). Foto: Comedor victoriano: Wikimedia Commons, dominio público.",
+      "temporada": "t2",
+      "temas": [
+        "siete-pecados"
+      ],
+      "personajes": [
+        "meiko"
+      ]
+    },
+    {
+      "id": "conchita-sirvientes",
+      "nombre": "Los sirvientes",
+      "tipo": "fondo",
+      "rareza": "epica",
+      "origen": "render",
+      "animado": true,
+      "imagen": "fondos/t2/conchita-sirvientes.png",
+      "efecto": "fuego",
+      "colores": [
+        "#A3181E",
+        "#E0383E",
+        "#FFC9C9"
+      ],
+      "descripcion": "Gula: la sirvienta y el mayordomo de Conchita.",
+      "temporada": "t2",
+      "temas": [
+        "siete-pecados"
+      ],
+      "personajes": [
+        "meiko"
+      ]
+    },
+    {
+      "id": "conchita-demonio",
+      "nombre": "El demonio de la gula",
+      "tipo": "fondo",
+      "rareza": "epica",
+      "origen": "render",
+      "animado": true,
+      "imagen": "fondos/t2/conchita-demonio.png",
+      "efecto": "incendio",
+      "colores": [
+        "#A3181E",
+        "#E0383E",
+        "#FFC9C9"
+      ],
+      "descripcion": "Gula: el demonio de la copa, con el rojo de Teto.",
+      "temporada": "t2",
+      "temas": [
+        "siete-pecados"
+      ],
+      "personajes": [
+        "meiko"
+      ]
+    },
+    {
+      "id": "conchita-chef",
+      "nombre": "El decimoquinto cocinero",
+      "tipo": "fondo",
+      "rareza": "rara",
+      "origen": "render",
+      "animado": true,
+      "imagen": "fondos/t2/conchita-chef.png",
+      "efecto": "fuego",
+      "colores": [
+        "#A3181E",
+        "#E0383E",
+        "#FFC9C9"
+      ],
+      "descripcion": "Gula: el cocinero que pidió unas vacaciones.",
+      "temporada": "t2",
+      "temas": [
+        "siete-pecados"
+      ],
+      "personajes": [
+        "meiko"
+      ]
+    },
+    {
+      "id": "enbizaka-pueblo",
+      "nombre": "La sastre de Enbizaka",
+      "tipo": "fondo",
+      "rareza": "rara",
+      "origen": "render",
+      "animado": true,
+      "imagen": "fondos/t2/enbizaka-pueblo.png",
+      "efecto": "pueblo",
+      "colores": [
+        "#0C0A26",
+        "#3A2350",
+        "#FFB347"
+      ],
+      "descripcion": "Envidia: Kayo en su pueblo, una noche de faroles.",
+      "temporada": "t2",
+      "temas": [
+        "siete-pecados"
+      ],
+      "personajes": [
+        "luka"
+      ]
+    },
+    {
+      "id": "enbizaka-calle",
+      "nombre": "Calle de Enbizaka",
+      "tipo": "fondo",
+      "rareza": "rara",
+      "origen": "render",
+      "animado": true,
+      "imagen": "fondos/t2/enbizaka-calle.png",
+      "efecto": "pueblo",
+      "colores": [
+        "#0C0A26",
+        "#3A2350",
+        "#FFB347"
+      ],
+      "foto": "fondos/t2/fotos/enbizaka-calle.jpg",
+      "descripcion": "Envidia: Kayo en la calle de su sastrería (foto real de Gion, Kioto). Foto: Gion, Kioto de noche: Wikimedia Commons, CC BY-SA 4.0.",
+      "temporada": "t2",
+      "temas": [
+        "siete-pecados"
+      ],
+      "personajes": [
+        "luka"
+      ]
+    },
+    {
+      "id": "enbizaka-truenos",
+      "nombre": "Tormenta en Enbizaka",
+      "tipo": "fondo",
+      "rareza": "epica",
+      "origen": "render",
+      "animado": true,
+      "imagen": "fondos/t2/enbizaka-truenos.png",
+      "efecto": "truenos",
+      "colores": [
+        "#0A0C1C",
+        "#2B2F4A",
+        "#BFD4FF"
+      ],
+      "descripcion": "Envidia: Kayo afila sus tijeras bajo la tormenta.",
+      "temporada": "t2",
+      "temas": [
+        "siete-pecados"
+      ],
+      "personajes": [
+        "luka"
+      ]
+    },
+    {
+      "id": "enbizaka-puente",
+      "nombre": "El puente de Enbizaka",
+      "tipo": "fondo",
+      "rareza": "epica",
+      "origen": "render",
+      "animado": true,
+      "imagen": "fondos/t2/enbizaka-puente.png",
+      "efecto": "truenos",
+      "colores": [
+        "#0A0C1C",
+        "#2B2F4A",
+        "#BFD4FF"
+      ],
+      "foto": "fondos/t2/fotos/enbizaka-puente.jpg",
+      "descripcion": "Envidia: Kayo espera en el puente bajo la tormenta (foto real del puente Shinkyo). Foto: Puente Shinkyo, Nikko: Wikimedia Commons, CC0.",
+      "temporada": "t2",
+      "temas": [
+        "siete-pecados"
+      ],
+      "personajes": [
+        "luka"
+      ]
+    },
+    {
+      "id": "enbizaka-incendio",
+      "nombre": "Enbizaka en llamas",
+      "tipo": "fondo",
+      "rareza": "epica",
+      "origen": "render",
+      "animado": true,
+      "imagen": "fondos/t2/enbizaka-incendio.png",
+      "efecto": "incendio",
+      "colores": [
+        "#B0457E",
+        "#E285B2",
+        "#FFD6EA"
+      ],
+      "descripcion": "Envidia: el incendio que se lo llevó todo.",
+      "temporada": "t2",
+      "temas": [
+        "siete-pecados"
+      ],
+      "personajes": [
+        "luka"
+      ]
+    },
+    {
+      "id": "kayo-pueblo",
+      "nombre": "Kayo: el kimono rojo",
+      "tipo": "fondo",
+      "rareza": "epica",
+      "origen": "render",
+      "animado": true,
+      "imagen": "fondos/t2/kayo-pueblo.png",
+      "efecto": "pueblo",
+      "colores": [
+        "#1A0614",
+        "#4A1030",
+        "#FF6B5A"
+      ],
+      "descripcion": "Envidia: Kayo con su traje especial (kimono rojo, obi verde y horquilla amarilla).",
+      "temporada": "t2",
+      "temas": [
+        "siete-pecados"
+      ],
+      "personajes": [
+        "luka"
+      ]
+    },
+    {
+      "id": "kayo-taller",
+      "nombre": "Kayo: el taller a oscuras",
+      "tipo": "fondo",
+      "rareza": "legendaria",
+      "origen": "render",
+      "animado": true,
+      "imagen": "fondos/t2/kayo-taller.png",
+      "efecto": "truenos",
+      "colores": [
+        "#14060A",
+        "#3A0E14",
+        "#FF4A4A"
+      ],
+      "foto": "fondos/t2/fotos/kayo-taller.jpg",
+      "descripcion": "Envidia: Kayo con su traje especial, de noche en la sastrería (foto real de una casa de Hida). Foto: Casa tradicional de Hida: Wikimedia Commons, CC0.",
+      "temporada": "t2",
+      "temas": [
+        "siete-pecados"
+      ],
+      "personajes": [
+        "luka"
+      ]
+    },
+    {
+      "id": "kayo-truenos",
+      "nombre": "Kayo: hoy también trabaja",
+      "tipo": "fondo",
+      "rareza": "legendaria",
+      "origen": "render",
+      "animado": true,
+      "imagen": "fondos/t2/kayo-truenos.png",
+      "efecto": "truenos",
+      "colores": [
+        "#14060A",
+        "#3A0E14",
+        "#FF4A4A"
+      ],
+      "descripcion": "Envidia: Kayo con su traje especial bajo los truenos rojos.",
+      "temporada": "t2",
+      "temas": [
+        "siete-pecados"
+      ],
+      "personajes": [
+        "luka"
+      ]
+    },
+    {
+      "id": "kayo-incendio",
+      "nombre": "Kayo: la envidia arde",
+      "tipo": "fondo",
+      "rareza": "legendaria",
+      "origen": "render",
+      "animado": true,
+      "imagen": "fondos/t2/kayo-incendio.png",
+      "efecto": "incendio",
+      "colores": [
+        "#B0457E",
+        "#E285B2",
+        "#FFD6EA"
+      ],
+      "descripcion": "Envidia: Kayo con su traje especial y el pueblo en llamas verdes.",
+      "temporada": "t2",
+      "temas": [
+        "siete-pecados"
+      ],
+      "personajes": [
+        "luka"
+      ]
+    },
+    {
+      "id": "kayo-incendio-real",
+      "nombre": "Kayo: todo arde",
+      "tipo": "fondo",
+      "rareza": "legendaria",
+      "origen": "render",
+      "animado": true,
+      "imagen": "fondos/t2/kayo-incendio-real.png",
+      "efecto": "incendio",
+      "colores": [
+        "#B0457E",
+        "#E285B2",
+        "#FFD6EA"
+      ],
+      "foto": "fondos/t2/fotos/kayo-incendio-real.jpg",
+      "descripcion": "Envidia: Kayo con su traje especial frente al incendio (pintura de 1834). Foto: The Burning of the Houses of Parliament (c. 1834): Wikimedia Commons, CC0.",
+      "temporada": "t2",
+      "temas": [
+        "siete-pecados"
+      ],
+      "personajes": [
+        "luka"
+      ]
+    },
+    {
+      "id": "enbizaka-familia",
+      "nombre": "La familia de la calle",
+      "tipo": "fondo",
+      "rareza": "epica",
+      "origen": "render",
+      "animado": true,
+      "imagen": "fondos/t2/enbizaka-familia.png",
+      "efecto": "pueblo",
+      "colores": [
+        "#0C0A26",
+        "#3A2350",
+        "#FFB347"
+      ],
+      "descripcion": "Envidia: el hombre, la mujer del kimono rojo, la del obi verde y la niña de la horquilla.",
+      "temporada": "t2",
+      "temas": [
+        "siete-pecados"
+      ],
+      "personajes": [
+        "luka"
+      ]
+    },
+    {
+      "id": "pecado-avaricia",
+      "nombre": "Judgment of Corruption",
+      "tipo": "fondo",
+      "rareza": "legendaria",
+      "origen": "render",
+      "animado": true,
+      "imagen": "fondos/t2/pecado-avaricia.png",
+      "efecto": "monedas",
+      "colores": [
+        "#120C02",
+        "#3A2A06"
+      ],
+      "foto": "fondos/t2/fotos/pecado-avaricia.jpg",
+      "descripcion": "Avaricia: el juez Gallerian Marlon en su galería (foto real). Foto: Galería de palacio: Wikimedia Commons (DPLA), dominio público.",
+      "temporada": "t2",
+      "temas": [
+        "siete-pecados"
+      ],
+      "personajes": [
+        "kaito"
+      ]
+    },
+    {
+      "id": "judgment-naufragio",
+      "nombre": "El naufragio del Titanis",
+      "tipo": "fondo",
+      "rareza": "epica",
+      "origen": "render",
+      "animado": true,
+      "imagen": "fondos/t2/judgment-naufragio.png",
+      "efecto": "truenos",
+      "colores": [
+        "#0A0C1C",
+        "#2B2F4A",
+        "#BFD4FF"
+      ],
+      "foto": "fondos/t2/fotos/judgment-naufragio.jpg",
+      "descripcion": "Avaricia: la tormenta que lo cambió todo (pintura de J. C. Dahl). Foto: J. C. Dahl, Morning after a Stormy Night: Wikimedia Commons, dominio público.",
+      "temporada": "t2",
+      "personajes": [
+        "kaito"
+      ]
+    },
+    {
+      "id": "judgment-infierno",
+      "nombre": "La ama del patio infernal",
+      "tipo": "fondo",
+      "rareza": "epica",
+      "origen": "render",
+      "animado": true,
+      "imagen": "fondos/t2/judgment-infierno.png",
+      "efecto": "fuego",
+      "colores": [
+        "#2245C9",
+        "#3D6BFF",
+        "#BFD0FF"
+      ],
+      "descripcion": "Avaricia: «tu salvación depende de tu dinero».",
+      "temporada": "t2",
+      "personajes": [
+        "kaito"
+      ]
+    },
+    {
+      "id": "judgment-muneca",
+      "nombre": "La muñeca",
+      "tipo": "fondo",
+      "rareza": "rara",
+      "origen": "render",
+      "animado": true,
+      "imagen": "fondos/t2/judgment-muneca.png",
+      "efecto": "sueno",
+      "colores": [
+        "#0A0820",
+        "#2A2050",
+        "#C9B8FF"
+      ],
+      "descripcion": "Avaricia: la «hija» del juez.",
+      "temporada": "t2",
+      "temas": [
+        "siete-pecados"
+      ],
+      "personajes": [
+        "kaito"
+      ]
+    },
+    {
+      "id": "judgment-incendio",
+      "nombre": "La mansión en llamas",
+      "tipo": "fondo",
+      "rareza": "epica",
+      "origen": "render",
+      "animado": true,
+      "imagen": "fondos/t2/judgment-incendio.png",
+      "efecto": "incendio",
+      "colores": [
+        "#2245C9",
+        "#3D6BFF",
+        "#BFD0FF"
+      ],
+      "foto": "fondos/t2/fotos/judgment-incendio.jpg",
+      "descripcion": "Avaricia: el juez no abandona a su hija (pintura de 1834). Foto: The Burning of the Houses of Parliament (c. 1834): Wikimedia Commons, CC0.",
+      "temporada": "t2",
+      "temas": [
+        "siete-pecados"
+      ],
+      "personajes": [
+        "kaito"
+      ]
+    },
+    {
+      "id": "pecado-pereza",
+      "nombre": "Gift from the Princess",
+      "tipo": "fondo",
+      "rareza": "legendaria",
+      "origen": "render",
+      "animado": true,
+      "imagen": "fondos/t2/pecado-pereza.png",
+      "efecto": "sueno",
+      "colores": [
+        "#0A0820",
+        "#2A2050",
+        "#C9B8FF"
+      ],
+      "descripcion": "Pereza: Margarita y el regalo que hace dormir.",
+      "temporada": "t2",
+      "temas": [
+        "siete-pecados"
+      ],
+      "personajes": [
+        "miku"
+      ]
+    },
+    {
+      "id": "gift-matrimonio",
+      "nombre": "Un matrimonio feliz",
+      "tipo": "fondo",
+      "rareza": "epica",
+      "origen": "render",
+      "animado": true,
+      "imagen": "fondos/t2/gift-matrimonio.png",
+      "efecto": "sueno",
+      "colores": [
+        "#0A0820",
+        "#2A2050",
+        "#C9B8FF"
+      ],
+      "descripcion": "Pereza: Margarita y su esposo, que duerme tan bien.",
+      "temporada": "t2",
+      "personajes": [
+        "miku"
+      ]
+    },
+    {
+      "id": "gift-cerezos",
+      "nombre": "El pueblo que duerme",
+      "tipo": "fondo",
+      "rareza": "epica",
+      "origen": "render",
+      "animado": true,
+      "imagen": "fondos/t2/gift-cerezos.png",
+      "efecto": "sueno",
+      "colores": [
+        "#0A0820",
+        "#2A2050",
+        "#FFD0E8"
+      ],
+      "foto": "fondos/t2/fotos/gift-cerezos.jpg",
+      "descripcion": "Pereza: Margarita reparte su regalo por Toragay (avenida de cerezos real). Foto: Avenida de cerezos en flor: Wikimedia Commons, CC BY-SA 4.0 (AndyScott).",
+      "temporada": "t2",
+      "temas": [
+        "siete-pecados"
+      ],
+      "personajes": [
+        "miku"
+      ]
+    },
+    {
+      "id": "gift-gumi",
+      "nombre": "La amiga de la infancia",
+      "tipo": "fondo",
+      "rareza": "rara",
+      "origen": "render",
+      "animado": true,
+      "imagen": "fondos/t2/gift-gumi.png",
+      "efecto": "nieve",
+      "colores": [
+        "#0B1A3A",
+        "#2A4A7A"
+      ],
+      "descripcion": "Pereza: Gumi con el traje de nieve.",
+      "temporada": "t2",
+      "personajes": [
+        "gumi",
+        "miku"
+      ]
+    },
+    {
+      "id": "pecado-ira",
+      "nombre": "Nemesis",
+      "tipo": "fondo",
+      "rareza": "legendaria",
+      "origen": "render",
+      "animado": true,
+      "imagen": "fondos/t2/pecado-ira.png",
+      "efecto": "truenos",
+      "colores": [
+        "#14060A",
+        "#3A0E14",
+        "#FF4A4A"
+      ],
+      "foto": "fondos/t2/fotos/pecado-ira.jpg",
+      "descripcion": "Ira: Nemesis Sudou frente a la cabaña del bosque (foto real). Foto: Cabaña en un bosque nevado: Wikimedia Commons, CC0.",
+      "temporada": "t2",
+      "temas": [
+        "siete-pecados"
+      ],
+      "personajes": [
+        "gumi"
+      ]
+    },
+    {
+      "id": "nemesis-juicio",
+      "nombre": "El cañón de Nemesis",
+      "tipo": "fondo",
+      "rareza": "legendaria",
+      "origen": "render",
+      "animado": true,
+      "imagen": "fondos/t2/nemesis-juicio.png",
+      "efecto": "incendio",
+      "colores": [
+        "#3E8A1F",
+        "#7FCB4B",
+        "#D9F5B8"
+      ],
+      "descripcion": "Ira: Nemesis y el juez, cara a cara.",
+      "temporada": "t2",
+      "temas": [
+        "siete-pecados"
+      ],
+      "personajes": [
+        "gumi"
+      ]
+    },
+    {
+      "id": "nemesis-clarith",
+      "nombre": "Clarith",
+      "tipo": "fondo",
+      "rareza": "epica",
+      "origen": "render",
+      "animado": true,
+      "imagen": "fondos/t2/nemesis-clarith.png",
+      "efecto": "nieve",
+      "foto": "fondos/t2/fotos/nemesis-clarith.jpg",
+      "descripcion": "Ira: Clarith en el bosque nevado (foto real). Foto: Bosque de noche bajo las estrellas: Wikimedia Commons, CC BY-SA 3.0.",
+      "temporada": "t2",
+      "temas": [
+        "siete-pecados"
+      ],
+      "personajes": [
+        "gumi"
+      ]
+    },
+    {
+      "id": "nemesis-juez",
+      "nombre": "La jueza",
+      "tipo": "fondo",
+      "rareza": "rara",
+      "origen": "render",
+      "animado": true,
+      "imagen": "fondos/t2/nemesis-juez.png",
+      "efecto": "truenos",
+      "colores": [
+        "#0A0C1C",
+        "#2B2F4A",
+        "#BFD4FF"
+      ],
+      "descripcion": "Ira: Teto, la narradora, dicta sentencia.",
+      "temporada": "t2",
+      "temas": [
+        "siete-pecados"
+      ],
+      "personajes": [
+        "gumi",
+        "teto"
+      ]
+    },
+    {
+      "id": "siete-pecados",
+      "nombre": "Los pecados capitales",
+      "tipo": "fondo",
+      "rareza": "mitica",
+      "origen": "render",
+      "animado": true,
+      "imagen": "fondos/t2/siete-pecados.png",
+      "efecto": "fuego",
+      "colores": [
+        "#A77BFF",
+        "#E0383E",
+        "#E285B2",
+        "#3D6BFF",
+        "#39C5BB",
+        "#7FCB4B",
+        "#F6C744"
+      ],
+      "descripcion": "Lujuria, gula, envidia, avaricia, pereza e ira, entre fuego de todos los colores.",
+      "temporada": "t2",
+      "temas": [
+        "siete-pecados"
+      ],
+      "personajes": [
+        "gakupo",
+        "meiko",
+        "luka",
+        "kaito",
+        "miku",
+        "gumi",
+        "rin"
+      ]
+    },
+    {
+      "id": "ruko-original",
+      "nombre": "Ruko",
+      "tipo": "fondo",
+      "rareza": "comun",
+      "origen": "render",
+      "animado": true,
+      "imagen": "fondos/t2/ruko-original.png",
+      "efecto": "nieve",
+      "colores": [
+        "#0A1230",
+        "#27407A"
+      ],
+      "descripcion": "Yokune Ruko con su traje original.",
+      "temporada": "t2",
+      "personajes": [
+        "ruko"
+      ]
+    },
+    {
+      "id": "ruko-saludo",
+      "nombre": "Ruko saluda",
+      "tipo": "fondo",
+      "rareza": "rara",
+      "origen": "render",
+      "animado": true,
+      "imagen": "fondos/t2/ruko-saludo.png",
+      "efecto": "truenos",
+      "colores": [
+        "#0A0C1C",
+        "#22305A",
+        "#9FB8FF"
+      ],
+      "descripcion": "Yokune Ruko: 196 cm de saludo.",
+      "temporada": "t2",
+      "personajes": [
+        "ruko"
+      ]
+    },
+    {
+      "id": "adachirei-original",
+      "nombre": "Adachi Rei",
+      "tipo": "fondo",
+      "rareza": "comun",
+      "origen": "render",
+      "animado": true,
+      "imagen": "fondos/t2/adachirei-original.png",
+      "efecto": "fuego",
+      "colores": [
+        "#FF7A2F",
+        "#FFB020",
+        "#FFE14D"
+      ],
+      "descripcion": "Adachi Rei con su bata de laboratorio.",
+      "temporada": "t2",
+      "personajes": [
+        "adachirei"
+      ]
+    },
+    {
+      "id": "adachirei-saludo",
+      "nombre": "Rei saluda",
+      "tipo": "fondo",
+      "rareza": "rara",
+      "origen": "render",
+      "animado": true,
+      "imagen": "fondos/t2/adachirei-saludo.png",
+      "efecto": "luces-navidad",
+      "colores": [
+        "#2A1206",
+        "#5A2A0E"
+      ],
+      "descripcion": "Adachi Rei, la robot que quiere cantar.",
+      "temporada": "t2",
+      "personajes": [
+        "adachirei"
+      ]
+    },
+    {
+      "id": "ia-original",
+      "nombre": "IA",
+      "tipo": "fondo",
+      "rareza": "comun",
+      "origen": "render",
+      "animado": true,
+      "imagen": "fondos/t2/ia-original.png",
+      "efecto": "sueno",
+      "colores": [
+        "#1A0A1C",
+        "#4A2440",
+        "#FFD0E8"
+      ],
+      "descripcion": "IA con su traje :[R].",
+      "temporada": "t2",
+      "personajes": [
+        "ia"
+      ]
+    },
+    {
+      "id": "ia-timida",
+      "nombre": "IA tímida",
+      "tipo": "fondo",
+      "rareza": "rara",
+      "origen": "render",
+      "animado": true,
+      "imagen": "fondos/t2/ia-timida.png",
+      "efecto": "corazones",
+      "colores": [
+        "#2A0A20",
+        "#5A2248",
+        "#FFB0D0"
+      ],
+      "descripcion": "IA: Aria on the Planetes.",
+      "temporada": "t2",
+      "personajes": [
+        "ia"
+      ]
+    },
+    {
+      "id": "flower-original",
+      "nombre": "flower",
+      "tipo": "fondo",
+      "rareza": "comun",
+      "origen": "render",
+      "animado": true,
+      "imagen": "fondos/t2/flower-original.png",
+      "efecto": "truenos",
+      "colores": [
+        "#0E0A1C",
+        "#2E2050",
+        "#C9A8FF"
+      ],
+      "descripcion": "flower con su traje original.",
+      "temporada": "t2",
+      "personajes": [
+        "flower"
+      ]
+    },
+    {
+      "id": "flower-rock",
+      "nombre": "flower rockea",
+      "tipo": "fondo",
+      "rareza": "rara",
+      "origen": "render",
+      "animado": true,
+      "imagen": "fondos/t2/flower-rock.png",
+      "efecto": "fuego",
+      "colores": [
+        "#7A2BD9",
+        "#C06BFF",
+        "#FF8AE0"
+      ],
+      "descripcion": "flower: la voz del rock.",
+      "temporada": "t2",
+      "personajes": [
+        "flower"
+      ]
+    },
+    {
+      "id": "gakupo-original",
+      "nombre": "Gakupo",
+      "tipo": "fondo",
+      "rareza": "comun",
+      "origen": "render",
+      "animado": true,
+      "imagen": "fondos/t2/gakupo-original.png",
+      "efecto": "pueblo",
+      "colores": [
+        "#0C0A26",
+        "#2E1E50",
+        "#C9A8FF"
+      ],
+      "descripcion": "Gakupo con su traje original de samurái.",
+      "temporada": "t2",
+      "personajes": [
+        "gakupo"
+      ]
+    },
+    {
+      "id": "gumi-nieve",
+      "nombre": "Gumi de nieve",
+      "tipo": "fondo",
+      "rareza": "rara",
+      "origen": "render",
+      "animado": true,
+      "imagen": "fondos/t2/gumi-nieve.png",
+      "efecto": "nieve",
+      "colores": [
+        "#0A2A1A",
+        "#2A5A3A"
+      ],
+      "descripcion": "Gumi con el traje de nieve.",
+      "temporada": "t2",
+      "personajes": [
+        "gumi"
+      ]
+    },
+    {
+      "id": "gumi-gakupo",
+      "nombre": "Gumi y Gakupo",
+      "tipo": "fondo",
+      "rareza": "epica",
+      "origen": "render",
+      "animado": true,
+      "imagen": "fondos/t2/gumi-gakupo.png",
+      "efecto": "pueblo",
+      "colores": [
+        "#0C0A26",
+        "#2E1E50",
+        "#B8FF9A"
+      ],
+      "descripcion": "Los dos de INTERNET Co., juntos.",
+      "temporada": "t2",
+      "personajes": [
+        "gumi",
+        "gakupo"
+      ]
+    },
+    {
+      "id": "utau-trio",
+      "nombre": "Los UTAU",
+      "tipo": "fondo",
+      "rareza": "epica",
+      "origen": "render",
+      "animado": true,
+      "imagen": "fondos/t2/utau-trio.png",
+      "efecto": "luces-navidad",
+      "colores": [
+        "#1A0A22",
+        "#12203A"
+      ],
+      "descripcion": "Ruko y Adachi Rei: voces hechas por fans.",
+      "temporada": "t2",
+      "personajes": [
+        "ruko",
+        "adachirei"
+      ]
+    },
+    {
+      "id": "pv-venomania-mansion",
+      "nombre": "La mansión del duque",
+      "tipo": "fondo",
+      "rareza": "comun",
+      "origen": "render",
+      "imagen": "fondos/t2/pv/pv-venomania-mansion.jpg",
+      "descripcion": "Lujuria: la mansión Venomania de noche. Arte: PV oficial de La locura del duque Venomania (mothy, ilustración 鈴ノ助, 2010).",
+      "temporada": "t2",
+      "temas": [
+        "siete-pecados"
+      ],
+      "personajes": [
+        "gakupo"
+      ]
+    },
+    {
+      "id": "pv-venomania-harem",
+      "nombre": "El harén",
+      "tipo": "fondo",
+      "rareza": "comun",
+      "origen": "render",
+      "imagen": "fondos/t2/pv/pv-venomania-harem.jpg",
+      "encuadre": true,
+      "descripcion": "Lujuria: el salón del duque y sus damas. Arte: PV oficial de La locura del duque Venomania (mothy, ilustración 鈴ノ助, 2010).",
+      "temporada": "t2",
+      "temas": [
+        "siete-pecados"
+      ],
+      "personajes": [
+        "gakupo"
+      ]
+    },
+    {
+      "id": "pv-venomania-abrazo",
+      "nombre": "El abrazo",
+      "tipo": "fondo",
+      "rareza": "comun",
+      "origen": "render",
+      "imagen": "fondos/t2/pv/pv-venomania-abrazo.jpg",
+      "encuadre": true,
+      "descripcion": "Lujuria: el duque y Lukana. Arte: PV oficial de La locura del duque Venomania (mothy, ilustración 鈴ノ助, 2010).",
+      "temporada": "t2",
+      "temas": [
+        "siete-pecados"
+      ],
+      "personajes": [
+        "gakupo"
+      ]
+    },
+    {
+      "id": "pv-venomania-gumina",
+      "nombre": "Gumina",
+      "tipo": "fondo",
+      "rareza": "comun",
+      "origen": "render",
+      "imagen": "fondos/t2/pv/pv-venomania-gumina.jpg",
+      "encuadre": true,
+      "descripcion": "Lujuria: Gumina Glassred. Arte: PV oficial de La locura del duque Venomania (mothy, ilustración 鈴ノ助, 2010).",
+      "temporada": "t2",
+      "temas": [
+        "siete-pecados"
+      ],
+      "personajes": [
+        "gakupo"
+      ]
+    },
+    {
+      "id": "pv-venomania-pasillo",
+      "nombre": "El pasillo de las velas",
+      "tipo": "fondo",
+      "rareza": "comun",
+      "origen": "render",
+      "imagen": "fondos/t2/pv/pv-venomania-pasillo.jpg",
+      "encuadre": true,
+      "descripcion": "Lujuria: el duque le tiende la mano. Arte: PV oficial de La locura del duque Venomania (mothy, ilustración 鈴ノ助, 2010).",
+      "temporada": "t2",
+      "temas": [
+        "siete-pecados"
+      ],
+      "personajes": [
+        "gakupo"
+      ]
+    },
+    {
+      "id": "pv-conchita-trono",
+      "nombre": "El banquete de Banica",
+      "tipo": "fondo",
+      "rareza": "comun",
+      "origen": "render",
+      "imagen": "fondos/t2/pv/pv-conchita-trono.jpg",
+      "encuadre": true,
+      "descripcion": "Gula: Banica Conchita en su trono, con los gemelos. Arte: PV oficial de Evil Food Eater Conchita (mothy, ilustración 壱加, 2009).",
+      "temporada": "t2",
+      "temas": [
+        "siete-pecados"
+      ],
+      "personajes": [
+        "meiko"
+      ]
+    },
+    {
+      "id": "pv-conchita-vestido",
+      "nombre": "El vestido rojo",
+      "tipo": "fondo",
+      "rareza": "comun",
+      "origen": "render",
+      "imagen": "fondos/t2/pv/pv-conchita-vestido.jpg",
+      "descripcion": "Gula: Banica y su vestido rojo. Arte: PV oficial de Evil Food Eater Conchita (mothy, ilustración 壱加, 2009).",
+      "temporada": "t2",
+      "temas": [
+        "siete-pecados"
+      ],
+      "personajes": [
+        "meiko"
+      ]
+    },
+    {
+      "id": "pv-conchita-rostro",
+      "nombre": "Banica Conchita",
+      "tipo": "fondo",
+      "rareza": "comun",
+      "origen": "render",
+      "imagen": "fondos/t2/pv/pv-conchita-rostro.jpg",
+      "lado": "derecha",
+      "descripcion": "Gula: el rostro de Banica. Arte: PV oficial de Evil Food Eater Conchita (mothy, ilustración 壱加, 2009).",
+      "temporada": "t2",
+      "temas": [
+        "siete-pecados"
+      ],
+      "personajes": [
+        "meiko"
+      ]
+    },
+    {
+      "id": "pv-conchita-jaula",
+      "nombre": "El trono vacío",
+      "tipo": "fondo",
+      "rareza": "comun",
+      "origen": "render",
+      "imagen": "fondos/t2/pv/pv-conchita-jaula.jpg",
+      "descripcion": "Gula: ya no queda nadie. Arte: PV oficial de Evil Food Eater Conchita (mothy, ilustración 壱加, 2009).",
+      "temporada": "t2",
+      "temas": [
+        "siete-pecados"
+      ],
+      "personajes": [
+        "meiko"
+      ]
+    },
+    {
+      "id": "pv-enbizaka-luna",
+      "nombre": "Luna sobre Enbizaka",
+      "tipo": "fondo",
+      "rareza": "comun",
+      "origen": "render",
+      "imagen": "fondos/t2/pv/pv-enbizaka-luna.jpg",
+      "lado": "derecha",
+      "descripcion": "Envidia: Kayo bajo la luna. Arte: PV oficial de La sastre de Enbizaka (mothy, ilustraciones de varios artistas, 2009).",
+      "temporada": "t2",
+      "temas": [
+        "siete-pecados"
+      ],
+      "personajes": [
+        "luka"
+      ]
+    },
+    {
+      "id": "pv-enbizaka-obi",
+      "nombre": "El obi verde",
+      "tipo": "fondo",
+      "rareza": "comun",
+      "origen": "render",
+      "imagen": "fondos/t2/pv/pv-enbizaka-obi.jpg",
+      "encuadre": true,
+      "descripcion": "Envidia: el obi verde. Arte: PV oficial de La sastre de Enbizaka (mothy, ilustraciones de varios artistas, 2009).",
+      "temporada": "t2",
+      "temas": [
+        "siete-pecados"
+      ],
+      "personajes": [
+        "luka"
+      ]
+    },
+    {
+      "id": "pv-judgment-familia",
+      "nombre": "Padre e hija",
+      "tipo": "fondo",
+      "rareza": "comun",
+      "origen": "render",
+      "imagen": "fondos/t2/pv/pv-judgment-familia.jpg",
+      "lado": "derecha",
+      "descripcion": "Avaricia: el juez y su hija. Arte: PV oficial de Judgment of Corruption (mothy, ilustración ゆーりん@北乃友利, 2011).",
+      "temporada": "t2",
+      "temas": [
+        "siete-pecados"
+      ],
+      "personajes": [
+        "kaito"
+      ]
+    },
+    {
+      "id": "pv-judgment-llamas",
+      "nombre": "La mansión arde",
+      "tipo": "fondo",
+      "rareza": "comun",
+      "origen": "render",
+      "imagen": "fondos/t2/pv/pv-judgment-llamas.jpg",
+      "descripcion": "Avaricia: el incendio de la mansión. Arte: PV oficial de Judgment of Corruption (mothy, ilustración ゆーりん@北乃友利, 2011).",
+      "temporada": "t2",
+      "personajes": [
+        "kaito"
+      ]
+    },
+    {
+      "id": "pv-judgment-galaxia",
+      "nombre": "El juez sonríe",
+      "tipo": "fondo",
+      "rareza": "comun",
+      "origen": "render",
+      "imagen": "fondos/t2/pv/pv-judgment-galaxia.jpg",
+      "encuadre": true,
+      "descripcion": "Avaricia: Gallerian en el cielo estrellado. Arte: PV oficial de Judgment of Corruption (mothy, ilustración ゆーりん@北乃友利, 2011).",
+      "temporada": "t2",
+      "personajes": [
+        "kaito"
+      ]
+    },
+    {
+      "id": "pv-judgment-infierno",
+      "nombre": "Llamas azules",
+      "tipo": "fondo",
+      "rareza": "comun",
+      "origen": "render",
+      "imagen": "fondos/t2/pv/pv-judgment-infierno.jpg",
+      "descripcion": "Avaricia: el fuego azul del Infierno. Arte: PV oficial de Judgment of Corruption (mothy, ilustración ゆーりん@北乃友利, 2011).",
+      "temporada": "t2",
+      "personajes": [
+        "kaito"
+      ]
+    },
+    {
+      "id": "pv-gift-fantasma",
+      "nombre": "Margarita",
+      "tipo": "fondo",
+      "rareza": "comun",
+      "origen": "render",
+      "imagen": "fondos/t2/pv/pv-gift-fantasma.jpg",
+      "lado": "derecha",
+      "descripcion": "Pereza: Margarita de blanco. Arte: PV oficial de Gift from the Princess who Brought Sleep (mothy, ilustración 壱加).",
+      "temporada": "t2",
+      "personajes": [
+        "miku"
+      ]
+    },
+    {
+      "id": "pv-gift-ciudad",
+      "nombre": "La ciudad dormida",
+      "tipo": "fondo",
+      "rareza": "comun",
+      "origen": "render",
+      "imagen": "fondos/t2/pv/pv-gift-ciudad.jpg",
+      "descripcion": "Pereza: Toragay ya no despierta. Arte: PV oficial de Gift from the Princess who Brought Sleep (mothy, ilustración 壱加).",
+      "temporada": "t2",
+      "temas": [
+        "siete-pecados"
+      ],
+      "personajes": [
+        "miku"
+      ]
+    },
+    {
+      "id": "pv-gift-boda",
+      "nombre": "La boda",
+      "tipo": "fondo",
+      "rareza": "comun",
+      "origen": "render",
+      "imagen": "fondos/t2/pv/pv-gift-boda.jpg",
+      "descripcion": "Pereza: Margarita y su esposo. Arte: PV oficial de Gift from the Princess who Brought Sleep (mothy, ilustración 壱加).",
+      "temporada": "t2",
+      "personajes": [
+        "miku"
+      ]
+    },
+    {
+      "id": "pv-nemesis-mar",
+      "nombre": "El mar de Nemesis",
+      "tipo": "fondo",
+      "rareza": "comun",
+      "origen": "render",
+      "imagen": "fondos/t2/pv/pv-nemesis-mar.jpg",
+      "descripcion": "Ira: Nemesis frente al mar. Arte: PV oficial de The Muzzle of Nemesis (mothy, ilustración 壱加).",
+      "temporada": "t2",
+      "temas": [
+        "siete-pecados"
+      ],
+      "personajes": [
+        "gumi"
+      ]
+    },
+    {
+      "id": "pv-nemesis-noche",
+      "nombre": "Noche de nieve",
+      "tipo": "fondo",
+      "rareza": "comun",
+      "origen": "render",
+      "imagen": "fondos/t2/pv/pv-nemesis-noche.jpg",
+      "encuadre": true,
+      "descripcion": "Ira: el bosque nevado. Arte: PV oficial de The Muzzle of Nemesis (mothy, ilustración 壱加).",
+      "temporada": "t2",
+      "temas": [
+        "siete-pecados"
+      ],
+      "personajes": [
+        "gumi"
+      ]
+    },
+    {
+      "id": "pv-nemesis-estudio",
+      "nombre": "El estudio del juez",
+      "tipo": "fondo",
+      "rareza": "comun",
+      "origen": "render",
+      "imagen": "fondos/t2/pv/pv-nemesis-estudio.jpg",
+      "descripcion": "Ira: el estudio, antes de todo. Arte: PV oficial de The Muzzle of Nemesis (mothy, ilustración 壱加).",
+      "temporada": "t2",
+      "temas": [
+        "siete-pecados"
+      ],
+      "personajes": [
+        "gumi"
+      ]
+    },
+    {
+      "id": "borde-de-caramelo",
+      "nombre": "Bastón de caramelo",
+      "tipo": "borde",
+      "rareza": "comun",
+      "origen": "arte",
+      "descripcion": "Franjas rojas y blancas, como un bastón de caramelo.",
+      "temporada": "t2",
+      "temas": [
+        "navidad"
+      ]
+    },
+    {
+      "id": "guirnalda-navidena",
+      "nombre": "Guirnalda navideña",
+      "tipo": "borde",
+      "rareza": "rara",
+      "origen": "arte",
+      "descripcion": "Guirnalda de pino con esferas rojas y doradas.",
+      "temporada": "t2",
+      "temas": [
+        "navidad"
+      ]
+    },
+    {
+      "id": "hilo-de-kayo",
+      "nombre": "Hilo de Kayo",
+      "tipo": "borde",
+      "rareza": "rara",
+      "origen": "arte",
+      "descripcion": "Hilo rojo cosido alrededor, con las tijeras de la sastre de Enbizaka.",
+      "temporada": "t2",
+      "personajes": [
+        "luka"
+      ],
+      "temas": [
+        "siete-pecados"
+      ]
+    },
+    {
+      "id": "luces-de-navidad",
+      "nombre": "Luces de Navidad",
+      "tipo": "borde",
+      "rareza": "epica",
+      "origen": "arte",
+      "animado": true,
+      "descripcion": "Luces de colores que se prenden por turnos.",
+      "temporada": "t2",
+      "temas": [
+        "navidad"
+      ]
+    },
+    {
+      "id": "escarcha",
+      "nombre": "Escarcha",
+      "tipo": "borde",
+      "rareza": "legendaria",
+      "origen": "arte",
+      "animado": true,
+      "descripcion": "Borde de hielo con un brillo que lo recorre y copos que giran.",
+      "temporada": "t2",
+      "temas": [
+        "navidad"
+      ]
+    },
+    {
+      "id": "llamas-del-pecado",
+      "nombre": "Llamas del pecado",
+      "tipo": "borde",
+      "rareza": "legendaria",
+      "origen": "arte",
+      "animado": true,
+      "descripcion": "Llamas que pasan por los colores de los siete pecados.",
+      "temporada": "t2",
+      "temas": [
+        "siete-pecados"
+      ]
+    },
+    {
+      "id": "barra-de-caramelo",
+      "nombre": "Caramelo",
+      "tipo": "barra",
+      "rareza": "comun",
+      "origen": "arte",
+      "descripcion": "Barra de bastón de caramelo.",
+      "temporada": "t2",
+      "temas": [
+        "navidad"
+      ]
+    },
+    {
+      "id": "nieve-acumulada",
+      "nombre": "Nieve acumulada",
+      "tipo": "barra",
+      "rareza": "rara",
+      "origen": "arte",
+      "descripcion": "Hielo con nieve encima.",
+      "temporada": "t2",
+      "temas": [
+        "navidad"
+      ]
+    },
+    {
+      "id": "puntada-roja",
+      "nombre": "Puntada roja",
+      "tipo": "barra",
+      "rareza": "rara",
+      "origen": "arte",
+      "descripcion": "Tela cosida con hilo rojo (La sastre de Enbizaka).",
+      "temporada": "t2",
+      "personajes": [
+        "luka"
+      ],
+      "temas": [
+        "siete-pecados"
+      ]
+    },
+    {
+      "id": "lava",
+      "nombre": "Lava",
+      "tipo": "barra",
+      "rareza": "epica",
+      "origen": "arte",
+      "animado": true,
+      "descripcion": "Lava que avanza con chispas.",
+      "temporada": "t2"
+    },
+    {
+      "id": "barra-de-luces",
+      "nombre": "Luces en fila",
+      "tipo": "barra",
+      "rareza": "epica",
+      "origen": "arte",
+      "animado": true,
+      "descripcion": "Luces de Navidad que corren por la barra.",
+      "temporada": "t2",
+      "temas": [
+        "navidad"
+      ]
+    },
+    {
+      "id": "barra-siete-pecados",
+      "nombre": "Los siete pecados",
+      "tipo": "barra",
+      "rareza": "legendaria",
+      "origen": "arte",
+      "animado": true,
+      "descripcion": "Los colores de los siete pecados: se descubren al subir de XP.",
+      "temporada": "t2",
+      "temas": [
+        "siete-pecados"
+      ]
+    },
+    {
+      "id": "corona-de-adviento",
+      "nombre": "Corona de adviento",
+      "tipo": "aro",
+      "rareza": "rara",
+      "origen": "arte",
+      "descripcion": "Corona de pino con bayas rojas.",
+      "temporada": "t2",
+      "temas": [
+        "navidad"
+      ]
+    },
+    {
+      "id": "copos-en-orbita",
+      "nombre": "Copos en órbita",
+      "tipo": "aro",
+      "rareza": "epica",
+      "origen": "arte",
+      "animado": true,
+      "descripcion": "Aro de hielo con copos que giran.",
+      "temporada": "t2",
+      "temas": [
+        "navidad"
+      ]
+    },
+    {
+      "id": "aro-de-fuego",
+      "nombre": "Aro de fuego",
+      "tipo": "aro",
+      "rareza": "legendaria",
+      "origen": "arte",
+      "animado": true,
+      "descripcion": "Un aro en llamas.",
+      "temporada": "t2"
+    },
+    {
+      "id": "escarchado",
+      "nombre": "Escarchado",
+      "tipo": "nombre",
+      "rareza": "rara",
+      "origen": "arte",
+      "descripcion": "Tu nombre con letras de hielo.",
+      "temporada": "t2",
+      "temas": [
+        "navidad"
+      ]
+    },
+    {
+      "id": "brasas",
+      "nombre": "Brasas",
+      "tipo": "nombre",
+      "rareza": "epica",
+      "origen": "arte",
+      "animado": true,
+      "descripcion": "Tu nombre al rojo vivo.",
+      "temporada": "t2"
+    },
+    {
+      "id": "borde-lujuria",
+      "nombre": "Marco de la lujuria",
+      "tipo": "borde",
+      "rareza": "rara",
+      "origen": "arte",
+      "descripcion": "Lujuria: marco de su color con el corazón de Venomania.",
+      "temporada": "t2",
+      "personajes": [
+        "gakupo"
+      ],
+      "temas": [
+        "siete-pecados"
+      ]
+    },
+    {
+      "id": "aro-lujuria",
+      "nombre": "Aro de la lujuria",
+      "tipo": "aro",
+      "rareza": "epica",
+      "origen": "arte",
+      "animado": true,
+      "descripcion": "Lujuria: el corazón de Venomania gira alrededor de tu avatar.",
+      "temporada": "t2",
+      "personajes": [
+        "gakupo"
+      ],
+      "temas": [
+        "siete-pecados"
+      ]
+    },
+    {
+      "id": "barra-lujuria",
+      "nombre": "Barra de la lujuria",
+      "tipo": "barra",
+      "rareza": "rara",
+      "origen": "arte",
+      "descripcion": "Lujuria: barra de su color con el corazón de Venomania.",
+      "temporada": "t2",
+      "personajes": [
+        "gakupo"
+      ],
+      "temas": [
+        "siete-pecados"
+      ]
+    },
+    {
+      "id": "borde-gula",
+      "nombre": "Marco de la gula",
+      "tipo": "borde",
+      "rareza": "rara",
+      "origen": "arte",
+      "descripcion": "Gula: marco de su color con el cáliz de Conchita.",
+      "temporada": "t2",
+      "personajes": [
+        "meiko"
+      ],
+      "temas": [
+        "siete-pecados"
+      ]
+    },
+    {
+      "id": "aro-gula",
+      "nombre": "Aro de la gula",
+      "tipo": "aro",
+      "rareza": "epica",
+      "origen": "arte",
+      "animado": true,
+      "descripcion": "Gula: el cáliz de Conchita gira alrededor de tu avatar.",
+      "temporada": "t2",
+      "personajes": [
+        "meiko"
+      ],
+      "temas": [
+        "siete-pecados"
+      ]
+    },
+    {
+      "id": "barra-gula",
+      "nombre": "Barra de la gula",
+      "tipo": "barra",
+      "rareza": "rara",
+      "origen": "arte",
+      "descripcion": "Gula: barra de su color con el cáliz de Conchita.",
+      "temporada": "t2",
+      "personajes": [
+        "meiko"
+      ],
+      "temas": [
+        "siete-pecados"
+      ]
+    },
+    {
+      "id": "borde-envidia",
+      "nombre": "Marco de la envidia",
+      "tipo": "borde",
+      "rareza": "rara",
+      "origen": "arte",
+      "descripcion": "Envidia: marco de su color con las tijeras de Kayo.",
+      "temporada": "t2",
+      "personajes": [
+        "luka"
+      ],
+      "temas": [
+        "siete-pecados"
+      ]
+    },
+    {
+      "id": "aro-envidia",
+      "nombre": "Aro de la envidia",
+      "tipo": "aro",
+      "rareza": "epica",
+      "origen": "arte",
+      "animado": true,
+      "descripcion": "Envidia: las tijeras de Kayo gira alrededor de tu avatar.",
+      "temporada": "t2",
+      "personajes": [
+        "luka"
+      ],
+      "temas": [
+        "siete-pecados"
+      ]
+    },
+    {
+      "id": "barra-envidia",
+      "nombre": "Barra de la envidia",
+      "tipo": "barra",
+      "rareza": "rara",
+      "origen": "arte",
+      "descripcion": "Envidia: barra de su color con las tijeras de Kayo.",
+      "temporada": "t2",
+      "personajes": [
+        "luka"
+      ],
+      "temas": [
+        "siete-pecados"
+      ]
+    },
+    {
+      "id": "borde-avaricia",
+      "nombre": "Marco de la avaricia",
+      "tipo": "borde",
+      "rareza": "rara",
+      "origen": "arte",
+      "descripcion": "Avaricia: marco de su color con la moneda del juez.",
+      "temporada": "t2",
+      "personajes": [
+        "kaito"
+      ],
+      "temas": [
+        "siete-pecados"
+      ]
+    },
+    {
+      "id": "aro-avaricia",
+      "nombre": "Aro de la avaricia",
+      "tipo": "aro",
+      "rareza": "epica",
+      "origen": "arte",
+      "animado": true,
+      "descripcion": "Avaricia: la moneda del juez gira alrededor de tu avatar.",
+      "temporada": "t2",
+      "personajes": [
+        "kaito"
+      ],
+      "temas": [
+        "siete-pecados"
+      ]
+    },
+    {
+      "id": "barra-avaricia",
+      "nombre": "Barra de la avaricia",
+      "tipo": "barra",
+      "rareza": "rara",
+      "origen": "arte",
+      "descripcion": "Avaricia: barra de su color con la moneda del juez.",
+      "temporada": "t2",
+      "personajes": [
+        "kaito"
+      ],
+      "temas": [
+        "siete-pecados"
+      ]
+    },
+    {
+      "id": "borde-pereza",
+      "nombre": "Marco de la pereza",
+      "tipo": "borde",
+      "rareza": "rara",
+      "origen": "arte",
+      "descripcion": "Pereza: marco de su color con la luna del sueño.",
+      "temporada": "t2",
+      "personajes": [
+        "miku"
+      ],
+      "temas": [
+        "siete-pecados"
+      ]
+    },
+    {
+      "id": "aro-pereza",
+      "nombre": "Aro de la pereza",
+      "tipo": "aro",
+      "rareza": "epica",
+      "origen": "arte",
+      "animado": true,
+      "descripcion": "Pereza: la luna del sueño gira alrededor de tu avatar.",
+      "temporada": "t2",
+      "personajes": [
+        "miku"
+      ],
+      "temas": [
+        "siete-pecados"
+      ]
+    },
+    {
+      "id": "barra-pereza",
+      "nombre": "Barra de la pereza",
+      "tipo": "barra",
+      "rareza": "rara",
+      "origen": "arte",
+      "descripcion": "Pereza: barra de su color con la luna del sueño.",
+      "temporada": "t2",
+      "personajes": [
+        "miku"
+      ],
+      "temas": [
+        "siete-pecados"
+      ]
+    },
+    {
+      "id": "borde-ira",
+      "nombre": "Marco de la ira",
+      "tipo": "borde",
+      "rareza": "rara",
+      "origen": "arte",
+      "descripcion": "Ira: marco de su color con el rayo de Nemesis.",
+      "temporada": "t2",
+      "personajes": [
+        "gumi"
+      ],
+      "temas": [
+        "siete-pecados"
+      ]
+    },
+    {
+      "id": "aro-ira",
+      "nombre": "Aro de la ira",
+      "tipo": "aro",
+      "rareza": "epica",
+      "origen": "arte",
+      "animado": true,
+      "descripcion": "Ira: el rayo de Nemesis gira alrededor de tu avatar.",
+      "temporada": "t2",
+      "personajes": [
+        "gumi"
+      ],
+      "temas": [
+        "siete-pecados"
+      ]
+    },
+    {
+      "id": "barra-ira",
+      "nombre": "Barra de la ira",
+      "tipo": "barra",
+      "rareza": "rara",
+      "origen": "arte",
+      "descripcion": "Ira: barra de su color con el rayo de Nemesis.",
+      "temporada": "t2",
+      "personajes": [
+        "gumi"
+      ],
+      "temas": [
+        "siete-pecados"
+      ]
+    },
+    {
+      "id": "borde-orgullo",
+      "nombre": "Marco de la orgullo",
+      "tipo": "borde",
+      "rareza": "rara",
+      "origen": "arte",
+      "descripcion": "Orgullo: marco de su color con la corona de la hija del mal.",
+      "temporada": "t2",
+      "personajes": [
+        "rin"
+      ],
+      "temas": [
+        "siete-pecados"
+      ]
+    },
+    {
+      "id": "aro-orgullo",
+      "nombre": "Aro de la orgullo",
+      "tipo": "aro",
+      "rareza": "epica",
+      "origen": "arte",
+      "animado": true,
+      "descripcion": "Orgullo: la corona de la hija del mal gira alrededor de tu avatar.",
+      "temporada": "t2",
+      "personajes": [
+        "rin"
+      ],
+      "temas": [
+        "siete-pecados"
+      ]
+    },
+    {
+      "id": "barra-orgullo",
+      "nombre": "Barra de la orgullo",
+      "tipo": "barra",
+      "rareza": "rara",
+      "origen": "arte",
+      "descripcion": "Orgullo: barra de su color con la corona de la hija del mal.",
+      "temporada": "t2",
+      "personajes": [
+        "rin"
+      ],
+      "temas": [
+        "siete-pecados"
+      ]
+    },
+    {
+      "id": "papel-de-regalo",
+      "nombre": "Papel de regalo",
+      "tipo": "borde",
+      "rareza": "comun",
+      "origen": "arte",
+      "descripcion": "Papel rojo con rayas doradas y un moño.",
+      "temporada": "t2",
+      "temas": [
+        "navidad"
+      ]
+    },
+    {
+      "id": "galleta-de-jengibre",
+      "nombre": "Galleta de jengibre",
+      "tipo": "borde",
+      "rareza": "comun",
+      "origen": "arte",
+      "descripcion": "Borde de galleta con glaseado en zigzag.",
+      "temporada": "t2",
+      "temas": [
+        "navidad"
+      ]
+    },
+    {
+      "id": "tejado-nevado",
+      "nombre": "Tejado nevado",
+      "tipo": "borde",
+      "rareza": "rara",
+      "origen": "arte",
+      "descripcion": "Nieve acumulada arriba, con carámbanos.",
+      "temporada": "t2",
+      "temas": [
+        "navidad"
+      ]
+    },
+    {
+      "id": "noche-estrellada",
+      "nombre": "Noche estrellada",
+      "tipo": "borde",
+      "rareza": "epica",
+      "origen": "arte",
+      "animado": true,
+      "descripcion": "Estrellas que titilan alrededor de la tarjeta.",
+      "temporada": "t2",
+      "temas": [
+        "navidad"
+      ]
+    },
+    {
+      "id": "aurora-boreal",
+      "nombre": "Aurora boreal",
+      "tipo": "borde",
+      "rareza": "legendaria",
+      "origen": "arte",
+      "animado": true,
+      "descripcion": "Una aurora que recorre el borde.",
+      "temporada": "t2",
+      "temas": [
+        "navidad"
+      ]
+    },
+    {
+      "id": "rueda-de-los-siete",
+      "nombre": "Rueda de los siete",
+      "tipo": "borde",
+      "rareza": "mitica",
+      "origen": "arte",
+      "animado": true,
+      "descripcion": "Los siete pecados dan la vuelta a tu tarjeta, cada uno con su símbolo.",
+      "temporada": "t2",
+      "temas": [
+        "siete-pecados"
+      ]
+    },
+    {
+      "id": "esfera-del-arbol",
+      "nombre": "Esfera del árbol",
+      "tipo": "aro",
+      "rareza": "comun",
+      "origen": "arte",
+      "descripcion": "Tu avatar dentro de una esfera dorada.",
+      "temporada": "t2",
+      "temas": [
+        "navidad"
+      ]
+    },
+    {
+      "id": "gorro-de-santa",
+      "nombre": "Gorro de Santa",
+      "tipo": "aro",
+      "rareza": "rara",
+      "origen": "arte",
+      "descripcion": "Aro rojo con peluche blanco y pompón.",
+      "temporada": "t2",
+      "temas": [
+        "navidad"
+      ]
+    },
+    {
+      "id": "estrella-de-belen",
+      "nombre": "Estrella de Belén",
+      "tipo": "aro",
+      "rareza": "epica",
+      "origen": "arte",
+      "animado": true,
+      "descripcion": "Rayos dorados que laten.",
+      "temporada": "t2",
+      "temas": [
+        "navidad"
+      ]
+    },
+    {
+      "id": "aurora-en-orbita",
+      "nombre": "Aurora en órbita",
+      "tipo": "aro",
+      "rareza": "legendaria",
+      "origen": "arte",
+      "animado": true,
+      "descripcion": "Una aurora que gira alrededor de tu avatar.",
+      "temporada": "t2",
+      "temas": [
+        "navidad"
+      ]
+    },
+    {
+      "id": "corona-de-los-siete",
+      "nombre": "Corona de los siete",
+      "tipo": "aro",
+      "rareza": "mitica",
+      "origen": "arte",
+      "animado": true,
+      "descripcion": "Los siete pecados giran alrededor de tu avatar.",
+      "temporada": "t2",
+      "temas": [
+        "siete-pecados"
+      ]
+    },
+    {
+      "id": "cinta-de-regalo",
+      "nombre": "Cinta de regalo",
+      "tipo": "barra",
+      "rareza": "comun",
+      "origen": "arte",
+      "descripcion": "Cinta roja con filos dorados.",
+      "temporada": "t2",
+      "temas": [
+        "navidad"
+      ]
+    },
+    {
+      "id": "glaseado",
+      "nombre": "Glaseado",
+      "tipo": "barra",
+      "rareza": "comun",
+      "origen": "arte",
+      "descripcion": "Galleta con glaseado en zigzag.",
+      "temporada": "t2",
+      "temas": [
+        "navidad"
+      ]
+    },
+    {
+      "id": "ventisca",
+      "nombre": "Ventisca",
+      "tipo": "barra",
+      "rareza": "epica",
+      "origen": "arte",
+      "animado": true,
+      "descripcion": "Copos que cruzan la noche.",
+      "temporada": "t2",
+      "temas": [
+        "navidad"
+      ]
+    },
+    {
+      "id": "veneno",
+      "nombre": "Veneno",
+      "tipo": "barra",
+      "rareza": "epica",
+      "origen": "arte",
+      "animado": true,
+      "descripcion": "Veneno morado que burbujea (Venomania).",
+      "temporada": "t2",
+      "personajes": [
+        "gakupo"
+      ],
+      "temas": [
+        "siete-pecados"
+      ]
+    },
+    {
+      "id": "aurora",
+      "nombre": "Aurora",
+      "tipo": "barra",
+      "rareza": "legendaria",
+      "origen": "arte",
+      "animado": true,
+      "descripcion": "Una aurora boreal en tu barra de XP.",
+      "temporada": "t2",
+      "temas": [
+        "navidad"
+      ]
+    },
+    {
+      "id": "navideno",
+      "nombre": "Navideño",
+      "tipo": "nombre",
+      "rareza": "comun",
+      "origen": "arte",
+      "descripcion": "Tu nombre en rojo, blanco y verde.",
+      "temporada": "t2",
+      "temas": [
+        "navidad"
+      ]
+    },
+    {
+      "id": "oro-macizo",
+      "nombre": "Oro macizo",
+      "tipo": "nombre",
+      "rareza": "rara",
+      "origen": "arte",
+      "descripcion": "Tu nombre en oro (avaricia).",
+      "temporada": "t2",
+      "personajes": [
+        "kaito"
+      ]
+    },
+    {
+      "id": "carmesi",
+      "nombre": "Carmesí",
+      "tipo": "nombre",
+      "rareza": "rara",
+      "origen": "arte",
+      "descripcion": "El rojo del kimono de Kayo.",
+      "temporada": "t2",
+      "personajes": [
+        "luka"
+      ],
+      "temas": [
+        "siete-pecados"
+      ]
+    },
+    {
+      "id": "veneno-dulce",
+      "nombre": "Veneno dulce",
+      "tipo": "nombre",
+      "rareza": "epica",
+      "origen": "arte",
+      "animado": true,
+      "descripcion": "Morado y rosa que se mueven (Venomania).",
+      "temporada": "t2",
+      "personajes": [
+        "gakupo"
+      ],
+      "temas": [
+        "siete-pecados"
+      ]
+    },
+    {
+      "id": "luz-del-norte",
+      "nombre": "Luz del norte",
+      "tipo": "nombre",
+      "rareza": "legendaria",
+      "origen": "arte",
+      "animado": true,
+      "descripcion": "Tu nombre con los colores de la aurora.",
+      "temporada": "t2",
+      "temas": [
+        "navidad"
+      ]
+    },
+    {
+      "id": "siete-colores",
+      "nombre": "Siete colores",
+      "tipo": "nombre",
+      "rareza": "mitica",
+      "origen": "arte",
+      "animado": true,
+      "descripcion": "Tu nombre con los colores de los siete pecados.",
+      "temporada": "t2",
+      "temas": [
+        "siete-pecados"
+      ]
+    },
+    {
+      "id": "insignia-arbolito",
+      "nombre": "Arbolito",
+      "tipo": "insignia",
+      "rareza": "comun",
+      "origen": "arte",
+      "valor": "🎄",
+      "imagen": "insignias/t2/insignia-arbolito.png",
+      "descripcion": "Un árbol de Navidad con su estrella. Va junto a tu nombre (hasta 3).",
+      "temporada": "t2",
+      "temas": [
+        "navidad"
+      ]
+    },
+    {
+      "id": "insignia-regalo",
+      "nombre": "Regalo",
+      "tipo": "insignia",
+      "rareza": "comun",
+      "origen": "arte",
+      "valor": "🎁",
+      "imagen": "insignias/t2/insignia-regalo.png",
+      "descripcion": "Un regalo por abrir. Va junto a tu nombre (hasta 3).",
+      "temporada": "t2",
+      "temas": [
+        "navidad"
+      ]
+    },
+    {
+      "id": "insignia-copo",
+      "nombre": "Copo de nieve",
+      "tipo": "insignia",
+      "rareza": "comun",
+      "origen": "arte",
+      "valor": "❄️",
+      "imagen": "insignias/t2/insignia-copo.png",
+      "descripcion": "Un copo de nieve. Va junto a tu nombre (hasta 3).",
+      "temporada": "t2",
+      "temas": [
+        "navidad"
+      ]
+    },
+    {
+      "id": "insignia-baston",
+      "nombre": "Bastón de caramelo",
+      "tipo": "insignia",
+      "rareza": "comun",
+      "origen": "arte",
+      "valor": "🍬",
+      "imagen": "insignias/t2/insignia-baston.png",
+      "descripcion": "Un bastón de caramelo. Va junto a tu nombre (hasta 3).",
+      "temporada": "t2",
+      "temas": [
+        "navidad"
+      ]
+    },
+    {
+      "id": "insignia-galleta",
+      "nombre": "Galleta de jengibre",
+      "tipo": "insignia",
+      "rareza": "comun",
+      "origen": "arte",
+      "valor": "🍪",
+      "imagen": "insignias/t2/insignia-galleta.png",
+      "descripcion": "Un muñequito de jengibre. Va junto a tu nombre (hasta 3).",
+      "temporada": "t2",
+      "temas": [
+        "navidad"
+      ]
+    },
+    {
+      "id": "insignia-muneco",
+      "nombre": "Muñeco de nieve",
+      "tipo": "insignia",
+      "rareza": "rara",
+      "origen": "arte",
+      "valor": "⛄",
+      "imagen": "insignias/t2/insignia-muneco.png",
+      "descripcion": "Un muñeco de nieve con bufanda. Va junto a tu nombre (hasta 3).",
+      "temporada": "t2",
+      "temas": [
+        "navidad"
+      ]
+    },
+    {
+      "id": "insignia-campana",
+      "nombre": "Campana",
+      "tipo": "insignia",
+      "rareza": "rara",
+      "origen": "arte",
+      "valor": "🔔",
+      "imagen": "insignias/t2/insignia-campana.png",
+      "descripcion": "Una campana con su moño. Va junto a tu nombre (hasta 3).",
+      "temporada": "t2",
+      "temas": [
+        "navidad"
+      ]
+    },
+    {
+      "id": "insignia-gorro",
+      "nombre": "Gorro de Santa",
+      "tipo": "insignia",
+      "rareza": "rara",
+      "origen": "arte",
+      "valor": "🎅",
+      "imagen": "insignias/t2/insignia-gorro.png",
+      "descripcion": "El gorro que usan todos los Vocaloids. Va junto a tu nombre (hasta 3).",
+      "temporada": "t2",
+      "temas": [
+        "navidad"
+      ]
+    },
+    {
+      "id": "insignia-estrella",
+      "nombre": "Estrella de Belén",
+      "tipo": "insignia",
+      "rareza": "epica",
+      "origen": "arte",
+      "valor": "⭐",
+      "imagen": "insignias/t2/insignia-estrella.png",
+      "descripcion": "La estrella de la punta del árbol. Va junto a tu nombre (hasta 3).",
+      "temporada": "t2",
+      "temas": [
+        "navidad"
+      ]
+    },
+    {
+      "id": "insignia-lujuria",
+      "nombre": "Lujuria",
+      "tipo": "insignia",
+      "rareza": "rara",
+      "origen": "arte",
+      "valor": "💜",
+      "imagen": "insignias/t2/insignia-lujuria.png",
+      "descripcion": "Lujuria: el corazón de Venomania. Va junto a tu nombre (hasta 3).",
+      "temporada": "t2",
+      "personajes": [
+        "gakupo"
+      ],
+      "temas": [
+        "siete-pecados"
+      ]
+    },
+    {
+      "id": "insignia-gula",
+      "nombre": "Gula",
+      "tipo": "insignia",
+      "rareza": "rara",
+      "origen": "arte",
+      "valor": "🍷",
+      "imagen": "insignias/t2/insignia-gula.png",
+      "descripcion": "Gula: el cáliz de Conchita. Va junto a tu nombre (hasta 3).",
+      "temporada": "t2",
+      "personajes": [
+        "meiko"
+      ],
+      "temas": [
+        "siete-pecados"
+      ]
+    },
+    {
+      "id": "insignia-envidia",
+      "nombre": "Envidia",
+      "tipo": "insignia",
+      "rareza": "rara",
+      "origen": "arte",
+      "valor": "✂️",
+      "imagen": "insignias/t2/insignia-envidia.png",
+      "descripcion": "Envidia: las tijeras de Kayo. Va junto a tu nombre (hasta 3).",
+      "temporada": "t2",
+      "personajes": [
+        "luka"
+      ],
+      "temas": [
+        "siete-pecados"
+      ]
+    },
+    {
+      "id": "insignia-avaricia",
+      "nombre": "Avaricia",
+      "tipo": "insignia",
+      "rareza": "rara",
+      "origen": "arte",
+      "valor": "🪙",
+      "imagen": "insignias/t2/insignia-avaricia.png",
+      "descripcion": "Avaricia: la moneda del juez. Va junto a tu nombre (hasta 3).",
+      "temporada": "t2",
+      "personajes": [
+        "kaito"
+      ],
+      "temas": [
+        "siete-pecados"
+      ]
+    },
+    {
+      "id": "insignia-pereza",
+      "nombre": "Pereza",
+      "tipo": "insignia",
+      "rareza": "rara",
+      "origen": "arte",
+      "valor": "🌙",
+      "imagen": "insignias/t2/insignia-pereza.png",
+      "descripcion": "Pereza: la luna del sueño. Va junto a tu nombre (hasta 3).",
+      "temporada": "t2",
+      "personajes": [
+        "miku"
+      ],
+      "temas": [
+        "siete-pecados"
+      ]
+    },
+    {
+      "id": "insignia-ira",
+      "nombre": "Ira",
+      "tipo": "insignia",
+      "rareza": "rara",
+      "origen": "arte",
+      "valor": "⚡",
+      "imagen": "insignias/t2/insignia-ira.png",
+      "descripcion": "Ira: el rayo de Nemesis. Va junto a tu nombre (hasta 3).",
+      "temporada": "t2",
+      "personajes": [
+        "gumi"
+      ],
+      "temas": [
+        "siete-pecados"
+      ]
+    },
+    {
+      "id": "insignia-orgullo",
+      "nombre": "Orgullo",
+      "tipo": "insignia",
+      "rareza": "rara",
+      "origen": "arte",
+      "valor": "👑",
+      "imagen": "insignias/t2/insignia-orgullo.png",
+      "descripcion": "Orgullo: la corona de la hija del mal. Va junto a tu nombre (hasta 3).",
+      "temporada": "t2",
+      "personajes": [
+        "rin"
+      ],
+      "temas": [
+        "siete-pecados"
+      ]
+    },
+    {
+      "id": "insignia-siete",
+      "nombre": "Los siete",
+      "tipo": "insignia",
+      "rareza": "epica",
+      "origen": "arte",
+      "valor": "7️⃣",
+      "imagen": "insignias/t2/insignia-siete.png",
+      "descripcion": "La rueda de los siete pecados capitales. Va junto a tu nombre (hasta 3).",
+      "temporada": "t2",
+      "temas": [
+        "siete-pecados"
+      ]
+    },
+    {
+      "id": "titulo-espiritu",
+      "nombre": "Espíritu navideño",
+      "tipo": "titulo",
+      "rareza": "comun",
+      "origen": "arte",
+      "valor": "Espíritu navideño",
+      "descripcion": "Para quien ya puso el árbol. Frase bajo tu nombre.",
+      "temporada": "t2",
+      "temas": [
+        "navidad"
+      ]
+    },
+    {
+      "id": "titulo-reno",
+      "nombre": "Reno suplente",
+      "tipo": "titulo",
+      "rareza": "comun",
+      "origen": "arte",
+      "valor": "Reno suplente",
+      "descripcion": "Por si Len se cansa. Frase bajo tu nombre.",
+      "temporada": "t2",
+      "personajes": [
+        "len"
+      ],
+      "temas": [
+        "navidad"
+      ]
+    },
+    {
+      "id": "titulo-ayudante",
+      "nombre": "Ayudante de Santa",
+      "tipo": "titulo",
+      "rareza": "rara",
+      "origen": "arte",
+      "valor": "Ayudante de Santa",
+      "descripcion": "Reparte regalos con los Vocaloids. Frase bajo tu nombre.",
+      "temporada": "t2",
+      "temas": [
+        "navidad"
+      ]
+    },
+    {
+      "id": "titulo-cliente",
+      "nombre": "Cliente de la sastrería",
+      "tipo": "titulo",
+      "rareza": "rara",
+      "origen": "arte",
+      "valor": "Cliente de la sastrería",
+      "descripcion": "Envidia: mejor no llegar tarde. Frase bajo tu nombre.",
+      "temporada": "t2",
+      "personajes": [
+        "luka"
+      ]
+    },
+    {
+      "id": "titulo-invitado",
+      "nombre": "Invitado al banquete",
+      "tipo": "titulo",
+      "rareza": "rara",
+      "origen": "arte",
+      "valor": "Invitado al banquete",
+      "descripcion": "Gula: come todo lo que hay en el plato. Frase bajo tu nombre.",
+      "temporada": "t2",
+      "personajes": [
+        "meiko"
+      ]
+    },
+    {
+      "id": "titulo-encantado",
+      "nombre": "Bajo el hechizo de Venomania",
+      "tipo": "titulo",
+      "rareza": "epica",
+      "origen": "arte",
+      "valor": "Bajo el hechizo de Venomania",
+      "descripcion": "Lujuria: nadie se resiste al duque. Frase bajo tu nombre.",
+      "temporada": "t2",
+      "personajes": [
+        "gakupo"
+      ]
+    },
+    {
+      "id": "titulo-juez",
+      "nombre": "Juez de la corrupción",
+      "tipo": "titulo",
+      "rareza": "epica",
+      "origen": "arte",
+      "valor": "Juez de la corrupción",
+      "descripcion": "Avaricia: la sentencia se compra. Frase bajo tu nombre.",
+      "temporada": "t2",
+      "personajes": [
+        "kaito"
+      ],
+      "temas": [
+        "siete-pecados"
+      ]
+    },
+    {
+      "id": "titulo-dormilon",
+      "nombre": "Durmiente de Toragay",
+      "tipo": "titulo",
+      "rareza": "epica",
+      "origen": "arte",
+      "valor": "Durmiente de Toragay",
+      "descripcion": "Pereza: recibió el regalo de la princesa. Frase bajo tu nombre.",
+      "temporada": "t2",
+      "personajes": [
+        "miku"
+      ]
+    },
+    {
+      "id": "titulo-sastre",
+      "nombre": "Sastre de Enbizaka",
+      "tipo": "titulo",
+      "rareza": "legendaria",
+      "origen": "arte",
+      "valor": "Sastre de Enbizaka",
+      "descripcion": "Envidia: hoy también trabaja duro. Frase bajo tu nombre.",
+      "temporada": "t2",
+      "personajes": [
+        "luka"
+      ]
+    },
+    {
+      "id": "titulo-nemesis",
+      "nombre": "Mano de Nemesis",
+      "tipo": "titulo",
+      "rareza": "legendaria",
+      "origen": "arte",
+      "valor": "Mano de Nemesis",
+      "descripcion": "Ira: el final del juez. Frase bajo tu nombre.",
+      "temporada": "t2",
+      "personajes": [
+        "gumi"
+      ],
+      "temas": [
+        "siete-pecados"
+      ]
+    },
+    {
+      "id": "titulo-nochebuena",
+      "nombre": "Esperando la Nochebuena",
+      "tipo": "titulo",
+      "rareza": "comun",
+      "origen": "arte",
+      "valor": "Esperando la Nochebuena",
+      "descripcion": "Cuenta los días. Frase bajo tu nombre.",
+      "temporada": "t2",
+      "temas": [
+        "navidad"
+      ]
+    },
+    {
+      "id": "titulo-ponche",
+      "nombre": "Catador de ponche",
+      "tipo": "titulo",
+      "rareza": "comun",
+      "origen": "arte",
+      "valor": "Catador de ponche",
+      "descripcion": "Con piquete o sin piquete. Frase bajo tu nombre.",
+      "temporada": "t2",
+      "temas": [
+        "navidad"
+      ]
+    },
+    {
+      "id": "titulo-posada",
+      "nombre": "Rey de las posadas",
+      "tipo": "titulo",
+      "rareza": "rara",
+      "origen": "arte",
+      "valor": "Rey de las posadas",
+      "descripcion": "No se pierde ninguna. Frase bajo tu nombre.",
+      "temporada": "t2",
+      "temas": [
+        "navidad"
+      ]
+    },
+    {
+      "id": "titulo-pinata",
+      "nombre": "Rompepiñatas",
+      "tipo": "titulo",
+      "rareza": "rara",
+      "origen": "arte",
+      "valor": "Rompepiñatas",
+      "descripcion": "Dale, dale, dale. Frase bajo tu nombre.",
+      "temporada": "t2",
+      "temas": [
+        "navidad"
+      ]
+    },
+    {
+      "id": "titulo-grinch",
+      "nombre": "El que odia la Navidad",
+      "tipo": "titulo",
+      "rareza": "epica",
+      "origen": "arte",
+      "valor": "El que odia la Navidad",
+      "descripcion": "Alguien tenía que serlo. Frase bajo tu nombre.",
+      "temporada": "t2",
+      "temas": [
+        "navidad"
+      ]
+    },
+    {
+      "id": "titulo-santa",
+      "nombre": "Santa de los Papus",
+      "tipo": "titulo",
+      "rareza": "legendaria",
+      "origen": "arte",
+      "valor": "Santa de los Papus",
+      "descripcion": "Reparte regalos a todo el servidor. Frase bajo tu nombre.",
+      "temporada": "t2",
+      "temas": [
+        "navidad"
+      ]
+    },
+    {
+      "id": "titulo-sirviente",
+      "nombre": "Sirviente de Conchita",
+      "tipo": "titulo",
+      "rareza": "rara",
+      "origen": "arte",
+      "valor": "Sirviente de Conchita",
+      "descripcion": "Gula: ojalá no falte comida. Frase bajo tu nombre.",
+      "temporada": "t2",
+      "personajes": [
+        "meiko"
+      ]
+    },
+    {
+      "id": "titulo-cocinero",
+      "nombre": "Decimoquinto cocinero",
+      "tipo": "titulo",
+      "rareza": "epica",
+      "origen": "arte",
+      "valor": "Decimoquinto cocinero",
+      "descripcion": "Gula: pidió vacaciones. Frase bajo tu nombre.",
+      "temporada": "t2",
+      "personajes": [
+        "meiko"
+      ]
+    },
+    {
+      "id": "titulo-avaro",
+      "nombre": "Todo tiene un precio",
+      "tipo": "titulo",
+      "rareza": "rara",
+      "origen": "arte",
+      "valor": "Todo tiene un precio",
+      "descripcion": "Avaricia: la frase del juez. Frase bajo tu nombre.",
+      "temporada": "t2",
+      "personajes": [
+        "kaito"
+      ],
+      "temas": [
+        "siete-pecados"
+      ]
+    },
+    {
+      "id": "titulo-insomne",
+      "nombre": "Sin sueño en Toragay",
+      "tipo": "titulo",
+      "rareza": "rara",
+      "origen": "arte",
+      "valor": "Sin sueño en Toragay",
+      "descripcion": "Pereza: el único que no se durmió. Frase bajo tu nombre.",
+      "temporada": "t2",
+      "personajes": [
+        "miku"
+      ]
+    },
+    {
+      "id": "titulo-furia",
+      "nombre": "La ira de Nemesis",
+      "tipo": "titulo",
+      "rareza": "epica",
+      "origen": "arte",
+      "valor": "La ira de Nemesis",
+      "descripcion": "Ira: mejor no hacerla enojar. Frase bajo tu nombre.",
+      "temporada": "t2",
+      "personajes": [
+        "gumi"
+      ]
+    },
+    {
+      "id": "titulo-orgullo",
+      "nombre": "¡Arrodíllense ante mí!",
+      "tipo": "titulo",
+      "rareza": "epica",
+      "origen": "arte",
+      "valor": "¡Arrodíllense ante mí!",
+      "descripcion": "Orgullo: la frase de la hija del mal. Frase bajo tu nombre.",
+      "temporada": "t2",
+      "personajes": [
+        "rin"
+      ]
+    },
+    {
+      "id": "titulo-utau",
+      "nombre": "Fan de los UTAU",
+      "tipo": "titulo",
+      "rareza": "rara",
+      "origen": "arte",
+      "valor": "Fan de los UTAU",
+      "descripcion": "Teto, Ruko, Adachi Rei y compañía. Frase bajo tu nombre.",
+      "temporada": "t2",
+      "personajes": [
+        "teto",
+        "ruko",
+        "adachirei"
+      ]
+    },
+    {
+      "id": "titulo-siete",
+      "nombre": "Los siete pecados capitales",
+      "tipo": "titulo",
+      "rareza": "mitica",
+      "origen": "arte",
+      "valor": "Los siete pecados capitales",
+      "descripcion": "Para quien completó la saga (arcoíris, como los títulos míticos). Frase bajo tu nombre.",
+      "temporada": "t2",
+      "temas": [
+        "siete-pecados"
+      ]
+    },
+    {
       "id": "insignia-ban-shaula",
       "nombre": "Ban de Shaula (réplica)",
       "tipo": "insignia",
       "rareza": "contrabando",
       "origen": "arte",
       "valor": "🚫",
-      "descripcion": "Réplica del primer ban del servidor. Solo en el mercado negro (con monedas ganadas).",
+      "descripcion": "Réplica del primer ban del servidor. Solo en el mercado negro (con Shaulitas).",
       "temporada": "mercado"
     },
     {
@@ -819,7 +4619,7 @@
       "rareza": "contrabando",
       "origen": "arte",
       "valor": "Caos fue baneado, yo no",
-      "descripcion": "Frase bajo tu nombre. Solo en el mercado negro (con monedas ganadas).",
+      "descripcion": "Frase bajo tu nombre. Solo en el mercado negro (con Shaulitas).",
       "temporada": "mercado"
     },
     {
@@ -829,8 +4629,158 @@
       "rareza": "contrabando",
       "origen": "arte",
       "valor": "Lucho no llegó tan lejos",
-      "descripcion": "Frase bajo tu nombre. Solo en el mercado negro (con monedas ganadas).",
+      "descripcion": "Frase bajo tu nombre. Solo en el mercado negro (con Shaulitas).",
       "temporada": "mercado"
+    },
+    {
+      "id": "insignia-antiguedad-1",
+      "nombre": "Mecenas · 1 mes",
+      "tipo": "insignia",
+      "rareza": "membresia",
+      "origen": "arte",
+      "valor": "🎖️",
+      "imagen": "insignias/antiguedad-1.png",
+      "descripcion": "Medalla de quienes llevan 1 mes con membresía de Ko-fi. Es para siempre; nunca se vende ni sale en sobres.",
+      "temporada": "especial"
+    },
+    {
+      "id": "insignia-antiguedad-3",
+      "nombre": "Mecenas · 3 meses",
+      "tipo": "insignia",
+      "rareza": "membresia",
+      "origen": "arte",
+      "valor": "🎖️",
+      "imagen": "insignias/antiguedad-3.png",
+      "descripcion": "Medalla de quienes llevan 3 meses con membresía de Ko-fi. Es para siempre; nunca se vende ni sale en sobres.",
+      "temporada": "especial"
+    },
+    {
+      "id": "insignia-antiguedad-6",
+      "nombre": "Mecenas · 6 meses",
+      "tipo": "insignia",
+      "rareza": "membresia",
+      "origen": "arte",
+      "valor": "🎖️",
+      "imagen": "insignias/antiguedad-6.png",
+      "descripcion": "Medalla de quienes llevan 6 meses con membresía de Ko-fi. Es para siempre; nunca se vende ni sale en sobres.",
+      "temporada": "especial"
+    },
+    {
+      "id": "insignia-antiguedad-12",
+      "nombre": "Mecenas · 12 meses",
+      "tipo": "insignia",
+      "rareza": "membresia",
+      "origen": "arte",
+      "valor": "🎖️",
+      "imagen": "insignias/antiguedad-12.png",
+      "descripcion": "Medalla de quienes llevan 12 meses con membresía de Ko-fi. Es para siempre; nunca se vende ni sale en sobres.",
+      "temporada": "especial"
+    },
+    {
+      "id": "insignia-prestigio-1",
+      "nombre": "Prestigio 1 · bronce",
+      "tipo": "insignia",
+      "rareza": "prestigio",
+      "origen": "arte",
+      "valor": "★",
+      "imagen": "insignias/prestigio-1.png",
+      "descripcion": "Estrella de bronce de quienes prestigiaron una vez. Sube con cada prestigio; nunca se vende.",
+      "temporada": "especial"
+    },
+    {
+      "id": "insignia-prestigio-2",
+      "nombre": "Prestigio 2 · plata",
+      "tipo": "insignia",
+      "rareza": "prestigio",
+      "origen": "arte",
+      "valor": "✯",
+      "imagen": "insignias/prestigio-2.png",
+      "descripcion": "Estrella de plata de quienes prestigiaron 2 veces. Sube con cada prestigio; nunca se vende.",
+      "temporada": "especial"
+    },
+    {
+      "id": "insignia-prestigio-3",
+      "nombre": "Prestigio 3 · oro",
+      "tipo": "insignia",
+      "rareza": "prestigio",
+      "origen": "arte",
+      "valor": "✪",
+      "imagen": "insignias/prestigio-3.png",
+      "descripcion": "Estrella de oro de quienes prestigiaron 3 veces. Sube con cada prestigio; nunca se vende.",
+      "temporada": "especial"
+    },
+    {
+      "id": "insignia-prestigio-4",
+      "nombre": "Prestigio 4 · holograma",
+      "tipo": "insignia",
+      "rareza": "prestigio",
+      "origen": "arte",
+      "valor": "❂",
+      "imagen": "insignias/prestigio-4.png",
+      "descripcion": "Estrella de holograma de quienes prestigiaron 4 veces. Sube con cada prestigio; nunca se vende.",
+      "temporada": "especial"
+    },
+    {
+      "id": "insignia-prestigio-5",
+      "nombre": "Prestigio 5+ · arcoíris",
+      "tipo": "insignia",
+      "rareza": "prestigio",
+      "origen": "arte",
+      "valor": "🌟",
+      "imagen": "insignias/prestigio-5.png",
+      "descripcion": "Estrella de arcoíris de quienes prestigiaron 5 o más veces. Sube con cada prestigio; nunca se vende.",
+      "temporada": "especial"
+    },
+    {
+      "id": "marco-de-prestigio",
+      "nombre": "Marco de prestigio",
+      "tipo": "borde",
+      "rareza": "prestigio",
+      "origen": "arte",
+      "animado": true,
+      "descripcion": "Marco tornasol con estrellas que titilan. Solo para quienes prestigiaron.",
+      "temporada": "especial"
+    },
+    {
+      "id": "aro-de-prestigio",
+      "nombre": "Aro de prestigio",
+      "tipo": "aro",
+      "rareza": "prestigio",
+      "origen": "arte",
+      "animado": true,
+      "descripcion": "Aro dorado con cinco estrellas que giran. Solo para quienes prestigiaron.",
+      "temporada": "especial"
+    },
+    {
+      "id": "palco-de-mecenas",
+      "nombre": "Palco de mecenas",
+      "tipo": "fondo",
+      "rareza": "membresia",
+      "origen": "arte",
+      "animado": true,
+      "descripcion": "Fondo animado de la temporada 2 para las membresías Baguette, Celular y Triple Baka: telón de terciopelo, nieve dorada y las cinco estrellas de los niveles. Es para siempre; nunca se vende.",
+      "temporada": "t2"
+    },
+    {
+      "id": "the-dictador",
+      "nombre": "The dictador",
+      "tipo": "fondo",
+      "rareza": "exclusivo",
+      "origen": "render",
+      "imagen": "fondos/the-dictador.png",
+      "descripcion": "Teto de general: «Did you say next reel». Regalo de GyroP del 14 nov. 2026, solo para Mango9374 (el Papu real, no el bot). Nunca se vende, no sale en sobres ni se intercambia.",
+      "temporada": "especial"
+    },
+    {
+      "id": "insignia-cumpleanos",
+      "nombre": "Pastel de cumpleaños",
+      "tipo": "insignia",
+      "rareza": "exclusivo",
+      "origen": "arte",
+      "valor": "🎂",
+      "imagen": "insignias/cumpleanos.png",
+      "descripcion": "Llega sola el día de tu cumpleaños (regístralo en #tus-roles). Nunca se vende ni sale en sobres. Va junto a tu nombre (hasta 3).",
+      "temporada": "especial"
     }
   ]
 }

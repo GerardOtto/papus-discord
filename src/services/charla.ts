@@ -4,6 +4,9 @@
 // Papu. Si el ultimo mensaje del canal ya es de un bot que hablo solo, o si un Papu escribio hace menos de 10 min (ya
 // hay gente hablando), esta vez no se escribe nada (el comando /charla de GyroP escribe igual). Si el LLM falla, va una
 // frase fija del grupo "charla_general" (regla 4). Quien habla rota sin repetir (mazo persistido).
+// Minidramas (PLAN §3.13, 14 nov. 2026): a veces la pregunta a otro Vocaloid se vuelve un pique en broma de varios
+// turnos (excepcion acotada a la regla 2, con tope diario). `say` y `respond` sirven al ambiente casual
+// (src/ambiente/): la misma cola, el mismo LLM y el mismo filtro de privacidad.
 import type { BotId } from "../config";
 import type { CharacterInfo } from "../engine/reader";
 import type { LLMChain } from "../llm/chain";
@@ -43,8 +46,8 @@ export interface CharlaPort {
   recent(limit: number): Promise<ChannelMessage[] | null>;
   /** Publica en #general; con `mention`, el mensaje empieza con el @ de ese Vocaloid. Devuelve el id del mensaje. */
   post(bot: BotId, content: string, mention?: BotId): Promise<string>;
-  /** Responde a un mensaje de #general, sin ping. */
-  reply(bot: BotId, replyTo: string, content: string): Promise<void>;
+  /** Responde a un mensaje de #general, sin ping. Devuelve el id de la respuesta (para encadenar un minidrama). */
+  reply(bot: BotId, replyTo: string, content: string): Promise<string | void>;
   /** Muestra "escribiendo…" en #general; devuelve la funcion para detenerlo. */
   typing(bot: BotId): () => void;
   /** Nombres de los emojis del servidor (para que el LLM los use). */
@@ -69,9 +72,17 @@ export interface CharlaDeps {
   log?: (msg: string) => void;
   now?: () => number;
   rng?: () => number;
+  /** Minidramas: cuantos mensajes tiene uno (contando el primero), si toca esta vez y avisar que se uso uno. */
+  drama?: { turnos: number; allowed: () => boolean; used: () => void };
 }
 
-export type CharlaOutcome = "skipped" | "commented" | "asked" | "fallback";
+export type CharlaOutcome = "skipped" | "commented" | "asked" | "drama" | "fallback";
+
+/** Lo que el ambiente casual (src/ambiente/) le pide a la charla. */
+export interface CharlaTalker {
+  say(bot: BotId, situation: string): Promise<string | null>;
+  respond(bot: BotId, input: { authorName: string; message: string; history: HistoryLine[]; note: string }): Promise<string | null>;
+}
 
 /** Pedido del comando /charla de GyroP (el temporizador no pasa nada). */
 export interface CharlaRequest {
@@ -83,6 +94,11 @@ export interface CharlaRequest {
   target?: BotId;
   /** De que habla, en palabras de GyroP. */
   topic?: string;
+  /**
+   * Pique por algo que paso (carreras, PLAN §3.14; pedido de GyroP, 16 nov. 2026): `bot` provoca a `target` por esto
+   * (para el LLM, con nombres). Es un minidrama si queda cupo del dia; si no, una provocacion y una respuesta.
+   */
+  pique?: string;
 }
 
 /** Siguiente Vocaloid que habla en #general entre los conectados (null = ninguno). */
@@ -101,7 +117,7 @@ export function papusTalking(recent: readonly ChannelMessage[], now: number): bo
   return recent.some((m) => m.bot === null && now - m.at < ACTIVE_MS);
 }
 
-export class GeneralChat {
+export class GeneralChat implements CharlaTalker {
   private running = false;
 
   constructor(private readonly d: CharlaDeps) {}
@@ -139,10 +155,20 @@ export class GeneralChat {
     const speaker = characters[bot];
     const shared = { culture: this.d.culture, today: this.d.today?.(), serverEmojis: port.emojis?.() };
 
+    // Minidrama: solo cuando le pregunta a otro Vocaloid y no hay tema de GyroP (o es un pique por algo que paso).
+    const pique = opts.pique?.trim() || undefined;
+    if (pique && !target) return "skipped";
+    const drama = !!target && !topic && !!this.d.drama?.allowed();
+    if (drama) this.d.drama!.used();
+    const situation = pique
+      ? `${pique} Provoca en broma a ${characters[target!].displayName} por eso, con cariño y con algo suyo (de lo que sabes de ${characters[target!].displayName}), para que te conteste.`
+      : drama
+        ? `Empiezas un pique en broma con ${characters[target!].displayName}: provócale o búrlate con cariño de algo suyo (de lo que sabes de ${characters[target!].displayName}) para que te conteste.`
+        : undefined;
     const stop = port.typing(bot);
     let opener = await this.call(
       bot,
-      buildSpontaneousRequest({ speaker, target: target ? characters[target] : null, history, topic, ...shared }, this.d.personas, { ...this.d.llm, rng: this.d.rng }),
+      buildSpontaneousRequest({ speaker, target: target ? characters[target] : null, history, topic, situation, ...shared }, this.d.personas, { ...this.d.llm, rng: this.d.rng }),
     ).finally(stop);
     if (!opener) {
       await port.post(bot, this.d.phrases.pick(bot, "charla_general"));
@@ -152,28 +178,76 @@ export class GeneralChat {
     const openerId = await port.post(bot, opener, target ?? undefined);
     if (!target) return "commented";
 
-    // El mencionado contesta una sola vez (su respuesta no se vuelve a responder).
-    const asked = characters[target];
-    const stopAnswer = port.typing(target);
-    const answer = await this.call(
-      target,
+    // Sin drama, el mencionado contesta una sola vez (su respuesta no se vuelve a responder). Con drama, se turnan
+    // hasta completar los turnos y el ultimo cierra con un remate.
+    const turns = drama ? this.d.drama!.turnos : 2;
+    const lines: { bot: BotId; text: string; id: string }[] = [{ bot, text: opener, id: openerId }];
+    for (let k = 1; k < turns; k++) {
+      const prev = lines.at(-1)!;
+      const who = k % 2 === 1 ? target : bot;
+      const other = characters[who === target ? bot : target].displayName;
+      const base = `Quien te escribe es ${other}, otro Vocaloid del servidor (no un Papu): contéstale a ${other} por su nombre y nunca le digas Papu.`;
+      const note = !drama
+        ? `${base} Es tu única respuesta: no le devuelvas otra pregunta.`
+        : k === turns - 1
+          ? `${base} Es un pique en broma entre ustedes en #general y este es el último mensaje: ciérralo con un remate gracioso, sin hacer otra pregunta. De 1 a 2 frases.`
+          : `${base} Es un pique en broma entre ustedes en #general: contéstale con tu voz y pícale de vuelta, sin repetir lo que ya se dijo y sin pasarte (son amigos). De 1 a 2 frases.`;
+      const said = [...history, ...lines.slice(0, -1).map((l) => ({ author: characters[l.bot].displayName, text: l.text }))];
+      const stopAnswer = port.typing(who);
+      const answer = await this.call(
+        who,
+        buildRequest(
+          { characters: [characters[who]], papuName: other, notes: { [who]: note }, message: prev.text, history: said, ...shared },
+          this.d.personas,
+          { ...this.d.llm, rng: this.d.rng },
+        ),
+      ).finally(stopAnswer);
+      if (!answer) break;
+      const id = await port.reply(who, prev.id, answer);
+      lines.push({ bot: who, text: answer, id: id || prev.id });
+    }
+    if (drama) this.d.log?.(`🎭 Minidrama en #general: ${bot} vs ${target} (${lines.length} mensajes)`);
+    return drama ? "drama" : "asked";
+  }
+
+  /** Mensaje por su cuenta en #general por una situacion (ambiente casual). Devuelve lo publicado (null = nada). */
+  async say(bot: BotId, situation: string): Promise<string | null> {
+    const { port, characters } = this.d;
+    const recent = (await port.recent(GENERAL_HISTORY)) ?? [];
+    const history: HistoryLine[] = recent.filter((m) => m.text.trim()).map((m) => ({ author: m.author, text: m.text }));
+    const stop = port.typing(bot);
+    const text = await this.call(
+      bot,
+      buildSpontaneousRequest(
+        { speaker: characters[bot], target: null, history, situation, culture: this.d.culture, today: this.d.today?.(), serverEmojis: port.emojis?.() },
+        this.d.personas,
+        { ...this.d.llm, rng: this.d.rng },
+      ),
+    ).finally(stop);
+    if (!text) return null;
+    await port.post(bot, text);
+    return text;
+  }
+
+  /** Respuesta de un Vocaloid a un mensaje que no lo llamo (metiche). No publica: lo hace quien la pide. */
+  async respond(bot: BotId, input: { authorName: string; message: string; history: HistoryLine[]; note: string }): Promise<string | null> {
+    return this.call(
+      bot,
       buildRequest(
         {
-          characters: [asked],
-          papuName: speaker.displayName,
-          notes: {
-            [target]: `Quien te escribe es ${speaker.displayName}, otro Vocaloid del servidor (no un Papu): contéstale a ${speaker.displayName} por su nombre y nunca le digas Papu. Es tu única respuesta: no le devuelvas otra pregunta.`,
-          },
-          message: opener,
-          history,
-          ...shared,
+          characters: [this.d.characters[bot]],
+          papuName: input.authorName,
+          notes: { [bot]: input.note },
+          message: input.message,
+          history: input.history,
+          culture: this.d.culture,
+          today: this.d.today?.(),
+          serverEmojis: this.d.port.emojis?.(),
         },
         this.d.personas,
         { ...this.d.llm, rng: this.d.rng },
       ),
-    ).finally(stopAnswer);
-    if (answer) await port.reply(target, openerId, answer);
-    return "asked";
+    );
   }
 
   /** Una llamada al LLM por la cola; null si no hubo respuesta util o si filtra el proceso de GyroP. */

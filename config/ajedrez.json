@@ -1,0 +1,23 @@
+{
+  "$comment": "Ajedrez en el celular de Neru (idea de Mango9374 en #ideas-y-opiniones, con el apoyo de 6 Papus; GyroP, 18 nov. 2026). Es una Actividad de Discord: el tablero se toca en la app ♟️ Ajedrez del celular, no en el chat (dibujar el tablero en cada jugada gastaría la VM y escribir jugadas en una ventanita es incómodo). Dos modos: contra un Papu (el worker valida cada jugada con src/ajedrez/motor.ts y lleva los relojes; la página pregunta el estado cada 1,5 s) y contra un Vocaloid (la IA corre en el navegador del Papu, src/ajedrez/ia.ts: no gasta el servidor y no da premios, para que no se farmee). Contra un Papu se puede apostar de 'apuesta.minima' a 'apuesta.maxima' Shaulitas (los dos lo mismo; Neru las cobra al aceptar y le paga al ganador las dos menos la 'comision', que sale de circulación; en tablas se devuelven). Cada jugador tiene 'relojMin' minutos para toda la partida: si se le acaba, pierde. Un reto vence a los 'retoMin' minutos si nadie lo acepta. Neru avisa en #general los retos y los resultados (sin LLM).",
+  "activo": true,
+  "apuesta": { "minima": 10, "maxima": 1000 },
+  "comision": 0.1,
+  "relojMin": 10,
+  "retoMin": 10,
+  "$rivales": "Vocaloids contra los que se juega en el navegador: nivel 1 = fácil (se equivoca seguido), 2 = media, 3 = difícil. 'frase' = lo que dice al empezar.",
+  "rivales": [
+    { "id": "neru", "nivel": 1, "frase": "…¿ajedrez? bueno. pero si pierdo es porque estaba con el celular." },
+    { "id": "teto", "nivel": 1, "frase": "¡Mis peones son baguettes! ¡No me los comas!" },
+    { "id": "kaito", "nivel": 1, "frase": "Juego rápido, que se me derrite el helado." },
+    { "id": "rin", "nivel": 2, "frase": "¡Len me enseñó! …o yo le enseñé a él." },
+    { "id": "len", "nivel": 2, "frase": "Ojo con mi caballo. Es una aplanadora." },
+    { "id": "miku", "nivel": 2, "frase": "¡Vamos a jugar! Prometo no usar el puerro como alfil." },
+    { "id": "gumi", "nivel": 2, "frase": "Te doy ventaja: empiezo pensando en zanahorias." },
+    { "id": "meiko", "nivel": 2, "frase": "Una partida y un trago. Sin prisa." },
+    { "id": "gakupo", "nivel": 3, "frase": "El camino del samurái también es el del tablero." },
+    { "id": "luka", "nivel": 3, "frase": "Piensa bien cada jugada. Yo ya pensé las mías." },
+    { "id": "ia", "nivel": 3, "frase": "Calculé esta partida tres veces antes de que llegaras." },
+    { "id": "adachirei", "nivel": 3, "frase": "Proceso tu apertura… procesada." }
+  ]
+}

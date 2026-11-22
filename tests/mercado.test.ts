@@ -89,7 +89,7 @@ function setup(questions: Question[] = ["a", "b", "c", "d", "e", "f"].map(q)) {
     /** Compra en el mercado (abierto a la fuerza) con monedas ganadas regaladas para eso. */
     give: (userId: string, objetoId: string) => {
       mercado.abrirAhora(60, now);
-      coins.adjust(userId, "ganadas", mercado.byId.get(objetoId)!.precio, "prueba");
+      coins.adjust(userId, "monedas", mercado.byId.get(objetoId)!.precio, "prueba");
       const r = mercado.comprar(userId, objetoId, now);
       if (!r.ok) throw new Error(r.motivo);
       return r;
@@ -107,11 +107,11 @@ describe("config del mercado negro", () => {
     expect(M.objetos.find((o) => o.id === "triple-baka-pirata")!.precio).toBe(1_000_000);
   });
 
-  it("el PC es el consumible más caro, y todo cuesta más que el mejor día con apuestas (~1.000)", () => {
+  it("el PC es el consumible más caro, y nada cuesta menos de ~1 semana de un Papu activo (600; precios del 16 nov. 2026)", () => {
     const consumibles = M.objetos.filter((o) => CONSUMIBLES.includes(o.efecto));
     const pc = consumibles.find((o) => o.efecto === "pc")!;
     for (const o of consumibles) if (o !== pc) expect(o.precio, o.id).toBeLessThan(pc.precio);
-    for (const o of M.objetos) expect(o.precio, o.id).toBeGreaterThan(1000);
+    for (const o of M.objetos) expect(o.precio, o.id).toBeGreaterThanOrEqual(600);
   });
 
   it("los adornos de burla son de contrabando: nunca en vitrinas, sobres ni para fabricar", () => {
@@ -185,21 +185,22 @@ describe("horario del mercado negro", () => {
 describe("compras del mercado negro", () => {
   it("cerrado no vende", () => {
     const s = setup();
-    s.coins.adjust("u", "ganadas", 100_000, "prueba");
+    s.coins.adjust("u", "monedas", 100_000, "prueba");
     const hoy = aperturaHoy(M, NOON);
     expect(s.mercado.comprar("u", "atun-luka", hoy.cierra + 1)).toEqual({ ok: false, motivo: "cerrado" });
   });
 
-  it("solo con monedas ganadas: las compradas no alcanzan", () => {
+  it("se paga con Shaulitas: si no alcanzan, no compra", () => {
     const s = setup();
     s.mercado.abrirAhora();
-    s.coins.adjust("u", "compradas", 100_000, "prueba");
+    const atun = M.objetos.find((o) => o.id === "atun-luka")!.precio;
+    s.coins.adjust("u", "monedas", atun - 1, "prueba");
     expect(s.mercado.comprar("u", "atun-luka")).toEqual({ ok: false, motivo: "no_alcanza" });
-    expect(s.coins.wallet("u").compradas).toBe(100_000);
-    s.coins.adjust("u", "ganadas", 7500, "prueba");
+    expect(s.coins.wallet("u").monedas).toBe(atun - 1);
+    s.coins.adjust("u", "monedas", 1, "prueba");
     const r = s.mercado.comprar("u", "atun-luka");
     expect(r.ok).toBe(true);
-    expect(s.coins.wallet("u")).toMatchObject({ ganadas: 0, compradas: 100_000 });
+    expect(s.coins.wallet("u")).toMatchObject({ monedas: 0 });
   });
 
   it("los consumibles suman sus usos; se ven en el inventario", () => {
@@ -217,7 +218,7 @@ describe("compras del mercado negro", () => {
     const s = setup();
     s.give("u", "insignia-ban-shaula");
     expect(s.coins.owned("u").has("insignia-ban-shaula")).toBe(true);
-    s.coins.adjust("u", "ganadas", 10_000, "prueba");
+    s.coins.adjust("u", "monedas", 10_000, "prueba");
     expect(s.mercado.comprar("u", "insignia-ban-shaula")).toEqual({ ok: false, motivo: "ya_lo_tienes" });
     expect(s.coins.equip("u", "insignia", ["insignia-ban-shaula"]).ok).toBe(true);
   });
@@ -226,7 +227,7 @@ describe("compras del mercado negro", () => {
     const s = setup();
     const r = s.give("u", "triple-baka-pirata");
     expect(r.rol).toBe("🏴‍☠️ Triple Baka Pirata");
-    s.coins.adjust("u", "ganadas", 1_000_000, "prueba");
+    s.coins.adjust("u", "monedas", 1_000_000, "prueba");
     expect(s.mercado.comprar("u", "triple-baka-pirata")).toEqual({ ok: false, motivo: "ya_lo_tienes" });
   });
 
@@ -405,7 +406,7 @@ describe("PC de Adachi Rei", () => {
     s.trivia.answerOption("u", s.trivia.active("u")!.nonce, 9);
     s.coins.sync("u", 1);
     const tope = loadCoinSettings().ganar.topeActividad;
-    const ganadasAntes = s.coins.wallet("u").ganadas;
+    const ganadasAntes = s.coins.wallet("u").monedas;
     const xpAntes = s.levels.store.get("u").xp;
 
     s.give("u", "pc-adachi-rei");
@@ -416,7 +417,7 @@ describe("PC de Adachi Rei", () => {
     expect(s.trivia.start("u", "c", "facil").info).toMatchObject({ run: 1, withXp: true });
     // No pierde nada: ni XP, ni monedas.
     expect(s.levels.store.get("u").xp).toBeGreaterThanOrEqual(xpAntes);
-    expect(s.coins.wallet("u").ganadas).toBe(ganadasAntes);
+    expect(s.coins.wallet("u").monedas).toBe(ganadasAntes);
     // El tope de monedas por actividad vuelve a empezar: con 200 mensajes más, gana otro tope completo.
     s.trivia.answerOption("u", s.trivia.active("u")!.nonce, 9);
     s.talk("u", 200);
@@ -435,8 +436,8 @@ describe("Seguro de Gakupo en el 1vs1", () => {
     const s = setup();
     s.give("a", "seguro-gakupo");
     s.give("b", "seguro-gakupo");
-    s.coins.adjust("a", "ganadas", 400, "prueba");
-    s.coins.adjust("b", "ganadas", 400, "prueba");
+    s.coins.adjust("a", "monedas", 400, "prueba");
+    s.coins.adjust("b", "monedas", 400, "prueba");
     const p = s.peleas.open("neru", "teto", "canal")!;
     expect(s.peleas.insure(p.id, "a").ok).toBe(false); // primero apostar
     s.peleas.bet(p.id, "a", "neru", 300);
@@ -452,21 +453,21 @@ describe("Seguro de Gakupo en el 1vs1", () => {
     expect(perdedor.seguro).toBe(true);
     expect(perdedor.pago).toBe(perdedor.cantidad);
     // El perdedor queda como estaba antes de apostar.
-    expect(s.coins.wallet(perdedor.userId).ganadas).toBe(400);
-    expect(s.coins.wallet(liq.ganadores[0]!.userId).ganadas).toBeGreaterThan(400);
+    expect(s.coins.wallet(perdedor.userId).monedas).toBe(400);
+    expect(s.coins.wallet(liq.ganadores[0]!.userId).monedas).toBeGreaterThan(400);
   });
 
   it("si la pelea se cancela, vuelve la apuesta y también el uso del seguro", () => {
     const s = setup();
     s.give("a", "seguro-gakupo");
-    s.coins.adjust("a", "ganadas", 100, "prueba");
+    s.coins.adjust("a", "monedas", 100, "prueba");
     const p = s.peleas.open("neru", "teto", "canal")!;
     s.peleas.bet(p.id, "a", "neru", 100);
     s.peleas.insure(p.id, "a");
     expect(s.mercado.usosDe("a", "seguro")).toBe(4);
     s.peleas.cancel();
     expect(s.mercado.usosDe("a", "seguro")).toBe(5);
-    expect(s.coins.wallet("a").ganadas).toBe(100);
+    expect(s.coins.wallet("a").monedas).toBe(100);
   });
 });
 
@@ -674,7 +675,7 @@ describe("vitrina rotativa del mercado negro", () => {
     const s = setup();
     const m = new MercadoService({ db: s.db, settings: M, coins: s.coins, quota: s.quota, timeZone: TZ, now: () => NOON });
     m.abrirAhora(60, NOON);
-    s.coins.adjust("u", "ganadas", 2_000_000, "prueba");
+    s.coins.adjust("u", "monedas", 2_000_000, "prueba");
     const hoy = m.vitrina(NOON).map((o) => o.id);
     const fuera = M.objetos.find((o) => !hoy.includes(o.id))!;
     expect(m.comprar("u", fuera.id, NOON)).toEqual({ ok: false, motivo: "no_esta" });

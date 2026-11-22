@@ -2,7 +2,7 @@
 // Papu lo activa), tarjeta /nivel y su personalizacion /tarjeta, ranking (/ranking y /publicar-ranking) y eventos de XP
 // (/evento, y los fijos que anuncia Miku).
 // Las reglas viven en src/levels/; aqui solo se habla con Discord. Los avisos son frases fijas (regla 4).
-import { existsSync, mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, readFileSync, renameSync, rmSync } from "node:fs";
 import path from "node:path";
 import {
   ActionRowBuilder,
@@ -21,18 +21,19 @@ import {
 import { BOT_IDS, type BotId } from "../config";
 import { kvGet, kvSet, type Db } from "../db/database";
 import { logError, type LogFn } from "../log";
-import { normalizeBackground, renderCardAny, type BackgroundFit, type CardData, type CardEquip } from "../levels/card";
+import { renderCard, renderCardAny, type CardData, type CardEquip } from "../levels/card";
 import { podiumBots, renderRanking, RANKING_TOP, type RankingRow } from "../levels/ranking";
-import { activeEvents, eventEnd, nickWithLevel, stripNickTag } from "../levels/rules";
+import { activeEvents, eventEnd, nickWithLevel, prestigeMark, stripNickTag } from "../levels/rules";
+import { renderPrestigioBanner, type PremioPrestigio } from "../levels/prestigio";
 import type { LevelChange, LevelService, Standing } from "../levels/service";
 import type { RuleSet } from "../moderation/rules";
 import type { Phrases } from "../phrases/catalog";
 import type { Quota } from "../quota/quota";
+import type { MarcoMembresia } from "../membresias/marco";
 import { dayKey } from "../time";
 import { avisoPing } from "./avisos";
 import { CHANNELS, channelKey, findTextChannel } from "./channels";
 
-const MAX_UPLOAD_BYTES = 8 * 1024 * 1024;
 const ASSETS = path.resolve(import.meta.dirname, "../../assets/bots");
 /** Ranking automático de cada día: canal y hora (de la zona de la cuota, Chile). */
 const RANKING_CANAL = "ranking";
@@ -61,10 +62,18 @@ export interface LevelsDiscordDeps {
   grantRole: (userId: string, roleName: string, reason: string) => Promise<void>;
   report: (text: string) => Promise<void>;
   modChannel: () => Promise<SendableChannels | null>;
-  /** Objetos de las Shaula-coins equipados (src/coins/; sin tienda, la tarjeta de siempre). */
+  /** Objetos de las Shaulitas equipados (src/coins/; sin tienda, la tarjeta de siempre). */
   equipment?: (userId: string) => Promise<CardEquip>;
-  /** Subio de nivel: bono de Shaula-coins (src/coins/). */
+  /** Subio de nivel: bono de Shaulitas (src/coins/). */
   onLevelUp?: (change: LevelChange) => void;
+  /** Membresía de Ko-fi según sus roles: la cinta de su nivel en la tarjeta (PLAN §2). */
+  membresia?: (roleNames: string[]) => MarcoMembresia | undefined;
+  /** Premio por prestigiar (PLAN §2): lo entrega y dice qué fue (null sin tienda). */
+  premioPrestigio?: (userId: string, stars: number) => PremioPrestigio | null;
+  /** Quién patrocina el ranking de hoy: su tarjeta va al pie (membresías Baguette y más, por turnos; null = nadie). */
+  presentador?: () => Promise<string | null>;
+  /** Justo después del ranking diario en #ranking: el desafío de los 7 pecados (src/pecados/). */
+  despuesDelRanking?: (channelId: string, day: string) => Promise<void>;
   log: LogFn;
 }
 
@@ -181,6 +190,27 @@ export class LevelsDiscord {
   }
 
   /** Frase de Teto con la tarjeta del Papu, en el canal donde subio (o en #general). */
+  /** Prestigio: banner especial en #general con la frase de Teto (PLAN §2). */
+  private async announcePrestige(userId: string, stars: number, detalle: string): Promise<void> {
+    const general = findTextChannel(this.d.guild(), CHANNELS.general);
+    if (!general) return;
+    const ch = await this.d.sendable("teto", general.id);
+    const mb = await this.d.guild().members.fetch(userId).catch(() => null);
+    const avatar = mb ? await fetchAvatar(mb.displayAvatarURL({ extension: "png", size: 256 })) : null;
+    const png = await renderPrestigioBanner({
+      name: stripNickTag(mb?.displayName ?? "Papu"),
+      avatar,
+      stars,
+      detalle: detalle || "una estrella nueva para siempre",
+      membresia: mb ? this.d.membresia?.(mb.roles.cache.map((r) => r.name)) : undefined,
+    });
+    await ch.send({
+      content: this.d.phrases.pick("teto", "prestigio", { papu: `<@${userId}>`, n: stars }),
+      files: [new AttachmentBuilder(png, { name: "prestigio.png" })],
+      allowedMentions: { users: [userId] },
+    });
+  }
+
   private async announce(userId: string, content: string, ctx: LevelContext): Promise<void> {
     const general = findTextChannel(this.d.guild(), CHANNELS.general);
     const channelId = ctx.channelId ?? general?.id;
@@ -310,6 +340,12 @@ export class LevelsDiscord {
     return renderCardAny(await this.cardData(userId), e);
   }
 
+  /** Tarjeta fija (PNG, primer cuadro si algo se mueve): la del celular de Neru (PLAN §3.15). */
+  async cardPng(userId: string): Promise<Buffer> {
+    const e = (await this.d.equipment?.(userId).catch((err) => (logError("objetos de la tarjeta", err), {} as CardEquip))) ?? {};
+    return renderCard(await this.cardData(userId), { ...e, animado: false });
+  }
+
   async cardData(userId: string): Promise<CardData> {
     const guild = this.d.guild();
     const mb = await guild.members.fetch(userId).catch(() => null);
@@ -317,8 +353,8 @@ export class LevelsDiscord {
     const snap = this.d.levels.snapshot(userId);
     const avatar = await fetchAvatar((mb ?? user).displayAvatarURL({ extension: "png", size: 256 }));
     const position = this.standings().find((st) => st.userId === userId)?.position ?? snap.position;
-    const left = this.d.quota.remaining(userId);
-    const limit = this.d.quota.limitFor(userId) + this.d.quota.extra(userId);
+    const q = this.d.quota;
+    const limit = q.limitFor(userId);
     return {
       name: stripNickTag(mb?.displayName ?? user.displayName),
       avatar,
@@ -330,11 +366,13 @@ export class LevelsDiscord {
       tier: snap.rank.estilo,
       rankName: snap.rank.nombre,
       position,
-      quota: Number.isFinite(limit) ? { left, limit } : null,
+      quota: Number.isFinite(limit) ? { daily: q.dailyLeft(userId), limit, donated: q.donatedLeft(userId), donatedCap: q.donatedCap } : null,
       frase: snap.card.frase,
       accent: snap.card.color ?? this.d.defaultAccent,
       background: this.background(userId, snap.card.fondo),
       multiplier: this.d.levels.multiplier(),
+      lado: snap.card.lado === "derecha" ? "derecha" : "izquierda",
+      membresia: mb ? this.d.membresia?.(mb.roles.cache.map((r) => r.name)) : undefined,
     };
   }
 
@@ -374,9 +412,11 @@ export class LevelsDiscord {
   }
 
   /** Imagen del ranking; con `viewerId`, agrega su fila si no esta entre los primeros. Null si nadie tiene nivel. */
-  async rankingImage(viewerId: string | null, now = new Date()): Promise<Buffer | null> {
+  async rankingImage(viewerId: string | null, now = new Date(), sponsorId: string | null = null): Promise<Buffer | null> {
     const all = this.standings();
     if (!all.length) return null;
+    // Patrocinador (PLAN §2; GyroP, 18 nov. 2026): su tarjeta de nivel al pie del ranking, en vez de «presentado por @Papu».
+    const sponsor = sponsorId ? await this.cardPng(sponsorId).catch((e) => (logError("tarjeta del patrocinador", e), null)) : null;
     const top = all.slice(0, RANKING_TOP);
     const mine = viewerId && !top.some((st) => st.userId === viewerId) ? all.find((st) => st.userId === viewerId) ?? null : null;
     const [rows, me] = await Promise.all([Promise.all(top.map((st) => this.rankingRow(st))), mine ? this.rankingRow(mine) : null]);
@@ -386,6 +426,7 @@ export class LevelsDiscord {
       bots: podiumBots(dayKey(now, this.d.timeZone), BOT_IDS),
       colors: this.d.botColors,
       date: new Intl.DateTimeFormat("es-CL", { day: "numeric", month: "short", year: "numeric", timeZone: this.d.timeZone }).format(now),
+      sponsor,
     });
   }
 
@@ -418,7 +459,7 @@ export class LevelsDiscord {
   async publicarRanking(i: ChatInputCommandInteraction): Promise<void> {
     if (!this.d.owners.has(i.user.id)) return void (await i.reply({ content: "¡Eso solo lo usa GyroP! Tú puedes verlo con /ranking. 🥖", flags: MessageFlags.Ephemeral }));
     await i.deferReply({ flags: MessageFlags.Ephemeral });
-    const png = await this.rankingImage(null);
+    const png = await this.rankingImage(null, new Date(), await this.d.presentador?.().catch(() => null));
     if (!png) return void (await i.editReply("Todavía nadie tiene nivel: no hay ranking que publicar."));
     const ch = i.channelId ? await this.d.sendable("teto", i.channelId).catch(() => null) : null;
     if (!ch) return void (await i.editReply("No puedo escribir en este canal."));
@@ -427,6 +468,7 @@ export class LevelsDiscord {
   }
 
   private async sendRanking(ch: SendableChannels, png: Buffer): Promise<void> {
+    // El patrocinador (membresías Baguette y más, por turnos) va dentro de la imagen, sin nombrarlo (GyroP, 18 nov. 2026).
     await ch.send({
       content: this.d.phrases.pick("teto", "ranking"),
       files: [new AttachmentBuilder(png, { name: "ranking.png" })],
@@ -450,84 +492,12 @@ export class LevelsDiscord {
       return;
     }
     kvSet(this.d.db, RANKING_DAY_KEY, day);
-    const png = await this.rankingImage(null, now);
-    if (!png) return;
-    await this.sendRanking(await this.d.sendable("teto", canal.id), png);
-    this.d.log(`🏆 Ranking del día publicado en #${canal.name}`);
-  }
-
-  /** /tarjeta: frase, color, fondo y la imagen propia (que GyroP aprueba antes de que se vea). */
-  async tarjeta(i: ChatInputCommandInteraction): Promise<void> {
-    const frase = i.options.getString("frase");
-    const color = i.options.getString("color");
-    const fondo = i.options.getString("fondo");
-    const imagen = i.options.getAttachment("imagen");
-    const ajuste = i.options.getString("ajuste") as BackgroundFit | null;
-    if (frase === null && !color && !fondo && !imagen && !ajuste) {
-      return void (await i.reply({ content: "Dime qué cambiar: **frase**, **color**, **fondo**, **imagen** o **ajuste**. Mira cómo queda con /nivel. 🥖", flags: MessageFlags.Ephemeral }));
+    const png = await this.rankingImage(null, now, await this.d.presentador?.().catch(() => null));
+    if (png) {
+      await this.sendRanking(await this.d.sendable("teto", canal.id), png);
+      this.d.log(`🏆 Ranking del día publicado en #${canal.name}`);
     }
-    await i.deferReply({ flags: MessageFlags.Ephemeral });
-    const done: string[] = [];
-    if (frase !== null) {
-      const text = frase.trim() === "-" ? null : frase.trim().replace(/\s+/g, " ");
-      const bad = text ? this.d.rules.check({ text, targetsSomeone: true, memberAgeHours: 1e6, personalData: true }) : null;
-      if (bad?.remove) return void (await i.editReply("Esa frase no pasa las reglas del servidor (Neru me la rebotó). Prueba con otra. 🥖"));
-      this.d.levels.store.setCard(i.user.id, { frase: text });
-      done.push(text ? "frase" : "frase quitada");
-    }
-    if (color) {
-      this.d.levels.store.setCard(i.user.id, { color });
-      done.push("color");
-    }
-    if (fondo) {
-      if (fondo === "propia" && !existsSync(path.join(this.cardsDir, `${i.user.id}.png`))) {
-        return void (await i.editReply("Todavía no tienes una imagen aprobada. Súbela con la opción **imagen** y GyroP la revisa. 🥖"));
-      }
-      this.d.levels.store.setCard(i.user.id, { fondo: fondo === "ninguno" ? null : fondo === "propia" ? "propia" : `bot:${fondo}` });
-      done.push("fondo");
-    }
-    let pending = false;
-    if (imagen) {
-      if (!imagen.contentType?.startsWith("image/") || imagen.size > MAX_UPLOAD_BYTES) {
-        return void (await i.editReply("La imagen tiene que ser PNG, JPG o WEBP y pesar menos de 8 MB. 🥖"));
-      }
-      const raw = await fetch(imagen.url).then(async (r) => (r.ok ? Buffer.from(await r.arrayBuffer()) : null)).catch(() => null);
-      const png = raw ? await normalizeBackground(raw, ajuste ?? "centro") : null;
-      if (!png) return void (await i.editReply("No pude abrir esa imagen. Prueba con otra (PNG o JPG). 🥖"));
-      mkdirSync(this.cardsDir, { recursive: true });
-      writeFileSync(path.join(this.cardsDir, `pendiente-${i.user.id}.png`), png);
-      // El original se guarda para cambiar el ajuste después sin volver a pedir la aprobación (es la misma imagen).
-      writeFileSync(path.join(this.cardsDir, `pendiente-${i.user.id}.orig`), raw!);
-      await this.askApproval(i.user.id, png);
-      pending = true;
-    } else if (ajuste) {
-      const original = path.join(this.cardsDir, `${i.user.id}.orig`);
-      if (!existsSync(original)) {
-        return void (await i.editReply("Para cambiar el ajuste, sube tu imagen otra vez con **imagen** y elige el **ajuste** en el mismo comando. 🥖"));
-      }
-      const png = await normalizeBackground(readFileSync(original), ajuste);
-      if (!png) return void (await i.editReply("No pude volver a abrir tu imagen. Súbela de nuevo con **imagen**. 🥖"));
-      writeFileSync(path.join(this.cardsDir, `${i.user.id}.png`), png);
-      done.push("ajuste de la imagen");
-    }
-    const parts = [done.length ? `¡Listo! Cambié tu ${done.join(", ")}.` : "", pending ? "Tu imagen le llegó a GyroP: cuando la apruebe, aparece sola en tu tarjeta." : "", "Mira cómo queda con /nivel. ¡teto-teetoo!"];
-    await i.editReply(parts.filter(Boolean).join(" "));
-  }
-
-  /** Imagen nueva de una tarjeta: va a #moderación con botones para GyroP (menores en el servidor: nada sin revisar). */
-  private async askApproval(userId: string, png: Buffer): Promise<void> {
-    const ch = await this.d.modChannel();
-    if (!ch) return;
-    const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
-      new ButtonBuilder().setCustomId(`tarjeta:ok:${userId}`).setLabel("Aprobar").setStyle(ButtonStyle.Success),
-      new ButtonBuilder().setCustomId(`tarjeta:no:${userId}`).setLabel("Rechazar").setStyle(ButtonStyle.Danger),
-    );
-    await ch.send({
-      content: `🖼️ <@${userId}> quiere esta imagen de fondo en su tarjeta de nivel. ¿La aprueba?`,
-      files: [new AttachmentBuilder(png, { name: "fondo.png" })],
-      components: [row],
-      allowedMentions: { parse: [] },
-    });
+    await this.d.despuesDelRanking?.(canal.id, day).catch((e) => logError("desafío de los pecados", e));
   }
 
   // ───────────────────────── botones ─────────────────────────
@@ -553,12 +523,23 @@ export class LevelsDiscord {
       }
       const stars = this.d.levels.prestige(i.user.id);
       if (stars === null) return void (await i.reply({ content: "Para prestigiar hay que estar en el nivel 99. 🥖", flags: MessageFlags.Ephemeral })), true;
-      await i.update({ content: `¡Hecho! Ahora tienes ${stars} ★. ¡teto-teetoo!`, components: [] });
+      const mark = prestigeMark(stars);
+      const premio = this.d.premioPrestigio?.(i.user.id, stars) ?? null;
+      const detalle = premio
+        ? [`sobre de prestigio (eliges ${premio.sobre.elige} de ${premio.sobre.ve})`, ...premio.objetos.map((o) => o.nombre), `${new Intl.NumberFormat("es-CL").format(premio.monedas)} Shaulitas`].join(" · ")
+        : "";
+      await i.update({
+        content: `¡Hecho! Ahora eres ${mark}${stars}. ¡teto-teetoo!${premio ? `
+🎁 Tu premio: ${detalle}. El sobre se abre en #tienda-shaula → **Mi membresía** (o /tienda); y cada semana puedes lanzar **1 pelea eligiendo a los luchadores** con /pelea.` : ""}`,
+        components: [],
+      });
       await this.syncNick(i.user.id).catch((e) => logError("apodo con nivel", e));
-      await this.announce(i.user.id, this.d.phrases.pick("teto", "prestigio", { papu: `<@${i.user.id}>`, n: stars }), { channelId: i.channelId ?? undefined });
-      await this.d.report(`★ <@${i.user.id}> prestigió (${stars} ★).`);
+      await this.announcePrestige(i.user.id, stars, detalle).catch((e) => logError("banner de prestigio", e));
+      await this.d.report(`${mark} <@${i.user.id}> prestigió (${mark}${stars}).${premio ? ` Premio: ${detalle}.` : ""}`);
       return true;
     }
+    // Fondos que quedaron pendientes en #moderación de antes del 13 nov. 2026 (/tarjeta ya no recibe imágenes): se
+    // pueden seguir aprobando o rechazando.
     if (kind === "tarjeta" && (action === "ok" || action === "no") && userId) {
       const staff = this.d.owners.has(i.user.id) || !!(await this.d.isStaff?.(i.user.id));
       if (!staff) return void (await i.reply({ content: "eso lo deciden gyrop y los mods. 📱", flags: MessageFlags.Ephemeral })), true;

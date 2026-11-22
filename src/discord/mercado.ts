@@ -1,6 +1,6 @@
 // Mercado negro en Discord (PLAN §3.9). Una hora al día, a una hora sorpresa, Neru abre el puesto en #tienda-shaula y
 // etiqueta a los 🕶️ Traficante (avisos de #tus-roles); al cerrar, edita su mensaje. Todo lo que abre cada Papu es
-// privado: el mercado (comprar con monedas ganadas) y /consumibles (lo que tiene y el PC de Adachi Rei). El Atún, la
+// privado: el mercado (comprar con Shaulitas) y /consumibles (lo que tiene y el PC de Adachi Rei). El Atún, la
 // Baguette y el Celular se usan solos en /ruleta y /trivia. Las reglas y el estado viven en src/mercado/.
 // La vitrina rota cada día (5 objetos): un banner con los objetos sobre podios y, debajo, una fila de 5 botones iguales
 // en el mismo orden, para que cada botón quede bajo su objeto (pedido de GyroP, 9 nov. 2026).
@@ -174,7 +174,7 @@ export class MercadoDiscord {
     const msg = await send.send({
       content: [
         `🕶️ ${this.d.phrases.pick("neru", "mercado_abre", { cierra: `<t:${unix(cierra)}:R>` })}${ping ? ` ${ping.mention}` : ""}`,
-        "-# Hoy en el puesto (cambia cada día). Solo con Shaula-coins ganadas; lo que abres aquí solo lo ves tú.",
+        "-# Hoy en el puesto (cambia cada día). Solo con Shaulitas; lo que abres aquí solo lo ves tú.",
       ].join("\n"),
       files: [await this.banner(items)],
       components: [this.vitrinaRow(items)],
@@ -206,7 +206,7 @@ export class MercadoDiscord {
 
   private ganadas(userId: string): number {
     this.d.coins.sync(userId, 2);
-    return this.d.coins.wallet(userId).ganadas;
+    return this.d.coins.wallet(userId).monedas;
   }
 
   private estado(o: ObjetoMercado, userId: string): string {
@@ -237,7 +237,7 @@ export class MercadoDiscord {
     return {
       content: [
         header,
-        `🕶️ **Mercado negro** · cierra <t:${unix(st.apertura.cierra)}:R> · 🪙 tienes **${fmt(ganadas)}** ganadas`,
+        `🕶️ **Mercado negro** · cierra <t:${unix(st.apertura.cierra)}:R> · 🪙 tienes **${fmt(ganadas)}** Shaulitas`,
         tuyos.length ? `-# ${tuyos.join(" · ")}` : "",
         "-# Toca el botón bajo cada objeto para ver qué hace y comprarlo. Mañana, otros objetos.",
       ]
@@ -257,16 +257,16 @@ export class MercadoDiscord {
     const ganadas = this.ganadas(userId);
     const tiene = this.m.tiene(userId, o);
     const falta = o.precio - ganadas;
-    const why = tiene ? "✅ Ya lo tienes." : falta > 0 ? `💸 Te faltan **${fmt(falta)}** ganadas.` : `Después te quedarían **${fmt(ganadas - o.precio)}** ganadas.`;
+    const why = tiene ? "✅ Ya lo tienes." : falta > 0 ? `💸 Te faltan **${fmt(falta)}** Shaulitas.` : `Después te quedarían **${fmt(ganadas - o.precio)}** Shaulitas.`;
     return {
       ...NOFILES,
       content: [
         header,
-        `${o.emoji} **${o.nombre}** · **${fmt(o.precio)}** Shaula-coins ganadas${o.usos ? ` · ${o.usos} usos` : ""}`,
+        `${o.emoji} **${o.nombre}** · **${fmt(o.precio)}** Shaulitas${o.usos ? ` · ${o.usos} usos` : ""}`,
         o.descripcion,
         o.efecto in COMO ? `-# ${COMO[o.efecto]}` : "",
         "",
-        `🪙 Tienes **${fmt(ganadas)}** ganadas. ${why}${this.estado(o, userId)}`,
+        `🪙 Tienes **${fmt(ganadas)}** Shaulitas. ${why}${this.estado(o, userId)}`,
         `-# El mercado cierra <t:${unix(st.apertura.cierra)}:R>. No hay devoluciones.`,
       ]
         .filter((l, k) => l !== "" || k > 3)
@@ -285,7 +285,7 @@ export class MercadoDiscord {
       ...siempre.map((o) => `${o.emoji} **${o.nombre}** · para siempre\n-# ${COMO[o.efecto] ?? o.descripcion}`),
       ...(luna ? [`🌙 **Luna de IA activa** hasta <t:${unix(luna)}:f> (<t:${unix(luna)}:R>): XP triple en tus mensajes con los Vocaloids.`] : []),
     ];
-    if (!lines.length) lines.push("No tienes consumibles. Se compran en el mercado negro, con monedas ganadas.");
+    if (!lines.length) lines.push("No tienes consumibles. Se compran en el mercado negro, con Shaulitas.");
     const pc = this.m.byEfecto("pc");
     const pcUsos = pc ? this.m.usos(userId, pc.id) : 0;
     const buttons: ButtonBuilder[] = [];
@@ -333,7 +333,7 @@ export class MercadoDiscord {
         "• 💬 tu cuota con los Vocaloids vuelve a estar llena (lo que donaste no vuelve);",
         "• 🎰 las tiradas de la ruleta de tus misiones cumplidas vuelven a estar disponibles;",
         "• 🧠 las partidas con XP y el tope de XP de la trivia empiezan de cero;",
-        "• 🪙 el tope de Shaula-coins por actividad vuelve a empezar.",
+        "• 🪙 el tope de Shaulitas por actividad vuelve a empezar.",
         "-# Conviene usarlo cuando ya gastaste todo lo de hoy. Se recarga a medianoche igual que siempre.",
       ].join("\n"),
       components: [this.row(this.btn("pc:si", "Sí, reiniciar mi día", pc.emoji, ButtonStyle.Danger), this.btn("consumibles", "Mejor no", "⬅️"))],
@@ -398,7 +398,7 @@ export class MercadoDiscord {
     await i.deferUpdate();
     const r = this.m.comprar(i.user.id, id);
     if (!r.ok) {
-      const motivo = { cerrado: "🚪 El mercado ya cerró. Vuelve mañana.", no_existe: "Ese objeto ya no está.", no_esta: "Ese objeto ya no está en la vitrina de hoy.", ya_lo_tienes: "✅ Ya lo tienes.", no_alcanza: "💸 No te alcanzan las monedas ganadas." }[r.motivo];
+      const motivo = { cerrado: "🚪 El mercado ya cerró. Vuelve mañana.", no_existe: "Ese objeto ya no está.", no_esta: "Ese objeto ya no está en la vitrina de hoy.", ya_lo_tienes: "✅ Ya lo tienes.", no_alcanza: "💸 No te alcanzan las Shaulitas." }[r.motivo];
       await i.editReply(r.motivo === "cerrado" ? this.closedScreen() : await this.itemScreen(i.user.id, id, motivo));
       return;
     }
@@ -416,7 +416,7 @@ export class MercadoDiscord {
     else extra = `\nAhora tienes **${r.usos} ${r.usos === 1 ? "uso" : "usos"}**. ${COMO[o.efecto] ?? ""}`;
     await i.editReply(await this.itemScreen(i.user.id, id, `🕶️ **Trato hecho.** Neru te pasó ${o.emoji} **${o.nombre}** por debajo de la mesa.${extra}\n`));
     this.d.log(`🕶️ Mercado negro: ${i.user.id} compró ${o.id} por ${o.precio}`);
-    await this.d.report(`🕶️ <@${i.user.id}> compró ${o.emoji} **${o.nombre}** en el mercado negro (${fmt(o.precio)} ganadas; le quedan ${fmt(r.wallet.ganadas)}).`);
+    await this.d.report(`🕶️ <@${i.user.id}> compró ${o.emoji} **${o.nombre}** en el mercado negro (${fmt(o.precio)} Shaulitas; le quedan ${fmt(r.wallet.monedas)}).`);
   }
 
   /** Micrófono de Meiko: hoy la misión de voz de la ruleta pide menos. */
@@ -505,6 +505,124 @@ export class MercadoDiscord {
         ? "🍨 No tienes sobres comunes regalados para mejorar (salen en la ruleta, las misiones del día y cada lunes).\n"
         : "🍨 No te quedan Dobles helados de Kaito.\n";
     await i.update(this.consumiblesScreen(i.user.id, header));
+  }
+
+  // ───────────────────────── celular de Neru (Mercado y Mochila, PLAN §3.15) ─────────────────────────
+
+  /** Lo que muestran las apps Mercado y Mochila del celular: vitrina (si está abierto) y consumibles con su acción. */
+  celularEstado(userId: string): unknown {
+    const st = this.m.estado();
+    const vitrina = st.abierto
+      ? this.m.vitrina().map((o) => ({
+          id: o.id,
+          nombre: o.nombre,
+          emoji: o.emoji,
+          precio: o.precio,
+          usos: o.usos ?? null,
+          descripcion: o.descripcion,
+          como: COMO[o.efecto] ?? null,
+          tiene: this.m.tiene(userId, o),
+          usosTuyos: PERMANENTES.includes(o.efecto) ? null : this.m.usos(userId, o.id),
+        }))
+      : [];
+    const acciones: Record<string, string> = { pc: "pc", microfono: "microfono", regalo: "regalo", luna: "luna", sake: "sake", doblehelado: "doblehelado" };
+    const luna = this.m.lunaHasta(userId);
+    const consumibles = [
+      ...this.m.inventario(userId).map((c) => ({
+        id: c.objeto.id,
+        nombre: c.objeto.nombre,
+        emoji: c.objeto.emoji,
+        usos: c.usos,
+        como: COMO[c.objeto.efecto] ?? c.objeto.descripcion,
+        accion: acciones[c.objeto.efecto] ?? null,
+        activo: c.objeto.efecto === "microfono" ? this.m.microfonoHoy(userId) : c.objeto.efecto === "luna" ? !!luna : false,
+      })),
+      ...this.m.settings.objetos
+        .filter((o) => (o.efecto === "disquete" || o.efecto === "machete") && this.m.tiene(userId, o))
+        .map((o) => ({ id: o.id, nombre: o.nombre, emoji: o.emoji, usos: null, como: COMO[o.efecto] ?? o.descripcion, accion: null, activo: false })),
+    ];
+    const h = this.m.settings.horario;
+    return {
+      abierto: st.abierto,
+      cierra: st.abierto ? st.apertura.cierra : null,
+      horario: `entre las ${h.desde}:00 y las ${h.hasta}:00 (hora de México)`,
+      ganadas: this.ganadas(userId),
+      vitrina,
+      consumibles,
+      luna: luna || null,
+    };
+  }
+
+  /** Comprar desde el celular: mismas reglas que el botón (rol del pirata incluido). Devuelve el mensaje para el Papu. */
+  async celularComprar(userId: string, id: string, noSePuede: (msg: string) => Error): Promise<string> {
+    const r = this.m.comprar(userId, id);
+    if (!r.ok) {
+      throw noSePuede({ cerrado: "El mercado ya cerró. Vuelve mañana.", no_existe: "Ese objeto ya no está.", no_esta: "Ese objeto ya no está en la vitrina de hoy.", ya_lo_tienes: "Ya lo tienes.", no_alcanza: "No te alcanzan las Shaulitas." }[r.motivo]);
+    }
+    const o = r.objeto;
+    let extra = "";
+    if (r.rol) {
+      const ok = await this.giveRole(userId, o).then(
+        () => true,
+        (e) => (logError("rol del mercado negro", e), false),
+      );
+      extra = ok ? ` Ya tienes el rol ${r.rol}.` : " No pude ponerte el rol ahora; GyroP ya lo sabe y te lo pone a mano.";
+      if (!ok) await this.d.report(`⚠️ Mercado negro: no pude darle el rol ${r.rol} a <@${userId}> (lo compró desde el celular). Pónselo a mano.`);
+    } else if (o.efecto === "objeto") extra = " Ya está en tu colección: póntelo en Mi tarjeta.";
+    else if (o.efecto === "disquete" || o.efecto === "machete") extra = ` Es tuyo para siempre: ${COMO[o.efecto]}`;
+    else extra = ` Ahora tienes ${r.usos} ${r.usos === 1 ? "uso" : "usos"}.`;
+    this.d.log(`🕶️ Mercado negro (celular): ${userId} compró ${o.id} por ${o.precio}`);
+    await this.d.report(`🕶️ <@${userId}> compró ${o.emoji} **${o.nombre}** en el mercado negro desde el celular (${fmt(o.precio)} Shaulitas; le quedan ${fmt(r.wallet.monedas)}).`);
+    return `Trato hecho. Neru te pasó ${o.emoji} ${o.nombre} por debajo de la mesa.${extra}`;
+  }
+
+  /** Usar un consumible desde el celular (Mochila). `para` = Papu del regalo de Rin y Len. */
+  async celularUsar(userId: string, accion: string, para: string | null, noSePuede: (msg: string) => Error): Promise<string> {
+    if (accion === "pc") {
+      const pc = this.m.byEfecto("pc");
+      const r = pc ? this.m.usarPc(userId) : null;
+      if (!pc || !r) throw noSePuede("No te quedan usos del PC de Adachi Rei.");
+      this.d.log(`💻 PC de Adachi Rei (celular): ${userId} reinició su día (${JSON.stringify(r)})`);
+      await this.d.report(`💻 <@${userId}> usó el PC de Adachi Rei desde el celular: +${r.mensajes} mensajes, ${r.tiradas} tiradas y ${r.partidas} partidas de trivia de vuelta (le quedan ${r.usos} usos).`);
+      return `Adachi Rei reinició tu día: ${r.mensajes ? `${r.mensajes} mensajes vuelven a tu cuota` : "tu cuota está llena"}, ${r.tiradas ? `${r.tiradas} tiradas vuelven a la ruleta` : "la ruleta cuenta de cero"}, la trivia vuelve a la partida 1 con XP y el tope de monedas vuelve a empezar. Lo ganado se queda. Te quedan ${r.usos}.`;
+    }
+    if (accion === "microfono") {
+      const r = this.m.activarMicrofono(userId);
+      if (!r.ok) throw noSePuede(r.motivo === "ya_activo" ? "Ya lo activaste hoy." : "No te quedan usos del Micrófono de Meiko.");
+      await this.d.report(`🎤 <@${userId}> activó el Micrófono de Meiko desde el celular (misión de voz de ${r.minutos} min hoy).`);
+      return `Micrófono de Meiko activado: la misión de voz de la ruleta pide ${r.minutos} min por hoy. Te quedan ${r.usos}.`;
+    }
+    if (accion === "luna") {
+      const r = this.m.activarLuna(userId);
+      if (!r.ok) throw noSePuede(r.motivo === "ya_activa" ? "Tu Luna de IA ya está activa." : "No te quedan Lunas de IA.");
+      await this.d.report(`🌙 <@${userId}> activó la Luna de IA desde el celular (XP triple con los Vocaloids hasta <t:${unix(r.hasta)}:f>).`);
+      return `La Luna de IA ya brilla para ti: XP triple con los Vocaloids durante 2 semanas.`;
+    }
+    if (accion === "sake") {
+      const r = this.m.sake(userId);
+      if (!r.ok) throw noSePuede(r.motivo === "sin_adivinanza" ? "No hay ninguna adivinanza de boda abierta ahora. Guárdalo para la próxima." : "No te quedan Sakes de Haku.");
+      return `Haku, medio dormida: «…hic. la respuesta tiene ${r.palabras === 1 ? "una palabra" : `${r.palabras} palabras`} y ${r.letras} letras: ${r.pista}». ${r.gasto ? `Gastaste 1 Sake (te quedan ${r.usos}).` : "Ya la habías visto: no gastaste otro."}`;
+    }
+    if (accion === "doblehelado") {
+      const r = this.m.mejorarSobre(userId);
+      if (!r.ok) throw noSePuede(r.motivo === "sin_sobre" ? "No tienes sobres comunes regalados para mejorar." : "No te quedan Dobles helados de Kaito.");
+      return `¡Kaito le puso doble bola a tu sobre! Un sobre común pasó a ser raro: ábrelo en la Tienda. Te quedan ${r.usos}.`;
+    }
+    if (accion === "regalo") {
+      if (!para) throw noSePuede("Elige a quién le regalas la tirada.");
+      const r = this.m.regalarTirada(userId, para);
+      if (!r.ok) {
+        throw noSePuede({ a_ti: "No puedes regalarte una tirada a ti mismo.", bloqueado: "Ese Papu tiene la ruleta bloqueada por un machetazo de Neru.", sin_usos: "Ya no te quedan regalos de Rin y Len.", sin_ruleta: "La ruleta está apagada." }[r.motivo]);
+      }
+      await this.d.report(`🍊🍌 <@${userId}> le regaló una tirada de la ruleta a <@${para}> desde el celular.`);
+      // Como en Discord, Teto lo anuncia (aquí en #general, para que el otro Papu se entere).
+      const general = findTextChannel(this.d.guild(), "general");
+      const ch = general ? await this.d.sendable("teto", general.id).catch(() => null) : null;
+      const text = this.d.phrases.pick("teto", "ruleta_regalo", { papu: `<@${para}>`, de: `<@${userId}>` });
+      if (ch) await ch.send({ content: text, allowedMentions: { users: [para] } }).catch((e) => logError("regalo de tirada", e));
+      return `¡Listo! Le regalaste una tirada de la ruleta. Te quedan ${r.usos}.`;
+    }
+    throw noSePuede("Ese consumible se usa solo (en la trivia, la ruleta o el chat).");
   }
 
   /**

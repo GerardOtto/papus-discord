@@ -10,6 +10,8 @@ import { addDays, choices, isHonorWeek, planWeek, SLOT_LABEL, weekdayOf, weekToS
 
 export interface CalendarSettings {
   canal: string;
+  /** false = no se publica en #canal (archivado el 13 nov. 2026); los estrenos siguen dando XP doble. */
+  publicar?: boolean;
   /** Hora de publicación "HH:MM" en `zona`. */
   hora: string;
   zona: string;

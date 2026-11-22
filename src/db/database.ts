@@ -63,7 +63,7 @@ const MIGRATIONS: string[] = [
    CREATE INDEX pedidos_estado ON pedidos (estado, creado_at);
    CREATE INDEX pedidos_papu ON pedidos (papu_id, origen, creado_at);`,
   // 3: niveles por participacion (src/levels/). xp = la del prestigio actual; xp_dia sirve para quitar la de un dia
-  // con strike. La tarjeta (frase, color, fondo) la elige cada Papu con /tarjeta.
+  // con strike. La tarjeta (frase, color, fondo) la elegía cada Papu con /tarjeta (hoy, en la web).
   `CREATE TABLE niveles (
      user_id    TEXT PRIMARY KEY,
      xp         INTEGER NOT NULL DEFAULT 0,
@@ -139,7 +139,7 @@ const MIGRATIONS: string[] = [
      detalle TEXT NOT NULL,
      at      INTEGER NOT NULL
    );`,
-  // 10: Shaula-coins (src/coins/, PLAN §3.6). Monedero (dos bolsillos, Ecos, sobres gratis y garantías), lo ganado
+  // 10: Shaulitas (src/coins/, PLAN §3.6). Monedero (dos bolsillos, Ecos, sobres gratis y garantías), lo ganado
   // por día (para no pagar dos veces), objetos y lo equipado, movimientos, pedidos de monedas y límites de compra.
   `CREATE TABLE monedero (
      user_id      TEXT PRIMARY KEY,
@@ -240,7 +240,7 @@ const MIGRATIONS: string[] = [
   `ALTER TABLE xp_dia ADD COLUMN trivia_castigo INTEGER NOT NULL DEFAULT 0;
    ALTER TABLE xp_dia ADD COLUMN voz_total INTEGER NOT NULL DEFAULT 0;`,
   // 14: 1vs1 de los Vocaloids (src/peleas/, pedido de GyroP, 4 nov. 2026). Una fila por pelea (los dos Vocaloids, la
-  // cuota de cada uno y como termino) y una por apuesta (Shaula-coins ganadas; pago = lo que recibio al acertar).
+  // cuota de cada uno y como termino) y una por apuesta (Shaulitas; pago = lo que recibio al acertar).
   // Estados: abierta (se apuesta), peleando, terminada y devuelta (el bot se reinicio antes del final: se devolvio todo).
   `CREATE TABLE peleas (
      id           TEXT PRIMARY KEY,
@@ -327,6 +327,207 @@ const MIGRATIONS: string[] = [
      mensaje    TEXT
    );
    CREATE INDEX intercambios_estado ON intercambios (estado, vence_at);`,
+  // 18: Ruleta de Némesis (src/nemesis/, pedido de GyroP, 12 nov. 2026). Una fila por desafío: retador y rival, la
+  // apuesta de cada uno (Shaulitas), la recámara con la bala y quién empezó (0 = retador, 1 = rival), el
+  // turno en curso, el ganador, la tajada de Némesis y el premio, y los mensajes del desafío y de la mesa. Estados:
+  // pendiente (esperando que acepte), jugando, terminada, rechazada, vencida y devuelta (reinicio o cancelada).
+  `CREATE TABLE nemesis (
+     id           TEXT PRIMARY KEY,
+     retador      TEXT NOT NULL,
+     rival        TEXT NOT NULL,
+     apuesta      INTEGER NOT NULL,
+     estado       TEXT NOT NULL DEFAULT 'pendiente',
+     bala         INTEGER,
+     primero      INTEGER,
+     turno        INTEGER NOT NULL DEFAULT 0,
+     ganador      TEXT,
+     tajada       INTEGER,
+     premio       INTEGER,
+     canal        TEXT,
+     mensaje      TEXT,
+     mesa         TEXT,
+     creada_at    INTEGER NOT NULL,
+     vence_at     INTEGER NOT NULL,
+     terminada_at INTEGER
+   );
+   CREATE INDEX nemesis_estado ON nemesis (estado);`,
+  // Lado de los datos en la tarjeta de nivel (/tarjeta lado; pedido de GyroP, 13 nov. 2026): NULL = izquierda (como
+  // siempre), "derecha" = avatar a la derecha y datos a la izquierda, para que no tapen el arte del fondo.
+  `ALTER TABLE niveles ADD COLUMN lado TEXT;`,
+  // Una sola moneda, las Shaulitas (decisión de GyroP, 13 nov. 2026, PLAN §3.6): lo comprado se suma una vez al saldo
+  // (columna `ganadas`, que desde ahora es la única) y queda anotado en movimientos. `compradas` ya no se usa.
+  `INSERT INTO movimientos (user_id, bolsillo, cantidad, motivo, at)
+     SELECT user_id, 'ganadas', compradas, 'una sola moneda: compradas sumadas', CAST(strftime('%s','now') AS INTEGER) * 1000 FROM monedero WHERE compradas > 0;
+   UPDATE monedero SET ganadas = ganadas + compradas, compradas = 0 WHERE compradas > 0;`,
+  // Membresías (src/membresias/, PLAN §2; decisiones de GyroP del 13 nov. 2026). membresia_estado: el último regalo
+  // (cada 30 días), los meses con membresía (insignias de antigüedad) y el título que escribió (Baguette y más).
+  // membresia_sobres: sobres temáticos de regalo (y míticos y de prestigio): el tema elegido y los objetos que ve
+  // (opciones, JSON) hasta que elige. lanzamientos: peleas y bodas lanzadas por día. recuperados: objetos de vitrinas
+  // pasadas comprados con el beneficio.
+  `CREATE TABLE membresia_estado (
+     user_id   TEXT PRIMARY KEY,
+     nivel     TEXT,
+     meses     INTEGER NOT NULL DEFAULT 0,
+     regalo_at INTEGER,
+     titulo    TEXT
+   );
+   CREATE TABLE membresia_sobres (
+     id        INTEGER PRIMARY KEY AUTOINCREMENT,
+     user_id   TEXT NOT NULL,
+     clase     TEXT NOT NULL,
+     ve        INTEGER NOT NULL,
+     elige     INTEGER NOT NULL,
+     origen    TEXT NOT NULL,
+     tema      TEXT,
+     opciones  TEXT,
+     creado_at INTEGER NOT NULL,
+     abierto_at INTEGER
+   );
+   CREATE INDEX membresia_sobres_user ON membresia_sobres (user_id, abierto_at);
+   CREATE TABLE lanzamientos (
+     user_id TEXT NOT NULL,
+     day     TEXT NOT NULL,
+     que     TEXT NOT NULL,
+     n       INTEGER NOT NULL DEFAULT 0,
+     PRIMARY KEY (user_id, day, que)
+   );
+   CREATE TABLE recuperados (
+     user_id   TEXT NOT NULL,
+     objeto_id TEXT NOT NULL,
+     precio    INTEGER NOT NULL,
+     at        INTEGER NOT NULL
+   );
+   CREATE INDEX recuperados_user ON recuperados (user_id, at);`,
+  // Taller de los Papus (src/taller/, PLAN §2): lo que escriben con /aportar (preguntas, adivinanzas, frases del
+  // especial, luchadores y consumibles propuestos). GyroP o un Mod lo aprueba; lo aprobado se usa con crédito.
+  `CREATE TABLE aportes (
+     id          INTEGER PRIMARY KEY AUTOINCREMENT,
+     user_id     TEXT NOT NULL,
+     nombre      TEXT NOT NULL,
+     tipo        TEXT NOT NULL,
+     datos       TEXT NOT NULL,
+     estado      TEXT NOT NULL DEFAULT 'pendiente',
+     creado_at   INTEGER NOT NULL,
+     resuelto_at INTEGER,
+     resuelto_por TEXT
+   );
+   CREATE INDEX aportes_estado ON aportes (estado, tipo);`,
+  // Sobres temáticos ganados (PLAN §3.6, 13 nov. 2026: el de la Vocaloid con que se casó; se abren al azar dentro del
+  // tema) y redes de los Papus (/redes, PLAN §8): su usuario de Instagram y de X, opcionales, para que Teto los muestre
+  // en cada fanart suyo en #🎨・fanart. Solo el usuario (nunca un enlace cualquiera).
+  `CREATE TABLE sobres_tematicos (
+     id         INTEGER PRIMARY KEY AUTOINCREMENT,
+     user_id    TEXT NOT NULL,
+     tema       TEXT NOT NULL,
+     origen     TEXT NOT NULL,
+     creado_at  INTEGER NOT NULL,
+     abierto_at INTEGER
+   );
+   CREATE INDEX sobres_tematicos_user ON sobres_tematicos (user_id, abierto_at);
+   CREATE TABLE redes (
+     user_id   TEXT PRIMARY KEY,
+     instagram TEXT,
+     x         TEXT,
+     at        INTEGER NOT NULL
+   );`,
+  // Ambiente casual de los Vocaloids (PLAN §3.13, 14 nov. 2026): topes del dia (reacciones, metiches, comentarios,
+  // dramas, momentos) y las preguntas al aire de #general, para comentar su resultado aunque el bot se reinicie.
+  `CREATE TABLE ambiente_dia (
+     day   TEXT NOT NULL,
+     clave TEXT NOT NULL,
+     n     INTEGER NOT NULL DEFAULT 0,
+     PRIMARY KEY (day, clave)
+   );
+   CREATE TABLE ambiente_encuestas (
+     id          INTEGER PRIMARY KEY AUTOINCREMENT,
+     indice      INTEGER NOT NULL,
+     bot         TEXT NOT NULL,
+     channel_id  TEXT NOT NULL,
+     message_id  TEXT NOT NULL,
+     creada_at   INTEGER NOT NULL,
+     cerrada_at  INTEGER
+   );`,
+  // Imagenes que vio cada Papu con los Vocaloids hoy (PLAN §5.1, 14 nov. 2026): tope diario (config/llm.json, vision).
+  `CREATE TABLE imagenes_dia (
+     user_id TEXT NOT NULL,
+     day     TEXT NOT NULL,
+     n       INTEGER NOT NULL DEFAULT 0,
+     PRIMARY KEY (user_id, day)
+   );`,
+  // Espacio de donados (pedido de GyroP, 14 nov. 2026): lo que regalan otros Papus con /donar ya no rellena la cuota
+  // diaria, va a su propio espacio con tope (config/niveles.json, donadosMax). recibidas = lo que entro hoy a ese
+  // espacio; gastadas_rec = lo que se uso de el. `used` sigue siendo lo gastado del espacio diario.
+  `ALTER TABLE quota_usage ADD COLUMN recibidas INTEGER NOT NULL DEFAULT 0;
+   ALTER TABLE quota_usage ADD COLUMN gastadas_rec INTEGER NOT NULL DEFAULT 0;`,
+  // Desafíos de los Vocaloids en la Ruleta de Némesis (pedido de GyroP, 14 nov. 2026, PLAN §3.12): casa = 1 cuando el
+  // retador es un bot. La casa no paga apuesta: si gana, la del Papu sale de circulación; si pierde, le paga el premio.
+  `ALTER TABLE nemesis ADD COLUMN casa INTEGER NOT NULL DEFAULT 0;
+   CREATE INDEX nemesis_casa ON nemesis (casa, creada_at);`,
+  // Carreras de los Vocaloids (pedido de GyroP, 16 nov. 2026, PLAN §3.14): apuestas mutuas. corredores, probabilidades
+  // y base (la bolsa de Teto) en JSON; semilla y llegada al cerrar las apuestas; cuotas = lo que pagó cada bolsa.
+  // Un boleto = un Vocaloid, un tipo (ganador, segundo o tercero) y un monto; un Papu puede tener varios.
+  `CREATE TABLE carreras (
+     id           TEXT PRIMARY KEY,
+     corredores   TEXT NOT NULL,
+     probs        TEXT NOT NULL,
+     base         TEXT NOT NULL,
+     canal        TEXT,
+     mensaje      TEXT,
+     lanzada_por  TEXT,
+     estado       TEXT NOT NULL DEFAULT 'abierta',
+     semilla      INTEGER,
+     llegada      TEXT,
+     cuotas       TEXT,
+     creada_at    INTEGER NOT NULL,
+     cierra_at    INTEGER NOT NULL,
+     terminada_at INTEGER
+   );
+   CREATE INDEX carreras_estado ON carreras (estado, creada_at);
+   CREATE TABLE boletos (
+     id       INTEGER PRIMARY KEY AUTOINCREMENT,
+     carrera  TEXT NOT NULL,
+     user_id  TEXT NOT NULL,
+     corredor TEXT NOT NULL,
+     tipo     TEXT NOT NULL,
+     cantidad INTEGER NOT NULL,
+     pago     INTEGER NOT NULL DEFAULT 0,
+     at       INTEGER NOT NULL
+   );
+   CREATE INDEX boletos_carrera ON boletos (carrera, user_id);`,
+  // Ofertas de los Vocaloids en #centro-de-comercio (idea de Piña, salón de la fama; GyroP, 18 nov. 2026): casa = id
+  // del Vocaloid que ofrece un objeto suyo por Shaulitas (`de` es el id de Discord de su bot). Sin contraofertas.
+  `ALTER TABLE intercambios ADD COLUMN casa TEXT;`,
+  // Relato completo de cada pelea (GyroP, 18 nov. 2026): en vivo se ve un marcador de texto; el relato largo de siempre
+  // queda aquí para el botón «📜 Ver relato».
+  `ALTER TABLE peleas ADD COLUMN relato TEXT;`,
+  // «¡Adivina, Papu!» (GyroP, 20 nov. 2026, PLAN §3.17): adivinanzas al aire con pozo de Shaulitas. dia y semana en la
+  // zona de config/adivinanzas.json (México); semana = su lunes, para el 🧠 Sabelotodo. ganador NULL = nadie acertó.
+  `CREATE TABLE adivinanzas (
+     id          INTEGER PRIMARY KEY AUTOINCREMENT,
+     indice      INTEGER NOT NULL,
+     bot         TEXT NOT NULL,
+     channel_id  TEXT NOT NULL,
+     message_id  TEXT,
+     dorada      INTEGER NOT NULL DEFAULT 0,
+     bote        INTEGER NOT NULL DEFAULT 0,
+     dia         TEXT NOT NULL,
+     semana      TEXT NOT NULL,
+     creada_at   INTEGER NOT NULL,
+     cerrada_at  INTEGER,
+     ganador     TEXT,
+     nombre      TEXT,
+     premio      INTEGER NOT NULL DEFAULT 0,
+     ms          INTEGER
+   );
+   CREATE INDEX adivinanzas_abiertas ON adivinanzas (cerrada_at);
+   CREATE INDEX adivinanzas_ganador ON adivinanzas (ganador, dia);
+   CREATE INDEX adivinanzas_semana ON adivinanzas (semana);
+   CREATE TABLE adivinanzas_intentos (
+     adivinanza INTEGER NOT NULL,
+     user_id    TEXT NOT NULL,
+     n          INTEGER NOT NULL DEFAULT 0,
+     PRIMARY KEY (adivinanza, user_id)
+   );`,
 ];
 
 export type Db = DatabaseSync;

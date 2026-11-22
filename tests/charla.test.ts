@@ -41,6 +41,7 @@ class FakePort implements CharlaPort {
   }
   async reply(bot: BotId, replyTo: string, content: string) {
     this.replies.push({ bot, replyTo, content });
+    return `r${this.replies.length}`;
   }
   typing() {
     return () => {};
@@ -62,7 +63,7 @@ function fakeLLM(fail = false) {
   return { provider, requests };
 }
 
-function setup(messages: ChannelMessage[] | null, active: BotId[], opts: { fail?: boolean } = {}) {
+function setup(messages: ChannelMessage[] | null, active: BotId[], opts: { fail?: boolean; drama?: { turnos: number; allowed: () => boolean; used: () => void } } = {}) {
   const db = memDb();
   const decks = new DeckStore(db, seededRng(5));
   const port = new FakePort(messages);
@@ -79,6 +80,7 @@ function setup(messages: ChannelMessage[] | null, active: BotId[], opts: { fail?
     llm: { maxTokens: 200, temperature: 0.9 },
     now: () => NOW,
     rng: seededRng(2),
+    drama: opts.drama,
   });
   return { chat, port, requests };
 }
@@ -189,5 +191,76 @@ describe("charla en #general", () => {
     const decks = new DeckStore(memDb(), seededRng(3));
     const active: BotId[] = ["teto", "kaito"];
     for (let i = 0; i < 10; i++) expect(active).toContain(nextChatterBot(decks, active));
+  });
+});
+
+describe("minidramas en #general (PLAN §3.13)", () => {
+  const old = [msg({ at: NOW - FRESH_MS - 60_000 })];
+
+  it("cuando toca, se turnan hasta completar los turnos y cada uno responde al anterior", async () => {
+    let used = 0;
+    const { chat, port, requests } = setup(old, ["teto", "miku"], { drama: { turnos: 4, allowed: () => true, used: () => void used++ } });
+    expect(await chat.tick()).toBe("drama");
+    expect(used).toBe(1);
+    const a = port.posts[0]!.bot;
+    const b = port.posts[0]!.mention!;
+    expect(port.replies.map((r) => [r.bot, r.replyTo])).toEqual([
+      [b, "p1"],
+      [a, "r1"],
+      [b, "r2"],
+    ]);
+    expect(requests[0]!.messages[0]!.content).toMatch(/pique en broma/);
+    expect(requests.at(-1)!.messages[0]!.content).toMatch(/último mensaje: ciérralo con un remate/);
+  });
+
+  it("sin permiso (tope del día o azar) es la pregunta de siempre con una sola respuesta", async () => {
+    let used = 0;
+    const { chat, port } = setup(old, ["teto", "miku"], { drama: { turnos: 4, allowed: () => false, used: () => void used++ } });
+    expect(await chat.tick()).toBe("asked");
+    expect(port.replies).toHaveLength(1);
+    expect(used).toBe(0);
+  });
+
+  it("pique por una carrera (PLAN §3.14): el que ganó provoca al otro por lo que pasó, como minidrama", async () => {
+    let used = 0;
+    const { chat, port, requests } = setup([msg()], ["teto", "miku"], { drama: { turnos: 4, allowed: () => true, used: () => void used++ } });
+    expect(await chat.tick({ force: true, bot: "miku", target: "teto", pique: "Miku llegó 1.º y Teto 6.º en la carrera." })).toBe("drama");
+    expect(used).toBe(1);
+    expect(port.posts[0]).toMatchObject({ bot: "miku", mention: "teto" });
+    expect(port.replies).toHaveLength(3);
+    expect(requests[0]!.messages[0]!.content).toContain("Miku llegó 1.º y Teto 6.º en la carrera.");
+  });
+
+  it("pique sin cupo de minidramas: una provocación y una sola respuesta; sin rival conectado, nada", async () => {
+    const sinCupo = setup([msg()], ["teto", "miku"], { drama: { turnos: 4, allowed: () => false, used: () => {} } });
+    expect(await sinCupo.chat.tick({ force: true, bot: "miku", target: "teto", pique: "Miku ganó." })).toBe("asked");
+    expect(sinCupo.port.replies).toHaveLength(1);
+    const solo = setup([msg()], ["miku"], { drama: { turnos: 4, allowed: () => true, used: () => {} } });
+    expect(await solo.chat.tick({ force: true, bot: "miku", target: "teto", pique: "Miku ganó." })).toBe("skipped");
+    expect(solo.port.posts).toEqual([]);
+  });
+
+  it("si el LLM no responde a mitad del pique, se corta ahí", async () => {
+    const { chat, port } = setup(old, ["teto", "miku"], { fail: true, drama: { turnos: 4, allowed: () => true, used: () => {} } });
+    expect(await chat.tick()).toBe("fallback");
+    expect(port.replies).toEqual([]);
+  });
+});
+
+describe("say y respond (ambiente casual)", () => {
+  it("say publica en #general con la situación, sin la indicación de animar la plática", async () => {
+    const { chat, port, requests } = setup([msg()], ["teto"]);
+    expect(await chat.say("teto", "Ana se casó con Miku.")).toBe("habla teto");
+    expect(port.posts).toEqual([{ id: "p1", bot: "teto", content: "habla teto", mention: undefined }]);
+    const system = requests[0]!.messages[0]!.content;
+    expect(system).toContain("Ana se casó con Miku.");
+    expect(system).not.toContain("para animar la plática");
+  });
+
+  it("respond devuelve la respuesta sin publicarla", async () => {
+    const { chat, port, requests } = setup([msg()], ["miku"]);
+    expect(await chat.respond("miku", { authorName: "Ana", message: "Miku canta raro", history: [], note: "te metes como metiche" })).toBe("habla miku");
+    expect(port.posts).toEqual([]);
+    expect(requests[0]!.messages[0]!.content).toContain("te metes como metiche");
   });
 });
