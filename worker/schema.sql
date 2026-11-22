@@ -1,4 +1,83 @@
 -- Base D1 del worker (Cloudflare). Se aplica en cada despliegue: solo crea lo que falta.
+
+-- Personalizar la tarjeta en la web (worker/src/tarjeta/api.ts): sesiones de 30 min con lo que el Papu tiene y los
+-- pedidos de vista previa o guardar que toma el bot (imagen = la tarjeta dibujada, JPEG en base64).
+CREATE TABLE IF NOT EXISTS tarjeta_sesiones (
+  token     TEXT PRIMARY KEY,
+  papu_id   TEXT NOT NULL,
+  datos     TEXT NOT NULL,
+  vence_at  INTEGER NOT NULL,
+  creado_at INTEGER NOT NULL
+);
+CREATE TABLE IF NOT EXISTS tarjeta_pedidos (
+  id        INTEGER PRIMARY KEY AUTOINCREMENT,
+  token     TEXT NOT NULL,
+  papu_id   TEXT NOT NULL,
+  tipo      TEXT NOT NULL,
+  datos     TEXT NOT NULL,
+  estado    TEXT NOT NULL,
+  mensaje   TEXT,
+  imagen    TEXT,
+  creado_at INTEGER NOT NULL,
+  hecho_at  INTEGER
+);
+CREATE INDEX IF NOT EXISTS tarjeta_pedidos_estado ON tarjeta_pedidos (estado);
+
+-- Pronombres y género de #tus-roles (src/setup/identidad.ts): los roles que creó el worker (solo esos toca o borra)
+-- y cuál tiene cada Papu. `escrito` = escrito a mano (se borra cuando nadie lo tiene); 0 = de la lista del menú.
+CREATE TABLE IF NOT EXISTS identidad_roles (
+  role_id   TEXT PRIMARY KEY,
+  tipo      TEXT NOT NULL,
+  clave     TEXT NOT NULL,
+  nombre    TEXT NOT NULL,
+  escrito   INTEGER NOT NULL,
+  creado_at INTEGER NOT NULL,
+  UNIQUE (tipo, clave)
+);
+CREATE TABLE IF NOT EXISTS identidad_papus (
+  papu_id TEXT NOT NULL,
+  tipo    TEXT NOT NULL,
+  role_id TEXT NOT NULL,
+  PRIMARY KEY (papu_id, tipo)
+);
+-- Cumpleaños de los Papus (#tus-roles, src/setup/cumple.ts; 18 nov. 2026): solo día y mes. El Papu lo registra una
+-- vez; cambiarlo o borrarlo es de GyroP y los Mods (/cumple de Teto, que escribe aquí desde el bot). `por` = quién lo
+-- dejó (el Papu o el staff).
+CREATE TABLE IF NOT EXISTS cumpleanos (
+  papu_id   TEXT PRIMARY KEY,
+  dia       INTEGER NOT NULL,
+  mes       INTEGER NOT NULL,
+  creado_at INTEGER NOT NULL,
+  por       TEXT NOT NULL
+);
+-- Ajedrez entre Papus (celular de Neru, src/ajedrez/partidas.ts; 18 nov. 2026). El worker valida las jugadas y lleva
+-- los relojes (ms que le quedan a cada uno; turno_desde = desde cuándo piensa el que mueve). Neru (el bot) cobra las
+-- apuestas (cobrada), paga al terminar (pagada) y avisa en #general (avisada: 1 = el reto, 2 = el resultado).
+CREATE TABLE IF NOT EXISTS ajedrez_partidas (
+  id             TEXT PRIMARY KEY,
+  retador        TEXT NOT NULL,
+  rival          TEXT NOT NULL,
+  nombre_retador TEXT NOT NULL,
+  nombre_rival   TEXT NOT NULL,
+  blanco         TEXT,
+  apuesta        INTEGER NOT NULL DEFAULT 0,
+  estado         TEXT NOT NULL,
+  fen            TEXT NOT NULL,
+  jugadas        TEXT NOT NULL DEFAULT '',
+  reloj_blanco   INTEGER NOT NULL,
+  reloj_negro    INTEGER NOT NULL,
+  turno_desde    INTEGER,
+  ganador        TEXT,
+  motivo         TEXT,
+  creado_at      INTEGER NOT NULL,
+  actualizado_at INTEGER NOT NULL,
+  cobrada        INTEGER NOT NULL DEFAULT 0,
+  pagada         INTEGER NOT NULL DEFAULT 0,
+  avisada        INTEGER NOT NULL DEFAULT 0
+);
+CREATE INDEX IF NOT EXISTS ajedrez_papus ON ajedrez_partidas (retador, rival, estado);
+CREATE INDEX IF NOT EXISTS ajedrez_pendientes ON ajedrez_partidas (estado, cobrada, pagada, avisada);
+
 CREATE TABLE IF NOT EXISTS pedidos (
   id            INTEGER PRIMARY KEY AUTOINCREMENT,
   origen        TEXT NOT NULL,
@@ -232,3 +311,72 @@ CREATE TABLE IF NOT EXISTS mundo_eventos (
   datos      TEXT NOT NULL,
   creado_at  INTEGER NOT NULL
 );
+
+-- Celular de Neru (PLAN §3.15). Sesiones de 12 h (el token es la llave; la identidad sale de Discord), tema de cada
+-- Papu, perfil que deja Neru (Shaulitas y tarjeta: la pide la pagina con pedido_at, Neru la dibuja y pone
+-- actualizado_at), intentos de los retos del dia (Vocaloidle y Silueta; intentos = JSON con los ids en orden) y la XP
+-- pendiente al resolverlos (Neru la aplica y marca aplicado = 1 antes, para no darla dos veces).
+CREATE TABLE IF NOT EXISTS celular_sesiones (
+  token      TEXT PRIMARY KEY,
+  papu_id    TEXT NOT NULL,
+  nombre     TEXT NOT NULL,
+  avatar     TEXT NOT NULL,
+  vence_at   INTEGER NOT NULL,
+  creado_at  INTEGER NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS celular_prefs (
+  papu_id        TEXT PRIMARY KEY,
+  tema           TEXT NOT NULL DEFAULT 'neru',
+  iconos         TEXT NOT NULL DEFAULT 'tema',
+  actualizado_at INTEGER NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS celular_perfiles (
+  papu_id        TEXT PRIMARY KEY,
+  shaulitas      INTEGER,
+  tarjeta        TEXT,
+  pedido_at      INTEGER NOT NULL DEFAULT 0,
+  actualizado_at INTEGER NOT NULL DEFAULT 0
+);
+
+CREATE TABLE IF NOT EXISTS celular_retos (
+  papu_id        TEXT NOT NULL,
+  juego          TEXT NOT NULL,
+  dia            TEXT NOT NULL,
+  intentos       TEXT NOT NULL DEFAULT '[]',
+  resuelto       INTEGER NOT NULL DEFAULT 0,
+  actualizado_at INTEGER NOT NULL,
+  PRIMARY KEY (papu_id, juego, dia)
+);
+
+CREATE TABLE IF NOT EXISTS celular_premios (
+  id         INTEGER PRIMARY KEY AUTOINCREMENT,
+  papu_id    TEXT NOT NULL,
+  juego      TEXT NOT NULL,
+  dia        TEXT NOT NULL,
+  intentos   INTEGER NOT NULL,
+  aciertos   INTEGER NOT NULL,
+  creado_at  INTEGER NOT NULL,
+  aplicado   INTEGER NOT NULL DEFAULT 0,
+  xp         INTEGER,
+  UNIQUE (papu_id, juego, dia)
+);
+CREATE INDEX IF NOT EXISTS celular_premios_pendientes ON celular_premios (aplicado, id);
+
+-- Pedidos de las apps del celular que necesitan los datos del bot (Mi tarjeta, Tienda, Mochila, Donar, Roles, Comercio…):
+-- la pagina deja el pedido (app, accion, datos), Neru lo toma (estado 'tomado'), lo resuelve con las mismas reglas que
+-- los comandos y deja el resultado (estado 'listo' o 'error'). La pagina lo lee por id; el bot borra los viejos.
+CREATE TABLE IF NOT EXISTS celular_pedidos (
+  id         INTEGER PRIMARY KEY AUTOINCREMENT,
+  papu_id    TEXT NOT NULL,
+  nombre     TEXT NOT NULL,
+  app        TEXT NOT NULL,
+  accion     TEXT NOT NULL,
+  datos      TEXT NOT NULL DEFAULT 'null',
+  estado     TEXT NOT NULL DEFAULT 'pendiente',
+  resultado  TEXT,
+  creado_at  INTEGER NOT NULL,
+  hecho_at   INTEGER
+);
+CREATE INDEX IF NOT EXISTS celular_pedidos_pendientes ON celular_pedidos (estado, id);

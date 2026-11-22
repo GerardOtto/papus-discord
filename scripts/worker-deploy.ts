@@ -1,14 +1,15 @@
 // Despliega el worker de Cloudflare (Miku y Luka 24/7) y conecta sus comandos de Discord a el.
-//   npm run worker:deploy
+//   npm run worker:deploy                (sin el mundo 3D: /mundo/ apagado y sus archivos fuera)
+//   npm run worker:deploy -- --con-mundo (cuando GyroP abra la beta del mundo)
+//   npm run worker:deploy -- --sin-catalogo (deja /catalogo/ fuera; por defecto siempre se publica)
 // Necesita en .env: CLOUDFLARE_DEPLOY_TOKEN (permisos: Workers Scripts Edit, D1 Edit, Workers subdominio) y
 // CLOUDFLARE_ACCOUNT_ID. Los tokens de Discord van como secretos del worker (nunca en el repo ni en registros).
 import { spawnSync } from "node:child_process";
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { cpSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { REST, Routes } from "discord.js";
 import { loadConfig, loadDotEnv } from "../src/config";
-import { kvDelete, kvGet, openDb } from "../src/db/database";
 import { commandsFor } from "../src/discord/commands";
 import { EngineReader } from "../src/engine/reader";
 
@@ -17,6 +18,12 @@ const config = loadConfig();
 const ROOT = path.resolve(import.meta.dirname, "..");
 const WORKER = path.join(ROOT, "worker");
 const TOKEN = process.env.CLOUDFLARE_DEPLOY_TOKEN?.trim();
+// El mundo 3D no se publica hasta que GyroP abra la beta (9 nov. 2026): por defecto no se arma ni se sube, y el worker
+// no atiende /mundo/ (MUNDO_ABIERTO). El codigo y su Durable Object siguen en el worker, sin rutas.
+const CON_MUNDO = process.argv.includes("--con-mundo");
+// Catálogo público de objetos (npm run catalogo, worker/public/catalogo/): se sube SIEMPRE, para que su enlace no quede en
+// 404 tras un despliegue (pedido de GyroP, 13 nov. 2026). --sin-catalogo lo deja fuera (p. ej. con una propuesta sin aprobar).
+const CON_CATALOGO = !process.argv.includes("--sin-catalogo");
 const ACCOUNT = process.env.CLOUDFLARE_ACCOUNT_ID?.trim();
 if (!TOKEN || !ACCOUNT) throw new Error("Faltan CLOUDFLARE_DEPLOY_TOKEN o CLOUDFLARE_ACCOUNT_ID en .env");
 const OWNER = config.ownerId;
@@ -77,11 +84,27 @@ const act = spawnSync("npm", ["run", "-s", "actividad"], { cwd: ROOT, shell: tru
 if (act.status !== 0) throw new Error(`npm run actividad falló:
 ${`${act.stdout ?? ""}${act.stderr ?? ""}`.slice(-1500)}`);
 console.log(act.stdout.trim());
-// Prototipo del mundo 3D de los Papus (worker/public/mundo/).
-const mun = spawnSync("npm", ["run", "-s", "mundo"], { cwd: ROOT, shell: true, encoding: "utf8" });
-if (mun.status !== 0) throw new Error(`npm run mundo falló:
+// Celular de Neru (PLAN §3.15): datos de Vocaloidle y Silueta, imagenes pixeladas y la pagina (worker/public/celular/).
+const cel = spawnSync("npm", ["run", "-s", "celular"], { cwd: ROOT, shell: true, encoding: "utf8" });
+if (cel.status !== 0) throw new Error(`npm run celular falló:
+${`${cel.stdout ?? ""}${cel.stderr ?? ""}`.slice(-1500)}`);
+console.log(cel.stdout.trim());
+// Prototipo del mundo 3D de los Papus (worker/public/mundo/): solo con --con-mundo. Sin la opcion, .assetsignore deja
+// sus archivos fuera de la subida aunque esten armados de antes.
+writeFileSync(path.join(WORKER, "public", ".assetsignore"), (CON_MUNDO ? "" : "mundo/\n") + (CON_CATALOGO ? "" : "catalogo/\n"));
+// Miniaturas de la tienda para la página de personalizar la tarjeta (/tarjeta/mini/<id>.png).
+const mini = path.join(WORKER, "public", "tarjeta", "mini");
+rmSync(mini, { recursive: true, force: true });
+mkdirSync(mini, { recursive: true });
+cpSync(path.join(ROOT, "assets/coleccion/miniaturas"), mini, { recursive: true });
+console.log("✔ miniaturas de la tienda para /tarjeta/");
+if (CON_MUNDO) {
+  const mun = spawnSync("npm", ["run", "-s", "mundo"], { cwd: ROOT, shell: true, encoding: "utf8" });
+  if (mun.status !== 0) throw new Error(`npm run mundo falló:
 ${`${mun.stdout ?? ""}${mun.stderr ?? ""}`.slice(-1500)}`);
-console.log(mun.stdout.trim());
+  console.log(mun.stdout.trim());
+} else console.log("· mundo 3D sin publicar (para incluirlo: npm run worker:deploy -- --con-mundo)");
+if (!CON_CATALOGO) console.log("· catálogo sin publicar: /catalogo/ dará 404 hasta el próximo despliegue sin --sin-catalogo");
 
 // 5) Claves publicas de las apps (para verificar las firmas) y despliegue.
 const app = async (token: string) =>
@@ -89,14 +112,17 @@ const app = async (token: string) =>
 const miku = await app(config.tokens.miku);
 const luka = await app(config.tokens.luka);
 const teto = await app(config.tokens.teto);
+const neru = await app(config.tokens.neru);
 const vars: Record<string, string> = {
   TETO_CLIENT_ID: teto.id,
+  NERU_CLIENT_ID: neru.id,
   GUILD_ID: config.guildId,
   OWNER_ID: OWNER,
   MIKU_PUBLIC_KEY: miku.verify_key,
   LUKA_PUBLIC_KEY: luka.verify_key,
   MIKU_COLOR: String(engine.character("miku").color),
   LUKA_COLOR: String(engine.character("luka").color),
+  MUNDO_ABIERTO: CON_MUNDO ? "1" : "0",
 };
 const deployOut = wrangler(["deploy", ...Object.entries(vars).flatMap(([k, v]) => ["--var", `${k}:${v}`])]);
 const url = /https:\/\/[^\s]+\.workers\.dev/.exec(deployOut)?.[0] ?? `https://papus-bots.${subdomain}.workers.dev`;
@@ -107,7 +133,19 @@ const tmp = mkdtempSync(path.join(os.tmpdir(), "papus-secrets-"));
 try {
   const f = path.join(tmp, "s.json");
   const tetoSecret = process.env.TETO_CLIENT_SECRET?.trim();
-  writeFileSync(f, JSON.stringify({ MIKU_TOKEN: config.tokens.miku, LUKA_TOKEN: config.tokens.luka, ...(tetoSecret ? { TETO_CLIENT_SECRET: tetoSecret } : {}) }));
+  const tarjetaClave = process.env.TARJETA_CLAVE?.trim();
+  const neruSecret = process.env.NERU_CLIENT_SECRET?.trim();
+  writeFileSync(
+    f,
+    JSON.stringify({
+      MIKU_TOKEN: config.tokens.miku,
+      LUKA_TOKEN: config.tokens.luka,
+      ...(tetoSecret ? { TETO_CLIENT_SECRET: tetoSecret } : {}),
+      ...(tarjetaClave ? { TARJETA_CLAVE: tarjetaClave } : {}),
+      ...(neruSecret ? { NERU_CLIENT_SECRET: neruSecret } : {}),
+    }),
+  );
+  if (!neruSecret) console.log("⚠ falta NERU_CLIENT_SECRET en .env: el celular de Neru no podrá identificar a los Papus (PLAN §3.15).");
   if (!tetoSecret) console.log("⚠ falta TETO_CLIENT_SECRET en .env: la trivia multijugador no podrá identificar a los Papus (ver README).");
   wrangler(["secret", "bulk", f]);
 } finally {
@@ -127,15 +165,4 @@ for (const [bot, token, id] of [["miku", config.tokens.miku, miku.id], ["luka", 
   console.log(`✔ ${bot}: comandos registrados y conectados al worker`);
 }
 
-// 9) El tablero viejo que creo el programa del PC (ahora lo maneja el worker).
-const db = openDb(path.join(config.dataDir, "papus.sqlite"));
-const oldBoard = kvGet(db, "tablero_cola");
-if (oldBoard) {
-  const chans = (await new REST().setToken(config.tokens.miku).get(Routes.guildChannels(config.guildId))) as { id: string; name: string }[];
-  const cola = chans.find((c) => c.name.endsWith("cola-de-pedidos"));
-  if (cola) await new REST().setToken(config.tokens.miku).delete(Routes.channelMessage(cola.id, oldBoard)).catch(() => {});
-  kvDelete(db, "tablero_cola");
-  console.log("✔ tablero viejo del PC borrado (el worker crea el nuevo con el primer pedido)");
-}
-db.close();
 console.log("\nListo: Miku y Luka responden sus comandos 24/7 desde Cloudflare.");

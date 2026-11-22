@@ -12,6 +12,8 @@ export interface ActividadEnv {
   TETO_CLIENT_ID?: string;
   TETO_CLIENT_SECRET?: string;
   ACTIVIDAD_PRUEBA?: string;
+  /** Base D1 (los nombres de la portada: membresías Celular y más, que deja el bot). */
+  DB?: D1Database;
 }
 
 const PREFIX = "/actividad/api/";
@@ -24,6 +26,12 @@ export async function actividad(request: Request, env: ActividadEnv): Promise<Re
 
   if (ruta === "config" && request.method === "GET") {
     return Response.json({ clientId: env.TETO_CLIENT_ID ?? null, prueba: env.ACTIVIDAD_PRUEBA === "1" });
+  }
+
+  // «Con el apoyo de…» en la portada (PLAN §2): membresías Celular y más (los deja el bot cada hora).
+  if (ruta === "mecenas" && request.method === "GET") {
+    const r = env.DB ? await env.DB.prepare("SELECT value FROM kv WHERE key = 'actividad:mecenas'").first<{ value: string }>().catch(() => null) : null;
+    return Response.json({ nombres: r ? (JSON.parse(r.value) as string[]).slice(0, 40) : [] });
   }
 
   if (ruta === "token" && request.method === "POST") {

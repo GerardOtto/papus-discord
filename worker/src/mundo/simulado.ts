@@ -13,7 +13,7 @@ const TITULOS: Record<string, [string, string]> = {
   xp: ["¡+120 XP!", "Nivel 12 · ¡a seguir!"],
   cuota: ["¡+2 mensajes!", "con los Vocaloids, solo hoy"],
   cuota_llena: ["¡Cuota llena!", "+3 mensajes con los Vocaloids"],
-  sobre: ["¡Un sobre común!", "gratis, en la tienda de Shaula-coins"],
+  sobre: ["¡Un sobre común!", "gratis, en la tienda de Shaulitas"],
 };
 
 export function simular(accion: Accion, papu: { id: string; nombre: string }): Resultado {

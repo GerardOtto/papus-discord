@@ -1,0 +1,16 @@
+{
+  "$comment": "Premio por ideas incorporadas (pedido de GyroP, 18 nov. 2026): 'porIdea' Shaulitas por CADA idea de un Papu que llegó al servidor en esta actualización (PLAN §3.16; las de antes no cuentan, decisión de GyroP). Teto las paga una sola vez al arrancar (src/coins/premios.ts guarda en la base qué 'ronda' ya pagó a quién: cambiar la lista de una ronda ya pagada no vuelve a pagar) y deja el detalle en #registro-bots. Para una actualización nueva, otra clave en 'rondas'. Las ideas de GyroP (placa de membresía, patrocinador del ranking) no cuentan.",
+  "porIdea": 100,
+  "rondas": {
+    "2026-11-18": [
+      { "id": "817245658514980864", "nombre": "Nyrex", "ideas": ["🥭 de Mango", "Némesis en los números de Mango"] },
+      { "id": "745422224109862924", "nombre": "☆Soul_Chaser☆", "ideas": ["cumpleaños de Vocaloids y Papus", "insignia «Fan de Ruko»"] },
+      { "id": "545054807463821313", "nombre": "🍍♡Piña♡🍍", "ideas": ["ofertas de los Vocaloids"] },
+      { "id": "972182598312935445", "nombre": "Wicho el Bicho", "ideas": ["peleas 2 contra 2"] },
+      { "id": "1207431352870502481", "nombre": "Mango9374", "ideas": ["ajedrez"] },
+      { "id": "1038683087653052426", "nombre": "wiwi", "ideas": ["cumpleaños en #tus-roles"] },
+      { "id": "878809485500645429", "nombre": "Yukina.j6", "ideas": ["Némesis en los números de Mango"] },
+      { "id": "1338431848417591388", "nombre": "Flor_fino", "ideas": ["canal de despedidas"] }
+    ]
+  }
+}

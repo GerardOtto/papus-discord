@@ -2,15 +2,20 @@
 // permisos, temas, modo lento, orden y seguridad. Nunca borra nada (lo que no esta en la config queda intacto).
 //   npm run servidor             -> solo muestra lo que haria
 //   npm run servidor -- --apply  -> lo ejecuta (usa la app de Teto: necesita "Administrador" mientras corre)
+//   --solo-canales               -> solo la estructura (PLAN §8, 13 nov. 2026): crea categorías y canales nuevos, mueve,
+//                                   renombra, archiva y ordena; no toca roles, seguridad ni los permisos de los canales
+//                                   activos que ya existen (así no revierte lo que GyroP ajustó a mano).
+//   --borrar-categorias-vacias   -> además borra las categorías que no están en la config y quedaron sin canales.
 import { ChannelType, REST, Routes } from "discord.js";
 import { isCoreBot, loadConfig, loadDotEnv } from "../src/config";
-import { blockAtBottom, blockAtTop, blockBelow, botColorRoles, nameKey, overwritesFor, sameOverwrites, type CategorySpec, type ChannelSpec, type Overwrite, type RoleIds } from "../src/setup/layout";
+import { blockAtBottom, blockAtTop, blockBelow, botColorRoles, nameKey, overwritesFor, readOnly, sameOverwrites, type CategorySpec, type ChannelSpec, type Overwrite, type RoleIds } from "../src/setup/layout";
 import { loadLayout } from "../src/setup/layout";
 
 loadDotEnv();
 const config = loadConfig();
 const layout = loadLayout();
 const APPLY = process.argv.includes("--apply");
+const SOLO = process.argv.includes("--solo-canales");
 const rest = new REST().setToken(config.tokens.teto);
 const G = config.guildId;
 
@@ -55,6 +60,7 @@ const wantRoles = [
   // Avisos de #tus-roles (peleas, bodas, estrenos): como los paises, sin color; el bot los etiqueta.
   ...(layout.avisosPapu?.avisos ?? []).map((a) => ({ rol: a.rol, color: "#000000", separado: false })),
 ];
+if (!SOLO) {
 for (const w of wantRoles) {
   const r = byName(w.rol);
   if (!r) {
@@ -87,6 +93,7 @@ for (const r of roles.filter((x) => !x.managed && (x.id === G || wantRoles.some(
     if (APPLY) await rest.patch(Routes.guildRole(G, r.id), { body: { permissions: String(want) } });
   }
 }
+} // fin de lo que salta --solo-canales
 
 const placeholder = (n: string) => byName(n)?.id ?? `(nuevo:${n})`;
 const roleIds: RoleIds = {
@@ -104,6 +111,7 @@ const roleIds: RoleIds = {
   extra: Object.fromEntries(layout.rolesExtra.map((r) => [nameKey(r.rol), placeholder(r.rol)])),
 };
 
+if (!SOLO) {
 // Bots de musica externos (Jockie, Chip…): su rol, que los deja solo en los canales de voz.
 const musicSpec = layout.rolesExtra.find((r) => r.musica);
 const musicRole = musicSpec ? byName(musicSpec.rol) : undefined;
@@ -284,6 +292,7 @@ if (guild.verification_level !== layout.seguridad.verificacion || guild.explicit
   log(`seguridad: verificación ${guild.verification_level} → ${layout.seguridad.verificacion}, filtro de imágenes ${guild.explicit_content_filter} → ${layout.seguridad.filtroContenido}`);
   if (APPLY) await rest.patch(Routes.guild(G), { body: { verification_level: layout.seguridad.verificacion, explicit_content_filter: layout.seguridad.filtroContenido } });
 }
+} // fin de lo que salta --solo-canales
 
 // ── Categorias y canales ─────────────────────────────────────────────────────────────────
 let channels = await api<ApiChannel[]>(() => rest.get(Routes.guildChannels(G)));
@@ -304,7 +313,7 @@ for (const cat of layout.categorias as CategorySpec[]) {
   } else {
     const changes: Record<string, unknown> = {};
     if (c.name !== cat.nombre) changes.name = cat.nombre;
-    if (!sameOverwrites(fromApi(c.permission_overwrites), catOw)) changes.permission_overwrites = toApi(catOw);
+    if (!SOLO && !sameOverwrites(fromApi(c.permission_overwrites), catOw)) changes.permission_overwrites = toApi(catOw);
     if (Object.keys(changes).length) {
       log(`categoría "${c.name}"${changes.name ? ` → "${cat.nombre}"` : ""}${changes.permission_overwrites ? " (permisos)" : ""}`);
       if (APPLY) await rest.patch(Routes.channel(c.id), { body: changes });
@@ -313,30 +322,51 @@ for (const cat of layout.categorias as CategorySpec[]) {
   if (c) managedIds.add(c.id);
 
   for (const ch of cat.canales as ChannelSpec[]) {
-    const ow = overwritesFor(cat.leen, ch.escriben, roleIds, ch);
-    const type = ch.voz ? ChannelType.GuildVoice : ChannelType.GuildText;
+    const ow = overwritesFor(ch.leen ?? cat.leen, ch.escriben && !ch.archivado, roleIds, ch);
+    const type = ch.voz ? ChannelType.GuildVoice : ch.tipo === "foro" ? ChannelType.GuildForum : ch.tipo === "multimedia" ? ChannelType.GuildMedia : ChannelType.GuildText;
     const body: { name: string; topic?: string; rate_limit_per_user?: number; permission_overwrites: ReturnType<typeof toApi> } = ch.voz
       ? { name: ch.nombre, permission_overwrites: toApi(ow) }
       : { name: ch.nombre, topic: ch.tema ?? "", rate_limit_per_user: ch.lento ?? 0, permission_overwrites: toApi(ow) };
     const existing = find(type, ch);
-    const who = ch.escriben ? "escriben los que leen" : "solo leen (escriben los bots y GyroP)";
+    const who = ch.archivado ? "archivado: solo lectura" : ch.escriben ? "escriben los que leen" : "solo leen (escriben los bots y GyroP)";
+    if (!existing && ch.manual) {
+      log(`  #${ch.nombre} (hecho a mano) no existe: no se crea`);
+      continue;
+    }
+    if (!existing && ch.tipo === "multimedia") {
+      // Discord no deja que un bot cree canales multimedia (aunque el servidor sea de Comunidad; 13 nov. 2026).
+      console.log(`  ⚠️ #${ch.nombre} (multimedia) no existe: créalo a mano en "${cat.nombre}" y vuelve a correr esto (le pone permisos y tema).`);
+      continue;
+    }
     if (!existing) {
       log(ch.voz ? `  crear voz "${ch.nombre}" en "${cat.nombre}"` : `  crear #${ch.nombre} en "${cat.nombre}" (${who}${ch.lento ? `, modo lento ${ch.lento} s` : ""})`);
       if (APPLY) {
-        const created = await api<ApiChannel>(() => rest.post(Routes.guildChannels(G), { body: { ...body, type, parent_id: c?.id } }));
+        const created = await api<ApiChannel>(() => rest.post(Routes.guildChannels(G), { body: { ...body, type, parent_id: c?.id, ...(ch.galeria ? { default_forum_layout: 2 } : {}) } }));
         managedIds.add(created.id);
       }
       continue;
     }
     managedIds.add(existing.id);
     const changes: Record<string, unknown> = {};
+    // Hechos a mano: solo se mueven a su categoría (y, si se archivan, quedan de solo lectura con sus permisos de antes).
+    if (ch.manual) {
+      if (c && existing.parent_id !== c.id) changes.parent_id = c.id;
+      const ro = ch.archivado ? readOnly(fromApi(existing.permission_overwrites), G, [roleIds.bots, ...(roleIds.chatBots ? [roleIds.chatBots] : [])]) : null;
+      if (ro && !sameOverwrites(fromApi(existing.permission_overwrites), ro)) changes.permission_overwrites = toApi(ro);
+      if (Object.keys(changes).length) {
+        log(`  #${existing.name} (hecho a mano): ${[changes.parent_id && `mover a "${cat.nombre}"`, changes.permission_overwrites && "solo lectura (archivado)"].filter(Boolean).join(", ")}`);
+        if (APPLY) await rest.patch(Routes.channel(existing.id), { body: changes });
+      }
+      continue;
+    }
     // Discord guarda los nombres de canales de texto en minusculas y con guiones en vez de espacios.
     // (los de voz conservan mayusculas y espacios).
     if (existing.name !== (ch.voz ? ch.nombre : ch.nombre.toLowerCase().replace(/\s+/g, "-"))) changes.name = ch.nombre;
     if (c && existing.parent_id !== c.id) changes.parent_id = c.id;
     if (!ch.voz && (existing.topic ?? "") !== body.topic) changes.topic = body.topic;
     if (!ch.voz && (existing.rate_limit_per_user ?? 0) !== body.rate_limit_per_user) changes.rate_limit_per_user = body.rate_limit_per_user;
-    if (!sameOverwrites(fromApi(existing.permission_overwrites), ow)) changes.permission_overwrites = body.permission_overwrites;
+    // Con --solo-canales, los permisos de los canales activos no se tocan (solo los de los archivados).
+    if ((!SOLO || ch.archivado) && !sameOverwrites(fromApi(existing.permission_overwrites), ow)) changes.permission_overwrites = body.permission_overwrites;
     if (Object.keys(changes).length) {
       const what = [changes.name && `renombrar a #${ch.nombre}`, changes.parent_id && `mover a "${cat.nombre}"`, changes.topic !== undefined && "tema", changes.rate_limit_per_user !== undefined && "modo lento", changes.permission_overwrites && `permisos (${who})`].filter(Boolean);
       log(`  #${existing.name}: ${what.join(", ")}`);
@@ -375,6 +405,18 @@ if (APPLY) {
   console.log("✔ orden de categorías y canales");
 } else {
   console.log("• ordenar categorías y canales como en config/servidor.json");
+}
+
+// ── Categorías vacías (--borrar-categorias-vacias): las que no están en la config y quedaron sin canales (las de los
+// niveles después de juntarlas en 💎 Membresías, 13 nov. 2026). Nunca un canal.
+if (process.argv.includes("--borrar-categorias-vacias")) {
+  const now = APPLY ? await api<ApiChannel[]>(() => rest.get(Routes.guildChannels(G))) : channels;
+  const configKeys = new Set((layout.categorias as CategorySpec[]).map((s) => nameKey(s.nombre)));
+  for (const cat of now.filter((c) => c.type === ChannelType.GuildCategory && !configKeys.has(nameKey(c.name)))) {
+    if (now.some((k) => k.parent_id === cat.id)) continue;
+    log(`borrar la categoría vacía "${cat.name}"`);
+    if (APPLY) await rest.delete(Routes.channel(cat.id));
+  }
 }
 
 const extra = channels

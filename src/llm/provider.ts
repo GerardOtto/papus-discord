@@ -2,6 +2,11 @@
 export interface ChatMessage {
   role: "system" | "user" | "assistant";
   content: string;
+  /**
+   * Imagenes del mensaje (data URL, ya achicadas: src/llm/image.ts). Solo para la cadena de vision (PLAN §5.1); el
+   * adaptador las manda como partes "image_url" del formato de OpenAI.
+   */
+  images?: string[];
 }
 
 export interface ChatRequest {

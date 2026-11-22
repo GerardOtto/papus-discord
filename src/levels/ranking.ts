@@ -5,6 +5,7 @@ import { existsSync } from "node:fs";
 import path from "node:path";
 import { createCanvas, loadImage, type SKRSContext2D } from "@napi-rs/canvas";
 import { FONT, RAINBOW, fitText, gradient, roundRect, tierFill } from "./card";
+import { prestigeMark } from "./rules";
 
 export const RANKING_W = 1000;
 export const RANKING_TOP = 10;
@@ -36,7 +37,14 @@ export interface RankingData {
   colors: Record<string, string>;
   /** Fecha visible, "21 oct. 2026". */
   date: string;
+  /** Tarjeta de nivel (PNG) del Papu de membresía que patrocina el ranking de hoy (PLAN §2); sin él, nada. */
+  sponsor?: Buffer | null;
 }
+
+/** Alto de la franja del patrocinador: título y su tarjeta a 860 px de ancho (la tarjeta es de 1000×340). */
+const SPONSOR_W = 860;
+const SPONSOR_H = Math.round((SPONSOR_W * 340) / 1000);
+const SPONSOR_BLOCK = 60 + SPONSOR_H + 20;
 
 // ───────────────────────── rotacion del podio ─────────────────────────
 
@@ -79,7 +87,7 @@ const hexA = (hex: string, a: number) => {
   const n = parseInt(hex.slice(1), 16);
   return `rgba(${(n >> 16) & 255},${(n >> 8) & 255},${n & 255},${a})`;
 };
-const levelLabel = (r: RankingRow) => `${r.prestige > 0 ? `★${r.prestige} · ` : ""}Nv ${r.level}`;
+const levelLabel = (r: RankingRow) => `${r.prestige > 0 ? `${prestigeMark(r.prestige, true)}${r.prestige} · ` : ""}Nv ${r.level}`;
 
 async function tryLoad(src: Buffer | string | null) {
   if (!src || (typeof src === "string" && !existsSync(src))) return null;
@@ -210,7 +218,8 @@ export async function renderRanking(d: RankingData): Promise<Buffer> {
   const rest = d.rows.slice(3);
   const listTop = FLOOR + 160;
   const listEnd = listTop + rest.length * ROW_H + (d.me ? ROW_H + 30 : 0);
-  const H = listEnd + 70;
+  const sponsor = d.sponsor ? await loadImage(d.sponsor).catch(() => null) : null;
+  const H = listEnd + 70 + (sponsor ? SPONSOR_BLOCK : 0);
   const W = RANKING_W;
   const canvas = createCanvas(W, H);
   const ctx = canvas.getContext("2d");
@@ -324,7 +333,7 @@ export async function renderRanking(d: RankingData): Promise<Buffer> {
     ctx.fillText(fitText(ctx, r.name, 270), p.cx, FLOOR + 52);
     ctx.fillStyle = "#d9c8ff";
     ctx.font = `24px ${FONT}`;
-    ctx.fillText(r.prestige > 0 ? `★${r.prestige} · Nivel ${r.level}` : `Nivel ${r.level}`, p.cx, FLOOR + 88);
+    ctx.fillText(r.prestige > 0 ? `${prestigeMark(r.prestige, true)}${r.prestige} · Nivel ${r.level}` : `Nivel ${r.level}`, p.cx, FLOOR + 88);
     drawRankPill(ctx, p.cx, FLOOR + 104, 28, 18, r, "center");
     ctx.textAlign = "center";
   }
@@ -346,6 +355,30 @@ export async function renderRanking(d: RankingData): Promise<Buffer> {
     y += 30;
     await drawRow(ctx, y, d.me, 0.12, "#ffe14d");
     y += ROW_H;
+  }
+
+  // Patrocinador: «PATROCINADO POR» y su tarjeta (sin @: no se le notifica ni se le nombra en el mensaje).
+  if (sponsor) {
+    y += 24;
+    ctx.textAlign = "center";
+    ctx.textBaseline = "alphabetic";
+    ctx.save();
+    ctx.shadowColor = "rgba(255,216,107,0.6)";
+    ctx.shadowBlur = 10;
+    ctx.fillStyle = "#ffd86b";
+    ctx.font = `bold 26px ${TITLE}`;
+    ctx.fillText("✦  PATROCINADO POR  ✦", W / 2, y + 26);
+    ctx.restore();
+    const sx = (W - SPONSOR_W) / 2, sy = y + 44;
+    ctx.save();
+    ctx.shadowColor = "rgba(0,0,0,0.55)";
+    ctx.shadowBlur = 18;
+    ctx.shadowOffsetY = 6;
+    roundRect(ctx, sx, sy, SPONSOR_W, SPONSOR_H, 24);
+    ctx.fillStyle = "#000000";
+    ctx.fill();
+    ctx.restore();
+    ctx.drawImage(sponsor, sx, sy, SPONSOR_W, SPONSOR_H);
   }
 
   ctx.textAlign = "center";

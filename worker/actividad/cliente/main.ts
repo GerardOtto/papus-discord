@@ -30,6 +30,7 @@ function enviar(p: Pedido): void {
 async function iniciar(): Promise<void> {
   const cfg = (await fetch("api/config").then((r) => r.json())) as { clientId: string | null; prueba: boolean };
   estado.dificultades = await fetch("dificultades.json").then((r) => r.json()).catch(() => estado.dificultades);
+  estado.mecenas = await fetch("api/mecenas").then((r) => r.json()).then((j: { nombres?: string[] }) => j.nombres ?? []).catch(() => []);
   const params = new URLSearchParams(location.search);
   const enDiscord = params.has("frame_id");
   let hola: Pedido;

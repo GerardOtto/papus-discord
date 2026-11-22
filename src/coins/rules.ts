@@ -1,4 +1,4 @@
-// Reglas de las Shaula-coins (PLAN §3.6, config/monedas.json y config/objetos.json). Funciones puras: monedas del
+// Reglas de las Shaulitas (PLAN §3.6, config/monedas.json y config/objetos.json). Funciones puras: monedas del
 // día, sobres con garantías, Ecos, cómo se paga una compra y el calendario de vitrinas de la temporada (todos los
 // objetos salen al menos una vez). Nada de esto da XP ni cuota (regla 1).
 import { readFileSync } from "node:fs";
@@ -6,37 +6,61 @@ import path from "node:path";
 
 const REPO_ROOT = path.resolve(import.meta.dirname, "../..");
 
-export type Rareza = "comun" | "rara" | "epica" | "legendaria" | "mitica" | "fundador" | "membresia" | "contrabando";
+export type Rareza = "comun" | "rara" | "epica" | "legendaria" | "mitica" | "fundador" | "membresia" | "contrabando" | "prestigio" | "exclusivo";
 export const RAREZAS_SOBRE = ["comun", "rara", "epica", "legendaria", "mitica"] as const;
 export type RarezaSobre = (typeof RAREZAS_SOBRE)[number];
 export type Tipo = "fondo" | "borde" | "barra" | "nombre" | "aro" | "insignia" | "titulo";
 export const TIPOS: Tipo[] = ["fondo", "borde", "barra", "nombre", "aro", "insignia", "titulo"];
 export const TIPO_NOMBRE: Record<Tipo, string> = { fondo: "Fondo", borde: "Borde", barra: "Barra de XP", nombre: "Efecto de nombre", aro: "Aro de avatar", insignia: "Insignia", titulo: "Título" };
-export const RAREZA_NOMBRE: Record<Rareza, string> = { comun: "Común", rara: "Rara", epica: "Épica", legendaria: "Legendaria", mitica: "Mítica", fundador: "Fundador", membresia: "Membresía", contrabando: "Contrabando" };
-export const RAREZA_COLOR: Record<Rareza, string> = { comun: "#C9CED6", rara: "#39C5BB", epica: "#B36BFF", legendaria: "#FFC83D", mitica: "#FF5FA2", fundador: "#F6E7B0", membresia: "#FF8FB1", contrabando: "#8FE36B" };
-const ORDEN: Record<Rareza, number> = { comun: 0, rara: 1, epica: 2, legendaria: 3, mitica: 4, fundador: 5, membresia: 5, contrabando: 5 };
+export const RAREZA_NOMBRE: Record<Rareza, string> = { comun: "Común", rara: "Rara", epica: "Épica", legendaria: "Legendaria", mitica: "Mítica", fundador: "Fundador", membresia: "Membresía", contrabando: "Contrabando", prestigio: "Prestigio", exclusivo: "Exclusivo" };
+export const RAREZA_COLOR: Record<Rareza, string> = { comun: "#C9CED6", rara: "#39C5BB", epica: "#B36BFF", legendaria: "#FFC83D", mitica: "#FF5FA2", fundador: "#F6E7B0", membresia: "#FF8FB1", contrabando: "#8FE36B", prestigio: "#FFD86B", exclusivo: "#FF3B5C" };
+export const ORDEN: Record<Rareza, number> = { comun: 0, rara: 1, epica: 2, legendaria: 3, mitica: 4, fundador: 5, membresia: 5, contrabando: 5, prestigio: 5, exclusivo: 5 };
 /**
  * Rarezas que no se venden en la tienda, no salen en sobres ni se fabrican: se regalan (fundadores, insignias de
  * membresía) o se compran en el mercado negro (contrabando, config/mercado.json).
  */
-export const RAREZAS_REGALO: readonly Rareza[] = ["fundador", "membresia", "contrabando"];
+export const RAREZAS_REGALO: readonly Rareza[] = ["fundador", "membresia", "contrabando", "prestigio", "exclusivo"];
 
 export interface Objeto {
   id: string;
   nombre: string;
   tipo: Tipo;
   rareza: Rareza;
-  /** "arte" = dibujado con código (cualquier moneda); "render" = imagen de Diva-a-Render (solo ganadas). */
+  /** "arte" = dibujado con código ; "render" = imagen de Diva-a-Render (nunca en sobres de membresía: no se entregan por pago). */
   origen: "arte" | "render";
   animado?: boolean;
   /** Insignia: el emoji. Título: el texto. */
   valor?: string;
+  /** Fondo cuyo arte queda a la izquierda: se ve mejor con /tarjeta lado: derecha (la vista previa y el catálogo lo usan). */
+  lado?: "derecha";
+  /**
+   * Fondo reencuadrado (18 nov. 2026): el personaje va a la derecha a todo el alto, así que la tarjeta deja el avatar
+   * y los datos a la izquierda mientras esté puesto, sin importar el lado que eligió el Papu.
+   */
+  encuadre?: boolean;
   /** Ruta dentro de assets/coleccion (fondos con renders, insignias de fundador y de membresía). */
   imagen?: string;
+  /**
+   * Fondo con renders animado (temporada 2): escena de src/coins/efectos.ts (nieve, truenos, fuego…) detrás y delante
+   * de `imagen`, que entonces es solo la capa transparente de los personajes. Con `colores` de la escena.
+   */
+  efecto?: string;
+  colores?: string[];
+  /** Foto real ya oscurecida y difuminada (ruta en assets/coleccion) que va detrás de la escena; solo con licencia libre. */
+  foto?: string;
   descripcion: string;
   temporada: string;
   /** Días del año (MM-DD, hora de Chile) en que puede salir; fuera de ellos no sale en sobres ni vitrinas. */
   limitado?: { desde: string; hasta: string; texto: string };
+  /**
+   * Sumado a mitad de temporada (AAAA-MM-DD): el calendario de vitrinas ya armado no cambia; desde ese dia ocupa los
+   * lugares que repetian otro objeto (los que no caben salen igual en sobres y se fabrican).
+   */
+  agregado?: string;
+  /** Personajes del objeto (sobres temáticos de membresía; npm run etiquetar). */
+  personajes?: string[];
+  /** Temas del objeto: navidad, siete-pecados, musica (sobres temáticos). */
+  temas?: string[];
 }
 
 export interface CoinSettings {
@@ -51,20 +75,25 @@ export interface CoinSettings {
     semanal: { diasMinimos: number };
     /** 1 sobre gratis cada día que complete todas las misiones de la ruleta. */
     porMisiones: boolean;
-    /** Clases de sobre: cuántos objetos, la rareza mínima garantizada y su precio en ganadas (sin precio, solo se regala). */
+    /** Clases de sobre: cuántos objetos, la rareza mínima garantizada y su precio en Shaulitas (sin precio, solo se regala). */
     tipos?: Partial<Record<TipoSobre, { nombre: string; objetos?: [number, number][]; minimo?: RarezaSobre; precio?: number }>>;
+    /** Sobre temático (al azar dentro de un tema, con renders): precio en Shaulitas, Ecos para volver temático uno regalado y objetos mínimos por tema. */
+    tematico?: { precio: number; ecos: number; minimo: number };
   };
   precios: Record<"comun" | "rara" | "epica" | "legendaria", number>;
   ecos: Record<RarezaSobre, number>;
-  paquetes: { id: string; nombre: string; monedas: number; usd: number; clp: number }[];
-  pagos: { venceDias: number };
-  membresias: Record<string, number>;
   /** Insignia permanente de cada rol de membresía (id en config/objetos.json, rareza "membresia"). */
   insigniasMembresia?: Record<string, string>;
   vitrinas: { dias: number[]; arte: number; renders: number };
-  temporada: { id: string; nombre: string; desde: string; hasta: string };
-  canales: { tienda: string; registro: string };
+  /**
+   * incluye = temporadas pasadas que siguen en el pozo de sobres y vitrinas: un id (sin fecha) o { id, hasta } (sale
+   * del pozo ese día, no incluido; decisión de GyroP del 13 nov. 2026: la temporada 1 solo hasta el 24 nov.).
+   */
+  temporada: { id: string; nombre: string; desde: string; hasta: string; incluye?: (string | { id: string; hasta: string })[] };
+  canales: { tienda: string };
   fundadores: { id: string; numero: number; nombre: string }[];
+  /** Regalos personales de GyroP (rareza "exclusivo"): a quién y qué objeto. */
+  exclusivos?: { id: string; objeto: string; nombre: string }[];
 }
 
 export function loadCoinSettings(file = path.join(REPO_ROOT, "config/monedas.json")): CoinSettings {
@@ -75,10 +104,11 @@ export function loadCoinSettings(file = path.join(REPO_ROOT, "config/monedas.jso
   for (const [tipo, t] of Object.entries(s.sobre.tipos ?? {})) {
     if (t?.precio !== undefined && !(Number.isInteger(t.precio) && t.precio > 0)) throw new Error(`config/monedas.json: sobre.tipos.${tipo}.precio debe ser un entero mayor que 0`);
   }
-  for (const p of s.paquetes) if (!(p.monedas > 0 && p.usd > 0 && p.clp > 0)) throw new Error(`config/monedas.json: paquete inválido ${p.id}`);
   if (s.vitrinas.dias.some((d) => d < 0 || d > 6)) throw new Error("config/monedas.json: vitrinas.dias van de 0 (domingo) a 6 (sábado)");
   if (!/^\d{4}-\d{2}-\d{2}$/.test(s.temporada.desde) || !/^\d{4}-\d{2}-\d{2}$/.test(s.temporada.hasta) || s.temporada.desde >= s.temporada.hasta)
     throw new Error("config/monedas.json: temporada.desde y temporada.hasta son AAAA-MM-DD, y desde va antes");
+  for (const x of s.temporada.incluye ?? [])
+    if (typeof x !== "string" && !/^\d{4}-\d{2}-\d{2}$/.test(x.hasta)) throw new Error(`config/monedas.json: temporada.incluye ${x.id}: hasta es AAAA-MM-DD`);
   return s;
 }
 
@@ -92,6 +122,7 @@ export function loadCatalog(file = path.join(REPO_ROOT, "config/objetos.json")):
     if (!(o.rareza in ORDEN)) throw new Error(`config/objetos.json: rareza desconocida en ${o.id}`);
     if (o.origen === "render" && !o.imagen) throw new Error(`config/objetos.json: ${o.id} es un render y necesita 'imagen'`);
     if ((o.tipo === "insignia" || o.tipo === "titulo") && !o.valor) throw new Error(`config/objetos.json: ${o.id} necesita 'valor'`);
+    if (o.agregado !== undefined && !/^\d{4}-\d{2}-\d{2}$/.test(o.agregado)) throw new Error(`config/objetos.json: 'agregado' de ${o.id} es AAAA-MM-DD`);
   }
   return doc.objetos;
 }
@@ -183,9 +214,24 @@ function pickWeighted<T>(items: [T, number][], rnd: () => number): T {
   return items[items.length - 1]![0];
 }
 
+/** Temporadas pasadas que la actual incluye, con el día en que salen del pozo (null = no salen). */
+export function incluidas(s: CoinSettings): { id: string; hasta: string | null }[] {
+  return (s.temporada.incluye ?? []).map((x) => (typeof x === "string" ? { id: x, hasta: null } : { id: x.id, hasta: x.hasta }));
+}
+
+/**
+ * La temporada en curso y las pasadas que siguen en el pozo ese día (sin día: todas, sin mirar fechas). Una pasada con
+ * `hasta` sale del pozo ese día.
+ */
+export function temporadasActivas(s: CoinSettings, day?: string): string[] {
+  return [s.temporada.id, ...incluidas(s).filter((x) => day === undefined || x.hasta === null || day < x.hasta).map((x) => x.id)];
+}
+
 /** Objetos que pueden salir en un sobre ese día: los de la temporada (sin regalos y respetando los limitados). */
-export function sobrePool(catalog: Objeto[], temporada: string, day: string): Objeto[] {
-  return catalog.filter((o) => o.temporada === temporada && !RAREZAS_REGALO.includes(o.rareza) && availableOn(o, day));
+
+export function sobrePool(catalog: Objeto[], temporada: string | readonly string[], day: string): Objeto[] {
+  const en = typeof temporada === "string" ? [temporada] : temporada;
+  return catalog.filter((o) => en.includes(o.temporada) && !RAREZAS_REGALO.includes(o.rareza) && availableOn(o, day));
 }
 
 /** Clases de sobre: el común (el de siempre), el raro y el legendario (con una rareza mínima asegurada; también premios de la trivia). */
@@ -196,7 +242,7 @@ export const TIPOS_SOBRE: TipoSobre[] = ["comun", "raro", "legendario"];
 export function sobreKind(s: CoinSettings, tipo: TipoSobre): { nombre: string; objetos: [number, number][]; minimo: RarezaSobre | null; precio: number | null } {
   const def = { comun: { nombre: "Sobre común" }, raro: { nombre: "Sobre raro", minimo: "epica" as const }, legendario: { nombre: "Sobre legendario", minimo: "legendaria" as const } }[tipo];
   const t = { ...def, ...s.sobre.tipos?.[tipo] };
-  // Precio en ganadas: el común, el de siempre (sobre.precio); los demás, el suyo o ninguno (solo se regalan).
+  // Precio en Shaulitas: el común, el de siempre (sobre.precio); los demás, el suyo o ninguno (solo se regalan).
   const precio = tipo === "comun" ? s.sobre.precio : (t.precio ?? null);
   return { nombre: t.nombre, objetos: t.objetos ?? s.sobre.objetos, minimo: ("minimo" in t ? t.minimo : null) ?? null, precio };
 }
@@ -236,7 +282,7 @@ export function rollSobre(s: CoinSettings, pool: Objeto[], pity: Pity, rnd: () =
   };
 }
 
-/** Ecos por un repetido (10 % de su precio). */
+/** Ecos por un repetido (config/monedas.json ecos: el 20 % de su precio desde el 16 nov. 2026). */
 export function ecosFor(s: CoinSettings, r: Rareza): number {
   return RAREZAS_REGALO.includes(r) ? 0 : s.ecos[r as RarezaSobre];
 }
@@ -244,15 +290,6 @@ export function ecosFor(s: CoinSettings, r: Rareza): number {
 /** Precio en la tienda (y costo de fabricarlo en Ecos). null = no se vende ni se fabrica (míticas y regalos). */
 export function priceOf(s: CoinSettings, o: Objeto): number | null {
   return o.rareza === "mitica" || RAREZAS_REGALO.includes(o.rareza) ? null : s.precios[o.rareza as keyof CoinSettings["precios"]];
-}
-
-// ───────────────────────── pagar ─────────────────────────
-
-/** Cómo se paga una compra: primero con compradas, después con ganadas. Los renders, solo con ganadas. null = no alcanza. */
-export function paySplit(precio: number, wallet: { ganadas: number; compradas: number }, soloGanadas: boolean): { compradas: number; ganadas: number } | null {
-  const compradas = soloGanadas ? 0 : Math.min(wallet.compradas, precio);
-  const ganadas = precio - compradas;
-  return ganadas <= wallet.ganadas ? { compradas, ganadas } : null;
 }
 
 // ───────────────────────── vitrinas ─────────────────────────
@@ -290,17 +327,47 @@ function shuffle<T>(list: T[], rnd: () => number): T[] {
  */
 export function seasonSchedule(s: CoinSettings, catalog: Objeto[]): Vitrina[] {
   const { desde, hasta, id } = s.temporada;
-  // Abre una el primer día y luego cada día de cambio; una vitrina nunca dura menos de 2 días (si la temporada empieza
-  // la víspera de un cambio, la primera sigue hasta el cambio siguiente).
+  // Días en que una temporada incluida sale del pozo (dentro de la temporada): ahí empieza una vitrina nueva.
+  const cortes = [...new Set(incluidas(s).map((x) => x.hasta).filter((h): h is string => h !== null && h > desde && h < hasta))].sort();
+  if (!cortes.length) return placeSeason(s, catalog, vitrinaStarts(s, desde, hasta, []), hasta, temporadasActivas(s), id);
+  // Antes del primer corte, las vitrinas son las que ya estaban armadas con el pozo completo (así lo que ya se vio no
+  // cambia; la que cruza el corte termina ese día). Desde cada corte, se arma de nuevo con lo que sigue en el pozo.
+  const legacy = placeSeason(s, catalog, vitrinaStarts(s, desde, hasta, []), hasta, temporadasActivas(s), id);
+  const starts = vitrinaStarts(s, desde, hasta, cortes);
+  const out: Vitrina[] = [];
+  const tramos = [desde, ...cortes, hasta];
+  for (let k = 0; k + 1 < tramos.length; k++) {
+    const ini = tramos[k]!;
+    const fin = tramos[k + 1]!;
+    const own = starts.filter((d) => d >= ini && d < fin);
+    if (k === 0) {
+      for (const [i, d] of own.entries()) out.push({ desde: d, hasta: own[i + 1] ?? fin, objetos: [...(legacy.find((v) => v.desde === d)?.objetos ?? [])] });
+    } else out.push(...placeSeason(s, catalog, own, fin, temporadasActivas(s, ini), `${id}:${ini}`));
+  }
+  return out;
+}
+
+/**
+ * Días en que abre una vitrina: el primero, cada día de cambio (lunes y jueves) y cada corte forzado. Una vitrina nunca
+ * dura menos de 2 días (si cae la víspera de un cambio, sigue hasta el siguiente).
+ */
+function vitrinaStarts(s: CoinSettings, desde: string, hasta: string, forzados: string[]): string[] {
   const starts: string[] = [];
   for (let d = desde; d < hasta; d = addDays(d, 1)) {
     const prev = starts[starts.length - 1];
-    if (d === desde || (s.vitrinas.dias.includes(weekday(d)) && prev !== undefined && d >= addDays(prev, 2))) starts.push(d);
+    if (d === desde || forzados.includes(d)) starts.push(d);
+    else if (s.vitrinas.dias.includes(weekday(d)) && prev !== undefined && d >= addDays(prev, 2) && !forzados.some((f) => f > d && f < addDays(d, 2))) starts.push(d);
   }
+  return starts;
+}
+
+/** Reparte los objetos de esas temporadas en las vitrinas que abren esos días (la última hasta `hasta`). */
+function placeSeason(s: CoinSettings, catalog: Objeto[], starts: string[], hasta: string, activas: string[], seed: string): Vitrina[] {
+  const id = s.temporada.id;
   const vitrinas: Vitrina[] = starts.map((d, i) => ({ desde: d, hasta: starts[i + 1] ?? hasta, objetos: [] }));
   if (!vitrinas.length) return [];
-  const rnd = seeded(id);
-  const vende = catalog.filter((o) => o.temporada === id && priceOf(s, o) !== null);
+  const rnd = seeded(seed);
+  const vende = catalog.filter((o) => activas.includes(o.temporada) && priceOf(s, o) !== null);
   const okIn = (o: Objeto, v: Vitrina) => {
     for (let d = v.desde; d < v.hasta; d = addDays(d, 1)) if (availableOn(o, d)) return true;
     return false;
@@ -329,8 +396,29 @@ export function seasonSchedule(s: CoinSettings, catalog: Objeto[]): Vitrina[] {
       }
     }
   };
-  place(vende.filter((o) => o.origen === "arte"), s.vitrinas.arte);
-  place(vende.filter((o) => o.origen === "render"), s.vitrinas.renders);
+  // Los sumados a mitad de temporada no entran al reparto (asi el calendario que ya se vio no cambia). Solo cuenta en su
+  // propia temporada: en una temporada nueva que la incluye, entran al reparto como los demás.
+  const base = vende.filter((o) => !(o.agregado && o.temporada === id));
+  place(base.filter((o) => o.origen === "arte"), s.vitrinas.arte);
+  place(base.filter((o) => o.origen === "render"), s.vitrinas.renders);
+  // Desde su dia, cada uno reemplaza un lugar que repetia otro objeto del mismo origen (el repetido mas veces, en la
+  // primera vitrina posible).
+  const byId = new Map(vende.map((o) => [o.id, o]));
+  const late = vende.filter((o) => o.agregado && o.temporada === id).sort((a, b) => a.agregado!.localeCompare(b.agregado!) || a.id.localeCompare(b.id));
+  for (const o of late) {
+    const times = new Map<string, number>();
+    for (const v of vitrinas) for (const x of v.objetos) times.set(x, (times.get(x) ?? 0) + 1);
+    let best: { v: Vitrina; k: number; n: number } | null = null;
+    for (const v of vitrinas) {
+      if (v.desde < o.agregado! || v.objetos.includes(o.id) || !okIn(o, v)) continue;
+      for (let k = 0; k < v.objetos.length; k++) {
+        const x = byId.get(v.objetos[k]!);
+        const n = times.get(v.objetos[k]!) ?? 0;
+        if (n > 1 && x?.origen === o.origen && !(x.agregado && x.temporada === id) && (!best || n > best.n)) best = { v, k, n };
+      }
+    }
+    if (best) best.v.objetos[best.k] = o.id;
+  }
   return vitrinas;
 }
 
@@ -339,20 +427,7 @@ export function vitrinaOn(schedule: Vitrina[], day: string): Vitrina | null {
   return schedule.find((v) => v.desde <= day && day < v.hasta) ?? null;
 }
 
-/** Código de pedido: SC- y 4 letras o números fáciles de leer (sin O/0 ni I/1). */
-export function orderCode(rnd: () => number = Math.random): string {
-  const abc = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-  return `SC-${Array.from({ length: 4 }, () => abc[Math.floor(rnd() * abc.length)]).join("")}`;
-}
-
 /** Insignias de membresía que corresponden a sus roles (todas las que tenga; son permanentes). */
 export function membershipBadges(s: CoinSettings, roleNames: string[]): string[] {
   return Object.entries(s.insigniasMembresia ?? {}).filter(([rol]) => roleNames.includes(rol)).map(([, id]) => id);
-}
-
-/** Regalo de membresía: el del nivel más alto que tenga (el que más monedas da). null si no tiene ninguno. */
-export function membershipGift(s: CoinSettings, roleNames: string[]): { rol: string; monedas: number } | null {
-  let best: { rol: string; monedas: number } | null = null;
-  for (const [rol, monedas] of Object.entries(s.membresias)) if (roleNames.includes(rol) && (!best || monedas > best.monedas)) best = { rol, monedas };
-  return best;
 }

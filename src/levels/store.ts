@@ -22,6 +22,8 @@ export interface CardPrefs {
   color: string | null;
   /** "bot:<id>" (banner de un Vocaloid), "propia" (imagen aprobada por GyroP) o null (degradado). */
   fondo: string | null;
+  /** "derecha" = avatar a la derecha y datos a la izquierda; null = como siempre (izquierda). */
+  lado: string | null;
 }
 
 interface Row {
@@ -34,6 +36,7 @@ interface Row {
   frase: string | null;
   color: string | null;
   fondo: string | null;
+  lado: string | null;
 }
 
 const toRecord = (r: Row): LevelRecord => ({
@@ -43,7 +46,7 @@ const toRecord = (r: Row): LevelRecord => ({
   veteran: !!r.veterano,
   nick: !!r.apodo,
   nickBase: r.apodo_base,
-  card: { frase: r.frase, color: r.color, fondo: r.fondo },
+  card: { frase: r.frase, color: r.color, fondo: r.fondo, lado: r.lado ?? null },
 });
 
 export class LevelStore {
@@ -51,7 +54,7 @@ export class LevelStore {
 
   get(userId: string): LevelRecord {
     const row = this.db.prepare("SELECT * FROM niveles WHERE user_id = ?").get(userId) as Row | undefined;
-    return row ? toRecord(row) : { userId, xp: 0, prestige: 0, veteran: false, nick: false, nickBase: null, card: { frase: null, color: null, fondo: null } };
+    return row ? toRecord(row) : { userId, xp: 0, prestige: 0, veteran: false, nick: false, nickBase: null, card: { frase: null, color: null, fondo: null, lado: null } };
   }
 
   private ensure(userId: string): void {

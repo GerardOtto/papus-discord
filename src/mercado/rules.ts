@@ -1,5 +1,5 @@
 // Reglas del mercado negro (config/mercado.json, PLAN §3.9). Funciones puras: la hora sorpresa de cada día, si está
-// abierto y la validación de los objetos. Todo se paga con Shaula-coins GANADAS (nada pagado da cuota ni XP, regla 1).
+// abierto y la validación de los objetos. Todo se paga con Shaulitas (se ganan jugando; no se venden).
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { dayKey } from "../time";
@@ -32,7 +32,7 @@ export interface ObjetoMercado {
   nombre: string;
   emoji: string;
   efecto: Efecto;
-  /** Shaula-coins ganadas. */
+  /** Shaulitas. */
   precio: number;
   /** Consumibles: cuántas veces sirve cada compra (se suman si compra otro). */
   usos?: number;

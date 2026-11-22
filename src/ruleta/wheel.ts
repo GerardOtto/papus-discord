@@ -4,6 +4,7 @@
 import { createCanvas, loadImage, type Canvas, type Image, type SKRSContext2D } from "@napi-rs/canvas";
 import * as gifencModule from "gifenc";
 import { fitText, FONT, roundRect } from "../levels/card";
+import { decorarMembresia, type MarcoMembresia } from "../membresias/marco";
 
 // gifenc es CommonJS: Node lo entrega entero en `default`; vitest usa su version ESM, con las funciones sueltas.
 const { applyPalette, GIFEncoder, quantize } = "quantize" in gifencModule && typeof gifencModule.quantize === "function" ? gifencModule : gifencModule.default;
@@ -24,6 +25,8 @@ const HOLD_MS = 60_000;
 const CONFETTI = ["#ff3b5c", "#ff9f1c", "#ffe14d", "#3ddc84", "#36c5f0", "#8c5cff", "#ffffff", "#ff7ad9"];
 
 export interface WheelData {
+  /** Estilo de la membresía de Ko-fi de quien gira (marco y cinta, PLAN §2); sin membresía, nada. */
+  membresia?: MarcoMembresia;
   /** Casillas en orden (en el sentido del reloj desde arriba). En el sorteo, `etiqueta` es el nombre del Papu. */
   prizes: { icono: string; etiqueta: string; color: string }[];
   winner: number;
@@ -403,6 +406,8 @@ export async function renderWheelGif(d: WheelData): Promise<Buffer> {
   const winnerAvatar = d.winnerAvatar === undefined ? undefined : d.winnerAvatar ? await loadImage(d.winnerAvatar).catch(() => null) : null;
   const [, ctx] = canvas(WHEEL_W, WHEEL_H);
 
+  let cuadro = 0;
+  const total = SPIN_FRAMES + END_FRAMES;
   const draw = (angle: number, phase: number, end: number | null): Uint8ClampedArray => {
     ctx.drawImage(base, 0, 0);
     ctx.save();
@@ -418,6 +423,7 @@ export async function renderWheelGif(d: WheelData): Promise<Buffer> {
       drawConfetti(ctx, pieces, end);
       resultBox(ctx, d, Math.min(1, (end + 1) / 5), winnerAvatar);
     }
+    if (d.membresia) decorarMembresia(ctx, WHEEL_W, WHEEL_H, d.membresia, cuadro++ / total);
     return ctx.getImageData(0, 0, WHEEL_W, WHEEL_H).data;
   };
 

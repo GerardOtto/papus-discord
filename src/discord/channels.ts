@@ -3,6 +3,7 @@ import { ChannelType, type Guild, type TextChannel } from "discord.js";
 
 export const CHANNELS = {
   bienvenida: "bienvenida",
+  despedidas: "despedidas",
   general: "general",
   moderacion: "moderacion",
   registro: "registro-bots",

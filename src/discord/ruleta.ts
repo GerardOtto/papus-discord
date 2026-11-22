@@ -18,6 +18,7 @@ import type { BotId } from "../config";
 import type { CharacterInfo } from "../engine/reader";
 import { stripNickTag } from "../levels/rules";
 import { logError, type LogFn } from "../log";
+import type { MarcoMembresia } from "../membresias/marco";
 import type { Phrases } from "../phrases/catalog";
 import type { DeckStore } from "../phrases/deck";
 import type { MissionId, MissionStatus } from "../ruleta/rules";
@@ -42,6 +43,8 @@ export interface RuletaDiscordDeps {
   characters: Record<BotId, CharacterInfo>;
   /** Vocaloids conectados: entre ellos se turna quien presenta la ruleta. */
   online: readonly BotId[];
+  /** Estilo de la membresía de Ko-fi según sus roles (marco y cinta del GIF, PLAN §2). */
+  membresia?: (roleNames: string[]) => MarcoMembresia | undefined;
   guild: () => Guild;
   sendable: (bot: BotId, channelId: string) => Promise<SendableChannels>;
   report: (text: string) => Promise<void>;
@@ -174,6 +177,60 @@ export class RuletaDiscord {
     return true;
   }
 
+  // ───────────────────────── celular de Neru (app Ruleta, PLAN §3.15) ─────────────────────────
+
+  /** Misiones, tiradas y premios de la ruleta para el celular. */
+  celularEstado(userId: string): unknown {
+    const st = this.r.status(userId);
+    const p = this.r.pending(userId);
+    return {
+      misiones: st.missions.map((m) => ({ nombre: m.nombre, hecha: m.done, avance: m.avance })),
+      quedan: st.left,
+      usadas: st.used,
+      bloqueada: st.blocked,
+      regaladas: st.regaladas,
+      atun: this.r.atun?.usos(userId) ?? 0,
+      pendiente: p && this.r.atun ? this.celularEleccion(userId, p) : null,
+      premios: this.r.settings.premios.map((x) => ({ icono: x.icono, etiqueta: x.etiqueta, color: x.color })),
+    };
+  }
+
+  private celularEleccion(userId: string, p: Pending): unknown {
+    const prize = this.r.settings.premios[p.index]!;
+    const atun = this.r.atun!;
+    const left = atun.giros - p.giros;
+    return { indice: p.index, premio: `${prize.icono} ${prize.nombre}`, puedeOtra: left > 0 && (p.atun || atun.usos(userId) > 0), girosExtra: Math.max(0, left), gastaAtun: !p.atun };
+  }
+
+  /**
+   * Girar desde el celular: `accion` "girar", "quedar" (Atún: me lo quedo) u "otra" (Atún: descartar y girar otra vez).
+   * Al quedar el premio, sale igual que en Discord: el GIF público en el canal de avisos de la ruleta, niveles y misiones.
+   */
+  async celularGirar(userId: string, accion: string, nombre: string, avatarUrl: string, noSePuede: (msg: string) => Error): Promise<unknown> {
+    if (accion === "otra") {
+      const r = this.r.reroll(userId);
+      if (!r.ok) throw noSePuede(r.motivo === "sin_atun" ? "Ya no te quedan usos del Atún de Luka." : "Ya no te quedan giros extra en este giro.");
+      return { eleccion: this.celularEleccion(userId, r.pending) };
+    }
+    if (accion === "girar" && this.r.atun && (this.r.pending(userId) || this.r.atun.usos(userId) > 0)) {
+      const p = this.r.draw(userId);
+      if (!p) throw noSePuede(this.r.status(userId).blocked ? "Hoy no puedes girar (machetazo de Neru)." : "No te quedan tiradas. Completa misiones para ganar más.");
+      return { eleccion: this.celularEleccion(userId, p) };
+    }
+    const res = accion === "quedar" ? this.r.claim(userId) : this.r.spin(userId);
+    if (!res) throw noSePuede(this.r.status(userId).blocked ? "Hoy no puedes girar (machetazo de Neru)." : "No te quedan tiradas. Completa misiones para ganar más.");
+    this.alGirar?.(userId, nombre, res);
+    const job = this.queue.then(() => this.publish(userId, nombre, avatarUrl, null, res));
+    this.queue = job.catch(() => {});
+    void job.catch(async (e) => {
+      logError("ruleta (publicar, celular)", e);
+      await this.d.report(`⚠️ Ruleta: no pude publicar el giro de <@${userId}> desde el celular (el premio sí se aplicó: ${this.prizeText(res)}). ${(e as Error).message}`);
+    });
+    if (res.change) await this.d.levelsDiscord.handle(res.change, {}, { quiet: true }).catch((e) => logError("nivel por ruleta", e));
+    await this.onActivity(userId, {}).catch((e) => logError("misiones de ruleta", e));
+    return { resultado: { indice: res.index, premio: `${res.prize.icono} ${res.prize.nombre}`, texto: this.prizeText(res).replace(/\*\*/g, ""), canal: this.r.settings.canalAvisos ?? null } };
+  }
+
   /** "**+312 XP**", "**2 mensajes extra** con los Vocaloids hoy"… (para la frase y el registro). */
   prizeText(res: SpinResult): string {
     const up = res.levelAfter > res.levelBefore ? ` (¡subió al nivel ${res.levelAfter}!)` : "";
@@ -189,7 +246,7 @@ export class RuletaDiscord {
   gifText(res: SpinResult): { title: string; subtitle: string } {
     const nivel = res.levelAfter > res.levelBefore ? `Nivel ${res.levelBefore} → ${res.levelAfter} 🆙` : `Nivel ${res.levelAfter} · ¡a seguir!`;
     if (res.prize.tipo === "xp") return { title: `¡+${fmt(res.xp)} XP!`, subtitle: nivel };
-    if (res.prize.tipo === "sobre") return { title: res.sobres === 1 ? "¡Un sobre común!" : `¡${res.sobres} sobres comunes!`, subtitle: "gratis, en la tienda de Shaula-coins" };
+    if (res.prize.tipo === "sobre") return { title: res.sobres === 1 ? "¡Un sobre común!" : `¡${res.sobres} sobres comunes!`, subtitle: "gratis, en la tienda de Shaulitas" };
     if (!res.messages) return { title: `¡+${fmt(res.xp)} XP!`, subtitle: "tu cuota ya estaba llena" };
     if (res.prize.tipo === "cuota") return { title: `¡+${res.messages} ${res.messages === 1 ? "mensaje" : "mensajes"}!`, subtitle: res.overflow ? `y +${fmt(res.xp)} XP de lo que no cabía` : "con los Vocaloids, solo hoy" };
     return { title: "¡Cuota llena!", subtitle: `+${res.messages} ${res.messages === 1 ? "mensaje" : "mensajes"} con los Vocaloids` };
@@ -217,6 +274,7 @@ export class RuletaDiscord {
       host: { name: c.displayName, color: `#${c.color.toString(16).padStart(6, "0")}`, figure: existsSync(figure) ? readFileSync(figure) : null },
       ...this.gifText(res),
       seed: Date.now() % 1_000_000,
+      membresia: this.d.membresia?.(this.d.guild().members.cache.get(userId)?.roles.cache.map((r) => r.name) ?? []),
     });
     const ch = await this.channelFor(channelId);
     if (!ch) throw new Error("no hay canal donde publicar");

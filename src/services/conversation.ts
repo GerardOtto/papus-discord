@@ -6,11 +6,13 @@ import type { PrivacyGuard } from "./privacy";
 import type { BotId } from "../config";
 import type { CharacterInfo } from "../engine/reader";
 import type { LLMChain } from "../llm/chain";
-import type { ChatResponse } from "../llm/provider";
+import type { ChatRequest, ChatResponse } from "../llm/provider";
 import { buildRequest, parseReplies, type HistoryLine, type PersonaLibrary } from "../llm/prompt";
 import type { RequestQueue } from "../llm/queue";
 import type { Phrases } from "../phrases/catalog";
-import type { Quota } from "../quota/quota";
+import type { ImageAttachment } from "../llm/image";
+import type { ImageAllowance } from "../quota/imagenes";
+import type { Quota, Reservation } from "../quota/quota";
 
 export interface IncomingMention {
   messageId: string;
@@ -24,6 +26,18 @@ export interface IncomingMention {
   /** Bots mencionados, en el orden en que aparecen (sin repetir). */
   bots: BotId[];
   history: () => Promise<HistoryLine[]>;
+  /** Imagen adjunta (la del mensaje o, si no trae, la del mensaje al que responde): PLAN §5.1. */
+  image?: ImageAttachment | null;
+}
+
+/** Ver imagenes (PLAN §5.1): cadena con modelos que las leen, tope diario por Papu y lo que cuesta en cuota. */
+export interface VisionDeps {
+  chain: LLMChain;
+  allowance: ImageAllowance;
+  /** Mensajes de cuota que cuesta la imagen (una vez por mensaje, aunque haya varios @). */
+  extraUnits: number;
+  /** Baja y achica la imagen (data URL); null si no se pudo. */
+  load: (image: ImageAttachment, signal: AbortSignal) => Promise<string | null>;
 }
 
 /** Lo que el servicio necesita de Discord (en las pruebas, un doble). */
@@ -57,6 +71,8 @@ export interface ConversationDeps {
   notesFor?: (authorId: string, bots: BotId[]) => Partial<Record<BotId, string>>;
   /** Fecha de hoy en palabras para el LLM. */
   today?: () => string;
+  /** Sin esto, los bots no ven imagenes: responden sin inventar lo que tienen. */
+  vision?: VisionDeps;
 }
 
 export type ConversationOutcome = "answered" | "partial" | "busy" | "no_quota" | "timeout" | "failed" | "private";
@@ -104,35 +120,39 @@ export class ConversationService {
     for (const bot of denied) await this.send(bot, m, phrases.pick(bot, "cuota_agotada", { papu }));
     if (granted.length === 0) return "no_quota";
 
+    // Imagen (PLAN §5.1): cuesta `extraUnits` mensajes mas, una vez por mensaje, y hay un tope diario por Papu. Si no
+    // alcanza, responde igual sin verla (y sin inventar lo que tiene), con una nota al pie.
+    const img = this.reserveImage(m);
     const stopTyping = granted.map((b) => port.typing(b, m.channelId));
     const characters = granted.map((b) => this.d.characters[b]);
     const result = await queue.enqueue(m.authorId, async (signal) => {
       const history = await m.history();
-      const req = buildRequest(
-        { characters, papuName: m.authorName, fromOwner: m.fromOwner, notes: this.d.notesFor?.(m.authorId, granted), message: m.text, history, videos: this.d.videos?.(m.text) ?? [], culture: this.d.culture, today: this.d.today?.(), serverEmojis: port.emojis?.() },
-        this.d.personas,
-        this.d.llm,
-      );
-      // Una respuesta cortada o sin el JSON de cada personaje se descarta y responde la siguiente API. Si ninguna
-      // responde completo, se usa la mejor parcial (los que faltan se devuelven a la cuota más abajo).
-      let partial: ChatResponse | null = null;
-      try {
-        return await this.d.chain.chat(req, signal, (res) => {
-          const parsed = parseReplies(res.text, characters);
-          const got = characters.filter((c) => parsed[c.id]).length;
-          if (got === characters.length) return true;
-          if (got > 0 && !partial) partial = res;
-          this.d.log?.(`Respuesta incompleta de ${res.provider} (${got} de ${characters.length}, ${res.text.length} car.); pruebo con otra API`);
-          return false;
-        });
-      } catch (e) {
-        if (partial) return partial;
-        throw e;
+      const request = (image: string | undefined) =>
+        buildRequest(
+          { characters, papuName: m.authorName, fromOwner: m.fromOwner, notes: this.d.notesFor?.(m.authorId, granted), message: m.text, history, videos: this.d.videos?.(m.text) ?? [], culture: this.d.culture, today: this.d.today?.(), serverEmojis: port.emojis?.(), image },
+          this.d.personas,
+          this.d.llm,
+        );
+      const vision = this.d.vision;
+      if (img.see && vision) {
+        const dataUrl = await vision.load(m.image!, signal);
+        if (dataUrl) {
+          try {
+            return await this.ask(vision.chain, request(dataUrl), characters, signal);
+          } catch (e) {
+            if (signal.aborted) throw e;
+            this.d.log?.(`Visión sin respuesta (${(e as Error)?.message ?? e}); respondo sin la imagen`);
+          }
+        }
+        img.giveBack();
+        img.note = "fallo";
       }
+      return await this.ask(this.d.chain, request(m.image ? "oculta" : undefined), characters, signal);
     });
     this.d.onQueueLength?.(queue.length);
     stopTyping.forEach((stop) => stop());
 
+    if (result.status !== "ok") img.giveBack();
     if (result.status === "busy") {
       // Carrera entre hasPending y enqueue: se devuelve todo.
       quota.refund(reservation);
@@ -153,20 +173,28 @@ export class ConversationService {
     const replies = parseReplies(result.value.text, characters);
     let answered = 0;
     let replaced = 0;
+    // La nota de la imagen (frase fija, sin LLM) va al pie de la primera respuesta que se publica.
+    let footer = this.imageFooter(m.authorId, img.note);
     for (const bot of granted) {
-      const text = replies[bot];
-      if (!text) continue;
-      if (this.d.privacy?.leaks(text, m.text)) {
+      const raw = replies[bot];
+      if (!raw) continue;
+      if (this.d.privacy?.leaks(raw, m.text)) {
         // La respuesta menciona herramientas o el proceso: se descarta y va la frase fija (sin cobro).
         this.d.log?.(`Respuesta de ${bot} descartada por privacidad`);
         await this.send(bot, m, phrases.pick(bot, "secreto_estudio", { papu }));
         replaced++;
         continue;
       }
+      const text = footer ? `${raw}\n-# 🖼️ ${footer}` : raw;
       // Si Discord no deja publicar a uno, los demas siguen y su unidad se devuelve (cuenta como sin respuesta).
-      if (await this.send(bot, m, text)) answered++;
+      if (await this.send(bot, m, text)) {
+        answered++;
+        footer = null;
+      }
     }
     if (replaced > 0) quota.refund(reservation, replaced);
+    // Nadie publico una respuesta que viera la imagen: se devuelve.
+    if (answered === 0) img.giveBack();
     if (answered === 0 && replaced > 0) return "private";
     const missing = granted.length - answered - replaced;
     if (missing > 0) {
@@ -182,6 +210,78 @@ export class ConversationService {
     return "answered";
   }
 
+  /** Pide la respuesta a una cadena; una cortada o sin el JSON de cada personaje se descarta y responde la siguiente API. */
+  private async ask(chain: LLMChain, req: ChatRequest, characters: CharacterInfo[], signal: AbortSignal): Promise<ChatResponse> {
+    // Si ninguna responde completo, se usa la mejor parcial (los que faltan se devuelven a la cuota en handle()).
+    let partial: ChatResponse | null = null;
+    try {
+      return await chain.chat(req, signal, (res) => {
+        const parsed = parseReplies(res.text, characters);
+        const got = characters.filter((c) => parsed[c.id]).length;
+        if (got === characters.length) return true;
+        if (got > 0 && !partial) partial = res;
+        this.d.log?.(`Respuesta incompleta de ${res.provider} (${got} de ${characters.length}, ${res.text.length} car.); pruebo con otra API`);
+        return false;
+      });
+    } catch (e) {
+      if (partial) return partial;
+      throw e;
+    }
+  }
+
+  /**
+   * Reserva lo que cuesta ver la imagen: una del tope del dia y `extraUnits` de cuota. `giveBack` lo devuelve todo (una
+   * sola vez) si el Vocaloid no la llega a ver o nadie publica la respuesta.
+   */
+  private reserveImage(m: IncomingMention): ImageReservation {
+    const vision = this.d.vision;
+    const none: ImageReservation = { see: false, note: null, giveBack: () => {} };
+    if (!m.image || !vision) return none;
+    if (vision.allowance.remaining(m.authorId) <= 0) return { ...none, note: "limite" };
+    const units = this.d.quota.reserve(m.authorId, vision.extraUnits);
+    if (units.units < vision.extraUnits) {
+      this.d.quota.refund(units);
+      return { ...none, note: "cuota" };
+    }
+    const day = vision.allowance.take(m.authorId);
+    if (!day) {
+      this.d.quota.refund(units);
+      return { ...none, note: "limite" };
+    }
+    let held: { units: Reservation; day: string } | null = { units, day };
+    return {
+      see: true,
+      note: "vista",
+      giveBack: () => {
+        if (!held) return;
+        this.d.quota.refund(held.units);
+        vision.allowance.refund(m.authorId, held.day);
+        held = null;
+      },
+    };
+  }
+
+  /** Nota fija al pie sobre la imagen (sin LLM): cuantas le quedan, o por que no la vio. */
+  private imageFooter(authorId: string, note: ImageReservation["note"]): string | null {
+    const vision = this.d.vision;
+    if (!vision || !note) return null;
+    const cost = vision.extraUnits === 1 ? "1 mensaje" : `${vision.extraUnits} mensajes`;
+    const per = vision.allowance.perDay;
+    switch (note) {
+      case "vista": {
+        const left = vision.allowance.remaining(authorId);
+        if (!Number.isFinite(left)) return null;
+        return left === 0 ? "Era tu última imagen de hoy; mañana puedes mostrarnos más." : `Hoy ${left === 1 ? "te queda 1 imagen" : `te quedan ${left} imágenes`} para mostrarnos.`;
+      }
+      case "limite":
+        return `Hoy ya nos mostraste ${per === 1 ? "1 imagen" : `${per} imágenes`}, el máximo del día; mañana podemos ver más.`;
+      case "cuota":
+        return `No vi la imagen: verla cuesta ${cost} más de tu cuota y hoy no te alcanza. /cuota`;
+      case "fallo":
+        return "Esta vez no pude ver la imagen, así que no se te cobró.";
+    }
+  }
+
   /** Publica la respuesta de un bot; si Discord falla, lo anota y sigue (un envio caido no frena a los demas @). */
   private async send(bot: BotId, m: IncomingMention, content: string): Promise<boolean> {
     try {
@@ -192,6 +292,14 @@ export class ConversationService {
       return false;
     }
   }
+}
+
+interface ImageReservation {
+  /** Se le cobro y la cadena de vision la va a mirar. */
+  see: boolean;
+  /** Que decir al pie: vista (cuantas le quedan), limite del dia, sin cuota, o fallo al verla. */
+  note: "vista" | "limite" | "cuota" | "fallo" | null;
+  giveBack: () => void;
 }
 
 /** Quita las menciones legibles a los bots ("@IA", "@Teto") de un texto. */

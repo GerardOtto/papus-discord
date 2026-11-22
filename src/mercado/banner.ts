@@ -47,7 +47,7 @@ export function fitLines(ctx: SKRSContext2D, text: string, maxW: number, size: n
   return { lines: [`${t}…`], size: min };
 }
 
-/** Shaula-coin dibujada: círculo dorado con borde y «S». */
+/** Shaulita dibujada: círculo dorado con borde y «S». */
 function moneda(ctx: SKRSContext2D, cx: number, cy: number, r: number): void {
   const g = ctx.createRadialGradient(cx - r * 0.3, cy - r * 0.3, r * 0.2, cx, cy, r);
   g.addColorStop(0, "#FFE58A");
@@ -125,7 +125,7 @@ export async function mercadoBanner(items: PodioItem[]): Promise<Buffer> {
   ctx.shadowBlur = 0;
   ctx.fillStyle = "rgba(255,255,255,0.55)";
   ctx.font = `600 17px ${FONT}`;
-  centerText(ctx, "solo Shaula-coins ganadas · cambia cada día", (5 * COL_W) / 2, 80);
+  centerText(ctx, "solo Shaulitas · cambia cada día", (5 * COL_W) / 2, 80);
 
   // Columnas al paso de los botones de Discord: «¡Lo quiero!» mide ~99 px + 8 de separación = ~107 px de los 550 en que
   // se muestra el banner (214 aquí), empezando por la izquierda como la fila de botones.

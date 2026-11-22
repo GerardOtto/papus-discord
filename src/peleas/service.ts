@@ -1,11 +1,11 @@
-// 1vs1 de los Vocaloids (PLAN §3.7): abre la pelea con la cuota de cada uno, cobra las apuestas (solo Shaula-coins
+// 1vs1 de los Vocaloids (PLAN §3.7): abre la pelea con la cuota de cada uno, cobra las apuestas (solo Shaulitas
 // ganadas), simula la pelea al cerrar las apuestas y paga a quien acerto. Si el bot se reinicia antes del final, todo
 // lo apostado se devuelve (recover). Sin Discord: src/discord/peleas.ts es el canal.
 import { randomBytes } from "node:crypto";
 import type { FighterId } from "./rules";
 import { transaction, type Db } from "../db/database";
 import type { CoinService } from "../coins/service";
-import { checkBet, oddsFor, payout, simulate, winChance, type Luchador, type PeleaSettings, type Resultado } from "./rules";
+import { checkBet, esEquipo, miembros, oddsFor, payout, simulate, simulateTeams, winChance, winChanceTeams, type Luchador, type PeleaSettings, type Resultado, type ResultadoEquipos } from "./rules";
 
 export type EstadoPelea = "abierta" | "peleando" | "terminada" | "devuelta";
 
@@ -43,11 +43,12 @@ export interface Bando {
   papus: number;
 }
 
-export type BetResult = { ok: true; total: number; lado: FighterId; cuota: number; ganadas: number } | { ok: false; motivo: string };
+export type BetResult = { ok: true; total: number; lado: FighterId; cuota: number; monedas: number } | { ok: false; motivo: string };
 
 export interface Liquidacion {
   pelea: Pelea;
-  resultado: Resultado;
+  /** 1vs1 o 2vs2 (si los lados son equipos, "teto+miku"). */
+  resultado: Resultado | ResultadoEquipos;
   /** Quien acerto (pago = lo que recibio, apuesta incluida), de mayor a menor pago. */
   ganadores: Apuesta[];
   /** Quien fallo; las aseguradas ya recibieron su apuesta de vuelta (pago = lo devuelto). */
@@ -97,7 +98,7 @@ export class PeleaService {
   /** Probabilidad de ganar de cada pareja (izquierda vs derecha): se simula una vez por pareja. */
   private readonly chances = new Map<string, number>();
   /** Pelea ya simulada (entre que se cierran las apuestas y se paga). */
-  private readonly results = new Map<string, Resultado>();
+  private readonly results = new Map<string, Resultado | ResultadoEquipos>();
 
   constructor(private readonly d: PeleaServiceDeps) {
     this.now = d.now ?? Date.now;
@@ -140,18 +141,31 @@ export class PeleaService {
     return Object.keys(this.d.settings.luchadores) as FighterId[];
   }
 
+  /** Frase del especial escrita por un Papu y aprobada (taller, PLAN §2): reemplaza la del luchador. False si no pelea. */
+  setEspecial(id: FighterId, texto: string): boolean {
+    const l = this.d.settings.luchadores[id];
+    if (!l) return false;
+    l.movimientos.especial.texto = texto;
+    return true;
+  }
+
   fighter(id: FighterId): Luchador {
     const l = this.d.settings.luchadores[id];
     if (!l) throw new Error(`${id} no pelea (no está en config/peleas.json)`);
     return l;
   }
 
-  /** Probabilidad de que gane `a` contra `b`. */
+  /** Los luchadores de un lado: uno (1vs1) o los dos de un equipo ("teto+miku"). */
+  side(id: FighterId): Luchador[] {
+    return miembros(id).map((x) => this.fighter(x));
+  }
+
+  /** Probabilidad de que gane `a` contra `b` (luchadores o equipos). */
   chance(a: FighterId, b: FighterId): number {
     const key = `${a}|${b}`;
     let p = this.chances.get(key) ?? (this.chances.has(`${b}|${a}`) ? 1 - this.chances.get(`${b}|${a}`)! : undefined);
     if (p === undefined) {
-      p = winChance(this.d.settings, this.fighter(a), this.fighter(b), this.rnd);
+      p = esEquipo(a) ? winChanceTeams(this.d.settings, this.side(a), this.side(b), this.rnd) : winChance(this.d.settings, this.fighter(a), this.fighter(b), this.rnd);
       this.chances.set(key, p);
     }
     return p;
@@ -185,11 +199,15 @@ export class PeleaService {
     return r ? [r.a as FighterId, r.b as FighterId] : null;
   }
 
-  /** Abre una pelea (apuestas abiertas por `apuestas.minutos`). null si ya hay otra en curso. */
+  /**
+   * Abre una pelea (apuestas abiertas por `apuestas.minutos`). null si ya hay otra en curso. Los lados son dos
+   * luchadores (1vs1) o dos equipos de dos (2vs2, "teto+miku"), sin nadie repetido.
+   */
   open(a: FighterId, b: FighterId, canal: string | null): Pelea | null {
-    if (a === b) throw new Error("un Vocaloid no pelea contra sí mismo");
-    this.fighter(a);
-    this.fighter(b);
+    const todos = [...miembros(a), ...miembros(b)];
+    if (miembros(a).length !== miembros(b).length || miembros(a).length > 2) throw new Error("una pelea es 1vs1 o 2vs2");
+    if (new Set(todos).size !== todos.length) throw new Error("un luchador no pelea contra sí mismo ni dos veces");
+    for (const x of todos) this.fighter(x);
     if (this.active()) return null;
     const [ca, cb] = this.odds(a, b);
     const t = this.now();
@@ -200,15 +218,25 @@ export class PeleaService {
     return this.get(id);
   }
 
+  /** Guarda el relato completo de la pelea (para «📜 Ver relato»). */
+  setRelato(id: string, relato: string): void {
+    this.d.db.prepare("UPDATE peleas SET relato = ? WHERE id = ?").run(relato, id);
+  }
+
+  /** El relato completo de una pelea (null si no existe o aún no termina). */
+  relato(id: string): string | null {
+    return (this.d.db.prepare("SELECT relato FROM peleas WHERE id = ?").get(id) as { relato: string | null } | undefined)?.relato ?? null;
+  }
+
   setMessage(id: string, canal: string, mensaje: string): void {
     this.d.db.prepare("UPDATE peleas SET canal = ?, mensaje = ? WHERE id = ?").run(canal, mensaje, id);
   }
 
   // ───────────────────────── apostar ─────────────────────────
 
-  /** Shaula-coins ganadas de un Papu (lo unico que se apuesta). */
+  /** Shaulitas de un Papu (lo unico que se apuesta). */
   coinsOf(userId: string): number {
-    return this.d.coins.wallet(userId).ganadas;
+    return this.d.coins.wallet(userId).monedas;
   }
 
   bets(id: string): Apuesta[] {
@@ -239,39 +267,39 @@ export class PeleaService {
     return out;
   }
 
-  /** Apuesta (o suma a su apuesta) `cantidad` Shaula-coins ganadas a `lado`. */
+  /** Apuesta (o suma a su apuesta) `cantidad` Shaulitas a `lado`. */
   bet(id: string, userId: string, lado: FighterId, cantidad: number): BetResult {
     const p = this.get(id);
     if (!p || p.estado !== "abierta" || this.now() >= p.cierraAt) return { ok: false, motivo: "Las apuestas de esta pelea ya se cerraron. ⚔️" };
-    if (lado !== p.a && lado !== p.b) return { ok: false, motivo: "Ese Vocaloid no está en esta pelea." };
+    if (lado !== p.a && lado !== p.b) return { ok: false, motivo: esEquipo(p.a) ? "Ese equipo no está en esta pelea." : "Ese Vocaloid no está en esta pelea." };
     const prev = this.betOf(id, userId);
-    if (prev && prev.lado !== lado) return { ok: false, motivo: "Ya apostaste por el otro Vocaloid: en cada pelea se apuesta a uno solo." };
-    const ganadas = this.d.coins.wallet(userId).ganadas;
+    if (prev && prev.lado !== lado) return { ok: false, motivo: esEquipo(p.a) ? "Ya apostaste por el otro equipo: en cada pelea se apuesta a uno solo." : "Ya apostaste por el otro Vocaloid: en cada pelea se apuesta a uno solo." };
+    const ganadas = this.d.coins.wallet(userId).monedas;
     const check = checkBet(this.d.settings, cantidad, prev?.cantidad ?? 0, ganadas);
     if (!check.ok) return check;
     return transaction(this.d.db, () => {
-      const w = this.d.coins.spendGanadas(userId, cantidad, `apuesta pelea ${id}`);
-      if (!w) return { ok: false as const, motivo: "No te alcanzan las Shaula-coins ganadas." };
+      const w = this.d.coins.spend(userId, cantidad, `apuesta pelea ${id}`);
+      if (!w) return { ok: false as const, motivo: "No te alcanzan las Shaulitas." };
       this.d.db
         .prepare("INSERT INTO apuestas (pelea, user_id, lado, cantidad, at) VALUES (?, ?, ?, ?, ?) ON CONFLICT(pelea, user_id) DO UPDATE SET cantidad = cantidad + excluded.cantidad")
         .run(id, userId, lado, cantidad, this.now());
-      return { ok: true as const, total: check.total, lado, cuota: lado === p.a ? p.cuotas[0] : p.cuotas[1], ganadas: w.ganadas };
+      return { ok: true as const, total: check.total, lado, cuota: lado === p.a ? p.cuotas[0] : p.cuotas[1], monedas: w.monedas };
     });
   }
 
   // ───────────────────────── pelear y pagar ─────────────────────────
 
   /** Cierra las apuestas y simula la pelea (el resultado se guarda hasta pagar). null si ya no esta abierta. */
-  fight(id: string): Resultado | null {
+  fight(id: string): Resultado | ResultadoEquipos | null {
     const p = this.get(id);
     if (!p || p.estado !== "abierta") return null;
-    const r = simulate(this.d.settings, this.fighter(p.a), this.fighter(p.b), this.rnd);
+    const r = esEquipo(p.a) ? simulateTeams(this.d.settings, this.side(p.a), this.side(p.b), this.rnd) : simulate(this.d.settings, this.fighter(p.a), this.fighter(p.b), this.rnd);
     this.d.db.prepare("UPDATE peleas SET estado = 'peleando', ganador = ?, turnos = ? WHERE id = ?").run(r.ganador === 0 ? p.a : p.b, r.turnos.length, id);
     this.results.set(id, r);
     return r;
   }
 
-  /** Paga a quien acerto (apuesta × cuota, en ganadas) y cierra la pelea. Se llama al terminar de mostrarla. */
+  /** Paga a quien acerto (apuesta × cuota, en Shaulitas) y cierra la pelea. Se llama al terminar de mostrarla. */
   settle(id: string): Liquidacion | null {
     const p = this.get(id);
     const r = this.results.get(id);
@@ -284,14 +312,14 @@ export class PeleaService {
         if (x.lado !== p.ganador) {
           // Seguro de Gakupo: se le devuelve completa.
           if (x.seguro) {
-            this.d.coins.adjust(x.userId, "ganadas", x.cantidad, `pelea ${id} perdida (Seguro de Gakupo)`);
+            this.d.coins.adjust(x.userId, "monedas", x.cantidad, `pelea ${id} perdida (Seguro de Gakupo)`);
             this.d.db.prepare("UPDATE apuestas SET pago = ? WHERE pelea = ? AND user_id = ?").run(x.cantidad, id, x.userId);
             perdedores.push({ ...x, pago: x.cantidad });
           } else perdedores.push(x);
           continue;
         }
         const pago = payout(x.cantidad, cuota);
-        this.d.coins.adjust(x.userId, "ganadas", pago, `pelea ${id} ganada`);
+        this.d.coins.adjust(x.userId, "monedas", pago, `pelea ${id} ganada`);
         this.d.db.prepare("UPDATE apuestas SET pago = ? WHERE pelea = ? AND user_id = ?").run(pago, id, x.userId);
         ganadores.push({ ...x, pago });
       }
@@ -313,7 +341,7 @@ export class PeleaService {
       transaction(this.d.db, () => {
         const devueltas = this.bets(row.id);
         for (const x of devueltas) {
-          this.d.coins.adjust(x.userId, "ganadas", x.cantidad, `pelea ${row.id} cancelada (devolución)`);
+          this.d.coins.adjust(x.userId, "monedas", x.cantidad, `pelea ${row.id} cancelada (devolución)`);
           // El Seguro de Gakupo no se uso: vuelve su uso.
           if (x.seguro) this.d.seguro?.devolver(x.userId);
         }

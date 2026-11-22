@@ -396,7 +396,7 @@ async function main() {
     // Monedas flotando.
     for (const [x, y, r] of [[300, 90, 34], [880, 300, 28], [940, 80, 22], [250, 320, 22]] as const) ficha(ctx, x, y, r);
     bubbleText(ctx, "Tienda Shaula", W / 2, 165, 96, "#FF5FA2");
-    pill(ctx, "Monedas · Sobres · Objetos para tu tarjeta", W / 2, 268, 26, "#FFF6D5");
+    pill(ctx, "Shaulitas · Sobres · Objetos para tu tarjeta", W / 2, 268, 26, "#FFF6D5");
     ctx.font = `bold 22px ${FONT}`;
     ctx.fillStyle = INK;
     centerText(ctx, "Toca un botón de abajo · solo tú ves lo que abres", W / 2, 336);
@@ -405,8 +405,8 @@ async function main() {
 
   // Menú ilustrado: 6 baldosas con el mismo dibujo que cada botón.
   const MENU = [
-    ["moneda", "Comprar monedas", "PayPal o transferencia", PASTEL.crema],
-    ["tienda", "Tienda de la semana", "Precio fijo, cambia el lunes", PASTEL.rosa],
+    ["monedero", "Mi membresía", "Sobres para elegir y más", PASTEL.crema],
+    ["tienda", "Tienda de la semana", "Cambia lunes y jueves", PASTEL.rosa],
     ["sobre", "Sobres", "3 a 5 objetos sorpresa", PASTEL.lila],
     ["mochila", "Mi colección", "Todo lo que tienes", PASTEL.cielo],
     ["tarjeta", "Mi tarjeta", "Prueba y equipa", PASTEL.menta],
@@ -651,7 +651,7 @@ async function main() {
     ctx.fillStyle = "#FFF7FB";
     ctx.fillRect(0, 0, W, H);
     polka(ctx, W, H, "rgba(255,180,210,0.3)", 52);
-    const steps = [["mundo", "1. Participa", "Chatea, entra a voz y cumple misiones: ganas monedas"], ["sobre", "2. Abre o compra", "Sobres con las ganadas, tienda con cualquiera"], ["tarjeta", "3. Luce tu tarjeta", "Equipa bordes, fondos, barras y efectos"]] as const;
+    const steps = [["mundo", "1. Participa", "Chatea, entra a voz y juega"], ["sobre", "2. Abre o compra", "Sobres y vitrina con Shaulitas"], ["tarjeta", "3. Luce tu tarjeta", "Equipa bordes, fondos, barras y efectos"]] as const;
     steps.forEach(([icon, t, d], i) => {
       const cx = 200 + i * 400;
       ctx.beginPath();
@@ -676,7 +676,7 @@ async function main() {
     });
     ctx.font = `600 18px ${FONT}`;
     ctx.fillStyle = "rgba(59,35,70,0.6)";
-    centerText(ctx, "Nada de esto da XP, cuota ni mensajes extra con los Vocaloids", W / 2, 352);
+    centerText(ctx, "Los objetos son solo adorno: no dan XP, cuota ni mensajes extra con los Vocaloids", W / 2, 352);
     save("pantallas/ayuda.png", c.toBuffer("image/png"));
   }
 

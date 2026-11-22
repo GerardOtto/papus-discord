@@ -1,10 +1,12 @@
 {
-  "$comment": "Intercambios entre Papus (PLAN §3.11, pedido de GyroP, 10 nov. 2026). Como las ofertas de Steam: un Papu arma qué entrega y qué pide, abierta (cualquiera la acepta) o dirigida a un Papu (acepta, rechaza o hace una contraoferta). Se cambian Shaula-coins ganadas y compradas (cada una en su bolsillo), XP, niveles (como su XP), cuota de hoy, sobres regalados, objetos de la colección y consumibles del mercado negro. Para intercambiar: nivel 5 (o prestigio) y 3 días en el servidor. 'lento' = modo lento del canal en segundos; 'venceHoras' = cuánto dura una oferta (las que llevan cuota vencen al terminar el día).",
+  "$comment": "Intercambios entre Papus (PLAN §3.11, pedido de GyroP, 10 nov. 2026). Como las ofertas de Steam: un Papu arma qué entrega y qué pide, abierta (cualquiera la acepta) o dirigida a un Papu (acepta, rechaza o hace una contraoferta). Se cambian Shaulitas, XP, niveles (como su XP), cuota de hoy, sobres regalados, objetos de la colección y consumibles del mercado negro. Para intercambiar: nivel 5 (o prestigio) y 3 días en el servidor. 'lento' = modo lento del canal en segundos; 'venceHoras' = cuánto dura una oferta (las que llevan cuota vencen al terminar el día).",
   "activo": true,
   "canal": "🤝・centro-de-comercio",
-  "tema": "Anuncios de intercambio: usa /intercambio para ofrecer (Shaula-coins, XP, niveles, cuota, sobres, objetos y consumibles). Aquí solo avisos y reacciones; el modo lento es largo para que no se pierdan las ofertas.",
+  "tema": "Anuncios de intercambio: usa /intercambio para ofrecer (Shaulitas, XP, niveles, cuota, sobres, objetos y consumibles). Aquí solo avisos y reacciones; el modo lento es largo para que no se pierdan las ofertas.",
   "lento": 3600,
   "venceHoras": 72,
   "maxAbiertas": 5,
-  "requisitos": { "nivel": 5, "dias": 3 }
+  "requisitos": { "nivel": 5, "dias": 3 },
+  "$casa": "Ofertas de los Vocaloids (idea de Piña en #ideas-y-opiniones, salón de la fama; GyroP, 18 nov. 2026): entre las horas 'horas' [desde, hasta) de la zona de la cuota, cada minuto hay una probabilidad pequeña de que un Vocaloid conectado ofrezca en #centro-de-comercio UN objeto suyo (de los que tienen su personaje en config/objetos.json, de la temporada en curso, que se venden en la tienda: sin míticas ni regalos) por Shaulitas: el precio de la tienda según su rareza (Común 60, Rara 150, Épica 350, Legendaria 700) × 'factorPrecio', redondeado a 10. No se contraoferta; la acepta el primer Papu que no lo tenga y cumpla los requisitos de siempre; lo pagado sale de circulación (como la tajada de Némesis). El Vocaloid avisa en #general con una frase fija (content/frases/ofertas.json, sin LLM ni cuota). Como mucho 'maxDia' al día, 'maxAbiertas' a la vez y 'esperaMin' minutos entre una y otra; vence a las 'venceHoras'.",
+  "casa": { "activo": true, "maxDia": 4, "maxAbiertas": 2, "horas": [12, 23], "esperaMin": 120, "venceHoras": 24, "factorPrecio": 1 }
 }

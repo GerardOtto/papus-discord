@@ -51,6 +51,44 @@
       "dailyRequests": 170
     }
   ],
+  "vision": {
+    "$comment": "Ver imágenes (PLAN §5.1, 14 nov. 2026): un Vocaloid con @ que recibe una imagen la mira y reacciona en su personalidad, en la MISMA llamada que su respuesta. Cadena aparte, en este orden (probado el 14 nov. con la ficha de Teto y Miku): 1) Qwen 3.8 27B en Groq, ~1 s; cupo propio de ese modelo en la misma cuenta (1.000 al día, pero solo 8.000 tokens por minuto: ~1 imagen por minuto, las demás pasan al siguiente). 2) Mistral Small 3.1 en Cloudflare, ~3 s; comparte los neurons con el Cloudflare de texto (por eso se llama igual) y cada imagen gasta ~200 (~3 veces un mensaje de texto). 3) Gemini, comparte el cupo con el de texto; con imagen tardó ~44 s, de ahí su timeoutMs. Llama 4 Scout ya no existe en Groq y Qwen en Cloudflare respondió vacío. porPapuAlDia = imágenes que puede mostrar cada Papu al día (GyroP sin límite); cuotaExtra = mensajes de cuota que cuesta la imagen, una vez por mensaje aunque haya varios @; ladoMax = la imagen se achica a ese lado en píxeles antes de mandarla; maxMB = las más pesadas no se miran. Con activo false o sin proveedores con clave, los bots no ven imágenes (responden sin inventar lo que tienen).",
+    "activo": true,
+    "porPapuAlDia": 2,
+    "cuotaExtra": 1,
+    "ladoMax": 768,
+    "maxMB": 15,
+    "providers": [
+      {
+        "name": "groq-vision",
+        "baseUrl": "https://api.groq.com/openai/v1",
+        "model": "qwen/qwen3.8-27b",
+        "keyEnv": "GROQ_API_KEY",
+        "dailyRequests": 1000,
+        "extra": {
+          "reasoning_effort": "none"
+        }
+      },
+      {
+        "name": "cloudflare",
+        "baseUrl": "https://api.cloudflare.com/client/v4/accounts/{CLOUDFLARE_ACCOUNT_ID}/ai/v1",
+        "model": "@cf/mistralai/mistral-small-3.1-24b-instruct",
+        "keyEnv": "CLOUDFLARE_API_TOKEN",
+        "dailyRequests": 170
+      },
+      {
+        "name": "gemini",
+        "baseUrl": "https://generativelanguage.googleapis.com/v1beta/openai",
+        "model": "gemini-3.5-flash-lite",
+        "keyEnv": "GEMINI_API_KEY",
+        "dailyRequests": 1000,
+        "timeoutMs": 50000,
+        "extra": {
+          "reasoning_effort": "minimal"
+        }
+      }
+    ]
+  },
   "timeoutMs": 30000,
   "maxTokens": 700,
   "temperature": 0.9

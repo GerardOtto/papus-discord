@@ -10,24 +10,46 @@ el 17 oct. 2026, sin prueba cerrada**; prueba de carga cuando esté lo mínimo (
 conversación con cuota y cola, LLM local (Ollama) + APIs con reparto, moderación de Neru + AutoMod, bienvenidas, servidor
 estructurado (`config/servidor.json`), guías fijadas, emojis de nivel, arranque con Windows (tarea "Papus Discord").
 Miku y Luka responden sus comandos 24/7 desde Cloudflare (`worker/`: pedidos, votaciones, calendario, estrenos, noticias,
-tips). Bodas con las Vocaloids por adivinanzas (PLAN §3.2). Ruleta diaria por misiones (PLAN §3.3). Trivia con rachas en fácil, media y difícil y sobres por hitos de aciertos, `/trivia` (PLAN §3.4; ~5.750 preguntas, 5.014 generadas con `npm run trivia:generar`); trivia multijugador como Actividad de Discord de Teto en el worker (eliminatoria y cooperativa, pool de prueba de 50, `npm run actividad`; falta configurar el portal). `/donar` cuota y cuota sobrante → XP (PLAN §3). Sorteo de GyroP, `/sorteo` (PLAN §3.5). Tienda de Shaula-coins con sobres y objetos para la tarjeta, `/tienda` (PLAN §3.6). 1vs1 de 28 luchadores (Vocaloids e invitados) con apuestas de Shaula-coins ganadas (10-400), `/pelea` y wiki en #peleas (PLAN §3.7). Avisos (⚔️ Ludópata, 💍 Rizzler, 🎬 Estrenos, 🕶️ Traficante) en #tus-roles (PLAN §3.8). Mercado negro de Neru, 1 h al día a hora sorpresa, solo con monedas ganadas: Atún de Luka, Baguette de Teto, Celular de Neru, Seguro de Gakupo, Helado de Kaito, Micrófono de Meiko, regalo de Rin y Len, Luna de IA (XP triple de la cuota 2 semanas), Sake de Haku, Zanahoria de Gumi, Doble helado de Kaito, Guitarra de flower, PC de Adachi Rei, Disquete de Adachi Rei y Machete de Neru (permanentes), rol pirata y adornos de burla; `/consumibles` (PLAN §3.9). Intercambios entre Papus como las ofertas de Steam (abiertas o dirigidas, contraofertas), `/intercambio` y #centro-de-comercio con modo lento (PLAN §3.11). Teto publica el ranking cada día a las 12:00 en #ranking. Niveles por participación (1-99 y prestigios, PLAN §3.1;
-cálculo inicial con `npm run niveles`). Pendiente: `/cumple` de Teto, aviso automático de compras de Ko-fi, exportar votaciones y pedidos al motor.
+tips). Bodas con las Vocaloids por adivinanzas (PLAN §3.2). Ruleta diaria por misiones (PLAN §3.3). Trivia con rachas en fácil, media y difícil y sobres por hitos de aciertos, `/trivia` (PLAN §3.4; ~5.750 preguntas, 5.014 generadas con `npm run trivia:generar`); trivia multijugador como Actividad de Discord de Teto en el worker (eliminatoria y cooperativa, pool de prueba de 50, `npm run actividad`; falta configurar el portal). `/donar` cuota y cuota sobrante → XP (PLAN §3). Sorteo de GyroP, `/sorteo` (PLAN §3.5). Tienda de Shaula-coins con sobres y objetos para la tarjeta, `/tienda` (PLAN §3.6). 1vs1 de 28 luchadores (Vocaloids e invitados) con apuestas de Shaula-coins ganadas (10-1.000), `/pelea` y wiki en #peleas (PLAN §3.7). Avisos (⚔️ Ludópata, 💍 Rizzler, 🎬 Estrenos, 🕶️ Traficante) en #tus-roles (PLAN §3.8). Pronombres y género en #tus-roles: opciones o escritos por el Papu, roles solo decorativos que crea el worker (PLAN §3.8). Mundo 3D apagado en el worker hasta la beta (`worker:deploy -- --con-mundo`). Mercado negro de Neru, 1 h al día a hora sorpresa, solo con monedas ganadas: Atún de Luka, Baguette de Teto, Celular de Neru, Seguro de Gakupo, Helado de Kaito, Micrófono de Meiko, regalo de Rin y Len, Luna de IA (XP triple de la cuota 2 semanas), Sake de Haku, Zanahoria de Gumi, Doble helado de Kaito, Guitarra de flower, PC de Adachi Rei, Disquete de Adachi Rei y Machete de Neru (permanentes), rol pirata y adornos de burla; `/consumibles` (PLAN §3.9). Intercambios entre Papus como las ofertas de Steam (abiertas o dirigidas, contraofertas), `/intercambio` y #centro-de-comercio con modo lento (PLAN §3.11). Ruleta de Némesis: ruleta rusa entre dos Papus con 10-1.000 Shaula-coins ganadas, Némesis cobra el 20 %, `/nemesis` en el canal donde se usa (PLAN §3.12). Mango9374 también se casa (PLAN §3.2). Colores de todos los Vocaloids en #tus-roles, también las 4 chicas (dos menús). Insignias comunes «Fan de…» de corazones (PLAN §3.6). Teto publica el ranking cada día a las 12:00 en #ranking. Los Vocaloids ven imágenes con @: 2 al día por Papu, 1 mensaje más de cuota, sin guardarlas (`vision` en `config/llm.json`, PLAN §5.1; 14 nov. 2026, sin voz). Niveles por participación (1-99 y prestigios, PLAN §3.1;
+cálculo inicial con `npm run niveles`). Pendiente: `/cumple` de Teto, aviso automático de compras de Ko-fi, exportar votaciones al motor.
+**Rediseño del 13 nov. 2026, PUBLICADO el 13 nov. (PLAN §14)**: membresías nuevas (XP, lanzar peleas y bodas, sobres
+temáticos, banners), premio de prestigio, Shaula-coins → **Shaulitas** en una sola moneda sin venta, temporadas
+limitadas desde el 25 nov., sin cola de pedidos, canales reagrupados con 📦 Archivo (nada se borra), guías en el foro
+#📚・guías y #🎨・fanart multimedia con migración del canal antiguo.
+**Celular de Neru (PLAN §3.15), fase 1 SUBIDA el 17 nov. 2026 (worker + nube; sin anunciar, falta que GyroP la pruebe en Discord)**: Actividad de la app de Neru en
+`/celular/` (inicio con tarjeta y Shaulitas, temas, Vocaloidle y Silueta con XP de 3/2/1 aciertos de trivia); `npm run
+celular`, `worker/src/celular/`, `src/celular/`. Datos de Vocaloidle completos (investigados 17 nov.); arte del portal en assets/celular/. Trivia, Mi tarjeta, Tienda, Mochila, Mercado, Donar, Roles, Ruleta y Comercio SUBIDAS y anunciadas en #novedades el 17 nov. (PLAN §3.15).
+**Parche de las ideas de los Papus (18 nov. 2026, SUBIDO y ANUNCIADO en #novedades el 18 nov.; PLAN §3.16)**: 🥭 de Mango, Némesis en
+sus números, #despedidas, insignias «Fan de…» de todos, placa de membresía bajo el avatar, patrocinador del ranking,
+2vs2 en las peleas, cumpleaños (#tus-roles, Ruko a las 12, XP ×2, pastel; fechas de los 15 Vocaloids), ofertas de los
+Vocaloids en #centro-de-comercio, ♟️ Ajedrez en el celular (motor propio, rivales Vocaloid, retos con apuesta) y
+premio de 100 Shaulitas por idea de esta actualización (`config/premios-ideas.json`, 1.000 en total). Objetos de broma de
+cada Vocaloid (como el Machete): GyroP los está repensando, no trabajarlos por ahora.
+**¡Adivina, Papu! (20 nov. 2026, PLAN §3.17)**: adivinanzas al aire de cualquier tema (835 en `content/adivinanzas.json`),
+pozo de 50 a 150 Shaulitas en 2 min, dorada, bote, 4 premios al día, 🧠 Sabelotodo semanal, `/adivinanza`; +100
+adivinanzas de boda por personaje; las ofertas de #centro-de-comercio muestran las cartas de los objetos.
 Uso y archivos editables: `README.md`.
 
 Repo hermano: el motor de videos en `../Proyecto1` (fuente del lore, calendario y fuentes de noticias).
 **Rutas de los datos del motor: `config/engine-paths.json`** (solo lectura; el bot nunca escribe en el motor).
 
 ## Reglas (no negociables)
-1. **Ningún plan de pago da exclusividades con los bots**: cuota diaria por Papu, compartida entre todos los bots, que depende **solo de su
+1. **Ningún plan de pago da exclusividades con los bots, y nada pagado es azar.** **Cambio del 13 nov. 2026 (decisión
+   de GyroP, consultada con los Papus; publicado el 13 nov.: PLAN §14)**: las membresías **sí dan ventajas de juego**
+   (multiplicador de XP, lanzar peleas y bodas, sobres temáticos elegibles, recuperar objetos de vitrinas, descuentos;
+   PLAN §2). Se mantiene: los bots son iguales para todos (ningún trato exclusivo con un Vocaloid ni prioridad en la
+   cola del LLM), la cuota sale del nivel por participación, y nada pagado es azar (hay menores): los sobres de
+   membresía se eligen y no traen renders. Ya no se venden monedas: una sola, las **Shaulitas**, que se ganan jugando.
+   Para quien no tiene membresía sigue todo lo de antes: cuota diaria por Papu, compartida entre todos los bots, que depende **solo de su
    nivel por participación** (PLAN §3.1, `config/niveles.json`: 3 en el nivel 1 hasta 18, 20 con prestigio; desde el 20 oct. 2026, antes 12
    para todos); nada de pago (Ko-fi) da XP ni cuota; una unidad por cada @ en un mensaje; sin prioridad en la cola por pagar. Única excepción,
    regalo de GyroP y no de un nivel: 🍍♡Piña♡🍍 (`config/especiales.json`, PLAN §cuota); no se extiende a otros Papus.
    Excepción por juego: ganar una boda con una Vocaloid reinicia la cuota del día (PLAN §3.2; se gana adivinando, no pagando),
    y la ruleta puede dar mensajes extra del día (PLAN §3.3; se gana con misiones de participación); con la cuota llena, lo ganado
-   se vuelve XP, y `/donar` pasa cuota de un Papu a otro sin subir la cuota diaria (PLAN §3). La trivia da XP por
+   se vuelve XP, y `/donar` pasa cuota de un Papu a otro sin subir la cuota diaria: va a un espacio de donados de hasta 5 sin usar (14 nov. 2026; PLAN §3). La trivia da XP por
    acierto (PLAN §3.4; se gana jugando) y el sorteo de GyroP puede dar XP, niveles y mensajes extra del día (PLAN §3.5; entran todos los Papus por igual).
    Las Shaula-coins solo adornan la tarjeta: no dan XP ni cuota (PLAN §3.6); las insignias de membresía también son solo adorno.
-   Las apuestas del 1vs1 (PLAN §3.7) solo usan monedas ganadas, nunca compradas, y no dan XP ni cuota.
+   Las apuestas del 1vs1 (PLAN §3.7) y de la Ruleta de Némesis (PLAN §3.12) solo usan monedas ganadas, nunca compradas, y no dan XP ni cuota.
    Excepción por juego: el mercado negro (PLAN §3.9) vende con monedas **ganadas** (nunca compradas) consumibles que
    reinician la cuota del día (PC de Adachi Rei), triplican la XP de la cuota (Luna de IA) o ayudan en la ruleta y la
    trivia; no suben la cuota diaria.
@@ -36,9 +58,14 @@ Repo hermano: el motor de videos en `../Proyecto1` (fuente del lore, calendario 
    XP o cuota de otro Papu de forma indirecta (GyroP lo aceptó). Las compradas siguen en su bolsillo, la cuota pasa como
    `/donar` y nadie sube su cuota diaria.
 2. Los bots son omnipresentes (todos los canales) y no se responden solos entre ellos. Única excepción: la charla de
-   #general (PLAN §4), donde un Vocaloid le pregunta a otro con @ y este contesta una sola vez.
+   #general (PLAN §4), donde un Vocaloid le pregunta a otro con @ y este contesta una sola vez; desde el 14 nov. 2026
+   (GyroP), hasta 3 veces al día (12-23 h) esa pregunta puede ser un **minidrama** de 4 mensajes (PLAN §3.13); desde el 16 nov. 2026
+   (GyroP), tras una carrera el Vocaloid que llegó mejor puede picar al que llegó peor (usa ese mismo cupo, PLAN §3.14).
 3. La moderación es por reglas fijas + AutoMod de Discord, **nunca el LLM**. Neru no expulsa ni banea (solo GyroP).
-4. El LLM solo responde menciones libres y la charla espontánea de #general (cada 20 min, PLAN §4; no gasta cuota de Papus). Bienvenidas, avisos, votaciones, moderación, cuota agotada, etc. usan grupos de
+4. El LLM solo responde menciones libres, la charla espontánea de #general (cada 20 min, PLAN §4; no gasta cuota de Papus) y,
+   desde el 14 nov. 2026 (GyroP), el **ambiente casual** con topes diarios (PLAN §3.13, `config/ambiente.json`): el
+   Vocaloid metiche al que nombran sin @, los comentarios de eventos del servidor, los momentos del día y el resultado de
+   las preguntas al aire; tampoco gasta cuota. Las reacciones con emoji y las preguntas al aire no usan el LLM. Bienvenidas, avisos, votaciones, moderación, cuota agotada, etc. usan grupos de
    30-40 frases fijas elegidas al azar sin repetir (estado persistido). Las frases fijas nunca gastan cuota.
 5. No acoplar a un proveedor de LLM: interfaz única con cadena de respaldo (Groq, Gemini, OpenRouter y Cloudflare por turnos; el local de respaldo).
    Varios proveedores sí; varias cuentas del mismo proveedor, no. "local" = Ollama en el PC de GyroP (Gemma 4 E4B como

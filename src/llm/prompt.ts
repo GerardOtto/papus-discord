@@ -31,7 +31,18 @@ export interface PromptInput {
   today?: string;
   /** Nombres de los emojis del servidor (cada personaje ve los suyos y los de todos, ver emojisOf). */
   serverEmojis?: string[];
+  /**
+   * Imagen del mensaje (PLAN §5.1): "data:..." = la ven (va adjunta, solo a la cadena de vision); "oculta" = el Papu
+   * mando una pero hoy no la pueden ver (no deben inventar lo que tiene). Sin el campo, no hay imagen.
+   */
+  image?: string | "oculta";
 }
+
+/** Como mirar la imagen: reaccionar en personaje, sin inventar ni identificar a nadie, y sin describir lo inapropiado. */
+export const IMAGE_NOTE =
+  "El Papu adjuntó una imagen a su mensaje: mírala y reacciona a ella con tu personalidad (qué te parece, qué te hace sentir, qué le dirías), como si te la mostrara en persona; no la describas como un catálogo. Habla solo de lo que se ve con claridad: si no estás seguro de qué es, dilo o pregúntale. No adivines quién es una persona real por su cara ni digas su nombre si el Papu no lo dijo. Si es un dibujo o fanart de un Vocaloid, reconoce el esfuerzo. Si la imagen es sexual, muy violenta o muestra algo peligroso, no la describas: dile con amabilidad y en personaje que eso no lo comentas.";
+export const HIDDEN_IMAGE_NOTE =
+  "El Papu adjuntó una imagen, pero esta vez NO puedes verla: no digas ni inventes lo que tiene. Si el mensaje depende de la imagen, dile en personaje que no alcanzaste a verla.";
 
 const CONTENT_DIR = path.resolve(import.meta.dirname, "../../content/personajes");
 const MAX_LINE = 300;
@@ -168,6 +179,11 @@ export interface SpontaneousInput {
   history: HistoryLine[];
   /** Tema que pidio GyroP con /charla (manda sobre la conversacion reciente). */
   topic?: string;
+  /**
+   * Por que escribe (ambiente casual, PLAN §3.13): algo que acaba de pasar en el servidor, la hora del dia o el pique
+   * con otro Vocaloid. Reemplaza la indicacion de "animar la platica".
+   */
+  situation?: string;
   culture?: string[];
   today?: string;
   serverEmojis?: string[];
@@ -185,13 +201,16 @@ export function buildSpontaneousRequest(
   const rng = opts.rng ?? Math.random;
   const { speaker: s, target: t } = input;
   const recent = input.history.map((h) => h.text).join(" ");
+  const situation = input.situation ? clip(input.situation, 500) : null;
   const task = t
     ? `Nadie te mencionó: escribes por tu cuenta en #general. Esta vez le hablas a ${t.displayName}, otro Vocaloid del servidor (no un Papu): hazle UNA pregunta corta o una broma que pida respuesta, con tu voz. Puede salir de la conversación reciente o de lo que sabes de ${t.displayName}. Tu mensaje ya empieza con la mención a ${t.displayName}: no escribas su @, no empieces con su nombre y no firmes con el tuyo.`
-    : `Nadie te mencionó: escribes por tu cuenta en #general para animar la plática. Si en la conversación reciente los Papus hablaron de algo, coméntalo o pregúntales algo sobre eso, con tu voz (sin mencionar a nadie con @ y sin inventar lo que dijeron). Si no hay nada de qué comentar, saca un tema corto que invite a los Papus a contestar. No saludes como si acabaras de llegar.`;
-  const now: string[] = [task, "De 1 a 2 frases."];
+    : situation
+      ? "Nadie te mencionó: escribes por tu cuenta en #general. No menciones a nadie con @, no inventes lo que dijeron los Papus y no saludes como si acabaras de llegar."
+      : `Nadie te mencionó: escribes por tu cuenta en #general para animar la plática. Si en la conversación reciente los Papus hablaron de algo, coméntalo o pregúntales algo sobre eso, con tu voz (sin mencionar a nadie con @ y sin inventar lo que dijeron). Si no hay nada de qué comentar, saca un tema corto que invite a los Papus a contestar. No saludes como si acabaras de llegar.`;
+  const now: string[] = [task, ...(situation ? [situation] : []), "De 1 a 2 frases."];
   // El tema de GyroP manda: el humor sale de su personalidad, pero sin forzar otro tema encima.
   if (input.topic) now.push(`GyroP te pidió que este mensaje sea sobre esto (escríbelo con tu voz, sin decir que te lo pidió): ${clip(input.topic, 300)}`);
-  const variety = input.topic ? null : varietyNote(s, personas, recent, rng);
+  const variety = input.topic || situation ? null : varietyNote(s, personas, recent, rng);
   if (variety) now.push(variety);
   const culture = relevantFacts(input.culture ?? [], `${input.topic ?? ""} ${recent}`.replace(/@\S+/g, " "), []);
   if (culture.length) now.push(cultureNote(culture));
@@ -249,6 +268,7 @@ export function buildRequest(
   // Sin las menciones: "@Luka" no debe arrastrar todos los datos que nombran a Luka.
   const culture = relevantFacts(input.culture ?? [], input.message.replace(/@\S+/g, " "), []);
   if (culture.length) now.push(cultureNote(culture));
+  if (input.image) now.push(input.image === "oculta" ? HIDDEN_IMAGE_NOTE : IMAGE_NOTE);
   if (input.today) now.push(`Hoy es ${input.today} (hora de Chile).`);
   if (input.videos?.length) {
     now.push(`Videos del canal (lo ÚNICO que sabes de ellos es su nombre y su estado):\n${formatVideosForPrompt(input.videos)}`);
@@ -268,7 +288,7 @@ export function buildRequest(
   return {
     messages: [
       { role: "system", content: system },
-      { role: "user", content: user },
+      { role: "user", content: user, ...(input.image && input.image !== "oculta" ? { images: [input.image] } : {}) },
     ],
     maxTokens: opts.maxTokens,
     temperature: opts.temperature,

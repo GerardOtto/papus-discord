@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import { describe, expect, it } from "vitest";
-import { sqliteSql } from "../src/orders/sql";
+import { sqliteSql } from "../src/cloud/sql";
 import { audienceOf, PapusWorker, pollWinner, splitLines, type Interaction, type Option } from "../worker/src/app";
 import { SAFE_MENTIONS } from "../src/discord/app";
 import { channelKey, DiscordError, safeMentions, verifySignature, type BotKey, type DiscordApi } from "../worker/src/discord";
@@ -28,9 +28,13 @@ const ROLES = [
   { id: "bot-gumi", name: "Gumi", managed: true },
   { id: "bot-kaito", name: "Kaito", managed: true },
 ];
-const CHANNELS = ["🎁・cola-de-pedidos", "📋・registro-bots", "🗳️・votaciones", "📝・propuestas-de-temas", "💡・tips-y-curiosidades", "🏆・salón-de-la-fama", "📅・calendario", "📣・anuncios", "👀・vitrina", "💎・niveles-ko-fi", "💬・charla-de-honor", "🗳️・votacion-de-honor"].map(
-  (name, i) => ({ id: `c${i}`, name, type: 0 }),
-);
+const CHANNELS: { id: string; name: string; type: number; available_tags?: { id: string; name: string }[] }[] = [
+  ...["🎁・cola-de-pedidos", "📋・registro-bots", "🗳️・votaciones", "📝・propuestas-de-temas", "💡・tips-y-curiosidades", "🏆・salón-de-la-fama", "📅・calendario", "📣・anuncios", "✨・novedades-antiguas", "👀・vitrina", "💎・niveles-ko-fi", "💬・charla-de-honor", "🗳️・votacion-de-honor"].map(
+    (name, i) => ({ id: `c${i}`, name, type: 0 }),
+  ),
+  // #novedades es un foro desde el 13 nov. 2026 (PLAN §8).
+  { id: "f-novedades", name: "✨・novedades", type: 15, available_tags: [{ id: "t-estreno", name: "Estreno" }, { id: "t-noticia", name: "Noticia" }] },
+];
 const ch = (key: string) => CHANNELS.find((c) => channelKey(c.name) === key)!.id;
 
 interface Call {
@@ -52,7 +56,7 @@ class FakeDiscord implements DiscordApi {
     this.calls.push({ bot, method, path: p, body: body as Record<string, unknown> });
     if (this.hang) return new Promise<T>(() => {});
     if (p.endsWith("/channels") && method === "GET") return CHANNELS as T;
-    if (p.endsWith("/roles")) return ROLES as T;
+    if (p.endsWith("/roles") && method === "GET") return ROLES as T;
     if (p === "/users/@me/channels") {
       if (this.dmFails) throw new DiscordError(403, "Cannot send messages to this user");
       return { id: "dm1" } as T;
@@ -72,6 +76,10 @@ class FakeDiscord implements DiscordApi {
   }
   async followUp(_app: string, _token: string, body: unknown): Promise<void> {
     this.followUps.push(body);
+  }
+  /** Publicaciones abiertas en un foro. */
+  threads(channelKey: string) {
+    return this.calls.filter((c) => c.method === "POST" && c.path === `/channels/${ch(channelKey)}/threads`);
   }
   posts(channelKey: string) {
     return this.calls.filter((c) => c.method === "POST" && c.path === `/channels/${ch(channelKey)}/messages`);
@@ -114,17 +122,16 @@ const cmd = (name: string, user: string, roles: string[], options: Option[] = []
   member: { user: { id: user }, roles },
 });
 const sub = (name: string, options: Option[]): Option[] => [{ name, type: 1, options }];
-const pedidoOpts = [opt("ocasion", "cumpleanos"), opt("para", "Sofía"), opt("vocaloid", "teto"), opt("detalles", "le gustan los gatos")];
 const content = (r: { content?: string }) => r.content ?? "";
 
 describe("worker: interacciones", () => {
   it("PING y respuesta diferida privada que luego se edita", async () => {
     const { w, discord } = setup();
     expect(w.handle("miku", { type: 1, application_id: "a", token: "t" }).response).toEqual({ type: 1 });
-    const h = w.handle("miku", cmd("mi-pedido", "ana", []));
+    const h = w.handle("miku", cmd("pedido", "ana", []));
     expect(h.response).toEqual({ type: 5, data: { flags: 64 } });
     await h.work!();
-    expect(JSON.stringify(discord.edits[0])).toContain("Todavía no tienes pedidos");
+    expect(JSON.stringify(discord.edits[0])).toContain("Eso solo lo usa GyroP");
   });
 
   it("verifica la firma Ed25519 de Discord", async () => {
@@ -137,43 +144,6 @@ describe("worker: interacciones", () => {
     expect(await verifySignature(pub, sig, "123", '{"type":1}')).toBe(true);
     expect(await verifySignature(pub, sig, "123", '{"type":2}')).toBe(false);
     expect(await verifySignature(pub, "zz", "123", '{"type":1}')).toBe(false);
-  });
-});
-
-describe("worker: pedidos (Miku)", () => {
-  it("solo Triple Baka (o GyroP) puede pedir", async () => {
-    const { w } = setup();
-    expect(content(await w.route("miku", cmd("pedido", "ana", ["r-baguette"], pedidoOpts)))).toContain("Triple Baka");
-    expect(content(await w.route("miku", cmd("pedido", "ana", ["r-tb"], pedidoOpts)))).toContain("lugar **1**");
-    expect(content(await w.route("miku", cmd("pedido", OWNER, [], pedidoOpts)))).toContain("lugar **2**");
-  });
-
-  it("al pedir: tablero fijado sin el destinatario y aviso a GyroP", async () => {
-    const { w, discord } = setup();
-    await w.route("miku", cmd("pedido", "ana", ["r-tb"], pedidoOpts));
-    const board = discord.posts("cola-de-pedidos")[0]!;
-    expect(JSON.stringify(board.body)).toContain("<@ana>");
-    expect(JSON.stringify(board.body)).not.toContain("Sofía");
-    expect(discord.calls.some((c) => c.method === "PUT" && c.path.includes("/pins/"))).toBe(true);
-    expect(JSON.stringify(discord.posts("registro-bots")[0]!.body)).toContain("Nuevo pedido #1");
-    // El segundo cambio edita el mismo tablero.
-    await w.route("miku", cmd("cola", OWNER, [], sub("estado", [opt("pedido", 1, 4), opt("estado", "en_produccion")])));
-    expect(discord.calls.filter((c) => c.method === "PATCH" && c.path.includes("/messages/")).length).toBe(1);
-  });
-
-  it("cambio de estado: avisa al Papu por privado y, si los tiene cerrados, en el canal", async () => {
-    const { w, discord } = setup();
-    await w.route("miku", cmd("pedido", "ana", ["r-tb"], pedidoOpts));
-    await w.route("miku", cmd("cola", OWNER, [], sub("estado", [opt("pedido", 1, 4), opt("estado", "en_produccion")])));
-    expect(discord.calls.some((c) => c.path === "/channels/dm1/messages")).toBe(true);
-    discord.dmFails = true;
-    await w.route("miku", cmd("cola", OWNER, [], sub("estado", [opt("pedido", 1, 4), opt("estado", "entregado")])));
-    expect(JSON.stringify(discord.posts("cola-de-pedidos").at(-1)!.body)).toContain("<@ana>");
-  });
-
-  it("/cola es solo de GyroP", async () => {
-    const { w } = setup();
-    await expect(w.route("miku", cmd("cola", "ana", ["r-tb"], sub("ver", [])))).rejects.toThrow(/GyroP/);
   });
 });
 
@@ -278,7 +248,7 @@ describe("worker: votación semanal (Miku)", () => {
     advance(DAY);
     await w.cron();
     expect(lastPoll(discord)).toEqual(["Video de Kafu", "Video de Ruko", "Video de Momo"]);
-    expect(JSON.stringify(discord.posts("vitrina")[0]!.body)).toContain("Video de Ruko"); // aviso en la vitrina
+    expect(discord.posts("vitrina")).toHaveLength(0); // #vitrina está en el Archivo (13 nov. 2026): ya no se avisa ahí
     await w.route("miku", cmd("votacion", OWNER, [], sub("candidato", [opt("nombre", "Video de Teto | Video de Neru")])));
 
     advance(3 * DAY);
@@ -287,7 +257,7 @@ describe("worker: votación semanal (Miku)", () => {
     const announce = JSON.stringify(discord.posts("votaciones").at(-1)!.body);
     expect(announce).toContain("Video de Ruko");
     expect(announce).toContain("Video de Momo** quedó en segundo lugar");
-    expect(JSON.stringify(discord.posts("vitrina").at(-1)!.body)).toContain("votar la próxima");
+    expect(discord.posts("vitrina")).toHaveLength(0);
 
     advance(3 * DAY); // 6 días: todavía no
     await w.cron();
@@ -453,41 +423,103 @@ describe("worker: color del nombre (menú de Miku)", () => {
   });
 });
 
-describe("worker: calendario y anuncios (Miku)", () => {
-  it("calendario con una línea por fecha, estreno con enlace", async () => {
+describe("worker: pronombres y género (#tus-roles)", () => {
+  const pick = (user: string, roles: string[], custom_id: string, value: string): Interaction => ({
+    type: 3,
+    application_id: "app",
+    token: "tok",
+    data: { custom_id, values: [value] },
+    member: { user: { id: user }, roles },
+  });
+  const write = (user: string, roles: string[], tipo: string, value: string): Interaction => ({
+    type: 5,
+    application_id: "app",
+    token: "tok",
+    data: { custom_id: `papu_identidad_modal:${tipo}`, components: [{ components: [{ custom_id: "texto", value }] }] },
+    member: { user: { id: user }, roles },
+  });
+  const created = (discord: FakeDiscord) => discord.calls.filter((c) => c.method === "POST" && c.path === "/guilds/g/roles");
+
+  it("«Escribir» abre la ventanita al tiro; elegir responde en privado", () => {
+    const { w } = setup();
+    const modal = w.handle("miku", pick("ana", [], "papu_pronombres", "escribir"));
+    expect(modal.response).toMatchObject({ type: 9, data: { custom_id: "papu_identidad_modal:pronombres" } });
+    expect(modal.work).toBeUndefined();
+    expect(w.handle("miku", pick("ana", [], "papu_genero", "mujer")).response).toEqual({ type: 5, data: { flags: 64 } });
+    expect(w.handle("miku", write("ana", [], "genero", "x")).response).toEqual({ type: 5, data: { flags: 64 } });
+  });
+
+  it("crea el rol solo decorativo (sin permisos, color, separación ni mención) y lo reutiliza", async () => {
+    const { w, discord } = setup();
+    expect(content(await w.route("miku", pick("ana", [], "papu_pronombres", "elle")))).toContain("**Pronombres: elle**");
+    const [c] = created(discord);
+    expect(c!.body).toEqual({ name: "Pronombres: elle", permissions: "0", color: 0, hoist: false, mentionable: false });
+    const id = discord.calls.find((x) => x.method === "PUT")!.path.split("/").at(-1)!;
+    // El rol nuevo existe en el servidor: otro Papu que elige lo mismo recibe el mismo rol, sin crear otro.
+    ROLES.push({ id, name: "Pronombres: elle" });
+    try {
+      await w.route("miku", write("beto", [], "pronombres", " ELLE "));
+      expect(created(discord)).toHaveLength(1);
+      expect(discord.calls.some((x) => x.method === "PUT" && x.path === `/guilds/g/members/beto/roles/${id}`)).toBe(true);
+    } finally {
+      ROLES.pop();
+    }
+  });
+
+  it("cambiar o quitar borra el rol escrito cuando nadie más lo tiene; nunca toca otros roles", async () => {
+    const { w, discord, db } = setup();
+    await w.route("miku", write("ana", [], "genero", "Demigénero"));
+    const escrito = db.prepare("SELECT role_id FROM identidad_roles WHERE clave = 'demigenero'").get() as { role_id: string };
+    ROLES.push({ id: escrito.role_id, name: "Género: Demigénero" });
+    try {
+      expect(content(await w.route("miku", pick("ana", [escrito.role_id, "r-gumi"], "papu_genero", "mujer")))).toContain("**Género: Mujer**");
+      expect(discord.calls.some((x) => x.method === "DELETE" && x.path === `/guilds/g/members/ana/roles/${escrito.role_id}`)).toBe(true);
+      expect(discord.calls.some((x) => x.method === "DELETE" && x.path === `/guilds/g/roles/${escrito.role_id}`)).toBe(true);
+      // El de la lista se queda aunque nadie lo tenga.
+      const mujer = (db.prepare("SELECT role_id FROM identidad_roles WHERE clave = 'mujer'").get() as { role_id: string }).role_id;
+      expect(content(await w.route("miku", pick("ana", [mujer], "papu_genero", "quitar")))).toContain("quité tu género");
+      expect(discord.calls.some((x) => x.method === "DELETE" && x.path === `/guilds/g/roles/${mujer}`)).toBe(false);
+      expect(discord.calls.some((x) => x.path.includes("r-gumi"))).toBe(false);
+    } finally {
+      ROLES.pop();
+    }
+  });
+
+  it("rechaza en privado lo ofensivo o de burla, sin crear roles", async () => {
+    const { w, discord } = setup();
+    const h = w.handle("miku", write("ana", [], "genero", "helicóptero de combate"));
+    await h.work!();
+    expect(JSON.stringify(discord.edits[0])).toContain("No puedo usar ese texto");
+    expect(created(discord)).toHaveLength(0);
+    expect(discord.calls.some((c) => c.method === "PUT")).toBe(false);
+  });
+});
+
+describe("worker: estrenos y noticias (Miku)", () => {
+  it("estreno con enlace: una publicación del foro #novedades (#anuncios y #calendario se archivaron el 13 nov. 2026)", async () => {
     const { w, db, discord } = setup();
-    await w.route("miku", cmd("calendario", OWNER, [], [opt("texto", "Lun 20: Teto | Jue 23: Miku")]));
-    expect(JSON.stringify(discord.posts("calendario")[0]!.body)).toContain("• Lun 20: Teto\\n• Jue 23: Miku");
-    expect((discord.posts("calendario")[0]!.body!.allowed_mentions as { roles: string[] }).roles).toContain("r-puerro");
+    await expect(w.route("miku", cmd("calendario", OWNER, [], [opt("texto", "Lun 20: Teto")]))).rejects.toThrow(/no existe/);
     await w.route("miku", cmd("estreno", OWNER, [], [opt("titulo", "Triple Baka"), opt("enlace", "https://youtu.be/x")]));
-    expect(JSON.stringify(discord.posts("anuncios")[0]!.body)).toContain("https://youtu.be/x");
-    // #anuncios es público: sin mención masiva.
-    expect(discord.posts("anuncios")[0]!.body!.allowed_mentions).toEqual({ parse: [], roles: [] });
+    const [p] = discord.threads("novedades");
+    expect(p!.bot).toBe("miku");
+    expect(p!.body).toMatchObject({ name: "🎬 Estreno: Triple Baka", applied_tags: ["t-estreno"] });
+    expect(JSON.stringify(p!.body)).toContain("https://youtu.be/x");
+    expect(discord.posts("anuncios")).toHaveLength(0);
+    expect(discord.posts("novedades-antiguas")).toHaveLength(0);
+    // #novedades es público: sin mención masiva.
+    expect((p!.body!.message as { allowed_mentions: unknown }).allowed_mentions).toEqual({ parse: [], roles: [] });
     // Queda registrado para la hora feliz de XP que abre el bot del PC.
     expect(db.prepare("SELECT titulo, at FROM estrenos").all()).toEqual([{ titulo: "Triple Baka", at: T0 }]);
     await expect(w.route("miku", cmd("estreno", OWNER, [], [opt("titulo", "X"), opt("enlace", "no-es-enlace")]))).rejects.toThrow(/http/);
     expect(splitLines("a | b")).toBe("• a\n• b");
   });
-});
 
-describe("worker: tips (Luka)", () => {
-  it("Atún o superior, siempre con fuente, y al Salón de la Fama", async () => {
+  it("noticia: publicación con la primera línea de título y la etiqueta Noticia", async () => {
     const { w, discord } = setup();
-    const tip = (user: string, roles: string[], fuente: string) => w.route("luka", cmd("tip", user, roles, [opt("texto", "Miku nació en 2007"), opt("fuente", fuente)]));
-    expect(content(await tip("ana", ["r-puerro"], "https://vocadb.net"))).toContain("Atún");
-    await expect(tip("ana", ["r-atun"], "lo leí por ahí")).rejects.toThrow(/fuente/);
-    expect(content(await tip("ana", ["r-baguette"], "https://vocadb.net/S/1"))).toContain("#1");
-    const posted = discord.posts("tips-y-curiosidades")[0]!;
-    expect(posted.bot).toBe("luka");
-    expect(JSON.stringify(posted.body)).toContain("Tip #1");
-    await w.route("luka", cmd("tip-usado", OWNER, [], [opt("tip", 1, 4), opt("video", "Triple Baka: la canción que nunca muere")]));
-    expect(JSON.stringify(discord.posts("salon-de-la-fama")[0]!.body)).toContain("<@ana>");
-    await expect(w.route("luka", cmd("tip-usado", OWNER, [], [opt("tip", 1, 4), opt("video", "X")]))).rejects.toThrow(/ya está/);
-  });
-
-  it("no publica tips con datos personales u odio", async () => {
-    const { w } = setup();
-    await expect(w.route("luka", cmd("tip", "ana", ["r-atun"], [opt("texto", "llámame al 55 1234 5678"), opt("fuente", "https://x.com/a")]))).rejects.toThrow(/No puedo publicar/);
+    await w.route("miku", cmd("noticia", OWNER, [], [opt("texto", "**Miku** cumple años el 31 de agosto\nhttps://ejemplo.com")]));
+    const [p] = discord.threads("novedades");
+    expect(p!.body).toMatchObject({ name: "📰 Miku cumple años el 31 de agosto", applied_tags: ["t-noticia"] });
+    expect(JSON.stringify(p!.body)).toContain("https://ejemplo.com");
   });
 });
 
@@ -495,15 +527,16 @@ describe("worker: tope de tiempo de los comandos", () => {
   it("si el comando se demora, responde igual con un aviso (nunca queda pensando)", async () => {
     const { w, discord } = setup();
     discord.hang = true; // Discord no responde la consulta de roles
-    await w.handle("luka", cmd("tip", "ana", ["r-atun"], [opt("texto", "dato"), opt("fuente", "https://x.com")])).work!();
+    // El menú de colores consulta los roles del servidor.
+    await w.handle("miku", { type: 3, application_id: "app", token: "tok", data: { custom_id: "papu_color", values: ["teto"] }, member: { user: { id: "ana" }, roles: [] } }).work!();
     expect(JSON.stringify(discord.edits[0])).toContain("tardando más de lo normal");
   });
 
   it("si no se puede editar la respuesta, manda un mensaje privado aparte", async () => {
     const { w, discord } = setup();
     discord.editFails = true;
-    await w.handle("miku", cmd("mi-pedido", "ana", [])).work!();
-    expect(JSON.stringify(discord.followUps[0])).toContain("Todavía no tienes pedidos");
+    await w.handle("miku", cmd("pedido", "ana", [])).work!();
+    expect(JSON.stringify(discord.followUps[0])).toContain("Eso solo lo usa GyroP");
     expect(JSON.stringify(discord.followUps[0])).toContain('"flags":64');
   });
 });
@@ -518,5 +551,38 @@ describe("worker: editar la respuesta diferida", () => {
     }) as unknown as typeof fetch;
     await restApi({ miku: "a", luka: "b" }, fetchFn).editOriginal("app", "tok", { content: "hola" });
     expect(calls).toBe(3);
+  });
+});
+
+describe("worker: cumpleaños (#tus-roles, 18 nov. 2026)", () => {
+  const boton = (user: string, custom_id: string): Interaction => ({ type: 3, application_id: "app", token: "tok", data: { custom_id }, member: { user: { id: user }, roles: [] } });
+  const ventana = (user: string, dia: string, mes: string): Interaction => ({
+    type: 5,
+    application_id: "app",
+    token: "tok",
+    data: { custom_id: "papu_cumple_modal", components: [{ components: [{ custom_id: "dia", value: dia }] }, { components: [{ custom_id: "mes", value: mes }] }] },
+    member: { user: { id: user }, roles: [] },
+  });
+
+  it("el botón abre la ventanita al tiro; confirmar edita el mismo mensaje", () => {
+    const { w } = setup();
+    expect(w.handle("miku", boton("ana", "papu_cumple")).response).toMatchObject({ type: 9, data: { custom_id: "papu_cumple_modal" } });
+    expect(w.handle("miku", ventana("ana", "12", "3")).response).toEqual({ type: 5, data: { flags: 64 } });
+    expect(w.handle("miku", boton("ana", "papu_cumple_ok:03-12")).response).toEqual({ type: 6 });
+  });
+
+  it("pide confirmar, guarda solo día y mes y después no se puede cambiar", async () => {
+    const { w, db } = setup();
+    const r = await w.route("miku", ventana("ana", "12", "marzo"));
+    expect(r.content).toContain("12 de marzo");
+    expect(JSON.stringify(r.components)).toContain("papu_cumple_ok:03-12");
+    expect(db.prepare("SELECT COUNT(*) AS n FROM cumpleanos").get()).toEqual({ n: 0 });
+    expect((await w.route("miku", boton("ana", "papu_cumple_ok:03-12"))).content).toContain("Listo");
+    expect(db.prepare("SELECT dia, mes FROM cumpleanos WHERE papu_id = 'ana'").get()).toEqual({ dia: 12, mes: 3 });
+    expect((await w.route("miku", ventana("ana", "1", "1"))).content).toContain("No se puede cambiar");
+    expect((await w.route("miku", boton("ana", "papu_cumple_ok:01-01"))).content).toContain("No se puede cambiar");
+    expect(db.prepare("SELECT dia, mes FROM cumpleanos WHERE papu_id = 'ana'").get()).toEqual({ dia: 12, mes: 3 });
+    await expect(w.route("miku", ventana("beto", "31", "4"))).rejects.toThrow(/no existe/);
+    expect((await w.route("miku", boton("beto", "papu_cumple_no"))).content).toContain("no guardé");
   });
 });

@@ -1,12 +1,12 @@
 import { describe, expect, it } from "vitest";
 import { BOT_IDS } from "../src/config";
-import { loadPhraseFile, Phrases, REQUIRED_FIELDS, REQUIRED_GROUPS } from "../src/phrases/catalog";
+import { EXTRA_PHRASE_BOTS, loadPhraseFile, Phrases, REQUIRED_FIELDS, REQUIRED_GROUPS } from "../src/phrases/catalog";
 import { DeckStore } from "../src/phrases/deck";
 import { memDb, seededRng } from "./helpers";
 
-const KNOWN_FIELDS = new Set(["papu", "papus", "tema", "ganador", "video", "fecha", "texto", "n", "motivo", "canal", "nivel", "niveles", "votaciones", "rango", "premio", "mision", "racha", "xp", "monedas", "objeto", "rareza", "proxima", "cierra", "de"]);
+const KNOWN_FIELDS = new Set(["papu", "papus", "tema", "ganador", "video", "fecha", "texto", "n", "motivo", "canal", "nivel", "niveles", "votaciones", "rango", "premio", "mision", "racha", "xp", "monedas", "objeto", "rareza", "proxima", "cierra", "de", "redes", "vocaloid", "precio"]);
 
-describe.each(BOT_IDS)("frases de %s", (bot) => {
+describe.each([...BOT_IDS, ...EXTRA_PHRASE_BOTS])("frases de %s", (bot) => {
   const groups = loadPhraseFile(bot);
 
   it("tiene todos los grupos obligatorios con 30 a 40 frases", () => {
@@ -48,6 +48,11 @@ describe("Phrases", () => {
     const seen = new Set(Array.from({ length: 30 }, () => p.pick("teto", "bienvenida", { papu: "<@1>" })));
     expect(seen.size).toBe(30);
     for (const s of seen) expect(s).toContain("<@1>");
+  });
+
+  it("Mango9374 tiene sus frases de boda (se casa desde el 12 nov. 2026)", () => {
+    const p = new Phrases(new DeckStore(memDb()));
+    expect(p.pick("mango", "boda_adivinanza", { texto: "¿Qué soy?" })).toContain("¿Qué soy?");
   });
 
   it("falla claro si el grupo no existe", () => {

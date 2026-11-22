@@ -1,26 +1,28 @@
-// Shaula-coins (PLAN §3.6): monedero, lo ganado participando, sobres, tienda, fabricar con Ecos, objetos equipados,
-// pedidos de monedas (PayPal.me y transferencia, que GyroP confirma), regalo de membresía y paquete de fundadores.
-// Todo el estado vive en SQLite (migración 10). Sin Discord: src/discord/tienda.ts es el menú del canal.
+// Shaulitas (antes Shaula-coins, PLAN §3.6): monedero, lo ganado participando, sobres, tienda, fabricar con Ecos,
+// objetos equipados, insignias de membresía y paquete de fundadores. Una sola moneda desde el 13 nov. 2026 (se ganan
+// jugando; ya no se venden): en la base vive en la columna `ganadas` del monedero (la de `compradas` quedó en 0 con la
+// migración de la moneda única, 13 nov. 2026). Todo el estado vive en SQLite (migración 10). Sin Discord: src/discord/tienda.ts es el menú del canal.
 import { transaction, type Db } from "../db/database";
 import type { LevelChange } from "../levels/service";
 import { reinicioDe } from "../mercado/reinicios";
 import { dayKey } from "../time";
+import { enTema, nombreTema, temasDe, type Tema } from "./temas";
 import {
   activityCoins,
+  availableOn,
+  RAREZAS_REGALO,
   addDays,
   dayEarnings,
   ecosFor,
   levelBonus,
   missionSobre,
   membershipBadges,
-  membershipGift,
-  orderCode,
-  paySplit,
   priceOf,
   rollSobre,
   seasonSchedule,
   sobreKind,
   sobrePool,
+  temporadasActivas,
   vitrinaOn,
   weekStart,
   type CoinSettings,
@@ -32,12 +34,12 @@ import {
 } from "./rules";
 
 export interface Wallet {
-  ganadas: number;
-  compradas: number;
+  /** Shaulitas (una sola moneda). */
+  monedas: number;
   ecos: number;
   /** Sobres comunes gratis por abrir (misiones de la ruleta, cada lunes, casilla de la ruleta). */
   gratis: number;
-  /** Sobres raros y legendarios gratis por abrir (premios de la trivia; también se compran con ganadas). */
+  /** Sobres raros y legendarios gratis por abrir (premios de la trivia; también se compran con Shaulitas). */
   gratisRaro: number;
   gratisLeg: number;
   sobres: number;
@@ -47,23 +49,9 @@ export interface Wallet {
   hoy: number;
 }
 
-export type Bolsillo = "ganadas" | "compradas" | "ecos";
-export type Metodo = "paypal" | "transferencia";
-export type EstadoPedido = "pendiente" | "avisado" | "pagado" | "rechazado" | "vencido";
-
-export interface Pedido {
-  codigo: string;
-  userId: string;
-  paquete: string;
-  metodo: Metodo;
-  usd: number;
-  clp: number;
-  monedas: number;
-  estado: EstadoPedido;
-  creadoAt: number;
-  avisadoAt: number | null;
-  registroId: string | null;
-}
+export type Bolsillo = "monedas" | "ecos";
+/** Columna del monedero de cada bolsillo (las Shaulitas viven en `ganadas`). */
+const COLUMNA: Record<Bolsillo, "ganadas" | "ecos"> = { monedas: "ganadas", ecos: "ecos" };
 
 export interface SobreResult {
   objetos: { objeto: Objeto; nuevo: boolean; ecos: number }[];
@@ -93,6 +81,11 @@ export interface CoinServiceDeps {
 const FUNDADOR_OBJETOS = ["noche-de-estreno", "estrella-fundadora", "insignia-fundador", "titulo-fundador"];
 const GRATIS_COL = { comun: "gratis", raro: "gratis_raro", legendario: "gratis_leg" } as const satisfies Record<TipoSobre, keyof WalletRow>;
 const DAY_MS = 86_400_000;
+
+/** Precio con un descuento en % (redondeado hacia abajo, nunca menos de 1). */
+export function conDescuento(precio: number, descuento: number): number {
+  return descuento > 0 ? Math.max(1, Math.floor((precio * (100 - descuento)) / 100)) : precio;
+}
 
 interface WalletRow {
   ganadas: number;
@@ -144,14 +137,19 @@ export class CoinService {
   private add(userId: string, bolsillo: Bolsillo, cantidad: number, motivo: string): void {
     if (!cantidad) return;
     this.row(userId);
-    this.d.db.prepare(`UPDATE monedero SET ${bolsillo} = MAX(0, ${bolsillo} + ?) WHERE user_id = ?`).run(cantidad, userId);
-    this.d.db.prepare("INSERT INTO movimientos (user_id, bolsillo, cantidad, motivo, at) VALUES (?, ?, ?, ?, ?)").run(userId, bolsillo, cantidad, motivo, this.now());
+    const col = COLUMNA[bolsillo];
+    this.d.db.prepare(`UPDATE monedero SET ${col} = MAX(0, ${col} + ?) WHERE user_id = ?`).run(cantidad, userId);
+    this.d.db.prepare("INSERT INTO movimientos (user_id, bolsillo, cantidad, motivo, at) VALUES (?, ?, ?, ?, ?)").run(userId, col, cantidad, motivo, this.now());
+    if (bolsillo === "monedas" && cantidad > 0) this.onGain?.(userId, cantidad, motivo);
   }
+
+  /** Entraron Shaulitas (el anfitrión de los 7 pecados las comenta, src/pecados/comentarista.ts). No debe lanzar. */
+  onGain?: (userId: string, cantidad: number, motivo: string) => void;
 
   wallet(userId: string): Wallet {
     const r = this.row(userId);
     const hoy = (this.d.db.prepare("SELECT ganadas FROM monedas_dia WHERE user_id = ? AND day = ?").get(userId, this.day()) as { ganadas: number } | undefined)?.ganadas ?? 0;
-    return { ganadas: r.ganadas, compradas: r.compradas, ecos: r.ecos, gratis: r.gratis, gratisRaro: r.gratis_raro, gratisLeg: r.gratis_leg, sobres: r.sobres, sinEpica: r.sin_epica, sinLegendaria: r.sin_leg, hoy };
+    return { monedas: r.ganadas, ecos: r.ecos, gratis: r.gratis, gratisRaro: r.gratis_raro, gratisLeg: r.gratis_leg, sobres: r.sobres, sinEpica: r.sin_epica, sinLegendaria: r.sin_leg, hoy };
   }
 
   // ───────────────────────── ganar ─────────────────────────
@@ -214,7 +212,7 @@ export class CoinService {
         if (prev === undefined && target === 0) continue;
         const delta = target - (prev ?? 0);
         if (!delta) continue;
-        this.add(userId, "ganadas", delta, delta > 0 ? `participación ${day}` : `machetazo ${day}`);
+        this.add(userId, "monedas", delta, delta > 0 ? `participación ${day}` : `machetazo ${day}`);
         this.d.db.prepare("INSERT INTO monedas_dia (user_id, day, ganadas) VALUES (?, ?, ?) ON CONFLICT(user_id, day) DO UPDATE SET ganadas = excluded.ganadas").run(userId, day, target);
       }
       this.weeklySobre(userId, today);
@@ -236,7 +234,7 @@ export class CoinService {
   onLevelChange(change: LevelChange): number {
     if (!this.d.settings.activo) return 0;
     const bonus = levelBonus(this.d.settings, change.from, change.to, !!change.rankUp);
-    if (bonus > 0) this.add(change.userId, "ganadas", bonus, `nivel ${change.to}`);
+    if (bonus > 0) this.add(change.userId, "monedas", bonus, `nivel ${change.to}`);
     return bonus;
   }
 
@@ -255,19 +253,17 @@ export class CoinService {
     return vitrinaOn(this.schedule, this.day(t));
   }
 
-  /** Compra en la vitrina de hoy: primero con compradas; los renders, solo con ganadas. */
-  buy(userId: string, objetoId: string): { ok: true; pago: { compradas: number; ganadas: number }; wallet: Wallet } | Fail {
+  /** Compra en la vitrina de hoy (a precio de tienda, con el descuento de su membresía: `descuento` en %). */
+  buy(userId: string, objetoId: string, descuento = 0): { ok: true; pago: number; wallet: Wallet } | Fail {
     const o = this.byId.get(objetoId);
     const precio = o ? priceOf(this.d.settings, o) : null;
     if (!o || precio === null) return { ok: false, motivo: "Ese objeto no se vende." };
     if (!this.vitrina()?.objetos.includes(o.id)) return { ok: false, motivo: "Ese objeto ya no está en la vitrina." };
     return transaction(this.d.db, () => {
       if (this.owned(userId).has(o.id)) return { ok: false as const, motivo: "Ya lo tienes." };
-      const w = this.wallet(userId);
-      const pago = paySplit(precio, w, o.origen === "render");
-      if (!pago) return { ok: false as const, motivo: o.origen === "render" ? "no_alcanza_ganadas" : "no_alcanza" };
-      this.add(userId, "compradas", -pago.compradas, `compra ${o.id}`);
-      this.add(userId, "ganadas", -pago.ganadas, `compra ${o.id}`);
+      const pago = conDescuento(precio, descuento);
+      if (this.row(userId).ganadas < pago) return { ok: false as const, motivo: "no_alcanza" };
+      this.add(userId, "monedas", -pago, `compra ${o.id}`);
       this.give(userId, o.id, "tienda");
       return { ok: true as const, pago, wallet: this.wallet(userId) };
     });
@@ -310,8 +306,8 @@ export class CoinService {
   }
 
   /**
-   * Abre un sobre: gratis (si tiene) o con ganadas, al precio de su clase (config/monedas.json -> sobre.tipos; una
-   * clase sin precio solo se regala). Las compradas nunca abren sobres. Los repetidos se vuelven Ecos.
+   * Abre un sobre: gratis (si tiene) o con Shaulitas, al precio de su clase (config/monedas.json -> sobre.tipos; una
+   * clase sin precio solo se regala). Los repetidos se vuelven Ecos.
    */
   openSobre(userId: string, gratis: boolean, tipo: TipoSobre = "comun"): SobreResult | Fail {
     if (!this.d.settings.activo) return { ok: false, motivo: "La tienda está cerrada." };
@@ -321,12 +317,12 @@ export class CoinService {
       const r = this.row(userId);
       const col = GRATIS_COL[tipo];
       if (gratis ? r[col] < 1 : r.ganadas < precio!) return { ok: false as const, motivo: gratis ? "No tienes sobres gratis." : "no_alcanza" };
-      const pool = sobrePool(this.d.catalog, this.d.settings.temporada.id, this.day());
+      const pool = sobrePool(this.d.catalog, temporadasActivas(this.d.settings, this.day()), this.day());
       // Helado de Kaito: si le queda uno, este sobre trae objetos de más (y se gasta).
       const helado = this.d.helado && this.d.helado.usos(userId) > 0 && this.d.helado.consume(userId) ? this.d.helado.extra : 0;
       const rolled = rollSobre(this.d.settings, pool, { sinEpica: r.sin_epica, sinLegendaria: r.sin_leg }, this.rnd, tipo, helado);
       if (gratis) this.d.db.prepare(`UPDATE monedero SET ${col} = ${col} - 1 WHERE user_id = ?`).run(userId);
-      else this.add(userId, "ganadas", -precio!, tipo === "comun" ? "sobre" : `sobre ${tipo}`);
+      else this.add(userId, "monedas", -precio!, tipo === "comun" ? "sobre" : `sobre ${tipo}`);
       this.d.db.prepare("UPDATE monedero SET sobres = sobres + 1, sin_epica = ?, sin_leg = ? WHERE user_id = ?").run(rolled.pity.sinEpica, rolled.pity.sinLegendaria, userId);
       let ecos = 0;
       const objetos = rolled.objetos.map((objeto) => {
@@ -337,6 +333,78 @@ export class CoinService {
       });
       this.add(userId, "ecos", ecos, "repetidos");
       return { objetos, ecos, gratis, tipo, helado, wallet: this.wallet(userId) };
+    });
+  }
+
+  // ───────────────────────── sobres temáticos (al azar dentro de un tema) ─────────────────────────
+
+  /**
+   * Objetos que puede traer un sobre temático ese día: los de ese tema de todas las temporadas (renders incluidos; se
+   * ganan jugando o con Shaulitas), sin regalos, contrabando ni limitados fuera de su fecha.
+   */
+  poolTematico(tema: string, day = this.day()): Objeto[] {
+    return this.d.catalog.filter((o) => /^t\d+$/.test(o.temporada) && !RAREZAS_REGALO.includes(o.rareza) && availableOn(o, day) && enTema(o, tema));
+  }
+
+  /** Temas que se ofrecen para un sobre temático (con al menos `tematico.minimo` objetos). */
+  temasTematicos(day = this.day()): Tema[] {
+    return temasDe(this.poolTematico("todo", day), this.d.settings.sobre.tematico?.minimo ?? 5, false);
+  }
+
+  /** Regala un sobre temático (ganar una boda: el de esa Vocaloid). */
+  darTematico(userId: string, tema: string, origen: string): void {
+    this.d.db.prepare("INSERT INTO sobres_tematicos (user_id, tema, origen, creado_at) VALUES (?, ?, ?, ?)").run(userId, tema, origen, this.now());
+  }
+
+  /** Ganar una boda: un sobre temático de esa Vocaloid (si tiene objetos). Devuelve «Sobre de Teto» o null. */
+  regalarTematicoDe(userId: string, personaje: string): string | null {
+    const tema = `p:${personaje}`;
+    if (!this.d.settings.sobre.tematico || !this.poolTematico(tema).length) return null;
+    this.darTematico(userId, tema, "boda");
+    return `Sobre de ${nombreTema(tema).nombre}`;
+  }
+
+  /** Sobres temáticos regalados por abrir. */
+  tematicosPendientes(userId: string): { id: number; tema: string; origen: string }[] {
+    return this.d.db.prepare("SELECT id, tema, origen FROM sobres_tematicos WHERE user_id = ? AND abierto_at IS NULL ORDER BY id").all(userId) as { id: number; tema: string; origen: string }[];
+  }
+
+  /**
+   * Abre un sobre temático (como el común, pero solo con objetos del tema): `pago` = se compra a `tematico.precio`;
+   * `regalado` = uno común regalado + `tematico.ecos` Ecos; un número = el temático regalado con ese id (su tema manda).
+   */
+  openTematico(userId: string, tema: string, modo: "pago" | "regalado" | number): (SobreResult & { tema: string }) | Fail {
+    const t = this.d.settings.sobre.tematico;
+    if (!this.d.settings.activo || !t) return { ok: false, motivo: "La tienda está cerrada." };
+    return transaction(this.d.db, () => {
+      const r = this.row(userId);
+      let elTema = tema;
+      if (typeof modo === "number") {
+        const s = this.d.db.prepare("SELECT tema FROM sobres_tematicos WHERE id = ? AND user_id = ? AND abierto_at IS NULL").get(modo, userId) as { tema: string } | undefined;
+        if (!s) return { ok: false as const, motivo: "Ese sobre ya no está." };
+        elTema = s.tema;
+      } else if (modo === "pago" && r.ganadas < t.precio) return { ok: false as const, motivo: "no_alcanza" };
+      else if (modo === "regalado" && (r.gratis < 1 || r.ecos < t.ecos)) return { ok: false as const, motivo: r.gratis < 1 ? "No tienes sobres comunes regalados." : "no_alcanza_ecos" };
+      const pool = this.poolTematico(elTema);
+      if (!pool.length) return { ok: false as const, motivo: "Ese tema no tiene objetos ahora." };
+      const helado = this.d.helado && this.d.helado.usos(userId) > 0 && this.d.helado.consume(userId) ? this.d.helado.extra : 0;
+      const rolled = rollSobre(this.d.settings, pool, { sinEpica: r.sin_epica, sinLegendaria: r.sin_leg }, this.rnd, "comun", helado);
+      if (typeof modo === "number") this.d.db.prepare("UPDATE sobres_tematicos SET abierto_at = ? WHERE id = ?").run(this.now(), modo);
+      else if (modo === "pago") this.add(userId, "monedas", -t.precio, `sobre temático ${elTema}`);
+      else {
+        this.d.db.prepare("UPDATE monedero SET gratis = gratis - 1 WHERE user_id = ?").run(userId);
+        this.add(userId, "ecos", -t.ecos, `sobre temático ${elTema}`);
+      }
+      this.d.db.prepare("UPDATE monedero SET sobres = sobres + 1, sin_epica = ?, sin_leg = ? WHERE user_id = ?").run(rolled.pity.sinEpica, rolled.pity.sinLegendaria, userId);
+      let ecos = 0;
+      const objetos = rolled.objetos.map((objeto) => {
+        const nuevo = this.give(userId, objeto.id, "sobre temático");
+        const e = nuevo ? 0 : ecosFor(this.d.settings, objeto.rareza);
+        ecos += e;
+        return { objeto, nuevo, ecos: e };
+      });
+      this.add(userId, "ecos", ecos, "repetidos");
+      return { objetos, ecos, gratis: modo !== "pago", tipo: "comun" as const, helado, tema: elTema, wallet: this.wallet(userId) };
     });
   }
 
@@ -356,7 +424,7 @@ export class CoinService {
 
   // ───────────────────────── equipar ─────────────────────────
 
-  /** Lo equipado: una ranura por tipo, y hasta tres insignias (insignia1..3). */
+  /** Lo equipado: una ranura por tipo, y hasta tres insignias (insignia1..3; cuatro con membresía Baguette o más). */
   equipped(userId: string): Map<string, Objeto> {
     const rows = this.d.db.prepare("SELECT ranura, objeto_id FROM equipado WHERE user_id = ?").all(userId) as { ranura: string; objeto_id: string }[];
     const out = new Map<string, Objeto>();
@@ -367,15 +435,15 @@ export class CoinService {
     return out;
   }
 
-  /** Equipa (o quita, con null) el objeto de un tipo. Para insignias, la lista completa (hasta 3). */
-  equip(userId: string, tipo: Tipo, ids: string[] | null): Fail | { ok: true } {
+  /** Equipa (o quita, con null) el objeto de un tipo. Para insignias, la lista completa (hasta `maxInsignias`). */
+  equip(userId: string, tipo: Tipo, ids: string[] | null, maxInsignias = 3): Fail | { ok: true } {
     const own = this.owned(userId);
     const list = (ids ?? []).filter((id) => own.has(id) && this.byId.get(id)?.tipo === tipo);
     if (ids && ids.length && !list.length) return { ok: false, motivo: "No tienes ese objeto." };
     transaction(this.d.db, () => {
       if (tipo === "insignia") {
         this.d.db.prepare("DELETE FROM equipado WHERE user_id = ? AND ranura LIKE 'insignia%'").run(userId);
-        list.slice(0, 3).forEach((id, i) => this.d.db.prepare("INSERT INTO equipado (user_id, ranura, objeto_id) VALUES (?, ?, ?)").run(userId, `insignia${i + 1}`, id));
+        list.slice(0, maxInsignias).forEach((id, i) => this.d.db.prepare("INSERT INTO equipado (user_id, ranura, objeto_id) VALUES (?, ?, ?)").run(userId, `insignia${i + 1}`, id));
       } else {
         this.d.db.prepare("DELETE FROM equipado WHERE user_id = ? AND ranura = ?").run(userId, tipo);
         if (list[0]) this.d.db.prepare("INSERT INTO equipado (user_id, ranura, objeto_id) VALUES (?, ?, ?)").run(userId, tipo, list[0]);
@@ -384,135 +452,24 @@ export class CoinService {
     return { ok: true };
   }
 
-  // ───────────────────────── pedidos de monedas ─────────────────────────
-
-  /** ¿Puede comprar ese monto? (bloqueado por GyroP o pasaría su límite del mes). */
-  canPurchase(userId: string, usd: number): Fail | { ok: true } {
-    const c = this.d.db.prepare("SELECT limite_usd, bloqueado FROM compras_control WHERE user_id = ?").get(userId) as { limite_usd: number | null; bloqueado: number } | undefined;
-    if (c?.bloqueado) return { ok: false, motivo: "bloqueado" };
-    if (c?.limite_usd != null && this.spentThisMonth(userId) + usd > c.limite_usd) return { ok: false, motivo: "limite" };
-    return { ok: true };
-  }
-
-  /** USD pagados (confirmados) desde el día 1 del mes. */
-  spentThisMonth(userId: string): number {
-    const from = Date.parse(`${this.day().slice(0, 7)}-01T00:00:00Z`) - DAY_MS;
-    return (this.d.db.prepare("SELECT COALESCE(SUM(usd), 0) AS s FROM pedidos_monedas WHERE user_id = ? AND estado = 'pagado' AND resuelto_at >= ?").get(userId, from) as { s: number }).s;
-  }
-
-  createOrder(userId: string, paqueteId: string, metodo: Metodo): Pedido | Fail {
-    const p = this.d.settings.paquetes.find((x) => x.id === paqueteId);
-    if (!p) return { ok: false, motivo: "Ese paquete no existe." };
-    const can = this.canPurchase(userId, p.usd);
-    if (!can.ok) return can;
-    let codigo = orderCode(this.rnd);
-    while (this.order(codigo)) codigo = orderCode(this.rnd);
-    this.d.db
-      .prepare("INSERT INTO pedidos_monedas (codigo, user_id, paquete, metodo, usd, clp, monedas, estado, creado_at) VALUES (?, ?, ?, ?, ?, ?, ?, 'pendiente', ?)")
-      .run(codigo, userId, p.id, metodo, p.usd, p.clp, p.monedas, this.now());
-    return this.order(codigo)!;
-  }
-
-  order(codigo: string): Pedido | null {
-    const r = this.d.db.prepare("SELECT * FROM pedidos_monedas WHERE codigo = ?").get(codigo) as Record<string, unknown> | undefined;
-    if (!r) return null;
-    return {
-      codigo: r.codigo as string,
-      userId: r.user_id as string,
-      paquete: r.paquete as string,
-      metodo: r.metodo as Metodo,
-      usd: r.usd as number,
-      clp: r.clp as number,
-      monedas: r.monedas as number,
-      estado: r.estado as EstadoPedido,
-      creadoAt: r.creado_at as number,
-      avisadoAt: (r.avisado_at as number | null) ?? null,
-      registroId: (r.registro_id as string | null) ?? null,
-    };
-  }
-
-  /** El Papu tocó «Ya pagué»: queda esperando que GyroP confirme. */
-  markNotified(codigo: string, registroId: string | null): Pedido | null {
-    this.d.db.prepare("UPDATE pedidos_monedas SET estado = 'avisado', avisado_at = ?, registro_id = COALESCE(?, registro_id) WHERE codigo = ? AND estado IN ('pendiente', 'avisado')").run(this.now(), registroId, codigo);
-    return this.order(codigo);
-  }
-
-  /** GyroP confirma que llegó: las monedas van al bolsillo de compradas (una sola vez). */
-  confirmOrder(codigo: string): Pedido | null {
-    return transaction(this.d.db, () => {
-      const p = this.order(codigo);
-      if (!p || p.estado === "pagado" || p.estado === "rechazado") return p;
-      this.d.db.prepare("UPDATE pedidos_monedas SET estado = 'pagado', resuelto_at = ? WHERE codigo = ?").run(this.now(), codigo);
-      this.add(p.userId, "compradas", p.monedas, `pedido ${codigo}`);
-      return this.order(codigo);
-    });
-  }
-
-  rejectOrder(codigo: string): Pedido | null {
-    this.d.db.prepare("UPDATE pedidos_monedas SET estado = 'rechazado', resuelto_at = ? WHERE codigo = ? AND estado IN ('pendiente', 'avisado')").run(this.now(), codigo);
-    return this.order(codigo);
-  }
-
-  /** Devuelve un pedido pagado: quita esas monedas (o las que queden). La devolución del dinero la hace GyroP en PayPal o su banco. */
-  refundOrder(codigo: string): Pedido | null {
-    return transaction(this.d.db, () => {
-      const p = this.order(codigo);
-      if (!p || p.estado !== "pagado") return p;
-      this.d.db.prepare("UPDATE pedidos_monedas SET estado = 'rechazado', resuelto_at = ? WHERE codigo = ?").run(this.now(), codigo);
-      this.add(p.userId, "compradas", -p.monedas, `devolución ${codigo}`);
-      return this.order(codigo);
-    });
-  }
-
-  /** Pedidos sin confirmar más viejos que `venceDias`: vencen. Devuelve los vencidos. */
-  expireOrders(): Pedido[] {
-    const limit = this.now() - this.d.settings.pagos.venceDias * DAY_MS;
-    const rows = this.d.db.prepare("SELECT codigo FROM pedidos_monedas WHERE estado IN ('pendiente', 'avisado') AND creado_at < ?").all(limit) as { codigo: string }[];
-    this.d.db.prepare("UPDATE pedidos_monedas SET estado = 'vencido', resuelto_at = ? WHERE estado IN ('pendiente', 'avisado') AND creado_at < ?").run(this.now(), limit);
-    return rows.map((r) => this.order(r.codigo)!);
-  }
-
-  /** Compras pagadas del mes por Papu (para /monedas panel), de más a menos. */
-  monthBuyers(): { userId: string; usd: number; compras: number; limite: number | null; bloqueado: boolean }[] {
-    const from = Date.parse(`${this.day().slice(0, 7)}-01T00:00:00Z`) - DAY_MS;
-    const rows = this.d.db
-      .prepare(
-        `SELECT p.user_id AS u, SUM(p.usd) AS usd, COUNT(*) AS n, c.limite_usd AS lim, COALESCE(c.bloqueado, 0) AS b FROM pedidos_monedas p
-         LEFT JOIN compras_control c ON c.user_id = p.user_id WHERE p.estado = 'pagado' AND p.resuelto_at >= ? GROUP BY p.user_id ORDER BY usd DESC`,
-      )
-      .all(from) as { u: string; usd: number; n: number; lim: number | null; b: number }[];
-    return rows.map((r) => ({ userId: r.u, usd: r.usd, compras: r.n, limite: r.lim, bloqueado: !!r.b }));
-  }
-
-  setLimit(userId: string, usd: number | null): void {
-    this.d.db.prepare("INSERT INTO compras_control (user_id, limite_usd) VALUES (?, ?) ON CONFLICT(user_id) DO UPDATE SET limite_usd = excluded.limite_usd").run(userId, usd);
-  }
-
-  setBlocked(userId: string, on: boolean): void {
-    this.d.db.prepare("INSERT INTO compras_control (user_id, bloqueado) VALUES (?, ?) ON CONFLICT(user_id) DO UPDATE SET bloqueado = excluded.bloqueado").run(userId, on ? 1 : 0);
-  }
-
-  /**
-   * Cobra `cantidad` de las monedas GANADAS (las apuestas del 1vs1: nunca las compradas, PLAN §3.7). Devuelve null si no
-   * le alcanza (y entonces no cobra nada).
-   */
-  spendGanadas(userId: string, cantidad: number, motivo: string): Wallet | null {
+  /** Cobra `cantidad` Shaulitas (apuestas, mercado negro). Devuelve null si no le alcanza (y entonces no cobra nada). */
+  spend(userId: string, cantidad: number, motivo: string): Wallet | null {
     return transaction(this.d.db, () => {
       if (this.row(userId).ganadas < cantidad) return null;
-      this.add(userId, "ganadas", -cantidad, motivo);
+      this.add(userId, "monedas", -cantidad, motivo);
       return this.wallet(userId);
     });
   }
 
   // ───────────────────────── intercambios (src/intercambios/) ─────────────────────────
 
-  /** Pasa monedas de un bolsillo de un Papu al mismo bolsillo de otro. False si no le alcanzan (y no mueve nada). */
-  transfer(fromId: string, toId: string, bolsillo: "ganadas" | "compradas", cantidad: number, motivo: string): boolean {
+  /** Pasa Shaulitas de un Papu a otro. False si no le alcanzan (y no mueve nada). */
+  transfer(fromId: string, toId: string, cantidad: number, motivo: string): boolean {
     if (cantidad <= 0) return true;
     return transaction(this.d.db, () => {
-      if (this.row(fromId)[bolsillo] < cantidad) return false;
-      this.add(fromId, bolsillo, -cantidad, motivo);
-      this.add(toId, bolsillo, cantidad, motivo);
+      if (this.row(fromId).ganadas < cantidad) return false;
+      this.add(fromId, "monedas", -cantidad, motivo);
+      this.add(toId, "monedas", cantidad, motivo);
       return true;
     });
   }
@@ -552,17 +509,6 @@ export class CoinService {
 
   // ───────────────────────── regalos ─────────────────────────
 
-  /** Regalo de membresía (en compradas): al tener el rol y luego cada 30 días. Devuelve lo regalado (0 si nada). */
-  membership(userId: string, roleNames: string[], t = this.now()): { rol: string; monedas: number } | null {
-    const gift = membershipGift(this.d.settings, roleNames);
-    if (!gift) return null;
-    const r = this.row(userId);
-    if (r.membresia_at != null && t - r.membresia_at < 30 * DAY_MS) return null;
-    this.d.db.prepare("UPDATE monedero SET membresia_at = ? WHERE user_id = ?").run(t, userId);
-    this.add(userId, "compradas", gift.monedas, `membresía ${gift.rol}`);
-    return gift;
-  }
-
   /**
    * Insignias de membresía (pedido de GyroP, 31 oct. 2026): la de cada rol de Ko-fi que tenga, para siempre (aunque
    * después deje la membresía). Si tiene un lugar libre, se la pone. Devuelve las que recibió ahora.
@@ -577,6 +523,18 @@ export class CoinService {
     return nuevas.map((id) => this.byId.get(id)!);
   }
 
+  /**
+   * Insignia de regalo (la del pastel de cumpleaños, 18 nov. 2026): para siempre; si tiene un lugar libre, se la pone.
+   * Devuelve el objeto si la recibió ahora (null si ya la tenía o no existe).
+   */
+  giftBadge(userId: string, objetoId: string, origen: string): Objeto | null {
+    const o = this.byId.get(objetoId);
+    if (!o || o.tipo !== "insignia" || !this.give(userId, objetoId, origen)) return null;
+    const puestas = [...this.equipped(userId).entries()].filter(([k]) => k.startsWith("insignia")).map(([, x]) => x.id);
+    if (puestas.length < 3) this.equip(userId, "insignia", [...puestas, objetoId]);
+    return o;
+  }
+
   /** Número de fundador (null si no es fundador). */
   founderNumber(userId: string): number | null {
     return this.d.settings.fundadores.find((f) => f.id === userId)?.numero ?? null;
@@ -589,6 +547,16 @@ export class CoinService {
       let any = false;
       for (const id of FUNDADOR_OBJETOS) if (this.byId.has(id) && this.give(f.id, id, "fundador")) any = true;
       if (any) out.push(f.id);
+    }
+    return out;
+  }
+
+  /** Entrega los regalos exclusivos de GyroP (config/monedas.json "exclusivos") a quien le falten. */
+  grantExclusivos(): { userId: string; objeto: Objeto }[] {
+    const out: { userId: string; objeto: Objeto }[] = [];
+    for (const e of this.d.settings.exclusivos ?? []) {
+      const o = this.byId.get(e.objeto);
+      if (o && this.give(e.id, o.id, "exclusivo")) out.push({ userId: e.id, objeto: o });
     }
     return out;
   }

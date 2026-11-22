@@ -19,7 +19,9 @@ import {
   type SendableChannels,
   type StringSelectMenuInteraction,
 } from "discord.js";
+import type { AmbientEvent } from "../ambiente/service";
 import type { BotId } from "../config";
+import { stripNickTag } from "../levels/rules";
 import { logError, type LogFn } from "../log";
 import type { Phrases } from "../phrases/catalog";
 import { renderFigure } from "../trivia/images";
@@ -81,6 +83,8 @@ type Answerable = ChatInputCommandInteraction | ButtonInteraction | ModalSubmitI
 type Payload = { content: string; components: ActionRowBuilder<ButtonBuilder>[]; files: AttachmentBuilder[]; attachments: [] };
 
 export interface TriviaDiscordDeps {
+  /** Ambiente casual (PLAN §3.13): un Vocaloid comenta una racha larga en #general. */
+  ambient?: (e: AmbientEvent) => void;
   trivia: TriviaService;
   levelsDiscord: LevelsDiscord;
   phrases: Phrases;
@@ -145,7 +149,7 @@ export class TriviaDiscord {
         return [`${this.counter(userId, l)} · premio: ${PREMIO[s.dificultades[l].premio]}${progress[l].prize ? " (¡ganado!)" : ""}`, ...(hito ? [`-# ${hito}`] : [])];
       }),
       "",
-      `-# Una pregunta acertada queda superada para siempre. Supera todas las de una dificultad y Teto te regala su sobre para la tienda de Shaula-coins (/tienda). Además, cada tantos aciertos${solo} ganas el sobre de su hito, una y otra vez. Las partidas con XP del día son las mismas para las tres.`,
+      `-# Una pregunta acertada queda superada para siempre. Supera todas las de una dificultad y Teto te regala su sobre para la tienda de Shaulitas (/tienda). Además, cada tantos aciertos${solo} ganas el sobre de su hito, una y otra vez. Las partidas con XP del día son las mismas para las tres.`,
     ].join("\n");
     const buttons = DIFICULTADES.map((l) =>
       new ButtonBuilder().setCustomId(`${LEVEL}${l}`).setLabel(s.dificultades[l].nombre).setEmoji(s.dificultades[l].emoji).setStyle(l === "facil" ? ButtonStyle.Success : l === "medio" ? ButtonStyle.Primary : ButtonStyle.Danger),
@@ -555,6 +559,18 @@ export class TriviaDiscord {
     const how = end.reason === "tiempo" ? "se le acabó el tiempo" : end.reason === "error" ? "falló una" : "¡no le quedaban preguntas!";
     await ch.send({ content: `${text}${extra}\n-# 🧠 /trivia ${d.emoji} ${d.nombre} · ${how} · mejor racha: ${end.best}`, allowedMentions: { users: [end.userId] } });
     this.d.log(`🧠 Trivia: racha de ${end.streak} (+${end.xp} XP, ${end.reason}) de ${end.userId}`);
+    if (this.d.ambient && end.streak > 0) {
+      const member = await this.d.guild().members.fetch(end.userId).catch(() => null);
+      const name = member ? stripNickTag(member.displayName) : null;
+      if (name)
+        this.d.ambient({
+          tipo: "trivia",
+          situacion: `${name} acaba de hacer una racha de ${end.streak} respuestas seguidas en la trivia de los Papus${end.record ? " (su mejor racha)" : ""}, en dificultad ${d.nombre}.`,
+          bots: [],
+          comenta: "otro",
+          racha: end.streak,
+        });
+    }
   }
 
   /**

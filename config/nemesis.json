@@ -1,0 +1,36 @@
+{
+  "$comment": "Ruleta de Némesis (pedido de GyroP, 12 nov. 2026; docs/PLAN.md §3.12). Un Papu desafía a otro con /nemesis; si acepta, los dos ponen la misma apuesta de Shaulitas (se ganan jugando; ya no se venden, PLAN §3.6) y se turnan para jalar el gatillo de un revólver con una sola bala. El que sobrevive se lleva las dos apuestas, menos la tajada de Némesis. No da XP ni cuota (regla 1). Cambiar algo aquí no requiere tocar código; se aplica al reiniciar.",
+  "activo": true,
+
+  "$canal": "Teto publica el desafío y la partida en el canal donde se usa /nemesis (pedido de GyroP, 12 nov. 2026). Solo si Teto no puede escribir ahí, en 'canal' (y si no existe, en 'respaldo').",
+  "canal": "casino",
+  "respaldo": "general",
+
+  "$apuesta": "Shaulitas que pone cada uno (las dos iguales). tajada = parte de la apuesta del perdedor que se queda Némesis (0,2 = 20 %): el ganador recibe su apuesta + el 80 % de la del otro. Esa tajada sale de circulación, como el margen del 1vs1.",
+  "apuesta": { "minima": 10, "maxima": 1000 },
+  "tajada": 0.2,
+
+  "$revolver": "recamaras = balas que caben en el tambor (una sola cargada): la partida dura como mucho 'recamaras' turnos. Quién empieza y dónde está la bala salen al azar al aceptar; los dos tienen la misma probabilidad de ganar.",
+  "recamaras": 6,
+
+  "$tiempos": "aceptarMinutos = cuánto espera el desafío (si no acepta, se devuelve la apuesta del retador). turnoSegundos = tiempo para jalar el gatillo con el botón; si no lo hace, Némesis jala por él. pausaMs = espera tras cada disparo antes del turno siguiente (deja ver el GIF).",
+  "aceptarMinutos": 3,
+  "turnoSegundos": 30,
+  "pausaMs": 3500,
+
+  "$bots": "Desafíos de los Vocaloids (pedido de GyroP, 14 nov. 2026): a veces, entre las horas 'desde' y 'hasta' (zona de la cuota), un Vocaloid al azar desafía a un Papu que escribió en los últimos 'activoMinutos' y al que le alcanza la apuesta. Como mucho 'porDia' al día, con 'esperaMinutos' entre uno y otro, y a un mismo Papu una vez cada 'esperaPapuHoras'. Se publica en 'canal' (si no existe, en 'respaldo'). Apuesta: 'apuestaInicial'; cada vez que gana el Vocaloid se multiplica por 'subida' para el siguiente Papu (hasta apuesta.maxima) y cuando pierde vuelve a 'apuestaInicial'. Los rechazos y los que no aceptan no la cambian. La casa no pone Shaulitas: si gana, la apuesta del Papu sale de circulación; si gana el Papu, recibe su apuesta + el 80 % (la tajada sigue). El Vocaloid jala su gatillo solo a los 'botSegundos'.",
+  "bots": {
+    "activo": true,
+    "porDia": 3,
+    "desde": 12,
+    "hasta": 23,
+    "esperaMinutos": 90,
+    "activoMinutos": 30,
+    "esperaPapuHoras": 24,
+    "apuestaInicial": 100,
+    "subida": 2,
+    "botSegundos": 4,
+    "canal": "general",
+    "respaldo": "casino"
+  }
+}

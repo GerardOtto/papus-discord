@@ -32,11 +32,13 @@ export interface Oferta {
   cerradoAt: number | null;
   canal: string | null;
   mensaje: string | null;
+  /** Oferta de un Vocaloid (su id): `de` es el id de Discord de su bot; no se contraoferta y lo pagado sale de circulación. */
+  casa: string | null;
 }
 
 /** Por qué un Papu no tiene lo de su lado (o el otro no puede recibirlo). */
 export type Falta =
-  | { que: "ganadas" | "compradas" | "xp" | "cuota"; tiene: number; pide: number }
+  | { que: "monedas" | "xp" | "cuota"; tiene: number; pide: number }
   | { que: "niveles"; tiene: number; pide: number }
   | { que: "sobre"; tipo: string; tiene: number; pide: number }
   | { que: "objeto"; id: string }
@@ -81,6 +83,7 @@ interface Row {
   cerrado_at: number | null;
   canal: string | null;
   mensaje: string | null;
+  casa: string | null;
 }
 
 const toOferta = (r: Row): Oferta => ({
@@ -97,6 +100,7 @@ const toOferta = (r: Row): Oferta => ({
   cerradoAt: r.cerrado_at,
   canal: r.canal,
   mensaje: r.mensaje,
+  casa: r.casa ?? null,
 });
 
 export class IntercambioService {
@@ -127,6 +131,11 @@ export class IntercambioService {
     return (this.d.db.prepare("SELECT * FROM intercambios WHERE para = ? AND estado = 'abierta' ORDER BY id").all(userId) as unknown as Row[]).map(toOferta);
   }
 
+  /** Ofertas abiertas para cualquiera (sin destinatario), de otros Papus, las más nuevas primero. */
+  abiertasGlobales(menos: string, limite = 20): Oferta[] {
+    return (this.d.db.prepare("SELECT * FROM intercambios WHERE para IS NULL AND de != ? AND estado = 'abierta' ORDER BY id DESC LIMIT ?").all(menos, limite) as unknown as Row[]).map(toOferta);
+  }
+
   /** Guarda dónde quedó el anuncio de la oferta. */
   setMensaje(id: number, canal: string, mensaje: string): void {
     this.d.db.prepare("UPDATE intercambios SET canal = ?, mensaje = ? WHERE id = ?").run(canal, mensaje, id);
@@ -138,15 +147,15 @@ export class IntercambioService {
   faltaParaDar(userId: string, p: Paquete): Falta[] {
     const out: Falta[] = [];
     const w = this.d.coins.wallet(userId);
-    if (w.ganadas < p.ganadas) out.push({ que: "ganadas", tiene: w.ganadas, pide: p.ganadas });
-    if (w.compradas < p.compradas) out.push({ que: "compradas", tiene: w.compradas, pide: p.compradas });
+    if (w.monedas < p.monedas) out.push({ que: "monedas", tiene: w.monedas, pide: p.monedas });
     const xp = this.d.levels.store.get(userId).xp;
     const xpNiveles = this.d.levels.xpOfLevels(userId, p.niveles);
     if (xpNiveles === null) out.push({ que: "niveles", tiene: this.d.levels.level(userId).level - 1, pide: p.niveles });
     // XP y niveles salen de la misma XP: tiene que alcanzar para los dos.
     else if (xp < p.xp + xpNiveles) out.push({ que: "xp", tiene: Math.max(0, xp - xpNiveles), pide: p.xp });
     if (p.cuota > 0) {
-      const left = this.d.quota.remaining(userId, new Date(this.now()));
+      // Solo se da de la cuota diaria (lo donado por otros no se vuelve a regalar).
+      const left = this.d.quota.dailyLeft(userId, new Date(this.now()));
       if (!Number.isFinite(left)) out.push({ que: "sin_limite" });
       else if (left < p.cuota) out.push({ que: "cuota", tiene: left, pide: p.cuota });
     }
@@ -172,7 +181,8 @@ export class IntercambioService {
   faltaParaRecibir(userId: string, fromId: string, p: Paquete): Falta[] {
     const out: Falta[] = [];
     if (p.cuota > 0) {
-      const room = this.d.quota.room(userId, new Date(this.now()));
+      // Lo que llega por intercambio entra en cualquier espacio libre: el diario y el de donados (GyroP, 14 nov. 2026).
+      const room = this.d.quota.roomFor(userId, "cualquiera", new Date(this.now()));
       if (!Number.isFinite(this.d.quota.remaining(userId, new Date(this.now())))) out.push({ que: "sin_limite" });
       else if (room < p.cuota) out.push({ que: "cuota_llena", cabe: room, pide: p.cuota });
     }
@@ -204,7 +214,7 @@ export class IntercambioService {
     if (para === de) return { ok: false, motivo: "a_ti" };
     return transaction(this.d.db, () => {
       const p = padre !== null ? this.get(padre) : null;
-      if (padre !== null && (!p || p.estado !== "abierta" || p.venceAt <= this.now() || p.de === de || (p.para !== null && p.para !== de) || p.de !== para)) return { ok: false as const, motivo: "padre" as const };
+      if (padre !== null && (!p || p.casa || p.estado !== "abierta" || p.venceAt <= this.now() || p.de === de || (p.para !== null && p.para !== de) || p.de !== para)) return { ok: false as const, motivo: "padre" as const };
       if (this.abiertasDe(de).length >= this.d.settings.maxAbiertas) return { ok: false as const, motivo: "demasiadas" as const };
       const falta = this.faltaParaDar(de, da);
       if (falta.length) return { ok: false as const, motivo: { falta } };
@@ -223,6 +233,35 @@ export class IntercambioService {
 
   private cerrar(id: number, estado: Exclude<Estado, "abierta">, con: string | null = null): void {
     this.d.db.prepare("UPDATE intercambios SET estado = ?, con = COALESCE(?, con), cerrado_at = ? WHERE id = ? AND estado = 'abierta'").run(estado, con, this.now(), id);
+  }
+
+  // ───────────────────────── ofertas de los Vocaloids ─────────────────────────
+
+  /** Ofertas de los Vocaloids abiertas ahora. */
+  abiertasCasa(): Oferta[] {
+    return (this.d.db.prepare("SELECT * FROM intercambios WHERE casa IS NOT NULL AND estado = 'abierta' ORDER BY id").all() as unknown as Row[]).map(toOferta);
+  }
+
+  /** Ofertas de los Vocaloids creadas desde `since` (ms), las más nuevas primero. */
+  casaDesde(since: number): Oferta[] {
+    return (this.d.db.prepare("SELECT * FROM intercambios WHERE casa IS NOT NULL AND creado_at >= ? ORDER BY creado_at DESC").all(since) as unknown as Row[]).map(toOferta);
+  }
+
+  /**
+   * Un Vocaloid (`casa`, con el id de Discord de su bot en `botUserId`) ofrece objetos suyos por `precio` Shaulitas.
+   * Abierta para cualquier Papu, sin contraofertas; vence a las `casa.venceHoras` de la config.
+   */
+  crearCasa(casa: string, botUserId: string, objetos: string[], precio: number): Oferta {
+    const da = normalizar({ objetos });
+    const pide = normalizar({ monedas: precio });
+    if (estaVacio(da) || estaVacio(pide)) throw new Error("una oferta de un Vocaloid entrega un objeto y pide Shaulitas");
+    for (const id of objetos) if (!this.d.coins.byId.has(id)) throw new Error(`objeto desconocido: ${id}`);
+    const now = this.now();
+    const horas = this.d.settings.casa?.venceHoras ?? this.d.settings.venceHoras;
+    const r = this.d.db
+      .prepare("INSERT INTO intercambios (de, para, da, pide, casa, creado_at, vence_at) VALUES (?, NULL, ?, ?, ?, ?, ?)")
+      .run(botUserId, JSON.stringify(da), JSON.stringify(pide), casa, now, now + horas * 3_600_000);
+    return this.get(Number(r.lastInsertRowid))!;
   }
 
   /** Quien la hizo la retira (o GyroP). */
@@ -260,6 +299,8 @@ export class IntercambioService {
     if (o.para !== null && o.para !== by) return { ok: false, motivo: "no_es_para_ti" };
     const faltaTuyo = [...this.faltaParaDar(by, o.pide), ...this.faltaParaRecibir(by, o.de, o.da)];
     if (faltaTuyo.length) return { ok: false, motivo: { faltaTuyo } };
+    // Un Vocaloid siempre tiene lo suyo (el objeto sale del catálogo) y no recibe nada (las Shaulitas se van).
+    if (o.casa) return { ok: true, oferta: o };
     const faltaDe = [...this.faltaParaDar(o.de, o.da), ...this.faltaParaRecibir(o.de, by, o.pide)];
     if (faltaDe.length) return { ok: false, motivo: { faltaDe } };
     return { ok: true, oferta: o };
@@ -271,6 +312,13 @@ export class IntercambioService {
       const r = this.revisar(id, by);
       if (!r.ok) return r;
       const o = r.oferta;
+      if (o.casa) {
+        // Oferta de un Vocaloid: el Papu paga (sale de circulación) y recibe el objeto del catálogo.
+        if (o.pide.monedas > 0 && !this.d.coins.spend(by, o.pide.monedas, `oferta de ${o.casa} #${o.id}`)) throw new Error(`Oferta #${o.id}: no alcanzan las Shaulitas`);
+        for (const objeto of o.da.objetos) if (!this.d.coins.grant(by, objeto, `oferta de ${o.casa} #${o.id}`)) throw new Error(`Oferta #${o.id}: ya tenía ${objeto}`);
+        this.cerrar(o.id, "hecha", by);
+        return { ok: true as const, oferta: this.get(o.id)!, cambios: [] };
+      }
       const cambios = [...this.entregar(o.de, by, o.da, o.id), ...this.entregar(by, o.de, o.pide, o.id)];
       this.cerrar(o.id, "hecha", by);
       return { ok: true as const, oferta: this.get(o.id)!, cambios };
@@ -283,12 +331,11 @@ export class IntercambioService {
     const ok = (v: boolean, que: string) => {
       if (!v) throw new Error(`Intercambio #${id}: no se pudo mover ${que}`);
     };
-    ok(this.d.coins.transfer(fromId, toId, "ganadas", p.ganadas, motivo), "ganadas");
-    ok(this.d.coins.transfer(fromId, toId, "compradas", p.compradas, motivo), "compradas");
+    ok(this.d.coins.transfer(fromId, toId, p.monedas, motivo), "monedas");
     for (const t of TIPOS_SOBRE) ok(this.d.coins.transferSobres(fromId, toId, t, p.sobres[t]), `sobres ${t}`);
     for (const objeto of p.objetos) ok(this.d.coins.transferObjeto(fromId, toId, objeto, motivo), objeto);
     for (const [objeto, n] of Object.entries(p.consumibles)) ok(!!this.d.mercado?.transferUsos(fromId, toId, objeto, n), objeto);
-    if (p.cuota > 0) ok(this.d.quota.donate(fromId, toId, p.cuota, new Date(this.now())).ok, "cuota");
+    if (p.cuota > 0) ok(this.d.quota.donate(fromId, toId, p.cuota, new Date(this.now()), "cualquiera").ok, "cuota");
     const cambios: LevelChange[] = [];
     // Niveles: se cuentan con el nivel de antes de entregar XP suelta.
     const xp = p.xp + (this.d.levels.xpOfLevels(fromId, p.niveles) ?? 0);

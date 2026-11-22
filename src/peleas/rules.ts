@@ -27,6 +27,8 @@ export type Grupo = (typeof GRUPOS)[number];
 
 export interface Luchador {
   por: string;
+  /** Luchador Papu (💥 Triple Baka, PLAN §2): su id de Discord (npm run peleas:papu). */
+  papu?: string;
   /** Solo invitados (no son bots): nombre, color "#RRGGBB" y grupo. El avatar sale de assets/peleas/luchadores/<id>.png. */
   nombre?: string;
   color?: string;
@@ -50,6 +52,11 @@ export interface PeleaSettings {
   canal: string;
   respaldo: string;
   pelea: { lineaMs: number; maxTurnos: number; acciones: Record<Accion, number> };
+  /**
+   * 2 contra 2 (18 nov. 2026): parte de las peleas automáticas sale en equipos (`probabilidad`, 0 a 1) y su máximo de
+   * turnos. Sin esto, todas las automáticas son 1vs1 (con /pelea modo:2vs2 se lanzan igual, con el doble de turnos).
+   */
+  equipos?: { probabilidad: number; maxTurnos: number };
   luchadores: Record<FighterId, Luchador>;
 }
 
@@ -67,6 +74,7 @@ export function loadPeleaSettings(file = path.join(REPO_ROOT, "config/peleas.jso
       throw new Error(`config/peleas.json: zona "${s.zona}" no es una zona horaria (ej.: America/Mexico_City)`);
     }
   }
+  if (s.equipos && !(s.equipos.probabilidad >= 0 && s.equipos.probabilidad <= 1 && s.equipos.maxTurnos >= 3)) throw new Error("config/peleas.json: equipos.probabilidad va de 0 a 1 y equipos.maxTurnos >= 3");
   if (!(s.pelea.lineaMs >= 500) || !(s.pelea.maxTurnos >= 3)) throw new Error("config/peleas.json: pelea.lineaMs >= 500 y maxTurnos >= 3");
   if (ACCIONES.some((x) => !(s.pelea.acciones[x] >= 0)) || s.pelea.acciones.ataque <= 0) throw new Error("config/peleas.json: pelea.acciones necesita pesos (el ataque mayor que 0)");
   const ids = Object.keys(s.luchadores);
@@ -128,39 +136,54 @@ export const REFLEJO = 1 / 3;
 
 const hits = (l: Luchador, a: Accion) => a === "ataque" || (a === "especial" && !!l.movimientos.especial.dano);
 
+/** Lo que pasa en un intercambio entre dos luchadores (sin tocar la vida): acciones, daño, cura y esquivas. */
+interface Intercambio {
+  acciones: [Accion, Accion];
+  dano: [number, number];
+  cura: [number, number];
+  esquivo: [boolean | null, boolean | null];
+}
+
+/** Un intercambio: cada uno elige su acción y se resuelven a la vez. Marca el especial como usado en `usado`. */
+function exchange(s: PeleaSettings, L: [Luchador, Luchador], vida: [number, number], usado: [boolean, boolean], rnd: () => number): Intercambio {
+  const [a, b] = L;
+  const jitter = () => Math.floor(rnd() * 3) - 1;
+  let acc: [Accion, Accion] = [chooseAction(s, a, vida[0], usado[0], rnd), chooseAction(s, b, vida[1], usado[1], rnd)];
+  // Nadie ataca: se vuelve a sortear una vez (si nadie hace nada, el turno aburre).
+  if (!hits(a, acc[0]) && !hits(b, acc[1]) && acc[0] !== "especial" && acc[1] !== "especial")
+    acc = [chooseAction(s, a, vida[0], usado[0], rnd), chooseAction(s, b, vida[1], usado[1], rnd)];
+  const dano: [number, number] = [0, 0];
+  const cura: [number, number] = [0, 0];
+  const esquivo: [boolean | null, boolean | null] = [null, null];
+  for (const i of [0, 1] as const) {
+    const j = (1 - i) as 0 | 1;
+    if (acc[i] === "especial") usado[i] = true;
+    if (acc[i] === "especial" && L[i].movimientos.especial.cura) cura[i] = L[i].movimientos.especial.cura!;
+    if (!hits(L[i], acc[i])) continue;
+    const poder = Math.max(1, (acc[i] === "especial" ? L[i].movimientos.especial.dano! : L[i].ataque) + jitter());
+    const def = L[j];
+    if (acc[j] === "bloqueo") dano[j] = Math.max(0, Math.ceil(poder / 2) - Math.floor(def.defensa / 2));
+    else if (acc[j] === "esquiva") {
+      esquivo[j] = rnd() * 100 < def.agilidad;
+      dano[j] = esquivo[j] ? 0 : poder;
+    } else if (rnd() * 100 < def.agilidad * REFLEJO) {
+      // Esquiva de reflejo: aunque estaba atacando (o curandose), el agil a veces se salva igual.
+      esquivo[j] = true;
+    } else dano[j] = Math.max(1, poder - Math.floor(def.defensa / 2));
+  }
+  return { acciones: acc, dano, cura, esquivo };
+}
+
 /** Simula una pelea completa entre `a` (izquierda) y `b` (derecha). */
 export function simulate(s: PeleaSettings, a: Luchador, b: Luchador, rnd: () => number = Math.random): Resultado {
   const L: [Luchador, Luchador] = [a, b];
   const vida: [number, number] = [a.vida, b.vida];
   const usado: [boolean, boolean] = [false, false];
   const turnos: Turno[] = [];
-  const jitter = () => Math.floor(rnd() * 3) - 1;
   for (let n = 1; n <= s.pelea.maxTurnos; n++) {
-    let acc: [Accion, Accion] = [chooseAction(s, a, vida[0], usado[0], rnd), chooseAction(s, b, vida[1], usado[1], rnd)];
-    // Nadie ataca: se vuelve a sortear una vez (si nadie hace nada, el turno aburre).
-    if (!hits(a, acc[0]) && !hits(b, acc[1]) && acc[0] !== "especial" && acc[1] !== "especial")
-      acc = [chooseAction(s, a, vida[0], usado[0], rnd), chooseAction(s, b, vida[1], usado[1], rnd)];
-    const dano: [number, number] = [0, 0];
-    const cura: [number, number] = [0, 0];
-    const esquivo: [boolean | null, boolean | null] = [null, null];
-    for (const i of [0, 1] as const) {
-      const j = (1 - i) as 0 | 1;
-      if (acc[i] === "especial") usado[i] = true;
-      if (acc[i] === "especial" && L[i].movimientos.especial.cura) cura[i] = L[i].movimientos.especial.cura!;
-      if (!hits(L[i], acc[i])) continue;
-      const poder = Math.max(1, (acc[i] === "especial" ? L[i].movimientos.especial.dano! : L[i].ataque) + jitter());
-      const def = L[j];
-      if (acc[j] === "bloqueo") dano[j] = Math.max(0, Math.ceil(poder / 2) - Math.floor(def.defensa / 2));
-      else if (acc[j] === "esquiva") {
-        esquivo[j] = rnd() * 100 < def.agilidad;
-        dano[j] = esquivo[j] ? 0 : poder;
-      } else if (rnd() * 100 < def.agilidad * REFLEJO) {
-        // Esquiva de reflejo: aunque estaba atacando (o curandose), el agil a veces se salva igual.
-        esquivo[j] = true;
-      } else dano[j] = Math.max(1, poder - Math.floor(def.defensa / 2));
-    }
-    for (const i of [0, 1] as const) vida[i] = Math.min(L[i].vida, vida[i] + cura[i]) - dano[i];
-    turnos.push({ n, acciones: acc, dano, cura, esquivo, vida: [vida[0], vida[1]] });
+    const x = exchange(s, L, vida, usado, rnd);
+    for (const i of [0, 1] as const) vida[i] = Math.min(L[i].vida, vida[i] + x.cura[i]) - x.dano[i];
+    turnos.push({ n, ...x, vida: [vida[0], vida[1]] });
     if (vida[0] <= 0 || vida[1] <= 0) break;
   }
   const last = turnos[turnos.length - 1]!;
@@ -173,6 +196,111 @@ export function simulate(s: PeleaSettings, a: Luchador, b: Luchador, rnd: () => 
     ganador = pa === pb ? (rnd() < 0.5 ? 0 : 1) : pa > pb ? 0 : 1;
   }
   return { turnos, ganador, porPuntos: !ko };
+}
+
+// ───────────────────────── 2 contra 2 ─────────────────────────
+// Modalidad alternativa del 1vs1 (idea de Wicho en #ideas-y-opiniones, salón de la fama; GyroP, 18 nov. 2026): se
+// apuesta por un equipo. Un equipo se guarda como "teto+miku" en la misma pelea (mismas apuestas, pagos y devolución).
+
+/** Separador de los miembros de un equipo en su id ("teto+miku"). */
+export const EQUIPO_SEP = "+";
+
+/** Miembros de un lado: uno (1vs1) o dos (2vs2). */
+export const miembros = (lado: FighterId): FighterId[] => lado.split(EQUIPO_SEP);
+
+export const esEquipo = (lado: FighterId): boolean => lado.includes(EQUIPO_SEP);
+
+export const equipo = (a: FighterId, b: FighterId): FighterId => `${a}${EQUIPO_SEP}${b}`;
+
+/** Un turno del 2vs2: se enfrentan el miembro `par[0]` del equipo de la izquierda y el `par[1]` del de la derecha. */
+export interface TurnoEquipo {
+  n: number;
+  par: [number, number];
+  /** El intercambio de esos dos, como un turno del 1vs1 (su `vida` es la de ellos dos al terminar). */
+  turno: Turno;
+  /** Vida de cada miembro de cada equipo al terminar el turno. */
+  vidas: [number[], number[]];
+  /** Miembros que cayeron en este turno: [equipo, miembro]. */
+  caen: [0 | 1, number][];
+}
+
+export interface ResultadoEquipos {
+  turnos: TurnoEquipo[];
+  ganador: 0 | 1;
+  porPuntos: boolean;
+}
+
+/** Turnos como mucho del 2vs2 (hay el doble de vida en juego). */
+export const maxTurnosEquipo = (s: PeleaSettings) => s.equipos?.maxTurnos ?? s.pelea.maxTurnos * 2;
+
+/**
+ * Simula un 2vs2: en cada turno se enfrentan un miembro en pie de cada equipo (al azar) con las reglas del 1vs1. Pierde
+ * el equipo que se queda sin nadie en pie; si se acaba el tiempo (o caen los últimos a la vez), gana el que conserva más
+ * vida en total (en %).
+ */
+export function simulateTeams(s: PeleaSettings, A: Luchador[], B: Luchador[], rnd: () => number = Math.random): ResultadoEquipos {
+  const T = [A, B] as const;
+  const vidas: [number[], number[]] = [A.map((l) => l.vida), B.map((l) => l.vida)];
+  const usado: [boolean[], boolean[]] = [A.map(() => false), B.map(() => false)];
+  const turnos: TurnoEquipo[] = [];
+  const vivos = (k: 0 | 1) => vidas[k].flatMap((v, i) => (v > 0 ? [i] : []));
+  const pct = (k: 0 | 1) => vidas[k].reduce((a, v) => a + Math.max(0, v), 0) / T[k].reduce((a, l) => a + l.vida, 0);
+  for (let n = 1; n <= maxTurnosEquipo(s); n++) {
+    const va = vivos(0), vb = vivos(1);
+    const par: [number, number] = [va[Math.floor(rnd() * va.length)]!, vb[Math.floor(rnd() * vb.length)]!];
+    const L: [Luchador, Luchador] = [A[par[0]]!, B[par[1]]!];
+    const vida: [number, number] = [vidas[0][par[0]]!, vidas[1][par[1]]!];
+    const us: [boolean, boolean] = [usado[0][par[0]]!, usado[1][par[1]]!];
+    const x = exchange(s, L, vida, us, rnd);
+    usado[0][par[0]] = us[0];
+    usado[1][par[1]] = us[1];
+    const caen: [0 | 1, number][] = [];
+    for (const k of [0, 1] as const) {
+      const v = Math.min(L[k].vida, vida[k] + x.cura[k]) - x.dano[k];
+      vidas[k][par[k]] = v;
+      vida[k] = v;
+      if (v <= 0) caen.push([k, par[k]]);
+    }
+    turnos.push({ n, par, turno: { n, ...x, vida: [vida[0], vida[1]] }, vidas: [[...vidas[0]], [...vidas[1]]], caen });
+    if (!vivos(0).length || !vivos(1).length) break;
+  }
+  const fuera = [!vivos(0).length, !vivos(1).length];
+  let ganador: 0 | 1;
+  if (fuera[0] !== fuera[1]) ganador = fuera[0] ? 1 : 0;
+  else {
+    const pa = pct(0), pb = pct(1);
+    ganador = pa === pb ? (rnd() < 0.5 ? 0 : 1) : pa > pb ? 0 : 1;
+  }
+  return { turnos, ganador, porPuntos: !(fuera[0] || fuera[1]) };
+}
+
+/** Probabilidad de que gane el equipo de la izquierda (simulando muchas peleas, alternando los lados). */
+export function winChanceTeams(s: PeleaSettings, A: Luchador[], B: Luchador[], rnd: () => number = Math.random): number {
+  let wins = 0;
+  for (let k = 0; k < s.apuestas.simulaciones; k++) {
+    if (k % 2 === 0) wins += simulateTeams(s, A, B, rnd).ganador === 0 ? 1 : 0;
+    else wins += simulateTeams(s, B, A, rnd).ganador === 1 ? 1 : 0;
+  }
+  return wins / s.apuestas.simulaciones;
+}
+
+/** Dos equipos al azar (cuatro luchadores distintos). */
+export function pickTeams(ids: readonly FighterId[], rnd: () => number = Math.random): [FighterId, FighterId] {
+  if (ids.length < 4) throw new Error("hacen falta al menos 4 luchadores para un 2vs2");
+  const pool = [...ids];
+  const out: FighterId[] = [];
+  for (let k = 0; k < 4; k++) out.push(pool.splice(Math.floor(rnd() * pool.length), 1)[0]!);
+  return [equipo(out[0]!, out[1]!), equipo(out[2]!, out[3]!)];
+}
+
+/** Última línea del 2vs2. `nombres` = nombre de cada equipo («Teto y Miku»). */
+export function finalLineTeams(r: ResultadoEquipos, nombres: [string, string]): string {
+  const w = nombres[r.ganador];
+  const l = nombres[1 - r.ganador]!;
+  if (r.porPuntos) return `⏱️ ¡Se acabó el tiempo! **${w}** ganan por puntos (les queda más vida).`;
+  const last = r.turnos[r.turnos.length - 1]!;
+  if (last.vidas.every((v) => v.every((x) => x <= 0))) return `💀 ¡Caen los últimos de los dos equipos a la vez! **${w}** ganan por un pelo.`;
+  return `💀 ¡**${l}** quedan fuera! **${w}** ganan la pelea.`;
 }
 
 // ───────────────────────── cuotas y apuestas ─────────────────────────
@@ -188,26 +316,29 @@ export function winChance(s: PeleaSettings, a: Luchador, b: Luchador, rnd: () =>
   return wins / s.apuestas.simulaciones;
 }
 
-/** Cuánto paga cada Shaula-coin apostada a un Vocaloid que gana con probabilidad `p` (con dos decimales). */
+/** Cuánto paga cada Shaulita apostada a un Vocaloid que gana con probabilidad `p` (con dos decimales). */
 export function oddsFor(s: PeleaSettings, p: number): number {
   const { margen, cuotaMinima, cuotaMaxima } = s.apuestas;
   const raw = p > 0 ? (1 - margen) / p : cuotaMaxima;
   return Math.min(cuotaMaxima, Math.max(cuotaMinima, Math.floor(raw * 100) / 100));
 }
 
-/** Lo que recibe quien acierta (apuesta incluida). */
-export const payout = (apuesta: number, cuota: number) => Math.floor(apuesta * cuota);
+/**
+ * Lo que recibe quien acierta (apuesta incluida). Con enteros (la cuota en centésimos): 300 × 2,03 en decimales da
+ * 608,999… y se perdía 1 Shaulita al redondear hacia abajo (corregido el 16 nov. 2026).
+ */
+export const payout = (apuesta: number, cuota: number) => Math.floor((apuesta * Math.round(cuota * 100)) / 100);
 
 export type BetCheck = { ok: true; total: number } | { ok: false; motivo: string };
 
 /** ¿Puede apostar `cantidad` más? (`previa` = lo que ya aposto en esta pelea, al mismo lado). */
 export function checkBet(s: PeleaSettings, cantidad: number, previa: number, ganadas: number): BetCheck {
   const { minima, maxima } = s.apuestas;
-  if (!Number.isInteger(cantidad) || cantidad <= 0) return { ok: false, motivo: `Escribe un número entero de Shaula-coins (de ${minima} a ${maxima}).` };
-  if (previa === 0 && cantidad < minima) return { ok: false, motivo: `La apuesta mínima es de ${minima} Shaula-coins.` };
+  if (!Number.isInteger(cantidad) || cantidad <= 0) return { ok: false, motivo: `Escribe un número entero de Shaulitas (de ${minima} a ${maxima}).` };
+  if (previa === 0 && cantidad < minima) return { ok: false, motivo: `La apuesta mínima es de ${minima} Shaulitas.` };
   if (previa + cantidad > maxima)
-    return { ok: false, motivo: previa ? `Ya apostaste ${previa}: puedes sumar hasta ${maxima - previa} más (el máximo por pelea es ${maxima}).` : `El máximo por pelea es de ${maxima} Shaula-coins.` };
-  if (cantidad > ganadas) return { ok: false, motivo: `No te alcanza: tienes ${ganadas} Shaula-coins ganadas (las compradas no se apuestan).` };
+    return { ok: false, motivo: previa ? `Ya apostaste ${previa}: puedes sumar hasta ${maxima - previa} más (el máximo por pelea es ${maxima}).` : `El máximo por pelea es de ${maxima} Shaulitas.` };
+  if (cantidad > ganadas) return { ok: false, motivo: `No te alcanza: tienes ${ganadas} Shaulitas.` };
   return { ok: true, total: previa + cantidad };
 }
 

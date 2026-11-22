@@ -164,7 +164,7 @@ describe("cuota por nivel (regla 1: nada de pago la cambia)", () => {
 describe("apodo con nivel", () => {
   it("agrega y quita la etiqueta", () => {
     expect(nickWithLevel("karin", 57, 0)).toBe("karin ✦57");
-    expect(nickWithLevel("karin ✦3", 4, 2)).toBe("karin ★2✦4");
+    expect(nickWithLevel("karin ✦3", 4, 2)).toBe("karin ✯2✦4");
     expect(stripNickTag("karin ★2✦4")).toBe("karin");
     expect(stripNickTag("sin etiqueta")).toBe("sin etiqueta");
   });
@@ -172,7 +172,7 @@ describe("apodo con nivel", () => {
   it("nunca pasa de 32 caracteres: acorta el nombre, no el nivel", () => {
     const n = nickWithLevel("a".repeat(40), 99, 12);
     expect([...n].length).toBe(32);
-    expect(n.endsWith(" ★12✦99")).toBe(true);
+    expect(n.endsWith(" 🌟12✦99")).toBe(true);
   });
 });
 
@@ -363,7 +363,7 @@ describe("tarjeta de nivel", () => {
         tier: r.estilo,
         rankName: r.nombre,
         position: 1,
-        quota: { left: 2, limit: 3 },
+        quota: { daily: 2, limit: 3, donated: 0, donatedCap: 5 },
         frase: i % 2 ? null : "Teto es la mejor",
         accent: "#E285B2",
         background: i === 3 ? Buffer.from("no es una imagen") : null,

@@ -13,3 +13,6 @@ assets/trivia/imagenes/
 
 # Trivia multijugador: pagina armada y archivos de las preguntas (npm run actividad; audio con copyright).
 worker/public/
+
+# Muestras GIF de la propuesta de la temporada 2 (npm run temporada2 -- --muestras docs/propuestas/temporada2/muestras; ~2 MB cada una).
+docs/propuestas/temporada2/muestras/

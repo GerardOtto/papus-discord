@@ -18,6 +18,25 @@ export interface ChannelSpec {
   voz?: boolean;
   /** Canal de tickets (#reportes-y-reclamos): los Papus no escriben en el canal, solo en su hilo privado (/reporte). */
   tickets?: boolean;
+  /** Quién lo lee, si no es lo mismo que su categoría ("todos", "staff", un nivel o "rol:<nombre>"; PLAN §8, 13 nov. 2026). */
+  leen?: string;
+  /** Canal de foro (publicaciones con título y etiquetas) o multimedia (galería). Sin valor, de texto (o de voz con `voz`). */
+  tipo?: "foro" | "multimedia";
+  /**
+   * Foro en vista de galería (cuadrícula de imágenes): lo más parecido a un canal multimedia. #🎨・fanart es así porque
+   * Discord no tiene los canales multimedia habilitados en Papus (13 nov. 2026: ni la app ni la API los ofrecen, aun
+   * siendo de Comunidad).
+   */
+  galeria?: boolean;
+  /** Sin `escriben`, igual pueden comentar en los hilos (las publicaciones del foro de guías: dudas debajo de cada una). */
+  comentan?: boolean;
+  /** Hecho a mano por GyroP: el script solo lo mueve a su categoría y lo ordena (no toca nombre, tema ni permisos). */
+  manual?: boolean;
+  /**
+   * En 📦 Archivo (PLAN §8): solo lectura, con todos sus mensajes; quien lo veía lo sigue viendo (con `leen`, o sus
+   * permisos de antes si es `manual`).
+   */
+  archivado?: boolean;
 }
 
 export interface CategorySpec {
@@ -74,7 +93,7 @@ export interface AvisoSpec {
   nombre: string;
   descripcion: string;
 }
-export type AvisoId = "peleas" | "bodas" | "estrenos" | "mercado";
+export type AvisoId = "peleas" | "bodas" | "estrenos" | "mercado" | "carreras" | "adivinanzas";
 
 const REPO_ROOT = path.resolve(import.meta.dirname, "../..");
 
@@ -143,6 +162,7 @@ export interface RoleIds {
 
 export interface ChannelOptions {
   ocultarDesde?: string;
+  comentan?: boolean;
   musica?: boolean;
   voz?: boolean;
   tickets?: boolean;
@@ -150,11 +170,11 @@ export interface ChannelOptions {
 
 /** Permisos de un canal segun quien lo lee y si los Papus escriben. */
 export function overwritesFor(leen: string, escriben: boolean, roles: RoleIds, opts: ChannelOptions = {}): Overwrite[] {
-  const { ocultarDesde, musica = false, voz = false, tickets = false } = opts;
+  const { ocultarDesde, musica = false, voz = false, tickets = false, comentan = false } = opts;
   const out: Overwrite[] = [];
   const everyone: Overwrite = { id: roles.everyone, allow: 0n, deny: 0n };
   out.push(everyone);
-  if (!escriben) everyone.deny |= WRITE_BITS;
+  if (!escriben) everyone.deny |= comentan ? WRITE_BITS & ~PERM.SEND_MESSAGES_IN_THREADS : WRITE_BITS;
   // Tickets: nadie escribe en el canal ni abre hilos; dentro de su hilo privado (lo crea Neru con /reporte) sí.
   if (tickets) everyone.deny |= WRITE_BITS & ~PERM.SEND_MESSAGES_IN_THREADS;
   if (ocultarDesde) {
@@ -191,6 +211,18 @@ export function overwritesFor(leen: string, escriben: boolean, roles: RoleIds, o
     );
   }
   return out.filter((o) => o.allow || o.deny);
+}
+
+/**
+ * Los mismos permisos, pero de solo lectura (canales archivados hechos a mano): a @everyone se le niega escribir y a
+ * los roles de Papus que tenían permiso de escribir se les quita (los bots, `keep`, siguen igual).
+ */
+export function readOnly(current: Overwrite[], everyone: string, keep: readonly string[]): Overwrite[] {
+  const out = current.map((o) => (keep.includes(o.id) ? o : { ...o, allow: o.allow & ~WRITE_BITS }));
+  const e = out.find((o) => o.id === everyone);
+  if (e) e.deny |= WRITE_BITS;
+  else out.push({ id: everyone, allow: 0n, deny: WRITE_BITS });
+  return out;
 }
 
 export function sameOverwrites(a: Overwrite[], b: Overwrite[]): boolean {

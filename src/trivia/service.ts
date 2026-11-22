@@ -164,6 +164,14 @@ export class TriviaService {
     return this.d.settings;
   }
 
+  /** Suma una pregunta escrita por un Papu y aprobada (taller, PLAN §2). False si ya estaba. */
+  addQuestion(q: Question): boolean {
+    if (this.byId.has(q.id)) return false;
+    this.d.questions.push(q);
+    this.byId.set(q.id, q);
+    return true;
+  }
+
   /** Cuantas preguntas hay en total (las que hay que superar para el secreto), o de una dificultad. */
   get total(): number {
     return this.d.questions.length;
@@ -657,6 +665,23 @@ export class TriviaService {
       multiplier: this.d.levels.multiplier(new Date(t)),
     });
     return { base, tope: withXp ? this.capLeft(userId, t) : 0 };
+  }
+
+  /**
+   * XP de un juego diario del celular de Neru (Vocaloidle, Silueta; PLAN §3.15): `aciertos` aciertos de trivia con la
+   * misma formula (racha 1, con el evento), APARTE del tope del dia de la trivia (decision de GyroP, 17 nov. 2026). Con 2
+   * o mas machetazos no da XP.
+   */
+  dailyGameXp(userId: string, aciertos: number, t = this.now()): { xp: number; change: LevelChange | null } {
+    if (aciertos <= 0 || !this.d.levels.canEarn(userId, t)) return { xp: 0, change: null };
+    const base = answerXp(this.d.settings, this.d.levels.settings, {
+      xp: this.d.levels.store.get(userId).xp,
+      dailyAvg: this.dailyAvg(userId, t),
+      streak: 1,
+      multiplier: this.d.levels.multiplier(new Date(t)),
+    });
+    const xp = base * Math.floor(aciertos);
+    return { xp, change: this.d.levels.bonus(userId, xp, t) };
   }
 
   /** XP del acierto, recortada a lo que le queda del tope del dia (0 si ya llego). */

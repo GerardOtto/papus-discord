@@ -3,5 +3,10 @@
   "nombre": "Mango9374",
   "usuario": "1207431352870502481",
   "frases": ["Sea serio ve", "Poco serio ve", "See you in the next reel, tetolovers"],
-  "probabilidadFrase": 0.3333
+  "probabilidadFrase": 0.3333,
+  "reaccion": {
+    "$comment": "Idea de Nyrex en #ideas-y-opiniones (14 nov. 2026; GyroP, 18 nov.): Mango reacciona con 'emoji' a todo mensaje de un Papu que diga 'mango' (palabra suelta, sin distinguir mayúsculas; también 'mangos'). Sin LLM ni cuota. 'excluir': canales donde nunca reacciona.",
+    "emoji": "🥭",
+    "excluir": ["moderacion", "registro-bots", "reportes-y-reclamos", "reglas", "bienvenida"]
+  }
 }

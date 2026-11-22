@@ -1,0 +1,141 @@
+{
+  "$comment": "Vocaloidle del celular de Neru (PLAN §3.15). Pelo, empresa y origen salen del banco de la trivia (content/trivia-banco.json, ya revisados). Año de lanzamiento, voz y los pelos que faltaban: investigados por Claude el 17 nov. 2026 (Wikipedia «List of Vocaloid products», Vocaloid Wiki, Know Your Meme, Moegirl; el pelo de flower, Ruko y Adachi Rei como se ven en los renders del servidor). Un personaje con algún campo en null no entra al sorteo del día. Para un fan-made, empresa = «Hecha por fans». ids = los de los bots (assets/bots/<id>_*).",
+  "personajes": [
+    {
+      "id": "miku",
+      "nombre": "Hatsune Miku",
+      "empresa": "Crypton",
+      "anio": 2007,
+      "pelo": "Turquesa",
+      "origen": "Vocaloid oficial",
+      "voz": "Femenina"
+    },
+    {
+      "id": "rin",
+      "nombre": "Kagamine Rin",
+      "empresa": "Crypton",
+      "anio": 2007,
+      "pelo": "Rubio",
+      "origen": "Vocaloid oficial",
+      "voz": "Femenina"
+    },
+    {
+      "id": "len",
+      "nombre": "Kagamine Len",
+      "empresa": "Crypton",
+      "anio": 2007,
+      "pelo": "Rubio",
+      "origen": "Vocaloid oficial",
+      "voz": "Masculina"
+    },
+    {
+      "id": "luka",
+      "nombre": "Megurine Luka",
+      "empresa": "Crypton",
+      "anio": 2009,
+      "pelo": "Rosa",
+      "origen": "Vocaloid oficial",
+      "voz": "Femenina"
+    },
+    {
+      "id": "kaito",
+      "nombre": "Kaito",
+      "empresa": "Crypton",
+      "anio": 2006,
+      "pelo": "Azul",
+      "origen": "Vocaloid oficial",
+      "voz": "Masculina"
+    },
+    {
+      "id": "meiko",
+      "nombre": "Meiko",
+      "empresa": "Crypton",
+      "anio": 2004,
+      "pelo": "Castaño",
+      "origen": "Vocaloid oficial",
+      "voz": "Femenina"
+    },
+    {
+      "id": "gumi",
+      "nombre": "Gumi",
+      "empresa": "Internet Co.",
+      "anio": 2009,
+      "pelo": "Verde",
+      "origen": "Vocaloid oficial",
+      "voz": "Femenina"
+    },
+    {
+      "id": "gakupo",
+      "nombre": "Kamui Gakupo",
+      "empresa": "Internet Co.",
+      "anio": 2008,
+      "pelo": "Morado",
+      "origen": "Vocaloid oficial",
+      "voz": "Masculina"
+    },
+    {
+      "id": "ia",
+      "nombre": "IA",
+      "empresa": "1st PLACE",
+      "anio": 2012,
+      "pelo": "Rosa muy claro",
+      "origen": "Vocaloid oficial",
+      "voz": "Femenina"
+    },
+    {
+      "id": "flower",
+      "nombre": "v flower",
+      "empresa": "Gynoid",
+      "anio": 2014,
+      "pelo": "Blanco con mechas negras",
+      "origen": "Vocaloid oficial",
+      "voz": "Femenina"
+    },
+    {
+      "id": "teto",
+      "nombre": "Kasane Teto",
+      "empresa": "Hecha por fans",
+      "anio": 2008,
+      "pelo": "Rojo",
+      "origen": "UTAU (hecha por fans)",
+      "voz": "Femenina"
+    },
+    {
+      "id": "neru",
+      "nombre": "Akita Neru",
+      "empresa": "Hecha por fans",
+      "anio": 2007,
+      "pelo": "Rubio",
+      "origen": "Derivada hecha por fans",
+      "voz": "Femenina"
+    },
+    {
+      "id": "haku",
+      "nombre": "Yowane Haku",
+      "empresa": "Hecha por fans",
+      "anio": 2007,
+      "pelo": "Gris plateado",
+      "origen": "Derivada hecha por fans",
+      "voz": "Femenina"
+    },
+    {
+      "id": "adachirei",
+      "nombre": "Adachi Rei",
+      "empresa": "Hecha por fans",
+      "anio": 2019,
+      "pelo": "Naranja",
+      "origen": "UTAU (hecha por fans)",
+      "voz": "Femenina"
+    },
+    {
+      "id": "ruko",
+      "nombre": "Yokune Ruko",
+      "empresa": "Hecha por fans",
+      "anio": 2009,
+      "pelo": "Gris con puntas azules",
+      "origen": "UTAU (hecha por fans)",
+      "voz": "Andrógina"
+    }
+  ],
+  "$fuentes": "Meiko 5 nov. 2004; Kaito 17 feb. 2006; Miku 31 ago. 2007; Rin y Len 27 dic. 2007; Neru 1 nov. 2007 (2channel); Haku 21 nov. 2007; Teto 1 abr. 2008; Gakupo 31 jul. 2008; Luka 30 ene. 2009; Gumi 26 jun. 2009; Ruko 2009 (fuentes dicen 2008-2010; la mayoría 2009); IA 27 ene. 2012; flower 9 may. 2014 (oficialmente femenina, voz andrógina); Adachi Rei 12 oct. 2019 (UTAU). Ruko: sexo/género discutido en las fuentes → voz «Andrógina»."
+}

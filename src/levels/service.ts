@@ -73,10 +73,15 @@ export class LevelService {
   private releases: Release[] = [];
   /** Estrenos anunciados con /estreno de Miku (worker): XP multiplicada desde el anuncio. */
   private launched: { title: string; at: number }[] = [];
-  /** Despues de sumar XP (src/coins/: pone al dia las Shaula-coins del dia). */
+  /** Despues de sumar XP (src/coins/: pone al dia las Shaulitas del dia). */
   afterAward?: (userId: string, day: string) => void;
   /** Cuantas veces vale la XP de un mensaje que contesta un Vocaloid (Luna de IA del mercado negro: 3; sin ella, 1). */
   quotaBoost?: (userId: string, at: number) => number;
+  /**
+   * Multiplicador de XP de su membresía de Ko-fi (config/membresias.json, PLAN §2; decisión de GyroP del 13 nov. 2026):
+   * se aplica a toda la XP que gana (no a la de los intercambios). Sin membresía, 1.
+   */
+  membershipBoost?: (userId: string) => number;
 
   constructor(private readonly d: LevelServiceDeps) {
     this.store = new LevelStore(d.db);
@@ -252,6 +257,8 @@ export class LevelService {
 
   private award(userId: string, amount: number, at: number): LevelChange | null {
     if (!this.canEarn(userId, at)) return null;
+    const boost = amount > 0 ? (this.membershipBoost?.(userId) ?? 1) : 1;
+    if (boost > 1) amount = Math.round(amount * boost);
     const day = dayKey(new Date(at), this.d.timeZone);
     const { before, after } = this.store.add(userId, amount, day);
     const change = this.change(userId, before, after);

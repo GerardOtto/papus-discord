@@ -1,0 +1,236 @@
+/* Celular de Neru (PLAN §3.15). Los colores salen del tema del Papu (variables en <html>, ver main.ts). */
+:root {
+  --bg: #1b1d24; --surface: #262933; --surface2: #2c303b; --sheet: #22252e;
+  --accent: #f2c230; --on-accent: #1b1d24; --text: #f4f1e6; --muted: #a9adba;
+  --tile: #f7e4a3; --tinte: none; --fondo: #1b1d24;
+  --verde: #4cc26b; --amarillo: #f2c230; --rojo: #c93541;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; min-height: 100%; background: var(--fondo); }
+body { font-family: Nunito, system-ui, sans-serif; color: var(--text); -webkit-tap-highlight-color: transparent; }
+button { font: inherit; color: inherit; }
+.telefono { max-width: 430px; min-height: 100vh; margin: 0 auto; display: flex; flex-direction: column; padding-bottom: 18px; }
+/* En el celular, Discord tapa la parte de arriba de la Actividad con su barra («Neru» / «Salir»). */
+.movil .telefono { padding-top: calc(env(safe-area-inset-top, 0px) + 64px); }
+/* Barra fija de abajo con «Inicio» (dentro de las apps). */
+.dock { position: fixed; left: 0; right: 0; bottom: 0; z-index: 7; display: flex; justify-content: center; padding: 8px 16px calc(env(safe-area-inset-bottom, 0px) + 10px); background: linear-gradient(transparent, var(--bg) 35%); pointer-events: none; }
+.dock[hidden] { display: none; }
+.dock button { pointer-events: auto; border: 0; cursor: pointer; height: 48px; min-width: 150px; padding: 0 22px; border-radius: 24px; background: var(--surface2); color: var(--text); display: flex; align-items: center; justify-content: center; gap: 8px; font: 700 15px Fredoka, sans-serif; box-shadow: 0 6px 18px rgba(0,0,0,.35); }
+body.con-dock .telefono { padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 84px); }
+body.con-dock .acciones { bottom: calc(env(safe-area-inset-bottom, 0px) + 66px); }
+body.con-dock .aviso { bottom: calc(env(safe-area-inset-bottom, 0px) + 80px); }
+.cargando { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; color: var(--muted); font-weight: 700; padding: 40px 24px; text-align: center; }
+.cargando img { width: 96px; height: 96px; border-radius: 28px; background: var(--surface2); }
+/* Esperas con vida: Neru rebota, puntos de «escribiendo…» y una barrita que avanza. */
+.cargando .rebote { animation: rebote 1.1s ease-in-out infinite; }
+@keyframes rebote { 0%, 100% { transform: translateY(0) rotate(-3deg); } 50% { transform: translateY(-12px) rotate(3deg); } }
+.puntos { display: inline-flex; gap: 6px; }
+.puntos i { width: 9px; height: 9px; border-radius: 50%; background: var(--accent); animation: punto 1s ease-in-out infinite; }
+.puntos i:nth-child(2) { animation-delay: .15s; }
+.puntos i:nth-child(3) { animation-delay: .3s; }
+@keyframes punto { 0%, 100% { transform: translateY(0); opacity: .45; } 40% { transform: translateY(-7px); opacity: 1; } }
+.progreso { width: 160px; height: 6px; border-radius: 3px; background: var(--surface2); overflow: hidden; }
+.progreso i { display: block; height: 100%; width: 40%; border-radius: 3px; background: var(--accent); animation: progreso 1.3s ease-in-out infinite; }
+@keyframes progreso { 0% { transform: translateX(-110%); } 100% { transform: translateX(260%); } }
+/* Brillo que pasa sobre lo que aún no llega (la tarjeta, la imagen de Silueta). */
+.brillo { position: relative; overflow: hidden; }
+.brillo::after { content: ""; position: absolute; inset: 0; background: linear-gradient(100deg, transparent 30%, rgba(255,255,255,.12) 50%, transparent 70%); animation: brillo 1.4s linear infinite; }
+@keyframes brillo { from { transform: translateX(-100%); } to { transform: translateX(100%); } }
+.hueco.brillo { flex-direction: column; gap: 8px; }
+@media (prefers-reduced-motion: reduce) { .rebote, .puntos i, .progreso i, .brillo::after, .boton.armado, .giro { animation-duration: 3s; } }
+
+/* barra de arriba */
+.barra { display: flex; align-items: center; justify-content: space-between; padding: 16px 20px 6px; }
+.neruos { font-family: Fredoka, sans-serif; font-weight: 700; font-size: 18px; letter-spacing: .5px; color: var(--accent); }
+.derecha { display: flex; align-items: center; gap: 12px; }
+.monedas { display: flex; align-items: center; gap: 5px; background: var(--surface); border-radius: 14px; padding: 4px 10px 4px 4px; font-family: Fredoka, sans-serif; font-weight: 700; font-size: 15px; }
+.monedas img { width: 24px; height: 24px; }
+.bateria { font-size: 13px; font-weight: 800; color: #ff7a9c; display: flex; align-items: center; gap: 5px; }
+
+.tarjeta { margin: 8px 14px 0; border: 0; padding: 0; background: none; border-radius: 12px; display: block; cursor: pointer; }
+.tarjeta img { width: 100%; display: block; border-radius: 12px; aspect-ratio: 1000 / 340; object-fit: cover; }
+.tarjeta .hueco { aspect-ratio: 1000 / 340; border-radius: 12px; background: var(--surface); display: flex; align-items: center; justify-content: center; color: var(--muted); font-weight: 700; font-size: 13px; }
+
+.neru { margin: 10px 16px 0; display: flex; gap: 10px; align-items: flex-end; }
+.neru img { width: 40px; height: 40px; border-radius: 13px; background: var(--surface2); flex-shrink: 0; }
+.neru p { margin: 0; background: var(--surface); border-radius: 16px 16px 16px 4px; padding: 9px 12px; font-size: 13px; line-height: 1.35; }
+
+.seccion { margin: 16px 22px 8px; font-size: 11px; font-weight: 800; color: var(--muted); text-transform: uppercase; letter-spacing: .8px; }
+.apps { margin: 0 14px; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); row-gap: 14px; column-gap: 6px; }
+.app { all: unset; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 6px; position: relative; }
+.app .icono { width: 64px; height: 64px; border-radius: 20px; display: flex; align-items: center; justify-content: center; transition: background .3s; }
+.app .icono img { width: 50px; height: 50px; }
+.app span { font-size: 12px; font-weight: 700; text-align: center; }
+.app.apagada { opacity: .5; }
+.app .punto { position: absolute; top: -3px; right: 6px; width: 14px; height: 14px; border-radius: 7px; background: #ff5a7e; border: 2px solid var(--bg); }
+.app .pronto { position: absolute; top: 46px; background: var(--bg); border: 1px solid var(--muted); border-radius: 8px; padding: 0 6px; font-size: 10px; font-weight: 800; color: var(--muted); }
+
+/* pantallas de apps */
+.cabeza { display: flex; align-items: center; gap: 10px; padding: 16px 14px 10px; }
+.volver { all: unset; cursor: pointer; width: 44px; height: 44px; border-radius: 14px; background: var(--surface); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.cabeza h1 { margin: 0; font-family: Fredoka, sans-serif; font-weight: 700; font-size: 22px; }
+.cabeza small { display: block; font-size: 12px; font-weight: 700; color: var(--muted); }
+
+.tabla { margin: 14px 14px 0; display: flex; flex-direction: column; gap: 6px; }
+.fila { display: grid; grid-template-columns: 70px repeat(5, minmax(0, 1fr)); gap: 4px; min-height: 52px; }
+.fila.titulos { min-height: 0; font-size: 10px; font-weight: 800; color: var(--muted); text-transform: uppercase; text-align: center; letter-spacing: .3px; }
+.fila.titulos div:first-child { text-align: left; }
+.quien { display: flex; align-items: center; font-size: 11px; font-weight: 800; line-height: 1.15; overflow-wrap: anywhere; }
+.celda { border-radius: 10px; display: flex; align-items: center; justify-content: center; gap: 2px; text-align: center; font-size: 10.5px; font-weight: 800; line-height: 1.1; padding: 3px; overflow-wrap: anywhere; animation: girar .35s both; }
+.celda.verde { background: var(--verde); color: #10261a; }
+.celda.amarillo { background: var(--amarillo); color: #1b1d24; }
+.celda.rojo { background: var(--rojo); color: #fff; }
+.celda svg { flex-shrink: 0; }
+@keyframes girar { from { transform: rotateX(90deg); opacity: 0; } to { transform: none; opacity: 1; } }
+.leyenda { margin: 12px 18px 0; display: flex; flex-wrap: wrap; gap: 10px; font-size: 11.5px; font-weight: 700; color: var(--muted); }
+.leyenda i { display: inline-block; width: 12px; height: 12px; border-radius: 3px; vertical-align: -1px; margin-right: 4px; }
+
+.elegir { margin: 14px 14px 0; display: flex; flex-direction: column; gap: 8px; }
+.elegir input { height: 48px; border-radius: 16px; border: 2px solid var(--surface2); background: var(--surface); color: var(--text); font: 700 15px Nunito, sans-serif; padding: 0 14px; outline: none; }
+.elegir input:focus { border-color: var(--accent); }
+.nombres { display: flex; flex-wrap: wrap; gap: 6px; max-height: 210px; overflow-y: auto; }
+.nombres button { border: 0; cursor: pointer; height: 38px; padding: 0 12px; border-radius: 12px; background: var(--surface2); font-weight: 800; font-size: 13px; }
+.nombres button:disabled { opacity: .35; cursor: default; text-decoration: line-through; }
+
+.resultado { margin: 14px 14px 0; background: var(--surface); border-radius: 18px; padding: 14px; display: flex; flex-direction: column; gap: 8px; }
+.resultado h2 { margin: 0; font-family: Fredoka, sans-serif; font-size: 18px; color: var(--accent); }
+.resultado pre { margin: 0; font: 700 14px/1.35 Nunito, sans-serif; white-space: pre-wrap; }
+.boton { border: 0; cursor: pointer; height: 48px; border-radius: 16px; background: var(--accent); color: var(--on-accent); font: 700 16px Fredoka, sans-serif; }
+.boton.suave { background: var(--surface2); color: var(--text); }
+.nota { font-size: 12px; font-weight: 700; color: var(--muted); text-align: center; }
+.aviso { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); background: var(--surface2); color: var(--text); border-radius: 14px; padding: 10px 16px; font-weight: 800; font-size: 13px; box-shadow: 0 6px 20px rgba(0,0,0,.35); z-index: 9; max-width: 90vw; text-align: center; }
+
+.silueta { margin: 12px auto 0; width: min(330px, calc(100% - 28px)); aspect-ratio: 1; border-radius: 22px; overflow: hidden; background: var(--surface); }
+.silueta img { width: 100%; height: 100%; display: block; image-rendering: pixelated; }
+.fallidos { margin: 10px 14px 0; display: flex; flex-wrap: wrap; gap: 6px; }
+.fallidos span { background: var(--rojo); color: #fff; border-radius: 10px; padding: 4px 10px; font-size: 12px; font-weight: 800; }
+
+/* temas */
+.temas { margin: 12px 14px 0; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); row-gap: 12px; }
+.tema { all: unset; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.tema .muestra { width: 54px; height: 54px; border-radius: 50%; padding: 3px; border: 3px solid transparent; }
+.tema.activo .muestra { border-color: var(--accent); }
+.tema .muestra i { display: block; width: 100%; height: 100%; border-radius: 50%; border: 1px solid rgba(127,127,127,.35); }
+.tema span { font-size: 12px; font-weight: 800; }
+.segmento { margin: 8px 14px 0; background: var(--surface); border-radius: 12px; padding: 3px; display: grid; grid-template-columns: 1fr 1fr; gap: 3px; }
+.segmento button { border: 0; cursor: pointer; height: 38px; border-radius: 9px; background: transparent; font-weight: 800; font-size: 13px; }
+.segmento button.activo { background: var(--accent); color: var(--on-accent); }
+
+/* trivia */
+.tbarra { margin: 10px 18px 0; display: flex; justify-content: space-between; font-size: 13px; font-weight: 800; color: var(--muted); }
+.tbarra b { color: var(--text); font-family: Fredoka, sans-serif; font-size: 16px; }
+.ttiempo { margin: 10px 14px 0; height: 8px; border-radius: 4px; background: var(--surface2); overflow: hidden; }
+.ttiempo i { display: block; height: 100%; width: 100%; background: var(--accent); border-radius: 4px; }
+.tpregunta { margin: 14px 16px 0; font-family: Fredoka, sans-serif; font-weight: 600; font-size: 19px; line-height: 1.3; }
+.tmedia { margin: 12px 14px 0; display: flex; justify-content: center; }
+.tmedia img { max-width: 100%; max-height: 260px; border-radius: 16px; background: var(--surface); }
+.topciones { margin: 14px 14px 0; display: flex; flex-direction: column; gap: 8px; }
+.topciones button { border: 2px solid var(--surface2); cursor: pointer; min-height: 52px; padding: 10px 14px; border-radius: 16px; background: var(--surface); font-weight: 800; font-size: 15px; text-align: left; }
+.topciones button.elegida { border-color: var(--accent); }
+.topciones button:disabled { cursor: default; }
+
+/* mi tarjeta */
+.chips { margin: 12px 14px 0; display: flex; gap: 6px; overflow-x: auto; padding-bottom: 2px; }
+.chips button { flex-shrink: 0; border: 1px solid var(--surface2); cursor: pointer; height: 32px; padding: 0 12px; border-radius: 16px; background: transparent; font-weight: 800; font-size: 12.5px; }
+.chips button.activo { background: var(--text); color: var(--bg); border-color: var(--text); }
+.minis { margin: 10px 14px 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.minis button { all: unset; cursor: pointer; display: flex; flex-direction: column; gap: 3px; border-radius: 14px; padding: 3px; border: 3px solid transparent; }
+.minis button.puesto { border-color: var(--accent); }
+.minis img { width: 100%; aspect-ratio: 1; border-radius: 11px; display: block; background: var(--surface); }
+.minis span { font-size: 10.5px; font-weight: 700; text-align: center; line-height: 1.15; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+.acciones { position: sticky; bottom: 0; margin: 14px 0 0; padding: 10px 14px 14px; display: grid; grid-template-columns: 1fr 1.4fr; gap: 8px; background: linear-gradient(transparent, var(--bg) 30%); }
+.boton:disabled { opacity: .45; cursor: default; }
+
+/* apps con datos de Neru */
+.aviso-linea { margin: 10px 14px 0; background: var(--surface); border-radius: 14px; padding: 10px 12px; font-size: 13px; font-weight: 700; }
+.cartas { margin: 12px 14px 0; display: flex; flex-direction: column; gap: 10px; }
+.carta { background: var(--surface); border-radius: 18px; padding: 12px; display: flex; flex-direction: column; gap: 8px; }
+.carta p { margin: 0; font-size: 13px; line-height: 1.35; }
+.carta-cab { display: flex; gap: 10px; align-items: center; }
+.carta-cab .emoji { font-size: 28px; width: 40px; text-align: center; }
+.carta-cab b { display: block; font-family: Fredoka, sans-serif; font-size: 16px; }
+.carta-cab small { color: var(--muted); font-weight: 700; font-size: 12px; }
+.boton.chico { height: 36px; font-size: 13px; padding: 0 12px; border-radius: 12px; }
+/* Primer toque de un botón que gasta: rojo y latiendo (espera el segundo toque). */
+.boton.armado { background: #e5323f !important; color: #fff !important; box-shadow: 0 0 0 3px rgba(229, 50, 63, .35); animation: latido .9s ease-in-out infinite; }
+@keyframes latido { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.04); } }
+/* Botón trabajando: circulito que gira. */
+.boton.ocupado { display: inline-flex; align-items: center; justify-content: center; gap: 8px; opacity: .85 !important; }
+.giro { width: 16px; height: 16px; border-radius: 50%; border: 2.5px solid currentColor; border-right-color: transparent; animation: girar-360 .7s linear infinite; flex-shrink: 0; }
+@keyframes girar-360 { to { transform: rotate(360deg); } }
+.botonera { display: flex; flex-wrap: wrap; gap: 6px; }
+.lados { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.lados small { color: var(--muted); font-weight: 800; font-size: 11px; text-transform: uppercase; }
+.lados p { font-size: 12.5px; }
+.pila { margin: 12px 14px 0; display: flex; flex-direction: column; gap: 8px; }
+.pila select { height: 44px; border-radius: 14px; border: 2px solid var(--surface2); background: var(--surface); color: var(--text); font: 700 14px Nunito, sans-serif; padding: 0 10px; }
+.mini-ver { display: flex; flex-direction: column; gap: 3px; align-items: stretch; }
+.mini-ver img { width: 100%; aspect-ratio: 1; border-radius: 11px; background: var(--surface); }
+.mini-ver span { font-size: 11px; font-weight: 800; text-align: center; line-height: 1.15; }
+.mini-ver small { font-size: 10px; color: var(--muted); text-align: center; font-weight: 700; }
+.mini-ver.nuevo img { outline: 3px solid var(--verde); }
+.fila-dato { margin: 8px 14px 0; display: flex; align-items: center; justify-content: space-between; gap: 10px; background: var(--surface); border-radius: 14px; padding: 8px 10px; }
+.fila-dato > span { font-size: 13px; font-weight: 800; display: flex; flex-direction: column; }
+.fila-dato small { color: var(--muted); font-size: 11px; }
+.paso { display: flex; align-items: center; gap: 6px; }
+.paso button { width: 38px; height: 38px; border: 0; border-radius: 12px; background: var(--surface2); font: 700 20px Fredoka, sans-serif; cursor: pointer; }
+.paso input, .paso b { width: 70px; text-align: center; height: 38px; border-radius: 10px; border: 2px solid var(--surface2); background: transparent; color: var(--text); font: 700 15px Fredoka, sans-serif; display: flex; align-items: center; justify-content: center; box-sizing: border-box; }
+.resumen { margin: 10px 14px 0; background: var(--surface2); border-radius: 14px; padding: 8px 12px; font-size: 12.5px; }
+.resumen p { margin: 3px 0; }
+.hoja { position: fixed; inset: 0; background: rgba(0,0,0,.5); display: flex; align-items: flex-end; justify-content: center; z-index: 8; }
+.hoja-caja { width: 100%; max-width: 430px; background: var(--sheet); border-radius: 24px 24px 0 0; padding: 16px; display: flex; flex-direction: column; gap: 10px; max-height: 80vh; box-sizing: border-box; }
+.hoja-tit { font-family: Fredoka, sans-serif; font-weight: 700; font-size: 18px; }
+.hoja input { height: 46px; border-radius: 14px; border: 2px solid var(--surface2); background: var(--surface); color: var(--text); font: 700 15px Nunito, sans-serif; padding: 0 12px; }
+.papus { display: flex; flex-direction: column; gap: 6px; overflow-y: auto; }
+.papus button { border: 0; cursor: pointer; text-align: left; height: 44px; padding: 0 12px; border-radius: 12px; background: var(--surface); font-weight: 800; }
+.chips.envolver { flex-wrap: wrap; overflow: visible; }
+.colores { margin: 0 14px; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+.colores button { all: unset; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 4px; border-radius: 14px; border: 2px solid transparent; }
+.colores button.activo { border-color: var(--accent); }
+.colores i { width: 40px; height: 40px; border-radius: 50%; border: 2px solid rgba(255,255,255,.25); }
+.colores span { font-size: 10.5px; font-weight: 800; text-align: center; line-height: 1.1; }
+.avisos { margin: 0 14px; display: flex; flex-direction: column; gap: 6px; }
+.avisos label { display: flex; gap: 10px; align-items: flex-start; background: var(--surface); border-radius: 14px; padding: 10px; cursor: pointer; }
+.avisos input { width: 20px; height: 20px; margin-top: 2px; accent-color: var(--accent); }
+.avisos b { display: block; font-size: 13px; }
+.avisos small { color: var(--muted); font-size: 12px; font-weight: 700; }
+.rueda-caja { position: relative; margin: 16px auto 0; width: 260px; height: 260px; }
+.rueda { width: 100%; height: 100%; border-radius: 50%; border: 6px solid var(--surface2); box-sizing: border-box; position: relative; }
+.rueda span { position: absolute; left: 50%; top: 50%; width: 30px; height: 30px; margin: -15px 0 0 -15px; font-size: 20px; display: flex; align-items: center; justify-content: center; }
+.puntero { position: absolute; top: -10px; left: 50%; margin-left: -12px; width: 0; height: 0; border-left: 12px solid transparent; border-right: 12px solid transparent; border-top: 22px solid var(--accent); z-index: 2; }
+.misiones { margin: 0 14px; display: flex; flex-direction: column; gap: 6px; }
+.misiones div { display: flex; justify-content: space-between; gap: 8px; background: var(--surface); border-radius: 12px; padding: 10px; font-size: 13px; font-weight: 700; }
+.misiones div.hecha { opacity: .7; }
+.misiones small { color: var(--muted); }
+
+/* Ajedrez (18 nov. 2026): tablero táctil 8×8 con piezas Unicode, marcas de jugadas y relojes. */
+.ajedrez-tablero { margin: 10px auto 0; width: min(94vw, 420px); aspect-ratio: 1; display: grid; grid-template-columns: repeat(8, 1fr); border-radius: 12px; overflow: hidden; box-shadow: 0 6px 18px rgba(0, 0, 0, .3); }
+.casilla { border: 0; padding: 0; position: relative; display: flex; align-items: center; justify-content: center; cursor: pointer; }
+.casilla.clara { background: #f0d9b5; }
+.casilla.oscura { background: #b58863; }
+.casilla.ultima { box-shadow: inset 0 0 0 100px rgba(255, 214, 0, .35); }
+.casilla.sel { box-shadow: inset 0 0 0 100px rgba(57, 197, 187, .55); }
+.casilla.jaque { box-shadow: inset 0 0 0 100px rgba(229, 50, 63, .55); }
+.casilla.destino::after { content: ""; width: 28%; height: 28%; border-radius: 50%; background: rgba(20, 20, 30, .35); }
+.casilla.captura::after { content: ""; position: absolute; inset: 6%; border-radius: 50%; border: 4px solid rgba(20, 20, 30, .35); }
+.pieza { font-size: min(9.4vw, 44px); line-height: 1; pointer-events: none; font-family: "Segoe UI Symbol", "DejaVu Sans", "Noto Sans Symbols 2", serif; }
+.pieza.pb { color: #fff; text-shadow: 0 0 1px #000, 0 0 2px #000, 0 1px 2px #000; }
+.pieza.pn { color: #1d1626; text-shadow: 0 0 1px #fff8, 0 1px 1px #fff6; }
+.ajedrez-estado { margin: 10px 16px 0; text-align: center; font-weight: 800; }
+.ajedrez-reloj { margin: 8px auto 0; width: min(94vw, 420px); display: flex; justify-content: space-between; align-items: center; background: var(--surface); border-radius: 12px; padding: 6px 12px; box-sizing: border-box; font-weight: 700; }
+.ajedrez-reloj b { font-variant-numeric: tabular-nums; font-size: 18px; }
+.ajedrez-reloj.corre { background: var(--accent); color: var(--on-accent); }
+.ajedrez-rivales { margin: 0 14px 16px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.ajedrez-rival { border: 0; cursor: pointer; background: var(--surface); color: var(--text); border-radius: 14px; padding: 10px 6px; display: flex; flex-direction: column; gap: 2px; font: 700 14px Fredoka, sans-serif; }
+.ajedrez-rival small { color: var(--muted); font-size: 11px; }
+.ajedrez-corona { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.ajedrez-corona button { height: 64px; font-size: 40px; border: 0; border-radius: 14px; background: var(--surface2); cursor: pointer; }
+.aj-fila { margin: 10px 16px 0; display: flex; gap: 8px; justify-content: center; }
+.aj-fila .boton { flex: 1; max-width: 220px; }
+.aj-partidas { margin: 10px 14px 0; display: flex; flex-direction: column; gap: 8px; }
+.aj-partida { background: var(--surface); border-radius: 14px; padding: 8px 10px; }
+.aj-partida p { margin: 0 0 6px; font-size: 13px; }
+.aj-partida .aj-fila { margin: 0; justify-content: flex-start; }
+.aj-partida .boton { height: 36px; font-size: 13px; }
+#retar { display: block; margin: 8px auto 0; width: calc(100% - 32px); }

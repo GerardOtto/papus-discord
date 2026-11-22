@@ -1,5 +1,5 @@
 // Proveedor para APIs compatibles con OpenAI (/chat/completions): Groq, Gemini, OpenRouter y Cloudflare.
-import { LLMError, type ChatRequest, type ChatResponse, type LLMProvider } from "./provider";
+import { LLMError, type ChatMessage, type ChatRequest, type ChatResponse, type LLMProvider } from "./provider";
 
 export interface OpenAICompatibleOptions {
   name: string;
@@ -35,6 +35,15 @@ export function parseRetryAfter(headers: Headers, now = Date.now()): number | nu
   return null;
 }
 
+/** Mensaje en el formato de /chat/completions: con imagenes, el contenido va en partes (texto + image_url). */
+export function toWire(m: ChatMessage): { role: ChatMessage["role"]; content: string | unknown[] } {
+  if (!m.images?.length) return { role: m.role, content: m.content };
+  return {
+    role: m.role,
+    content: [{ type: "text", text: m.content }, ...m.images.map((url) => ({ type: "image_url", image_url: { url } }))],
+  };
+}
+
 export class OpenAICompatibleProvider implements LLMProvider {
   readonly name: string;
   private readonly fetchFn: typeof fetch;
@@ -54,7 +63,7 @@ export class OpenAICompatibleProvider implements LLMProvider {
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${this.opts.apiKey}` },
         body: JSON.stringify({
           model: this.opts.model,
-          messages: req.messages,
+          messages: req.messages.map(toWire),
           max_tokens: req.maxTokens,
           temperature: req.temperature,
           ...this.opts.extra,

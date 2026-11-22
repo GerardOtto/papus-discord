@@ -29,3 +29,11 @@ export function workerDatabaseId(root: string): string | null {
     return null;
   }
 }
+
+/** Cliente de D1 con el token de Cloudflare del .env (null si falta el token o el worker no está desplegado). */
+export function d1FromEnv(env: NodeJS.ProcessEnv, root = path.resolve(import.meta.dirname, "../..")): D1Query | null {
+  const token = env.CLOUDFLARE_DEPLOY_TOKEN?.trim();
+  const accountId = env.CLOUDFLARE_ACCOUNT_ID?.trim();
+  const databaseId = workerDatabaseId(root);
+  return token && accountId && databaseId ? d1Client({ accountId, token, databaseId }) : null;
+}

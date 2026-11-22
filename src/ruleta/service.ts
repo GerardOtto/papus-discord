@@ -307,7 +307,7 @@ export class RouletteService {
     } else if (prize.tipo === "cuota_llena") {
       // Cuota llena: devuelve lo gastado hoy con los Vocaloids (lo donado no vuelve); si no habia gastado nada, un
       // mensaje extra (para que nunca salga vacio), que con la cuota llena se vuelve XP.
-      messages = this.d.quota.used(userId, now) - this.d.quota.donated(userId, now);
+      messages = this.d.quota.spent(userId, now);
       if (messages > 0) this.d.quota.reset(userId, now);
       else ({ added: messages, overflow } = this.d.quota.grant(userId, 1, now));
     } else {

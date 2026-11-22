@@ -1,7 +1,6 @@
-// Imágenes de la tienda de las Shaula-coins (PLAN §3.6) que se dibujan al momento: monedero, boleta de transferencia,
-// vitrina, colección, paquetes y el GIF de abrir un sobre con lo que salió. Los dibujos fijos (banner, menú, íconos,
-// paquetes) están en assets/tienda. El texto nunca se sale de su recuadro y va centrado por el dibujo real de las
-// letras (centerText).
+// Imágenes de la tienda de las Shaulitas (PLAN §3.6) que se dibujan al momento: monedero, vitrina, colección y el GIF
+// de abrir un sobre con lo que salió. Los dibujos fijos (banner, menú, íconos) están en assets/tienda. El texto nunca
+// se sale de su recuadro y va centrado por el dibujo real de las letras (centerText).
 import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { createCanvas, loadImage, type Image, type SKRSContext2D } from "@napi-rs/canvas";
@@ -17,7 +16,7 @@ const { applyPalette, GIFEncoder, quantize } = "quantize" in gifencModule && typ
 export const TIENDA_DIR = path.resolve(import.meta.dirname, "../../assets/tienda");
 const BOTS_DIR = path.resolve(import.meta.dirname, "../../assets/bots");
 const INK = "#3B2346";
-const OSCURO: Record<Rareza, string> = { comun: "#3B4250", rara: "#0C3D3A", epica: "#2E1250", legendaria: "#4A3200", mitica: "#3A0F27", fundador: "#3A2E10", membresia: "#4A1426", contrabando: "#16300C" };
+const OSCURO: Record<Rareza, string> = { comun: "#3B4250", rara: "#0C3D3A", epica: "#2E1250", legendaria: "#4A3200", mitica: "#3A0F27", fundador: "#3A2E10", membresia: "#4A1426", contrabando: "#16300C", prestigio: "#4A3A08", exclusivo: "#4A0E1A" };
 const fmt = (n: number) => new Intl.NumberFormat("es-CL").format(n);
 const cache = new Map<string, Promise<Image | null>>();
 
@@ -133,7 +132,7 @@ async function carta(ctx: SKRSContext2D, o: Objeto, x: number, y: number, w: num
   pill(ctx, RAREZA_NOMBRE[o.rareza].toUpperCase(), cx, cy + chipH / 2, {
     size: 13, min: 9, maxW: inner, h: chipH,
     bg: o.rareza === "mitica" ? rainbowAt(ctx, x, w, 0) : color,
-    fg: o.rareza === "comun" || o.rareza === "legendaria" || o.rareza === "fundador" || o.rareza === "membresia" || o.rareza === "contrabando" ? OSCURO[o.rareza] : "#ffffff",
+    fg: o.rareza === "comun" || o.rareza === "legendaria" || o.rareza === "fundador" || o.rareza === "membresia" || o.rareza === "prestigio" || o.rareza === "contrabando" || o.rareza === "exclusivo" ? OSCURO[o.rareza] : "#ffffff",
   });
   cy += chipH + gap;
   ctx.font = `600 ${typeSize}px ${FONT}`;
@@ -192,9 +191,9 @@ export async function monederoImage(nombre: string, w: Wallet, garantiaEpica: nu
   ctx.textBaseline = "alphabetic";
   ctx.fillText(fitText(ctx, `Monedero de ${nombre}`, W - 200), 160, 92);
   const pockets: [string, number, string, string][] = [
-    ["Ganadas", w.ganadas, "sobres y toda la tienda", "#BFF3E8"],
-    ["Compradas", w.compradas, "solo arte propio", "#FFF1C2"],
+    ["Shaulitas", w.monedas, "sobres y toda la tienda", "#BFF3E8"],
     ["Ecos", w.ecos, "para fabricar", "#DCCBFF"],
+    ["Sobres", w.gratis + w.gratisRaro + w.gratisLeg, "regalados por abrir", "#FFF1C2"],
   ];
   for (let i = 0; i < pockets.length; i++) {
     const [label, value, sub, bg] = pockets[i]!;
@@ -205,7 +204,7 @@ export async function monederoImage(nombre: string, w: Wallet, garantiaEpica: nu
     ctx.lineWidth = 3;
     ctx.strokeStyle = INK;
     ctx.stroke();
-    if (i < 2) await coin(ctx, x + 50, y + 60, 30);
+    if (i === 0) await coin(ctx, x + 50, y + 60, 30);
     else {
       const s = await tiendaImage("iconos/sobre.png");
       if (s) ctx.drawImage(s, x + 18, y + 28, 64, 64);
@@ -232,83 +231,6 @@ export async function monederoImage(nombre: string, w: Wallet, garantiaEpica: nu
     ctx.fillStyle = i < w.sinEpica % garantiaEpica ? "#B36BFF" : "#EDE3FA";
     ctx.fill();
   }
-  return c.toBuffer("image/png");
-}
-
-// ───────────────────────── boleta de transferencia ─────────────────────────
-
-export interface DatosBanco {
-  banco: string;
-  tipo: string;
-  numero: string;
-  rut: string;
-  nombre: string;
-  correo: string;
-}
-
-export async function boletaImage(codigo: string, paquete: string, monedas: number, clp: number, banco: DatosBanco): Promise<Buffer> {
-  const W = 760, H = 700;
-  const c = createCanvas(W, H);
-  const ctx = c.getContext("2d");
-  ctx.save();
-  ctx.beginPath();
-  ctx.moveTo(30, 20);
-  ctx.lineTo(W - 30, 20);
-  ctx.lineTo(W - 30, H - 40);
-  for (let x = W - 30, i = 0; x > 30; x -= 30, i++) ctx.lineTo(x - 15, H - 40 + (i % 2 ? 0 : 18)), ctx.lineTo(x - 30, H - 40);
-  ctx.closePath();
-  ctx.shadowColor = "rgba(0,0,0,0.3)";
-  ctx.shadowBlur = 18;
-  ctx.fillStyle = "#FFFDF6";
-  ctx.fill();
-  ctx.restore();
-  const icon = await tiendaImage("iconos/banco.png");
-  if (icon) ctx.drawImage(icon, 46, 40, 100, 100);
-  ctx.textAlign = "left";
-  ctx.textBaseline = "alphabetic";
-  ctx.font = `900 36px ${FONT}`;
-  ctx.fillStyle = INK;
-  ctx.fillText("Transferencia en Chile", 160, 86);
-  ctx.font = `600 20px ${FONT}`;
-  ctx.fillStyle = "rgba(59,35,70,0.65)";
-  ctx.fillText(fitText(ctx, `${paquete} · ${fmt(monedas)} Shaula-coins`, W - 220), 160, 118);
-  const rows: [string, string][] = [
-    ["Monto", `$${fmt(clp)} CLP`],
-    ["Nombre", banco.nombre],
-    ["RUT", banco.rut],
-    ["Banco", banco.banco],
-    ["Tipo de cuenta", banco.tipo],
-    ["N.º de cuenta", banco.numero],
-    ["Correo", banco.correo],
-  ];
-  rows.forEach(([k, v], i) => {
-    const y = 180 + i * 46;
-    ctx.font = `600 22px ${FONT}`;
-    ctx.fillStyle = "rgba(59,35,70,0.6)";
-    ctx.fillText(k, 60, y);
-    ctx.font = `bold 24px ${FONT}`;
-    ctx.fillStyle = INK;
-    ctx.fillText(fitText(ctx, v, W - 330), 270, y);
-    ctx.strokeStyle = "rgba(59,35,70,0.15)";
-    ctx.setLineDash([6, 6]);
-    ctx.beginPath();
-    ctx.moveTo(60, y + 16);
-    ctx.lineTo(W - 60, y + 16);
-    ctx.stroke();
-    ctx.setLineDash([]);
-  });
-  roundRect(ctx, 60, 520, W - 120, 96, 20);
-  ctx.fillStyle = "#FFF1C2";
-  ctx.fill();
-  ctx.lineWidth = 3;
-  ctx.strokeStyle = INK;
-  ctx.stroke();
-  ctx.font = `600 20px ${FONT}`;
-  ctx.fillStyle = INK;
-  ctx.fillText("Escribe esto en el comentario de la transferencia:", 84, 556);
-  ctx.font = `900 40px ${FONT}`;
-  ctx.fillStyle = "#E91E63";
-  ctx.fillText(codigo, 84, 600);
   return c.toBuffer("image/png");
 }
 
@@ -344,10 +266,49 @@ export async function vitrinaImage(cartas: VitrinaCarta[], titulo: string, subti
     await carta(ctx, v.objeto, x, y, cw, ch, {
       precio: v.propio ? undefined : v.precio,
       estado: v.propio ? "Ya lo tienes" : undefined,
-      aviso: v.objeto.origen === "render" ? { texto: "Solo ganadas", color: "#3DDC84" } : undefined,
     });
   }
   return c.toBuffer("image/png");
+}
+
+// ───────────────────────── ofertas de #centro-de-comercio ─────────────────────────
+
+/**
+ * Los objetos de la tarjeta de una oferta (PLAN §3.11; pedido de GyroP, 20 nov. 2026): en vez de solo nombrarlos, sus
+ * cartas, en una franja «Entrega» y otra «Pide» (solo las que traen objetos). JPG liviano: sale con cada anuncio.
+ * null si la oferta no tiene objetos.
+ */
+export async function ofertaImage(o: { titulo: string; entrega: Objeto[]; pide: Objeto[] }): Promise<Buffer | null> {
+  const lados = [
+    { titulo: "ENTREGA", color: "#3DDC84", objetos: o.entrega },
+    { titulo: "PIDE", color: "#FFB020", objetos: o.pide },
+  ].filter((l) => l.objetos.length);
+  if (!lados.length) return null;
+  const cw = 200, ch = 330, gap = 16, pad = 30, headH = 90, labelH = 54;
+  const cols = Math.min(5, Math.max(...lados.map((l) => l.objetos.length)));
+  const W = Math.max(560, pad * 2 + cols * cw + (cols - 1) * gap);
+  const alto = (n: number) => labelH + Math.ceil(n / cols) * (ch + gap);
+  const H = headH + lados.reduce((a, l) => a + alto(l.objetos.length), 0) + pad - gap;
+  const c = createCanvas(W, H);
+  const ctx = c.getContext("2d");
+  darkBg(ctx, W, H);
+  ctx.fillStyle = "#ffffff";
+  fitFont(ctx, o.titulo, W - pad * 2, 36, 18, "900");
+  centerText(ctx, fitText(ctx, o.titulo, W - pad * 2), W / 2, 50);
+  let y = headH;
+  for (const l of lados) {
+    pill(ctx, l.titulo, W / 2, y + 20, { size: 18, min: 12, maxW: 260, h: 34, bg: l.color, fg: "#0E1A12" });
+    y += labelH;
+    const filas = Math.ceil(l.objetos.length / cols);
+    for (let f = 0; f < filas; f++) {
+      const fila = l.objetos.slice(f * cols, f * cols + cols);
+      const rowW = fila.length * cw + (fila.length - 1) * gap;
+      const x0 = (W - rowW) / 2;
+      for (let k = 0; k < fila.length; k++) await carta(ctx, fila[k]!, x0 + k * (cw + gap), y, cw, ch);
+      y += ch + gap;
+    }
+  }
+  return c.toBuffer("image/jpeg", 85);
 }
 
 // ───────────────────────── colección ─────────────────────────
@@ -388,7 +349,7 @@ export async function coleccionSheet(objetos: Objeto[], owned: Set<string>, titu
   return c.toBuffer("image/png");
 }
 
-// ───────────────────────── paquetes ─────────────────────────
+// ───────────────────────── imágenes juntas y menú ─────────────────────────
 
 /**
  * Varias imágenes una debajo de la otra, al mismo ancho, en una sola: Discord muestra en galería (recortadas, lado a
@@ -426,23 +387,6 @@ export function menuTiendaImage(): Promise<Buffer> {
     return c.toBuffer("image/png");
   })();
   return menuCache;
-}
-
-let paquetesCache: Promise<Buffer> | null = null;
-
-/** Los paquetes lado a lado (una imagen fija, se arma una vez). */
-export function paquetesImage(ids: string[]): Promise<Buffer> {
-  paquetesCache ??= (async () => {
-    const S = 420, gap = 16;
-    const c = createCanvas(ids.length * S + (ids.length - 1) * gap, S);
-    const ctx = c.getContext("2d");
-    for (let i = 0; i < ids.length; i++) {
-      const img = await tiendaImage(`paquetes/${ids[i]}.png`);
-      if (img) ctx.drawImage(img, i * (S + gap), 0, S, S);
-    }
-    return c.toBuffer("image/png");
-  })();
-  return paquetesCache;
 }
 
 // ───────────────────────── abrir un sobre (GIF) ─────────────────────────

@@ -1,0 +1,33 @@
+{
+  "$comment": "Desafío semanal de los 7 pecados (temporada 2, GyroP 18 nov. 2026). Una semana por pecado, de jueves a miércoles (hora de la cuota, Chile). El anfitrión es el dueño del pecado en las Evillious Chronicles de mothy y publica el progreso en #ranking justo después del ranking de Teto; al día siguiente del fin, el cierre con el ganador. Solo la Avaricia tiene meta programada por ahora. Avaricia: suma lo que entra al monedero (de cualquier forma, también intercambios) y resta lo que el Papu entrega en intercambios, lo que apuesta (boletos y apuestas: lo que gana después sí cuenta), lo que le quita GyroP y los machetazos. Gastar en tienda, mercado o sobres no resta. Los motivos son los de la tabla movimientos (empiezan con estos textos).",
+  "semanas": [
+    { "id": "avaricia", "nombre": "Avaricia", "emoji": "💰", "anfitrion": "kaito", "inicio": "2026-11-19", "fin": "2026-11-25", "titulo": "El Demonio de la Avaricia" },
+    { "id": "soberbia", "nombre": "Soberbia", "emoji": "👑", "anfitrion": "rin", "inicio": "2026-11-26", "fin": "2026-12-02", "titulo": "El Demonio de la Soberbia" },
+    { "id": "gula", "nombre": "Gula", "emoji": "🍰", "anfitrion": "meiko", "inicio": "2026-12-03", "fin": "2026-12-09", "titulo": "El Demonio de la Gula" },
+    { "id": "ira", "nombre": "Ira", "emoji": "🔥", "anfitrion": "gumi", "inicio": "2026-12-10", "fin": "2026-12-16", "titulo": "El Demonio de la Ira" },
+    { "id": "lujuria", "nombre": "Lujuria", "emoji": "💍", "anfitrion": "gakupo", "inicio": "2026-12-17", "fin": "2026-12-23", "titulo": "El Demonio de la Lujuria" },
+    { "id": "envidia", "nombre": "Envidia", "emoji": "💚", "anfitrion": "luka", "inicio": "2026-12-24", "fin": "2026-12-30", "titulo": "El Demonio de la Envidia" },
+    { "id": "pereza", "nombre": "Pereza", "emoji": "😴", "anfitrion": "miku", "inicio": "2026-12-31", "fin": "2027-01-06", "titulo": "El Demonio de la Pereza" }
+  ],
+  "avaricia": {
+    "restar": ["intercambio #", "apuesta", "boleto carrera", "GyroP:", "machetazo"]
+  },
+  "comentarista": {
+    "$comment": "El anfitrión comenta cuando un Papu gana Shaulitas durante su semana (GyroP, 19 nov. 2026; por ahora solo Kaito en la Avaricia, frases <pecado>_ganancia y <pecado>_ganancia_varios). Solo ganancias de 'minimo' o más y de las fuentes de abajo (participar en el chat, devoluciones y lo que da GyroP no cuentan). Por Papu: una vez cada 'esperaMin' y hasta 'maxDiaPorPapu' al día. Los que ganan en el mismo evento (misma pelea, carrera...) salen en un solo mensaje, 'retrasoSeg' después, para que vaya tras el anuncio. 'canal': nombre del canal; 'nemesis' = el canal donde se jugó esa ruleta.",
+    "minimo": 100,
+    "esperaMin": 30,
+    "maxDiaPorPapu": 10,
+    "retrasoSeg": 20,
+    "fuentes": [
+      { "motivo": "^pelea \\S+ ganada$", "canal": "casino" },
+      { "motivo": "^carrera \\S+ \\(boletos acertados\\)$", "canal": "casino" },
+      { "motivo": "^ruleta de Némesis \\S+ ganada$", "canal": "nemesis" },
+      { "motivo": "^ajedrez \\S+ ganado$", "canal": "casino" },
+      { "motivo": "^intercambio #\\d+$", "canal": "centro-de-comercio" },
+      { "motivo": "^nivel \\d+$", "canal": "general" },
+      { "motivo": "^prestigio ", "canal": "general" },
+      { "motivo": "^premio por ", "canal": "general" }
+    ]
+  },
+  "top": 5
+}

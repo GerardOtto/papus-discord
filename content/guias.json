@@ -1,0 +1,171 @@
+{
+  "$comment": "Guías del foro #📚・guías (PLAN §8, 13 nov. 2026): una publicación por sistema. npm run guias:foro (muestra) y npm run guias:foro -- --apply (publica o edita; las etiquetas del foro se crean solas). 'etiquetas' = etiquetas del foro; 'fijada' = la publicación fijada arriba (Discord fija una sola); 'cerrada' = sin comentarios de los Papus. En el texto, {canal} enlaza un canal y {guia:clave} otra publicación del foro. Mantener al día con docs/PLAN.md.",
+  "$wikis": [
+    "fichas-peleas",
+    "fichas-carreras"
+  ],
+  "$wikisComentario": "Publicaciones del foro que no salen de aquí sino de npm run peleas:wiki y npm run carreras:wiki (fichas de los luchadores y corredores, cerradas; 16 nov. 2026). Se pueden enlazar con {guia:clave}.",
+  "$etiquetas": [
+    "📌 Básico",
+    "🎮 Juegos",
+    "🪙 Economía",
+    "📈 Niveles",
+    "💎 Membresías",
+    "🎨 Comunidad",
+    "🔪 Moderación"
+  ],
+  "inicio": {
+    "titulo": "📌 Empieza aquí",
+    "etiquetas": [
+      "📌 Básico"
+    ],
+    "fijada": true,
+    "cerrada": true,
+    "bot": "teto",
+    "reaccion": "riendo",
+    "imagen": "assets/bots/teto_banner.png",
+    "texto": "¡Papu papu! Este es el servidor del canal Vocaloid de **GyroP**. Aquí conversas con los Vocaloids, juegas, juntas Shaulitas y subes de nivel. ✨\n\n**Lo primero** 🗺️\n> ✿ Lee {reglas}: Neru es estricta 📱\n> ✿ Elige tu color, país, avisos y pronombres en {tus-roles}\n> ✿ Escríbele a un Vocaloid con @ en {general} o {habla-con-los-vocaloids}\n\n**Todas las guías** (toca una):\n> 💬 {guia:cuota} · 📈 {guia:niveles}\n> 🎰 {guia:ruleta} · 🧠 {guia:trivia} · 💍 {guia:bodas}\n> ⚔️ {guia:peleas} · 🏇 {guia:carreras} · 🔫 {guia:nemesis}\n> 🪙 {guia:tienda} · 🕶️ {guia:mercado} · 🤝 {guia:intercambios}\n> 💎 {guia:membresias} · 🎨 {guia:fanart} · 🔪 {guia:normas}\n\n¿Dudas? Escríbelas debajo de la guía que corresponda. 🥖"
+  },
+  "cuota": {
+    "titulo": "💬 Tu cuota diaria con los Vocaloids",
+    "etiquetas": [
+      "📌 Básico",
+      "📈 Niveles"
+    ],
+    "bot": "teto",
+    "reaccion": "feliz",
+    "texto": "Cada Papu tiene **mensajes diarios** con los Vocaloids, compartidos entre todos. Cada **@** a un Vocaloid gasta uno (si mencionas a tres, gastas tres).\n\n**Cuántos tienes** (según tu nivel):\n> Nivel 1-4: **3** · 5-9: **5** · 10-19: **8** · 20-24: **10**\n> 25-49: **12** · 50-69: **14** · 70-89: **16** · 90-99: **18** · con prestigio: **20**\n\nSe recargan a **medianoche de Chile**. Mira cuántos te quedan con `/cuota`.\n\n**Mensajes extra del día:** la ruleta y el sorteo rellenan tu cuota diaria, y ganar una boda la reinicia. Si ya la tienes llena, lo que sobra se vuelve XP.\n\n**Donados:** otro Papu puede regalarte mensajes de su cuota diaria con `/donar`. Van aparte: te caben hasta **5** sin usar y se gastan después de los diarios. Lo que recibes por `/intercambio` entra donde haya espacio. Tu tarjeta lo muestra así: **Cuota diaria 10/20 - Donados 3/5**.\n\n-# Las respuestas de los Vocaloids las escribe una IA: a veces se equivocan. Nada de lo que pagas da exclusividad con ellos."
+  },
+  "niveles": {
+    "titulo": "📈 Niveles, rangos y prestigio",
+    "etiquetas": [
+      "📈 Niveles"
+    ],
+    "bot": "teto",
+    "reaccion": "presumido",
+    "texto": "**Cómo se gana XP**\n> ✍️ Escribiendo: más palabras, más XP (con 2 s entre mensajes; los repetidos no cuentan).\n> 💬 El **doble** si un Vocaloid te contesta.\n> 🎙️ En voz: por minuto y por cada Papu que esté contigo (hasta 5 h al día).\n> 🎮 Trivia, ruleta, bodas y sorteos.\n> 💎 Las membresías de Ko-fi multiplican tu XP ({guia:membresias}).\n\n**Rangos:** cambian cada 3 o 4 niveles y su insignia brilla cada vez más. En el **nivel 40** eres **🏅 Papu de honor** para siempre.\n\n**Prestigio:** en el **99** puedes prestigiar con `/nivel`: vuelves al 1 con una estrella nueva (★ ✯ ✪ ❂ 🌟) y te llevas un premio: un **sobre de prestigio** para elegir (puede traer fondos con Vocaloids y míticas), una **insignia que sube** con cada prestigio, el **marco y el aro de prestigio**, **5.000 Shaulitas**, un banner en {general} y **1 pelea a la semana** que lanzas tú eligiendo a los luchadores.\n\n🔪 Un machetazo de Neru te quita la XP de ese día. Mira tu tarjeta con `/nivel` y el top con `/ranking`."
+  },
+  "ruleta": {
+    "titulo": "🎰 Ruleta y misiones",
+    "etiquetas": [
+      "🎮 Juegos"
+    ],
+    "bot": "teto",
+    "reaccion": "emocionado",
+    "texto": "Cada día tienes **3 misiones**; cada una cumplida es un giro:\n> 🎙️ **2 h en voz** con otros Papus\n> 💬 **200 mensajes** (de los que dan XP)\n> 🆙 **Subir de nivel**\n\nUsa `/ruleta` para ver tu avance y girar. El premio sale público con un GIF: **XP**, **mensajes extra** del día o **un sobre**. Cumplir las 3 misiones del día también te da **un sobre común**.\n\nLos giros se pierden a medianoche (salvo con el 💾 Disquete del mercado negro). Un machetazo bloquea la ruleta ese día."
+  },
+  "trivia": {
+    "titulo": "🧠 Trivia de los Papus",
+    "etiquetas": [
+      "🎮 Juegos"
+    ],
+    "bot": "miku",
+    "reaccion": "emocionado",
+    "texto": "Usa `/trivia` y elige **fácil, media o difícil**. Cada acierto da XP, y las rachas valen más.\n\n> 🔁 Las primeras **10 partidas** del día dan XP; después puedes seguir jugando por la racha.\n> 🎁 Al superar todas las preguntas de una dificultad (y cada tantos aciertos), te llevas **sobres**.\n> ✍️ Algunas preguntas las escriben los Papus con membresía: sale su nombre al final.\n\n**Trivia multijugador:** abre la Actividad de Teto en un canal de voz y jueguen juntos (eliminatoria o cooperativa)."
+  },
+  "bodas": {
+    "titulo": "💍 Bodas con los Vocaloids",
+    "etiquetas": [
+      "🎮 Juegos"
+    ],
+    "bot": "miku",
+    "reaccion": "feliz",
+    "texto": "Hasta **3 veces al día** (entre las 14:00 y las 21:00 de México), un Vocaloid deja una **adivinanza** en {general}.\n\n> 🧵 Se responde **en el hilo** de abajo: **3 intentos** por Papu, **60 minutos**.\n> 💍 El primero que acierta se **casa por 24 horas**: rol con su color, **XP de regalo** (un nivel completo bajo el 40) y **cuota reiniciada**.\n> 💔 `/divorcio` si te arrepientes (conservas la XP).\n\nActiva el aviso **💍 Rizzler** en {tus-roles} para no perderte ninguna. Las membresías desde 🐟 Atún pueden **lanzar bodas** con `/boda`: avisa a los Rizzler y la adivinanza sale **4 minutos después**, para todos."
+  },
+  "adivinanzas": {
+    "titulo": "🧩 ¡Adivina, Papu!",
+    "etiquetas": [
+      "🎮 Juegos",
+      "🪙 Economía"
+    ],
+    "bot": "miku",
+    "reaccion": "emocionado",
+    "texto": "Entre **4 y 6 veces al día** (de 10:00 a 23:00 de México), si hay Papus charlando, un Vocaloid suelta una **adivinanza al aire** en {general}: cultura general, Vocaloid, UTAU, productores, TetoCiencia o el server.\n\n> ✍️ Responde **en el canal**, sin comandos: **3 intentos** por Papu y **30 segundos** para sacarla.\n> 💰 El pozo parte en **50 Shaulitas** y sube hasta **150** a los 15 segundos: mientras más esperas, más vale… si nadie te gana.\n> 💡 Pista en palabras a los **5 s** y letras destapadas a los **10 s**.\n> ✨ 1 de cada 15 es **dorada** (pozo ×2). Si nadie acierta, la siguiente trae **bote**.\n> 🔒 Hasta **4 premios al día** por Papu, para que ganen todos.\n> 🧠 Los lunes, el que más adivinó en la semana se lleva el rol **🧠 Sabelotodo**.\n\nActiva el aviso **🧩 Adivinador** en {tus-roles}. Solo da Shaulitas (no XP ni cuota)."
+  },
+  "peleas": {
+    "titulo": "⚔️ 1vs1, 2vs2 y apuestas",
+    "etiquetas": [
+      "🎮 Juegos",
+      "🪙 Economía"
+    ],
+    "bot": "teto",
+    "reaccion": "emocionado",
+    "texto": "Dos luchadores pelean a las **16:00 y 21:00 de México** en {casino}. Las apuestas abren **5 minutos**: de **10 a 1.000 Shaulitas** a un solo luchador. Si gana, cobras tu apuesta × la cuota.\n\n> 📊 La cuota sale de miles de peleas simuladas: el favorito paga menos.\n> 🍆 El Seguro de Gakupo (mercado negro) te devuelve la apuesta si pierdes.\n> 👥 A veces sale **2 contra 2**: apuestas por un equipo y se enfrenta uno de cada lado por turno, cada uno con sus propios números (en el banner, la vida sumada y el promedio del resto). También con `/pelea modo:2vs2`.\n> ⚔️ Activa el aviso **⚔️ Ludópata** en {tus-roles}.\n\nLas fichas de los luchadores están en {guia:fichas-peleas}. Las membresías y el prestigio **lanzan peleas** con `/pelea` (desde 🥖 Baguette, eligiendo a los luchadores)."
+  },
+  "carreras": {
+    "titulo": "🏇 Carreras y apuestas",
+    "etiquetas": [
+      "🎮 Juegos",
+      "🪙 Economía"
+    ],
+    "bot": "teto",
+    "reaccion": "emocionado",
+    "texto": "Seis Vocaloids corren en {casino} y tú apuestas: **3 carreras al día** a horas sorpresa entre las **14:00 y las 21:00 de México**. Las apuestas abren **5 minutos**.\n\n> 🥇 **Ganador**: llega 1.º · 🥈 **Segundo**: 1.º o 2.º · 🥉 **Tercero**: al podio\n> 🎟️ Puedes comprar **varios boletos** (a varios Vocaloids y en varias bolsas): desde **10 Shaulitas**, hasta **1.000** por carrera\n> 📊 **Apuestas mutuas**, como en el hipódromo: lo apostado se reparte entre los que aciertan, así que **mientras más le apuestan a uno, menos paga**. Las cuotas cambian hasta el cierre\n> 🏇 Activa el aviso **🏇 Burrero** en {tus-roles}.\n\nLa guía completa y las fichas de los corredores están en {guia:fichas-carreras}. Las membresías **lanzan carreras** con `/carrera` (los corredores siempre salen al azar)."
+  },
+  "nemesis": {
+    "titulo": "🔫 Ruleta de Némesis",
+    "etiquetas": [
+      "🎮 Juegos",
+      "🪙 Economía"
+    ],
+    "bot": "neru",
+    "reaccion": "broma",
+    "texto": "Ruleta rusa entre dos Papus. `/nemesis rival apuesta`: cada uno pone lo mismo (**10 a 1.000 Shaulitas**) y el rival tiene **3 minutos** para aceptar.\n\n> 🔫 Una bala, 6 recámaras: se turnan el gatillo (30 s cada uno o Némesis jala por ti).\n> 🏆 El que sobrevive recupera lo suyo y gana el **80 %** de lo del otro; **Némesis cobra el 20 %**.\n\nlos dos tienen la misma probabilidad. no llores después. 📱"
+  },
+  "tienda": {
+    "titulo": "🪙 Shaulitas, tienda y sobres",
+    "etiquetas": [
+      "🪙 Economía"
+    ],
+    "bot": "teto",
+    "reaccion": "presumido",
+    "texto": "Las **Shaulitas** se ganan jugando (no se venden): chateando y en voz, con la primera charla del día, las misiones, las bodas, las rachas, al subir de nivel, en el 1vs1 y en Némesis.\n\nEn {tienda-shaula} (o `/tienda`):\n> 🛒 **Vitrina**: cambia **lunes y jueves**. Pruebas el objeto en tu tarjeta antes de comprar.\n> 🎁 **Sobres**: común 200, raro 500 (Épica segura), legendario 1.200 (Legendaria segura). Las probabilidades están en «Ayuda».\n> 🎯 **Sobre temático**: eliges el tema (un Vocaloid, una temporada, Navidad…) y sale al azar entre sus objetos, renders incluidos: 300, o un común regalado + 20 Ecos. **Ganar una boda** te regala uno de esa Vocaloid.\n> 🔁 Los repetidos se vuelven **Ecos** para fabricar lo que te falte.\n> 🪪 **Mi tarjeta**: fondo, borde, barra, efecto de nombre, aro, insignias y título.\n\n📅 Cada temporada tiene su fecha: cuando termina, sus objetos dejan la vitrina y los sobres (se pueden fabricar, o recuperar con membresía). Los objetos son solo adorno."
+  },
+  "mercado": {
+    "titulo": "🕶️ Mercado negro de Neru",
+    "etiquetas": [
+      "🪙 Economía",
+      "🎮 Juegos"
+    ],
+    "bot": "neru",
+    "reaccion": "pensando",
+    "texto": "abro **una hora al día**, a una hora sorpresa entre las 12:00 y las 23:00 de México, en {tienda-shaula}. activa el aviso **🕶️ Traficante** en {tus-roles}.\n\n> cada día vendo **5 cosas** distintas: consumibles para la ruleta, la trivia, las peleas y los sobres, y algunas rarezas.\n> todo con **Shaulitas**. sin devoluciones.\n> lo que compraste lo ves y lo usas con `/consumibles`.\n\nel 💻 PC de Adachi Rei reinicia tu día entero. es caro. por algo será. 📱"
+  },
+  "intercambios": {
+    "titulo": "🤝 Intercambios entre Papus",
+    "etiquetas": [
+      "🪙 Economía"
+    ],
+    "bot": "teto",
+    "reaccion": "feliz",
+    "texto": "Como las ofertas de Steam: `/intercambio` (o `/intercambio papu` para uno en especial). Armas lo que **entregas** y lo que **pides**: Shaulitas, XP, niveles, mensajes de la cuota de hoy, sobres, objetos de tu colección y usos de consumibles.\n\n> 🌐 **Abierta**: cualquiera la acepta. 🎯 **Dirigida**: acepta, rechaza o hace una **contraoferta**.\n> ✅ Al aceptar se revisa todo y se cambia de una vez.\n> 🔒 Desde el **nivel 5** y con **3 días** en el servidor. Hasta 5 ofertas abiertas; vencen a las 72 h.\n\nLas ofertas se anuncian en {centro-de-comercio}, con las **cartas de los objetos** de la tarjeta que se entregan o se piden."
+  },
+  "membresias": {
+    "titulo": "💎 Membresías de Ko-fi",
+    "etiquetas": [
+      "💎 Membresías"
+    ],
+    "bot": "miku",
+    "reaccion": "presumido",
+    "texto": "Apoya al canal en **ko-fi.com/tetociencia/tiers**. Los niveles son acumulativos. Los Vocaloids son iguales para todos y nada pagado es azar.\n\n**Todas** (crece con el nivel): XP ×1,2 a ×1,75 · lanzar **peleas** y **carreras** (1 a 3 al día) y **bodas** (desde Atún) · **sobres temáticos** cada mes donde **eliges** tus objetos · recuperar objetos de **vitrinas pasadas** · **descuento** en la tienda · ver la **vitrina siguiente** · banners con el estilo de tu nivel · insignia de membresía y de **antigüedad**.\n\n> 🥬 **Puerro** (2 USD): votar el tema de los videos.\n> 🐟 **Atún** (4 USD): escribir preguntas de trivia y adivinanzas con `/aportar`.\n> 🥖 **Baguette** (7 USD): título propio, 4.º lugar de insignia, fondo de membresía, tu tarjeta patrocina el ranking, frase del especial de un luchador, eliges luchadores al lanzar peleas, video 24 h antes.\n> 📱 **Celular** (12 USD): `/color` con hex propio, ingresar al peleador que tú quieras como invitado (1 por temporada), tu nombre en la trivia multijugador, eliges a la Vocaloid de la boda, *lost media*.\n> 💥 **Triple Baka** (25 USD): video personalizado al mes, la bóveda, ingresar tú como invitado en el 1vs1, diseñar un objeto con GyroP y proponer un consumible.\n\nTu membresía, sobres y objetos en {tienda-shaula} → **Mi membresía**."
+  },
+  "fanart": {
+    "titulo": "🎨 Fanart, multimedia y tus redes",
+    "etiquetas": [
+      "🎨 Comunidad"
+    ],
+    "bot": "miku",
+    "reaccion": "emocionado",
+    "texto": "**{fanart}**: arte **hecho por ti** (nada hecho con IA). Cada dibujo es una publicación: ponle un título y la etiqueta de a quién dibujaste.\n\n**{multimedia}**: videos, memes, posts y enlaces de lo que quieras compartir.\n\n**Tus redes:** guarda tu Instagram o tu X una vez con `/redes` (es opcional) y Teto las muestra en cada fanart tuyo para que te sigan. Lo quitas cuando quieras con `/redes` vacío.\n\nLas mejores ideas de los Papus (de aquí, de {ideas-y-opiniones} o de la charla) llegan al {salon-de-la-fama} cuando GyroP o un Mod les pone ⭐."
+  },
+  "normas": {
+    "titulo": "🔪 Normas de Neru y machetazos",
+    "etiquetas": [
+      "🔪 Moderación",
+      "📌 Básico"
+    ],
+    "bot": "neru",
+    "reaccion": "enojado",
+    "texto": "la moderación son **reglas fijas** y AutoMod, **nunca la IA**. todo está en {reglas}.\n\n**machetazos** (vencen a los 3 días):\n> 1 → 10 min de silencio\n> 2 → 1 h de silencio y **sin XP** de ninguna forma mientras tengas 2\n> 3 o más → 24 h de silencio y GyroP revisa el caso\n\nsiempre: se borra el mensaje y pierdes la XP de ese día. un machetazo también bloquea la ruleta y las Shaulitas de ese día. yo no expulso ni baneo: eso solo lo decide GyroP. ¿algo injusto? `/reporte`. 📱"
+  }
+}

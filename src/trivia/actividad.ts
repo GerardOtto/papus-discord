@@ -37,6 +37,18 @@ export class ActividadTrivia {
     this.now = d.now ?? Date.now;
   }
 
+  /**
+   * Nombres de las membresías Celular y más para la portada de la Actividad («Con el apoyo de…», PLAN §2). Los deja
+   * en el kv de D1 solo si cambiaron. Lo llama Discord cada hora.
+   */
+  async setMecenas(nombres: string[]): Promise<void> {
+    const value = JSON.stringify([...nombres].sort((a, b) => a.localeCompare(b, "es")));
+    if (value === this.mecenas) return;
+    await this.d.query("INSERT INTO kv (key, value) VALUES ('actividad:mecenas', ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value", value);
+    this.mecenas = value;
+  }
+  private mecenas = "";
+
   /** Una vuelta: aciertos pendientes y perfiles pedidos. Devuelve cuantos aciertos aplico. */
   async sync(): Promise<number> {
     const aplicados = await this.aplicar();

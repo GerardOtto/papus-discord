@@ -20,6 +20,39 @@ export interface IntercambioSettings {
   maxAbiertas: number;
   /** Para intercambiar: nivel mínimo (o prestigio) y días en el servidor. */
   requisitos: { nivel: number; dias: number };
+  /** Ofertas de los Vocaloids (idea de Piña; GyroP, 18 nov. 2026). Sin esto, no hay. */
+  casa?: CasaSettings;
+}
+
+export interface CasaSettings {
+  activo: boolean;
+  /** Ofertas al día como mucho (zona de la cuota) y abiertas a la vez. */
+  maxDia: number;
+  maxAbiertas: number;
+  /** Horas del día (zona de la cuota) en que pueden salir: [desde, hasta). */
+  horas: [number, number];
+  /** Minutos como mínimo entre una oferta y la siguiente. */
+  esperaMin: number;
+  venceHoras: number;
+  /** Precio = el de la tienda según su rareza × factor, redondeado a 10. */
+  factorPrecio: number;
+}
+
+/**
+ * ¿Sale ahora la oferta de un Vocaloid? Dentro de las horas de la config, con cupo del día y de abiertas y la espera
+ * cumplida, la probabilidad de este minuto reparte las que faltan en lo que queda de la ventana (en promedio salen
+ * todas, repartidas). `hora` y `minuto` en la zona de la cuota.
+ */
+export function tocaOfertaCasa(c: CasaSettings, x: { hora: number; minuto: number; hoy: number; abiertas: number; desdeUltimaMin: number }, rnd: () => number): boolean {
+  if (!c.activo || x.hora < c.horas[0] || x.hora >= c.horas[1]) return false;
+  if (x.hoy >= c.maxDia || x.abiertas >= c.maxAbiertas || x.desdeUltimaMin < c.esperaMin) return false;
+  const quedan = Math.max(1, (c.horas[1] - x.hora) * 60 - x.minuto);
+  return rnd() < (c.maxDia - x.hoy) / quedan;
+}
+
+/** Precio de un objeto en una oferta de un Vocaloid: el de la tienda × factor, redondeado a 10 (mínimo 10). */
+export function precioCasa(precioTienda: number, factor: number): number {
+  return Math.max(10, Math.round((precioTienda * factor) / 10) * 10);
 }
 
 export function loadIntercambioSettings(file = path.join(REPO_ROOT, "config/intercambios.json")): IntercambioSettings {
@@ -30,13 +63,16 @@ export function loadIntercambioSettings(file = path.join(REPO_ROOT, "config/inte
   if (!(Number.isInteger(s.maxAbiertas) && s.maxAbiertas >= 1)) throw new Error("config/intercambios.json: maxAbiertas debe ser 1 o más");
   if (!(s.requisitos?.nivel >= 1 && s.requisitos?.dias >= 0)) throw new Error("config/intercambios.json: requisitos necesita nivel (≥1) y dias (≥0)");
   if (!s.canal) throw new Error("config/intercambios.json: falta canal");
+  const c = s.casa;
+  if (c && !(c.maxDia >= 0 && c.maxAbiertas >= 1 && c.horas?.length === 2 && c.horas[0] < c.horas[1] && c.esperaMin >= 0 && c.venceHoras > 0 && c.factorPrecio > 0))
+    throw new Error("config/intercambios.json: revisa casa (maxDia, maxAbiertas, horas [desde, hasta), esperaMin, venceHoras y factorPrecio)");
   return s;
 }
 
 /** Lo que un lado entrega (o pide). Las cantidades son enteros ≥ 0. */
 export interface Paquete {
-  ganadas: number;
-  compradas: number;
+  /** Shaulitas (una sola moneda desde el 13 nov. 2026). */
+  monedas: number;
   xp: number;
   /** Niveles del que entrega, contados como su XP (la XP total no cambia: quien recibe puede subir más o menos). */
   niveles: number;
@@ -50,18 +86,18 @@ export interface Paquete {
 }
 
 /** Las cantidades que se escriben con un número (el resto son listas). */
-export const CANTIDADES = ["ganadas", "compradas", "xp", "niveles", "cuota"] as const;
+export const CANTIDADES = ["monedas", "xp", "niveles", "cuota"] as const;
 export type Cantidad = (typeof CANTIDADES)[number];
 export const TIPOS_SOBRE: readonly TipoSobre[] = ["comun", "raro", "legendario"];
 
 /** Topes por oferta (para que un error de tipeo no mueva una fortuna). */
-export const TOPES: Record<Cantidad, number> = { ganadas: 1_000_000, compradas: 1_000_000, xp: 10_000_000, niveles: 98, cuota: 1_000 };
+export const TOPES: Record<Cantidad, number> = { monedas: 1_000_000, xp: 10_000_000, niveles: 98, cuota: 1_000 };
 const MAX_OBJETOS = 20;
 
 /** Rarezas que no se cambian: son de una persona (fundadores) o de su membresía. */
-export const RAREZAS_SIN_CAMBIO: readonly Rareza[] = ["fundador", "membresia"];
+export const RAREZAS_SIN_CAMBIO: readonly Rareza[] = ["fundador", "membresia", "prestigio", "exclusivo"];
 
-export const vacio = (): Paquete => ({ ganadas: 0, compradas: 0, xp: 0, niveles: 0, cuota: 0, sobres: { comun: 0, raro: 0, legendario: 0 }, objetos: [], consumibles: {} });
+export const vacio = (): Paquete => ({ monedas: 0, xp: 0, niveles: 0, cuota: 0, sobres: { comun: 0, raro: 0, legendario: 0 }, objetos: [], consumibles: {} });
 
 export function estaVacio(p: Paquete): boolean {
   return CANTIDADES.every((k) => p[k] === 0) && TIPOS_SOBRE.every((t) => p.sobres[t] === 0) && p.objetos.length === 0 && Object.values(p.consumibles).every((n) => n === 0);
@@ -80,6 +116,10 @@ export function normalizar(raw: Partial<Paquete> | null | undefined): Paquete {
   const p = vacio();
   if (!raw) return p;
   for (const k of CANTIDADES) p[k] = entero(raw[k], TOPES[k]);
+  // Ofertas guardadas antes de la moneda única: lo ganado y lo comprado se suman.
+  const viejo = raw as { ganadas?: unknown; compradas?: unknown };
+  if (raw.monedas === undefined && (viejo.ganadas !== undefined || viejo.compradas !== undefined))
+    p.monedas = entero((Number(viejo.ganadas) || 0) + (Number(viejo.compradas) || 0), TOPES.monedas);
   for (const t of TIPOS_SOBRE) p.sobres[t] = entero(raw.sobres?.[t], 1_000);
   p.objetos = [...new Set((raw.objetos ?? []).filter((id) => typeof id === "string" && id))].slice(0, MAX_OBJETOS);
   for (const [id, n] of Object.entries(raw.consumibles ?? {})) {
@@ -106,8 +146,7 @@ export interface Nombres {
  */
 export function describir(p: Paquete, n: Nombres, xpNiveles: number | null = null): string[] {
   const out: string[] = [];
-  if (p.ganadas) out.push(`🪙 **${fmt(p.ganadas)}** Shaula-coins ganadas`);
-  if (p.compradas) out.push(`💳 **${fmt(p.compradas)}** Shaula-coins compradas`);
+  if (p.monedas) out.push(`🪙 **${fmt(p.monedas)}** Shaulitas`);
   if (p.xp) out.push(`✨ **${fmt(p.xp)}** XP`);
   if (p.niveles) {
     const xp = xpNiveles !== null ? `= **${fmt(xpNiveles)}** XP` : "la XP depende del nivel de quien los entregue";

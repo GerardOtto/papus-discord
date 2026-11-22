@@ -13,6 +13,8 @@ export interface MangoSettings {
   frases: string[];
   /** Probabilidad de contestar con una frase en vez de los numeros (a GyroP, nunca). */
   probabilidadFrase: number;
+  /** Reaccion a los mensajes que dicen "mango" (idea de Nyrex, 18 nov. 2026); null = no reacciona. */
+  reaccion: { emoji: string; excluir: string[] } | null;
 }
 
 const REPO_ROOT = path.resolve(import.meta.dirname, "../..");
@@ -23,7 +25,9 @@ export function loadMangoSettings(file = path.join(REPO_ROOT, "config/mango.json
   if (!raw.nombre || !raw.usuario || frases.length === 0) throw new Error(`${file}: faltan nombre, usuario o frases`);
   const p = raw.probabilidadFrase ?? 1 / 3;
   if (!(p >= 0 && p <= 1)) throw new Error(`${file}: probabilidadFrase va de 0 a 1`);
-  return { nombre: raw.nombre, usuario: raw.usuario.toLowerCase(), frases, probabilidadFrase: p };
+  const r = raw.reaccion;
+  const reaccion = r?.emoji ? { emoji: r.emoji, excluir: r.excluir ?? [] } : null;
+  return { nombre: raw.nombre, usuario: raw.usuario.toLowerCase(), frases, probabilidadFrase: p, reaccion };
 }
 
 export type MangoAnswer = { kind: "frase"; text: string } | { kind: "numeros" } | { kind: "totales" };
@@ -41,6 +45,11 @@ export class MangoService {
     const f = this.settings.frases;
     return { kind: "frase", text: f[Math.min(f.length - 1, Math.floor(this.random() * f.length))]! };
   }
+}
+
+/** El texto dice "mango" o "mangos" como palabra suelta (no "mangoneo" ni el @ de Mango9374, que es <@id>). */
+export function saysMango(text: string): boolean {
+  return /(^|[^\p{L}\p{N}_])mangos?(?![\p{L}\p{N}_])/iu.test(text);
 }
 
 /** El mensaje nombra con @ a este usuario (responderle sin @ no cuenta). */

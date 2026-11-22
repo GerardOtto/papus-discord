@@ -1,5 +1,5 @@
 // Imagenes del 1vs1 (PLAN §3.7): el banner del VS (nombre, avatar, estadisticas y cuota de cada Vocaloid) y el GIF
-// del final (el ganador con Shaula-coins cayendo; el perdedor en blanco y negro, tachado con una cruz roja).
+// del final (el ganador con Shaulitas cayendo; el perdedor en blanco y negro, tachado con una cruz roja).
 // Todo el texto va centrado de verdad (por su dibujo, no por la caja de la fuente) y recortado si no cabe.
 import { readFileSync } from "node:fs";
 import path from "node:path";
@@ -8,6 +8,7 @@ import * as gifencModule from "gifenc";
 import { centerText } from "../coins/arte";
 import { BOT_IDS, type BotId } from "../config";
 import { fitText, FONT, roundRect } from "../levels/card";
+import { decorarMembresia, type MarcoMembresia } from "../membresias/marco";
 
 // gifenc es CommonJS: Node lo entrega entero en `default`; vitest usa su version ESM, con las funciones sueltas.
 const { applyPalette, GIFEncoder, quantize } = "quantize" in gifencModule && typeof gifencModule.quantize === "function" ? gifencModule : gifencModule.default;
@@ -100,12 +101,38 @@ function stars(ctx: SKRSContext2D, w: number, h: number, n: number, seed: number
   ctx.restore();
 }
 
+/**
+ * Avatar de un equipo del 2vs2 (PNG cuadrado): las dos caras en círculos que se tocan, cada una con el aro de su
+ * color, sobre fondo oscuro. Cabe dentro del círculo del banner y del GIF del ganador (que lo recortan en redondo).
+ */
+export async function teamAvatar(members: { avatar: Buffer; color: string }[], size = 512): Promise<Buffer> {
+  const [c, ctx] = canvas(size, size);
+  const g = ctx.createRadialGradient(size / 2, size / 2, size * 0.1, size / 2, size / 2, size * 0.7);
+  g.addColorStop(0, shade(members[0]!.color, -0.6));
+  g.addColorStop(1, shade(members[members.length - 1]!.color, -0.85));
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, size, size);
+  const r = size * 0.27;
+  const pos = [
+    [size * 0.31, size * 0.42],
+    [size * 0.69, size * 0.58],
+  ] as const;
+  // El segundo detrás, el primero delante.
+  for (const k of [1, 0]) {
+    const m = members[k];
+    if (!m) continue;
+    circleAvatar(ctx, await loadImage(m.avatar), pos[k]![0], pos[k]![1], r, m.color, size * 0.04);
+  }
+  return c.toBuffer("image/png");
+}
+
 // ───────────────────────── banner del VS ─────────────────────────
 
 export const BANNER_W = 1000;
 export const BANNER_H = 560;
 
-export async function bannerImage(a: FighterCard, b: FighterCard, max: StatMax): Promise<Buffer> {
+/** `membresia`: el estilo del nivel de quien lanzó la pelea (PLAN §2); sin él, el banner de siempre. */
+export async function bannerImage(a: FighterCard, b: FighterCard, max: StatMax, membresia?: MarcoMembresia): Promise<Buffer> {
   const [c, ctx] = canvas(BANNER_W, BANNER_H);
   // Fondo: cada mitad con el color de su Vocaloid, cortadas en diagonal.
   const half = (x0: number, x1: number, color: string, top: number, bottom: number) => {
@@ -188,6 +215,7 @@ export async function bannerImage(a: FighterCard, b: FighterCard, max: StatMax):
   ctx.fillStyle = g;
   ctx.fillText("VS", vx, vy);
   ctx.restore();
+  if (membresia) decorarMembresia(ctx, BANNER_W, BANNER_H, membresia);
   return c.toBuffer("image/png");
 }
 
@@ -315,6 +343,8 @@ export interface ResultData {
   loser: { name: string; color: string; avatar: Buffer };
   /** "por KO" o "por puntos". */
   subtitle: string;
+  /** Ganó un equipo del 2vs2: «¡TETO Y MIKU GANAN!». */
+  plural?: boolean;
   seed: number;
 }
 
@@ -404,7 +434,7 @@ export async function resultGif(d: ResultData): Promise<Buffer> {
   o.save();
   o.shadowColor = d.winner.color;
   o.shadowBlur = 20;
-  fitCenter(o, `¡${d.winner.name.toUpperCase()} GANA!`, RESULT_W / 2, 52, RESULT_W - 60, 50, 28);
+  fitCenter(o, `¡${d.winner.name.toUpperCase()} ${d.plural ? "GANAN" : "GANA"}!`, RESULT_W / 2, 52, RESULT_W - 60, 50, 28);
   o.restore();
   o.save();
   o.shadowColor = "#000000";
@@ -420,7 +450,7 @@ export async function resultGif(d: ResultData): Promise<Buffer> {
   b.fillStyle = "#9a96a8";
   fitCenter(b, d.loser.name, LX, LY + LR + 34, 260, 26, 16);
   b.fillStyle = "#ff5c6e";
-  fitCenter(b, "K.O.", LX, LY + LR + 64, 200, 20, 14);
+  fitCenter(b, d.plural ? "FUERA" : "K.O.", LX, LY + LR + 64, 200, 20, 14);
 
   const coins: Coin[] = Array.from({ length: 38 }, () => ({
     x: WX + (rand() - 0.5) * 2 * (WR + 110),

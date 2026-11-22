@@ -1,0 +1,111 @@
+{
+  "$comment": "Ambiente casual de los Vocaloids (pedido de GyroP, 14 nov. 2026; PLAN §3.13): reacciones con emoji, comentarios de lo que pasa en el servidor, preguntas al aire cuando #general está muerto, mensajes según la hora, minidramas entre bots y bots metiches. Nada de esto es un comando ni gasta la cuota de los Papus. Los topes diarios se cuentan en la base (tabla ambiente_dia) con el día de la cuota (medianoche de Chile). 'activo': false apaga una parte sin tocar el código.",
+  "activo": true,
+  "reacciones": {
+    "$comment": "Sin LLM: si un mensaje de un Papu tiene una palabra de un Vocaloid, ese Vocaloid puede reaccionar con su emoji. Emojis sacados del lore (motor y content/lore-extra.json) o de objetos que ya son suyos en el servidor (Micrófono de Meiko, Luna de IA). Un solo bot reacciona por mensaje. 'patron' es una expresión regular sin distinguir mayúsculas. 'excluir': canales donde nunca reaccionan.",
+    "activo": true,
+    "probabilidad": 0.4,
+    "maxPorBotDia": 20,
+    "esperaCanalSeg": 90,
+    "excluir": ["moderacion", "registro-bots", "reportes-y-reclamos", "reglas", "bienvenida"],
+    "reglas": {
+      "teto": [
+        { "patron": "\\b(pan|panes|baguette|baguettes|marraqueta|bolillo)\\b", "emoji": "🥖" },
+        { "patron": "\\btaladros?\\b", "emoji": "🌀" }
+      ],
+      "miku": [{ "patron": "\\b(puerros?|negi|cebollines?|ievan polkka)\\b", "emoji": "🥬" }],
+      "luka": [{ "patron": "\\b(at[uú]n|maguro)\\b", "emoji": "🐟" }],
+      "neru": [
+        { "patron": "\\b(celular|celu|tel[eé]fono|m[oó]vil)\\b", "emoji": "📱" },
+        { "patron": "\\b(me aburr[ií]|qu[eé] aburrido|tengo sue[ñn]o|me voy a dormir)\\b", "emoji": "😴" }
+      ],
+      "rin": [
+        { "patron": "\\b(naranjas?|mandarinas?)\\b", "emoji": "🍊" },
+        { "patron": "\\b(apisonadora|road roller)\\b", "emoji": "🚧" }
+      ],
+      "len": [{ "patron": "\\b(pl[aá]tanos?|bananas?|bananos?)\\b", "emoji": "🍌" }],
+      "kaito": [
+        { "patron": "\\b(helados?|nieve de|paleta helada)\\b", "emoji": "🍦" },
+        { "patron": "\\bbufandas?\\b", "emoji": "🧣" }
+      ],
+      "meiko": [{ "patron": "\\b(karaoke|micr[oó]fonos?)\\b", "emoji": "🎤" }],
+      "gumi": [
+        { "patron": "\\bzanahorias?\\b", "emoji": "🥕" },
+        { "patron": "\\b(peras?|kiwis?)\\b", "emoji": "🍐" }
+      ],
+      "gakupo": [
+        { "patron": "\\bberenjenas?\\b", "emoji": "🍆" },
+        { "patron": "\\b(katanas?|samur[aá]i)\\b", "emoji": "⚔️" }
+      ],
+      "ia": [
+        { "patron": "\\bla luna\\b", "emoji": "🌙" },
+        { "patron": "\\b(chat ?gpt|inteligencia artificial)\\b", "emoji": "😤" }
+      ],
+      "haku": [{ "patron": "\\b(qu[eé] triste|me rindo|estoy cansad[oa]|qu[eé] sue[ñn]o|qu[eé] flojera)\\b", "emoji": "😮‍💨" }],
+      "flower": [{ "patron": "\\b(rock|metal|guitarras?)\\b", "emoji": "🎸" }],
+      "adachirei": [{ "patron": "\\b(robots?|androides?)\\b", "emoji": "🤖" }],
+      "ruko": [{ "patron": "\\bse acerca\\b", "emoji": "👀" }]
+    }
+  },
+  "metiche": {
+    "$comment": "Con LLM: si alguien nombra a un Vocaloid sin @ (\"Miku es la mejor\"), a veces ese Vocaloid se mete a contestar, sin ping y sin gastar la cuota del Papu. Solo en 'canales'. IA no está: 'IA' es también inteligencia artificial. Rei va como 'Adachi' ('rei' choca con 'reí').",
+    "activo": true,
+    "probabilidad": 0.3,
+    "esperaCanalMin": 30,
+    "maxDia": 15,
+    "canales": ["general"],
+    "nombres": {
+      "teto": "\\bteto\\b",
+      "miku": "\\bmiku\\b",
+      "luka": "\\bluka\\b",
+      "neru": "\\bneru\\b",
+      "gakupo": "\\b(gakupo|gackpo)\\b",
+      "kaito": "\\b(kaito|bakaito)\\b",
+      "flower": "\\bv ?flower\\b",
+      "haku": "\\bhaku\\b",
+      "gumi": "\\bgumi\\b",
+      "rin": "\\brin\\b",
+      "len": "\\blen\\b",
+      "meiko": "\\bmeiko\\b",
+      "adachirei": "\\badachi\\b",
+      "ruko": "\\bruko\\b"
+    }
+  },
+  "eventos": {
+    "$comment": "Con LLM: cuando pasa algo en el servidor (boda, divorcio, pelea, Ruleta de Némesis, racha de trivia, carrera), un Vocaloid lo comenta en #general, sin @ a nadie. Si el LLM falla, no se escribe nada. 'rachaTrivia': racha mínima para comentarla.",
+    "activo": true,
+    "probabilidad": 0.5,
+    "maxDia": 10,
+    "esperaMin": 15,
+    "rachaTrivia": 8
+  },
+  "encuestas": {
+    "$comment": "Sin LLM al preguntar: si #general lleva 'silencioHoras' sin un Papu, un Vocaloid lanza una pregunta tonta de content/encuestas.json para votar con reacciones (sin repetir, mazo persistido). Tras 'resultadoHoras', otro Vocaloid comenta el resultado (con el LLM; si falla, un texto fijo). Solo entre 'desde' y 'hasta' (hora de Chile).",
+    "activo": true,
+    "silencioHoras": 2,
+    "maxDia": 2,
+    "resultadoHoras": 6,
+    "desde": 10,
+    "hasta": 23
+  },
+  "momentos": {
+    "$comment": "Con LLM, una vez por día y momento: un Vocaloid escribe en #general según la hora (Chile). 'dias': 0 = domingo … 6 = sábado (vacío = todos). 'conGente': solo si un Papu escribió en los últimos 15 min (la madrugada solo tiene gracia si hay alguien despierto). 'situacion' es la indicación para el LLM.",
+    "activo": true,
+    "lista": [
+      { "id": "madrugada", "desde": 2, "hasta": 5, "dias": [], "conGente": true, "situacion": "Son las tantas de la madrugada y todavía hay Papus despiertos escribiendo en #general. Coméntalo con tu voz, en broma (pregúntales qué hacen despiertos o mándalos a dormir)." },
+      { "id": "lunes", "desde": 8, "hasta": 11, "dias": [1], "conGente": false, "situacion": "Es lunes por la mañana. Comenta en broma lo que significa un lunes para ti y para los Papus (clases, trabajo, flojera)." },
+      { "id": "viernes", "desde": 19, "hasta": 22, "dias": [5], "conGente": false, "situacion": "Es viernes en la noche y empieza el fin de semana. Celébralo con tu voz y pregúntales a los Papus qué van a hacer." },
+      { "id": "domingo", "desde": 18, "hasta": 21, "dias": [0], "conGente": false, "situacion": "Es domingo en la tarde: se acaba el fin de semana. Coméntalo con tu voz (la pena del domingo, lo que hiciste el finde)." },
+      { "id": "mediodia", "desde": 13, "hasta": 14, "dias": [2, 3, 4], "conGente": true, "situacion": "Es la hora de almuerzo. Pregúntales a los Papus qué van a comer o cuéntales qué comerías tú, con tu voz." }
+    ]
+  },
+  "dramas": {
+    "$comment": "Con LLM: a veces la charla de #general en que un Vocaloid le pregunta a otro se vuelve un pique en broma de 'turnos' mensajes (contando el primero), en vez de una sola respuesta (excepción acotada a la regla 2). Máximo 'maxDia' al día y solo entre 'desde' y 'hasta' (hora de Chile; si no, se gastarían de madrugada, sin nadie mirando).",
+    "activo": true,
+    "probabilidad": 0.35,
+    "turnos": 4,
+    "maxDia": 3,
+    "desde": 12,
+    "hasta": 23
+  }
+}
